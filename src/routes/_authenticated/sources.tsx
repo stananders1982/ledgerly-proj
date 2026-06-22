@@ -54,11 +54,12 @@ function SourcesPage() {
     },
   });
 
-  const leadsQ = useQuery({
-    queryKey: ["leads-for-sources"],
+  const entriesQ = useQuery({
+    queryKey: ["entries-for-sources"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("leads").select("id,source_id,activated,reported");
+        .from("daily_lead_entries")
+        .select("source_id,received,activated,reported");
       if (error) throw error;
       return data ?? [];
     },
@@ -76,14 +77,14 @@ function SourcesPage() {
 
   const analytics = useMemo(() => {
     const sources = sourcesQ.data ?? [];
-    const leads = leadsQ.data ?? [];
+    const entries = entriesQ.data ?? [];
     const rev = revQ.data ?? [];
 
     return sources.map((s) => {
-      const sLeads = leads.filter((l: any) => l.source_id === s.id);
-      const total = sLeads.length;
-      const activated = sLeads.filter((l: any) => l.activated).length;
-      const reported = sLeads.filter((l: any) => l.activated && l.reported).length;
+      const sEntries = entries.filter((e: any) => e.source_id === s.id);
+      const total = sEntries.reduce((a: number, e: any) => a + (e.received ?? 0), 0);
+      const activated = sEntries.reduce((a: number, e: any) => a + (e.activated ?? 0), 0);
+      const reported = sEntries.reduce((a: number, e: any) => a + (e.reported ?? 0), 0);
       const price = Number(s.price);
       const reportingRate = activated ? (reported / activated) * 100 : 0;
 
@@ -93,7 +94,7 @@ function SourcesPage() {
         cost = total * price;
       } else {
         cost = reported * price;
-        savings = (activated - reported) * price;
+        savings = Math.max(0, activated - reported) * price;
       }
 
       const revenue = rev
@@ -103,7 +104,8 @@ function SourcesPage() {
       const roi = cost > 0 ? ((revenue - cost) / cost) * 100 : 0;
       return { source: s, total, activated, reported, reportingRate, cost, savings, revenue, roi };
     });
-  }, [sourcesQ.data, leadsQ.data, revQ.data]);
+  }, [sourcesQ.data, entriesQ.data, revQ.data]);
+
 
   const totals = useMemo(() => analytics.reduce(
     (a, x) => ({
