@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, TrendingDown, TrendingUp, Users } from "lucide-react";
+import { CalendarClock, DollarSign, Repeat, Target, TrendingDown, TrendingUp, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct } from "@/lib/format";
 import { StatCard } from "@/components/stat-card";
