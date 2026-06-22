@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       daily_lead_entries: {
         Row: {
+          activated: number
           campaign: string | null
           converted: number
           cost: number
@@ -27,9 +28,11 @@ export type Database = {
           received: number
           reported: number
           source: string | null
+          source_id: string | null
           updated_at: string
         }
         Insert: {
+          activated?: number
           campaign?: string | null
           converted?: number
           cost?: number
@@ -41,9 +44,11 @@ export type Database = {
           received?: number
           reported?: number
           source?: string | null
+          source_id?: string | null
           updated_at?: string
         }
         Update: {
+          activated?: number
           campaign?: string | null
           converted?: number
           cost?: number
@@ -55,9 +60,18 @@ export type Database = {
           received?: number
           reported?: number
           source?: string | null
+          source_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "daily_lead_entries_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "lead_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employees: {
         Row: {
