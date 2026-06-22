@@ -267,6 +267,59 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_expenses: {
+        Row: {
+          active: boolean
+          amount: number
+          category_id: string | null
+          created_at: string
+          end_date: string | null
+          frequency: Database["public"]["Enums"]["recurrence_frequency"]
+          id: string
+          name: string
+          next_due_date: string
+          notes: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          name: string
+          next_due_date?: string
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          name?: string
+          next_due_date?: string
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       revenue: {
         Row: {
           amount: number
@@ -344,6 +397,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_due_date: {
+        Args: {
+          _d: string
+          _f: Database["public"]["Enums"]["recurrence_frequency"]
+        }
+        Returns: string
+      }
+      generate_due_recurring_expenses: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -355,6 +416,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user"
       lead_status: "new" | "contacted" | "qualified" | "activated" | "lost"
+      recurrence_frequency: "weekly" | "monthly" | "quarterly" | "yearly"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -484,6 +546,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user"],
       lead_status: ["new", "contacted", "qualified", "activated", "lost"],
+      recurrence_frequency: ["weekly", "monthly", "quarterly", "yearly"],
     },
   },
 } as const
