@@ -103,7 +103,7 @@ function LeadsPage() {
         employee_id: v.employee_id || null,
         activated: !!v.activated,
         reported: !!v.reported,
-        status: v.activated ? "activated" : "new",
+        status: (v.activated ? "activated" : "new") as "activated" | "new",
         notes: v.notes || null,
       };
       const { error } = v.id
@@ -111,6 +111,7 @@ function LeadsPage() {
         : await supabase.from("leads").insert(payload);
       if (error) throw error;
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leads-list"] });
       qc.invalidateQueries({ queryKey: ["leads-for-sources"] });
