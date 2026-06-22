@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       daily_lead_entries: {
         Row: {
+          campaign: string | null
           converted: number
           cost: number
           created_at: string
@@ -24,9 +25,12 @@ export type Database = {
           id: string
           notes: string | null
           received: number
+          reported: number
+          source: string | null
           updated_at: string
         }
         Insert: {
+          campaign?: string | null
           converted?: number
           cost?: number
           created_at?: string
@@ -35,9 +39,12 @@ export type Database = {
           id?: string
           notes?: string | null
           received?: number
+          reported?: number
+          source?: string | null
           updated_at?: string
         }
         Update: {
+          campaign?: string | null
           converted?: number
           cost?: number
           created_at?: string
@@ -46,6 +53,8 @@ export type Database = {
           id?: string
           notes?: string | null
           received?: number
+          reported?: number
+          source?: string | null
           updated_at?: string
         }
         Relationships: []

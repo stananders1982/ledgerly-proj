@@ -1,0 +1,206 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, UserCog } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { fmtMoney } from "@/lib/format";
+import { ConfirmDelete } from "@/components/confirm-delete";
+import { EmptyState } from "@/components/empty-state";
+import { Switch } from "@/components/ui/switch";
+
+export const Route = createFileRoute("/_authenticated/employees")({
+  head: () => ({ meta: [{ title: "Employees — Ledgerly" }] }),
+  component: EmployeesPage,
+});
+
+type Emp = {
+  id: string;
+  name: string;
+  email: string | null;
+  role: string | null;
+  salary: number;
+  commission_pct: number;
+  active: boolean;
+};
+
+function EmployeesPage() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Emp | null>(null);
+
+  const q = useQuery({
+    queryKey: ["employees"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("employees").select("*").order("name");
+      if (error) throw error;
+      return (data ?? []) as Emp[];
+    },
+  });
+
+  const rows = q.data ?? [];
+
+  const upsert = useMutation({
+    mutationFn: async (v: any) => {
+      const payload = {
+        name: v.name,
+        email: v.email || null,
+        role: v.role || null,
+        salary: Number(v.salary) || 0,
+        commission_pct: Number(v.commission_pct) || 0,
+        active: !!v.active,
+      };
+      if (v.id) {
+        const { error } = await supabase.from("employees").update(payload).eq("id", v.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("employees").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employees"] });
+      toast.success("Saved");
+      setOpen(false);
+      setEditing(null);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("employees").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employees"] });
+      toast.success("Deleted");
+    },
+  });
+
+  return (
+    <div>
+      <PageHeader
+        title="Employees"
+        description="Team members with base salary and commission percentage."
+        actions={
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4" /> Add employee</Button>
+            </DialogTrigger>
+            <EmpDialog emp={editing} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+          </Dialog>
+        }
+      />
+
+      <div className="card-surface overflow-hidden">
+        {q.isLoading ? (
+          <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+        ) : rows.length === 0 ? (
+          <EmptyState
+            icon={UserCog}
+            title="No employees yet"
+            description="Add your first team member."
+            action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add employee</Button>}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-3 px-4">Name</th>
+                  <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">Email</th>
+                  <th className="py-3 px-4">Base salary</th>
+                  <th className="py-3 px-4">Commission</th>
+                  <th className="py-3 px-4">Active</th>
+                  <th className="py-3 px-4"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((e) => (
+                  <tr key={e.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                      onClick={() => { setEditing(e); setOpen(true); }}>
+                    <td className="py-3 px-4 font-medium">{e.name}</td>
+                    <td className="py-3 px-4">{e.role || "—"}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{e.email || "—"}</td>
+                    <td className="py-3 px-4">{fmtMoney(e.salary)}</td>
+                    <td className="py-3 px-4">{Number(e.commission_pct).toFixed(2)}%</td>
+                    <td className="py-3 px-4">{e.active ? "Yes" : "No"}</td>
+                    <td className="py-3 px-4 text-right" onClick={(ev) => ev.stopPropagation()}>
+                      <ConfirmDelete onConfirm={() => del.mutate(e.id)} label="Delete employee?" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EmpDialog({
+  emp, onSubmit, loading,
+}: { emp: Emp | null; onSubmit: (v: any) => void; loading: boolean }) {
+  const [form, setForm] = useState(() => ({
+    id: emp?.id,
+    name: emp?.name ?? "",
+    email: emp?.email ?? "",
+    role: emp?.role ?? "",
+    salary: emp?.salary ?? 0,
+    commission_pct: emp?.commission_pct ?? 0,
+    active: emp?.active ?? true,
+  }));
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader><DialogTitle>{emp?.id ? "Edit employee" : "New employee"}</DialogTitle></DialogHeader>
+      <div className="grid gap-3 py-2">
+        <Field label="Name">
+          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Role">
+            <Input placeholder="Sales, Manager…" value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value })} />
+          </Field>
+          <Field label="Email">
+            <Input type="email" value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Base salary">
+            <Input type="number" min={0} step="0.01" value={form.salary}
+              onChange={(e) => setForm({ ...form, salary: Number(e.target.value) })} />
+          </Field>
+          <Field label="Commission %">
+            <Input type="number" min={0} step="0.01" value={form.commission_pct}
+              onChange={(e) => setForm({ ...form, commission_pct: Number(e.target.value) })} />
+          </Field>
+        </div>
+        <div className="flex items-center justify-between rounded-md border border-border p-3">
+          <Label className="text-sm">Active</Label>
+          <Switch checked={form.active} onCheckedChange={(v) => setForm({ ...form, active: v })} />
+        </div>
+      </div>
+      <DialogFooter>
+        <Button onClick={() => onSubmit(form)} disabled={loading || !form.name}>
+          {loading ? "Saving…" : "Save"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="grid gap-1.5"><Label className="text-xs">{label}</Label>{children}</div>;
+}
