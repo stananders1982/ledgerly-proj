@@ -171,23 +171,30 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          price: number
+          pricing_model: Database["public"]["Enums"]["pricing_model"]
         }
         Insert: {
           active?: boolean
           created_at?: string
           id?: string
           name: string
+          price?: number
+          pricing_model?: Database["public"]["Enums"]["pricing_model"]
         }
         Update: {
           active?: boolean
           created_at?: string
           id?: string
           name?: string
+          price?: number
+          pricing_model?: Database["public"]["Enums"]["pricing_model"]
         }
         Relationships: []
       }
       leads: {
         Row: {
+          activated: boolean
           cost: number
           created_at: string
           email: string | null
@@ -196,11 +203,13 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          reported: boolean
           source_id: string | null
           status: Database["public"]["Enums"]["lead_status"]
           updated_at: string
         }
         Insert: {
+          activated?: boolean
           cost?: number
           created_at?: string
           email?: string | null
@@ -209,11 +218,13 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          reported?: boolean
           source_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
         }
         Update: {
+          activated?: boolean
           cost?: number
           created_at?: string
           email?: string | null
@@ -222,6 +233,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          reported?: boolean
           source_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
@@ -416,6 +428,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user"
       lead_status: "new" | "contacted" | "qualified" | "activated" | "lost"
+      pricing_model: "CPL" | "CPA"
       recurrence_frequency: "weekly" | "monthly" | "quarterly" | "yearly"
     }
     CompositeTypes: {
@@ -546,6 +559,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user"],
       lead_status: ["new", "contacted", "qualified", "activated", "lost"],
+      pricing_model: ["CPL", "CPA"],
       recurrence_frequency: ["weekly", "monthly", "quarterly", "yearly"],
     },
   },
