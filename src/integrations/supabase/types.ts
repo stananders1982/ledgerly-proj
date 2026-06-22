@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_lead_entries: {
+        Row: {
+          converted: number
+          cost: number
+          created_at: string
+          created_by: string | null
+          entry_date: string
+          id: string
+          notes: string | null
+          received: number
+          updated_at: string
+        }
+        Insert: {
+          converted?: number
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          id?: string
+          notes?: string | null
+          received?: number
+          updated_at?: string
+        }
+        Update: {
+          converted?: number
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          id?: string
+          notes?: string | null
+          received?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           active: boolean
