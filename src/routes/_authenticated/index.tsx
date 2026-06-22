@@ -23,7 +23,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_lead_entries")
-        .select("received,activated,reported,lead_sources(pricing_model,price)")
+        .select("received,activated,reported,lead_sources(pricing_model,price,expected_conversion_rate)")
         .gte("entry_date", start).lte("entry_date", end);
       if (error) throw error;
       return data ?? [];
@@ -51,6 +51,7 @@ function Dashboard() {
     const entries = (leadsQ.data ?? []) as any[];
     let received = 0, activated = 0, reported = 0;
     let cplCost = 0, cpaPayable = 0, cpaSavings = 0;
+    let expectedActivations = 0;
     for (const e of entries) {
       received += e.received ?? 0;
       activated += e.activated ?? 0;
@@ -58,6 +59,8 @@ function Dashboard() {
       const s = e.lead_sources;
       if (!s) continue;
       const p = Number(s.price);
+      const expected = Number(s.expected_conversion_rate) || 0;
+      expectedActivations += ((e.received ?? 0) * expected) / 100;
       if (s.pricing_model === "CPL") cplCost += p * (e.received ?? 0);
       else {
         cpaPayable += p * (e.reported ?? 0);
@@ -89,6 +92,8 @@ function Dashboard() {
       received, activated, reported, unreported,
       cplCost, cpaPayable, cpaSavings,
       rate: received ? (activated / received) * 100 : 0,
+      expectedActivations, activationSurplus: activated - expectedActivations,
+      expectedRate: received ? (expectedActivations / received) * 100 : 0,
       recurringMonthly, fixedMonthly, upcoming30, breakEven: fixedMonthly,
     };
   }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data]);
@@ -113,6 +118,21 @@ function Dashboard() {
         <StatCard label="Reported activations" value={String(m.reported)} />
         <StatCard label="Unreported activations" value={String(m.unreported)} />
         <StatCard label="Conv. rate" value={fmtPct(m.rate)} />
+      </section>
+
+      <section className="grid gap-3 grid-cols-2 lg:grid-cols-4 mb-6">
+        <StatCard label="Expected activations" value={String(Math.round(m.expectedActivations))} />
+        <StatCard label="Actual activations" value={String(m.activated)} tone="positive" />
+        <StatCard
+          label={m.activationSurplus >= 0 ? "Activation surplus" : "Activation deficit"}
+          value={`${m.activationSurplus >= 0 ? "+" : ""}${Math.round(m.activationSurplus)}`}
+          tone={m.activationSurplus >= 0 ? "positive" : "negative"}
+        />
+        <StatCard
+          label="Rate vs target"
+          value={`${m.rate.toFixed(1)}% / ${m.expectedRate.toFixed(1)}%`}
+          tone={m.rate >= m.expectedRate ? "positive" : "negative"}
+        />
       </section>
 
       <section className="grid gap-3 grid-cols-2 lg:grid-cols-4 mb-6">
