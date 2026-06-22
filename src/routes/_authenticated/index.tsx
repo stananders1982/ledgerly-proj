@@ -124,6 +124,13 @@ function Dashboard() {
         <StatCard label="Cost / lead" value={fmtMoney(m.cpl)} />
       </section>
 
+      <section className="grid gap-3 grid-cols-2 lg:grid-cols-4 mb-6">
+        <StatCard label="Fixed monthly costs" value={fmtMoney(m.fixedMonthly)} icon={Repeat} />
+        <StatCard label="Recurring monthly" value={fmtMoney(m.recurringMonthly)} icon={Repeat} />
+        <StatCard label="Upcoming (30d)" value={fmtMoney(m.upcoming30)} icon={CalendarClock} />
+        <StatCard label="Break-even revenue" value={fmtMoney(m.breakEven)} icon={Target}
+          tone={m.income >= m.breakEven ? "positive" : "negative"} />
+
       <section className="card-surface p-5">
         <h3 className="font-display text-base font-semibold mb-3">Expense breakdown</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
