@@ -130,10 +130,11 @@ function LeadsPage() {
   });
 
   const toggle = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Lead> }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {
       const { error } = await supabase.from("leads").update(patch).eq("id", id);
       if (error) throw error;
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leads-list"] });
       qc.invalidateQueries({ queryKey: ["leads-for-sources"] });
