@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Receipt, TrendingUp, UserCog, Sparkles, LogOut, Repeat, Tag } from "lucide-react";
+import { LayoutDashboard, Users, Receipt, TrendingUp, UserCog, Sparkles, LogOut, Repeat, Tag, FileBarChart } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter,
@@ -15,6 +15,7 @@ const items = [
   { title: "Expenses", url: "/expenses", icon: Receipt },
   { title: "Recurring", url: "/recurring", icon: Repeat },
   { title: "Employees", url: "/employees", icon: UserCog },
+  { title: "Reports", url: "/reports", icon: FileBarChart },
 ];
 
 
