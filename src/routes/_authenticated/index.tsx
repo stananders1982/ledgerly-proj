@@ -57,6 +57,17 @@ function Dashboard() {
     },
   });
 
+  const recQ = useQuery({
+    queryKey: ["dash-recurring"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("recurring_expenses")
+        .select("amount,frequency,next_due_date,active,end_date").eq("active", true);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const m = useMemo(() => {
     const leads = leadsQ.data ?? [];
     const received = leads.reduce((s, r) => s + Number(r.received), 0);
@@ -68,14 +79,28 @@ function Dashboard() {
     const commissions = (empQ.data ?? []).reduce(
       (s, e) => s + (income * Number(e.commission_pct)) / 100, 0);
     const expTotal = leadCost + otherExp + salaries + commissions;
+
+    // Recurring
+    const rec = recQ.data ?? [];
+    const monthlyEquiv = (a: number, f: string) =>
+      f === "weekly" ? a * 52 / 12 : f === "quarterly" ? a / 3 : f === "yearly" ? a / 12 : a;
+    const recurringMonthly = rec.reduce((s, r: any) => s + monthlyEquiv(Number(r.amount), r.frequency), 0);
+    const fixedMonthly = recurringMonthly + salaries;
+    const in30 = new Date(); in30.setDate(in30.getDate() + 30);
+    const upcoming30 = rec
+      .filter((r: any) => r.next_due_date && new Date(r.next_due_date) <= in30)
+      .reduce((s, r: any) => s + Number(r.amount), 0);
+    const breakEven = fixedMonthly; // monthly revenue needed to cover fixed costs
+
     return {
       income, leadCost, otherExp, salaries, commissions,
       expTotal, profit: income - expTotal,
       received, converted,
       rate: received ? (converted / received) * 100 : 0,
       cpl: received ? leadCost / received : 0,
+      recurringMonthly, fixedMonthly, upcoming30, breakEven,
     };
-  }, [leadsQ.data, revQ.data, expQ.data, empQ.data]);
+  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data]);
 
   return (
     <div>
