@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { TargetBadge } from "@/routes/_authenticated/sources";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/reports")({
@@ -421,7 +422,11 @@ function ReportsPage() {
               { key: "leads", label: "Leads", numeric: true },
               { key: "activated", label: "Activated", numeric: true },
               { key: "reported", label: "Reported", numeric: true },
-              { key: "rate", label: "Rate", numeric: true, render: (v) => fmtPct(v) },
+              { key: "expected", label: "Expected %", numeric: true, render: (v) => v ? fmtPct(v) : "—" },
+              { key: "actualRate", label: "Actual %", numeric: true, render: (v) => fmtPct(v) },
+              { key: "variance", label: "Variance", numeric: true, render: (v, r) => r.expected ? <span className={v >= 0 ? "text-emerald-500" : "text-destructive"}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span> : "—" },
+              { key: "deficit", label: "Surplus", numeric: true, render: (v, r) => r.expected ? <span className={v >= 0 ? "text-emerald-500" : "text-destructive"}>{v >= 0 ? "+" : ""}{Math.round(v)}</span> : "—" },
+              { key: "status", label: "Status", render: (_v, r) => <TargetBadge actual={r.actualRate} expected={r.expected} /> },
               { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
               { key: "totalCost", label: "Cost", numeric: true, render: (v) => fmtMoney(v) },
               { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
@@ -431,6 +436,7 @@ function ReportsPage() {
             searchable
           />
         </TabsContent>
+
 
         <TabsContent value="employees">
           <SortableTable
