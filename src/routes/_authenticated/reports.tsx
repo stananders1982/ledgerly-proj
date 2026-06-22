@@ -128,7 +128,7 @@ function ReportsPage() {
 
   const sources = useMemo(() => {
     const map = new Map<string, any>();
-    for (const s of (srcQ.data ?? []) as any[]) map.set(s.id, { id: s.id, name: s.name, model: s.pricing_model, price: Number(s.price), leads: 0, activated: 0, reported: 0, marketing: 0 });
+    for (const s of (srcQ.data ?? []) as any[]) map.set(s.id, { id: s.id, name: s.name, model: s.pricing_model, price: Number(s.price), expected: Number(s.expected_conversion_rate) || 0, leads: 0, activated: 0, reported: 0, marketing: 0 });
     for (const e of data.entries) {
       if (!e.source_id) continue;
       const r = map.get(e.source_id); if (!r) continue;
@@ -140,8 +140,15 @@ function ReportsPage() {
       const savings = r.model === "CPA" ? r.price * Math.max(0, r.activated - r.reported) : 0;
       const revenue = r.activated * revPerActivation;
       const totalCost = cost + r.marketing;
+      const actualRate = r.leads ? (r.activated / r.leads) * 100 : 0;
+      const expectedActivations = (r.leads * r.expected) / 100;
       return { ...r, cost, savings, revenue, totalCost,
-        rate: r.leads ? (r.activated / r.leads) * 100 : 0,
+        rate: actualRate,
+        actualRate,
+        variance: actualRate - r.expected,
+        expectedActivations,
+        deficit: r.activated - expectedActivations,
+        status: r.expected ? (actualRate >= r.expected ? "Above" : "Below") : "—",
         roi: totalCost ? ((revenue - totalCost) / totalCost) * 100 : 0,
         cpl: r.leads ? totalCost / r.leads : 0,
         cpaEff: r.activated ? totalCost / r.activated : 0,
