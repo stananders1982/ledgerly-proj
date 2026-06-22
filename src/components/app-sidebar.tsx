@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Receipt, TrendingUp, UserCog, Sparkles, LogOut, Repeat } from "lucide-react";
+import { LayoutDashboard, Users, Receipt, TrendingUp, UserCog, Sparkles, LogOut, Repeat, Tag } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter,
@@ -10,11 +10,13 @@ import { Button } from "@/components/ui/button";
 const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Leads", url: "/leads", icon: Users },
+  { title: "Sources", url: "/sources", icon: Tag },
   { title: "Income", url: "/revenue", icon: TrendingUp },
   { title: "Expenses", url: "/expenses", icon: Receipt },
   { title: "Recurring", url: "/recurring", icon: Repeat },
   { title: "Employees", url: "/employees", icon: UserCog },
 ];
+
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
