@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Download, Users } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,6 @@ import { toast } from "sonner";
 import { fmtDate, fmtMoney, fmtPct } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 import { StatCard } from "@/components/stat-card";
 
 export const Route = createFileRoute("/_authenticated/leads")({
@@ -29,8 +25,11 @@ export const Route = createFileRoute("/_authenticated/leads")({
 type Entry = {
   id: string;
   entry_date: string;
+  source: string | null;
+  campaign: string | null;
   received: number;
   converted: number;
+  reported: number;
   cost: number;
   notes: string | null;
 };
@@ -57,14 +56,12 @@ function LeadsPage() {
   const stats = useMemo(() => {
     const received = rows.reduce((s, r) => s + Number(r.received), 0);
     const converted = rows.reduce((s, r) => s + Number(r.converted), 0);
+    const reported = rows.reduce((s, r) => s + Number(r.reported), 0);
     const cost = rows.reduce((s, r) => s + Number(r.cost), 0);
     return {
-      received,
-      converted,
-      cost,
+      received, converted, reported, cost,
       rate: received ? (converted / received) * 100 : 0,
       cpl: received ? cost / received : 0,
-      cpa: converted ? cost / converted : 0,
     };
   }, [rows]);
 
@@ -72,8 +69,11 @@ function LeadsPage() {
     mutationFn: async (v: any) => {
       const payload = {
         entry_date: v.entry_date,
+        source: v.source || null,
+        campaign: v.campaign || null,
         received: Number(v.received) || 0,
         converted: Number(v.converted) || 0,
+        reported: Number(v.reported) || 0,
         cost: Number(v.cost) || 0,
         notes: v.notes || null,
       };
@@ -105,59 +105,28 @@ function LeadsPage() {
     },
   });
 
-  const handleExport = (type: "csv" | "xlsx" | "pdf") => {
-    const out = rows.map((r) => ({
-      Date: fmtDate(r.entry_date),
-      Received: r.received,
-      Converted: r.converted,
-      Cost: r.cost,
-      "Conv. rate": `${((r.converted / Math.max(r.received, 1)) * 100).toFixed(1)}%`,
-      Notes: r.notes ?? "",
-    }));
-    if (!out.length) return toast.error("Nothing to export");
-    if (type === "csv") exportCSV(out, "daily-leads");
-    else if (type === "xlsx") exportXLSX(out, "daily-leads", "Leads");
-    else exportPDF("Daily leads", out, "daily-leads");
-  };
-
   return (
     <div>
       <PageHeader
         title="Leads"
-        description="Log how many leads you received each day, how many converted, and what they cost."
+        description="Daily log: source, campaign, how many received, converted, reported, and cost."
         actions={
-          <div className="flex gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline"><Download className="h-4 w-4" /> Export</Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExport("csv")}>CSV</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("xlsx")}>Excel</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("pdf")}>PDF</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
-              <DialogTrigger asChild>
-                <Button><Plus className="h-4 w-4" /> Add entry</Button>
-              </DialogTrigger>
-              <EntryDialog
-                entry={editing}
-                onSubmit={(v) => upsert.mutate(v)}
-                loading={upsert.isPending}
-              />
-            </Dialog>
-          </div>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4" /> Add entry</Button>
+            </DialogTrigger>
+            <EntryDialog entry={editing} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+          </Dialog>
         }
       />
 
       <section className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
-        <StatCard label="Leads received" value={String(stats.received)} />
+        <StatCard label="Received" value={String(stats.received)} />
         <StatCard label="Converted" value={String(stats.converted)} tone="positive" />
-        <StatCard label="Conversion rate" value={fmtPct(stats.rate)} />
+        <StatCard label="Reported" value={String(stats.reported)} />
+        <StatCard label="Conv. rate" value={fmtPct(stats.rate)} />
         <StatCard label="Total cost" value={fmtMoney(stats.cost)} />
         <StatCard label="Cost / lead" value={fmtMoney(stats.cpl)} />
-        <StatCard label="Cost / conversion" value={fmtMoney(stats.cpa)} />
       </section>
 
       <div className="card-surface overflow-hidden">
@@ -167,7 +136,7 @@ function LeadsPage() {
           <EmptyState
             icon={Users}
             title="No entries yet"
-            description="Add your first daily lead entry to start tracking conversions and cost."
+            description="Add your first daily lead entry."
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add entry</Button>}
           />
         ) : (
@@ -176,35 +145,33 @@ function LeadsPage() {
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Source</th>
+                  <th className="py-3 px-4">Campaign</th>
                   <th className="py-3 px-4">Received</th>
                   <th className="py-3 px-4">Converted</th>
-                  <th className="py-3 px-4">Conv. rate</th>
+                  <th className="py-3 px-4">Reported</th>
                   <th className="py-3 px-4">Cost</th>
-                  <th className="py-3 px-4">Cost / lead</th>
                   <th className="py-3 px-4">Notes</th>
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => {
-                  const rate = r.received ? (r.converted / r.received) * 100 : 0;
-                  const cpl = r.received ? Number(r.cost) / r.received : 0;
-                  return (
-                    <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
-                        onClick={() => { setEditing(r); setOpen(true); }}>
-                      <td className="py-3 px-4 font-medium">{fmtDate(r.entry_date)}</td>
-                      <td className="py-3 px-4">{r.received}</td>
-                      <td className="py-3 px-4">{r.converted}</td>
-                      <td className="py-3 px-4">{fmtPct(rate)}</td>
-                      <td className="py-3 px-4">{fmtMoney(r.cost)}</td>
-                      <td className="py-3 px-4">{fmtMoney(cpl)}</td>
-                      <td className="py-3 px-4 text-muted-foreground truncate max-w-[18rem]">{r.notes || "—"}</td>
-                      <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                        <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete entry?" />
-                      </td>
-                    </tr>
-                  );
-                })}
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                      onClick={() => { setEditing(r); setOpen(true); }}>
+                    <td className="py-3 px-4 font-medium">{fmtDate(r.entry_date)}</td>
+                    <td className="py-3 px-4">{r.source || "—"}</td>
+                    <td className="py-3 px-4">{r.campaign || "—"}</td>
+                    <td className="py-3 px-4">{r.received}</td>
+                    <td className="py-3 px-4">{r.converted}</td>
+                    <td className="py-3 px-4">{r.reported}</td>
+                    <td className="py-3 px-4">{fmtMoney(r.cost)}</td>
+                    <td className="py-3 px-4 text-muted-foreground truncate max-w-[14rem]">{r.notes || "—"}</td>
+                    <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete entry?" />
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -221,8 +188,11 @@ function EntryDialog({
   const [form, setForm] = useState(() => ({
     id: entry?.id,
     entry_date: entry?.entry_date ?? today,
+    source: entry?.source ?? "",
+    campaign: entry?.campaign ?? "",
     received: entry?.received ?? 0,
     converted: entry?.converted ?? 0,
+    reported: entry?.reported ?? 0,
     cost: entry?.cost ?? 0,
     notes: entry?.notes ?? "",
   }));
@@ -234,7 +204,17 @@ function EntryDialog({
           <Input type="date" value={form.entry_date} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Leads received">
+          <Field label="Source">
+            <Input placeholder="Facebook, Google…" value={form.source}
+              onChange={(e) => setForm({ ...form, source: e.target.value })} />
+          </Field>
+          <Field label="Campaign">
+            <Input placeholder="Summer promo" value={form.campaign}
+              onChange={(e) => setForm({ ...form, campaign: e.target.value })} />
+          </Field>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Received">
             <Input type="number" min={0} value={form.received}
               onChange={(e) => setForm({ ...form, received: Number(e.target.value) })} />
           </Field>
@@ -242,13 +222,17 @@ function EntryDialog({
             <Input type="number" min={0} value={form.converted}
               onChange={(e) => setForm({ ...form, converted: Number(e.target.value) })} />
           </Field>
+          <Field label="Reported">
+            <Input type="number" min={0} value={form.reported}
+              onChange={(e) => setForm({ ...form, reported: Number(e.target.value) })} />
+          </Field>
         </div>
         <Field label="Total cost">
           <Input type="number" min={0} step="0.01" value={form.cost}
             onChange={(e) => setForm({ ...form, cost: Number(e.target.value) })} />
         </Field>
         <Field label="Notes (optional)">
-          <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </Field>
       </div>
       <DialogFooter>
