@@ -1,0 +1,1 @@
+ALTER TABLE public.lead_sources ADD COLUMN IF NOT EXISTS expected_conversion_rate numeric NOT NULL DEFAULT 0;
