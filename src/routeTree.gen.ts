@@ -19,6 +19,7 @@ import { Route as AuthenticatedRecurringRouteImport } from './routes/_authentica
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
 import { Route as AuthenticatedEmployeesRouteImport } from './routes/_authenticated/employees'
+import { Route as AuthenticatedSourcesRouteImport } from './routes/_authenticated/sources'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
