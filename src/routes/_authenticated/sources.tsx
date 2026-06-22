@@ -29,6 +29,7 @@ type Source = {
   active: boolean;
   pricing_model: "CPL" | "CPA";
   price: number;
+  expected_conversion_rate: number;
 };
 
 export function PricingBadge({ model }: { model: "CPL" | "CPA" }) {
@@ -39,10 +40,30 @@ export function PricingBadge({ model }: { model: "CPL" | "CPA" }) {
   );
 }
 
+export function TargetBadge({ actual, expected }: { actual: number; expected: number }) {
+  if (!expected) return <Badge variant="outline">No target</Badge>;
+  const above = actual >= expected;
+  return (
+    <Badge
+      className={above
+        ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20"
+        : "bg-destructive/15 text-destructive border-destructive/30 hover:bg-destructive/20"}
+      variant="outline"
+    >
+      {above ? "Above Target" : "Below Target"}
+    </Badge>
+  );
+}
+
+type PerfFilter = "all" | "above" | "below" | "no-target";
+type SortKey = "name" | "expected" | "actual" | "variance" | "deficit";
+
 function SourcesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Source | null>(null);
+  const [perfFilter, setPerfFilter] = useState<PerfFilter>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("variance");
 
   const sourcesQ = useQuery({
     queryKey: ["lead-sources"],
@@ -86,6 +107,11 @@ function SourcesPage() {
       const activated = sEntries.reduce((a: number, e: any) => a + (e.activated ?? 0), 0);
       const reported = sEntries.reduce((a: number, e: any) => a + (e.reported ?? 0), 0);
       const price = Number(s.price);
+      const expected = Number(s.expected_conversion_rate) || 0;
+      const actualRate = total ? (activated / total) * 100 : 0;
+      const variance = actualRate - expected;
+      const expectedActivations = (total * expected) / 100;
+      const deficit = activated - expectedActivations;
       const reportingRate = activated ? (reported / activated) * 100 : 0;
 
       let cost = 0;
@@ -102,10 +128,30 @@ function SourcesPage() {
         .reduce((sum: number, r: any) => sum + Number(r.amount), 0);
 
       const roi = cost > 0 ? ((revenue - cost) / cost) * 100 : 0;
-      return { source: s, total, activated, reported, reportingRate, cost, savings, revenue, roi };
+      return {
+        source: s, total, activated, reported, reportingRate,
+        cost, savings, revenue, roi,
+        expected, actualRate, variance, expectedActivations, deficit,
+      };
     });
   }, [sourcesQ.data, entriesQ.data, revQ.data]);
 
+  const visible = useMemo(() => {
+    const filtered = analytics.filter((a) => {
+      if (perfFilter === "all") return true;
+      if (perfFilter === "no-target") return !a.expected;
+      if (!a.expected) return false;
+      return perfFilter === "above" ? a.actualRate >= a.expected : a.actualRate < a.expected;
+    });
+    const k = sortKey;
+    return [...filtered].sort((a, b) => {
+      if (k === "name") return a.source.name.localeCompare(b.source.name);
+      if (k === "expected") return b.expected - a.expected;
+      if (k === "actual") return b.actualRate - a.actualRate;
+      if (k === "deficit") return b.deficit - a.deficit;
+      return b.variance - a.variance;
+    });
+  }, [analytics, perfFilter, sortKey]);
 
   const totals = useMemo(() => analytics.reduce(
     (a, x) => ({
@@ -115,8 +161,9 @@ function SourcesPage() {
       cost: a.cost + x.cost,
       savings: a.savings + x.savings,
       revenue: a.revenue + x.revenue,
+      expectedActivations: a.expectedActivations + x.expectedActivations,
     }),
-    { leads: 0, activated: 0, reported: 0, cost: 0, savings: 0, revenue: 0 },
+    { leads: 0, activated: 0, reported: 0, cost: 0, savings: 0, revenue: 0, expectedActivations: 0 },
   ), [analytics]);
 
   const upsert = useMutation({
@@ -125,6 +172,7 @@ function SourcesPage() {
         name: v.name,
         pricing_model: v.pricing_model,
         price: Number(v.price) || 0,
+        expected_conversion_rate: Number(v.expected_conversion_rate) || 0,
         active: v.active,
       };
       const { error } = v.id
@@ -149,6 +197,8 @@ function SourcesPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const surplus = totals.activated - totals.expectedActivations;
+
   return (
     <div>
       <PageHeader
@@ -164,24 +214,62 @@ function SourcesPage() {
         }
       />
 
-      <section className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+        <StatCard label="Expected activations" value={String(Math.round(totals.expectedActivations))} />
+        <StatCard label="Actual activations" value={String(totals.activated)} tone="positive" />
+        <StatCard
+          label={surplus >= 0 ? "Activation surplus" : "Activation deficit"}
+          value={`${surplus >= 0 ? "+" : ""}${Math.round(surplus)}`}
+          tone={surplus >= 0 ? "positive" : "negative"}
+        />
+        <StatCard label="Revenue" value={fmtMoney(totals.revenue)} />
+      </section>
+
+      <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Leads" value={String(totals.leads)} />
-        <StatCard label="Activated" value={String(totals.activated)} tone="positive" />
         <StatCard label="Reported" value={String(totals.reported)} />
         <StatCard label="Total cost" value={fmtMoney(totals.cost)} />
         <StatCard label="CPA savings" value={fmtMoney(totals.savings)} tone="positive" />
-        <StatCard label="Revenue" value={fmtMoney(totals.revenue)} />
+        <StatCard label="Avg. conv. rate" value={fmtPct(totals.leads ? (totals.activated / totals.leads) * 100 : 0)} />
       </section>
+
+      <div className="flex flex-wrap items-end gap-3 mb-4">
+        <div className="min-w-[180px]">
+          <Label className="text-xs">Performance</Label>
+          <Select value={perfFilter} onValueChange={(v) => setPerfFilter(v as PerfFilter)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sources</SelectItem>
+              <SelectItem value="above">Above target</SelectItem>
+              <SelectItem value="below">Below target</SelectItem>
+              <SelectItem value="no-target">No target set</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="min-w-[180px]">
+          <Label className="text-xs">Sort by</Label>
+          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="variance">Variance (best first)</SelectItem>
+              <SelectItem value="actual">Actual conversion rate</SelectItem>
+              <SelectItem value="expected">Expected conversion rate</SelectItem>
+              <SelectItem value="deficit">Activation surplus</SelectItem>
+              <SelectItem value="name">Name</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       <div className="card-surface overflow-hidden">
         {sourcesQ.isLoading ? (
           <div className="p-8 text-sm text-muted-foreground">Loading…</div>
-        ) : analytics.length === 0 ? (
+        ) : visible.length === 0 ? (
           <EmptyState
             icon={Tag}
-            title="No sources yet"
-            description="Create your first lead source."
-            action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add source</Button>}
+            title={analytics.length === 0 ? "No sources yet" : "No sources match filter"}
+            description={analytics.length === 0 ? "Create your first lead source." : "Try a different performance filter."}
+            action={analytics.length === 0 ? <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add source</Button> : undefined}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -192,17 +280,20 @@ function SourcesPage() {
                   <th className="py-3 px-4">Model</th>
                   <th className="py-3 px-4">Price</th>
                   <th className="py-3 px-4">Leads</th>
-                  <th className="py-3 px-4">Activated</th>
-                  <th className="py-3 px-4">Reporting</th>
+                  <th className="py-3 px-4">Expected</th>
+                  <th className="py-3 px-4">Actual</th>
+                  <th className="py-3 px-4">Variance</th>
+                  <th className="py-3 px-4">Exp. / Act.</th>
+                  <th className="py-3 px-4">Surplus</th>
+                  <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Cost</th>
-                  <th className="py-3 px-4">Savings</th>
                   <th className="py-3 px-4">Revenue</th>
                   <th className="py-3 px-4">ROI</th>
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
               <tbody>
-                {analytics.map((a) => (
+                {visible.map((a) => (
                   <tr key={a.source.id}
                       className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(a.source); setOpen(true); }}>
@@ -210,10 +301,17 @@ function SourcesPage() {
                     <td className="py-3 px-4"><PricingBadge model={a.source.pricing_model} /></td>
                     <td className="py-3 px-4">{fmtMoney(a.source.price)}</td>
                     <td className="py-3 px-4">{a.total}</td>
-                    <td className="py-3 px-4">{a.activated} {a.source.pricing_model === "CPA" && <span className="text-muted-foreground text-xs">/ {a.reported} reported</span>}</td>
-                    <td className="py-3 px-4">{a.source.pricing_model === "CPA" ? fmtPct(a.reportingRate) : "—"}</td>
+                    <td className="py-3 px-4">{a.expected ? fmtPct(a.expected) : "—"}</td>
+                    <td className="py-3 px-4">{fmtPct(a.actualRate)}</td>
+                    <td className={`py-3 px-4 font-medium ${a.variance >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                      {a.expected ? `${a.variance >= 0 ? "+" : ""}${a.variance.toFixed(1)}%` : "—"}
+                    </td>
+                    <td className="py-3 px-4 text-muted-foreground">{Math.round(a.expectedActivations)} / {a.activated}</td>
+                    <td className={`py-3 px-4 font-medium ${a.deficit >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                      {a.expected ? `${a.deficit >= 0 ? "+" : ""}${Math.round(a.deficit)}` : "—"}
+                    </td>
+                    <td className="py-3 px-4"><TargetBadge actual={a.actualRate} expected={a.expected} /></td>
                     <td className="py-3 px-4">{fmtMoney(a.cost)}</td>
-                    <td className="py-3 px-4 text-emerald-500">{a.source.pricing_model === "CPA" ? fmtMoney(a.savings) : "—"}</td>
                     <td className="py-3 px-4">{fmtMoney(a.revenue)}</td>
                     <td className={`py-3 px-4 ${a.roi >= 0 ? "text-emerald-500" : "text-destructive"}`}>{a.cost > 0 ? fmtPct(a.roi) : "—"}</td>
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
@@ -238,6 +336,7 @@ function SourceDialog({
     name: source?.name ?? "",
     pricing_model: (source?.pricing_model ?? "CPL") as "CPL" | "CPA",
     price: source?.price ?? 0,
+    expected_conversion_rate: source?.expected_conversion_rate ?? 0,
     active: source?.active ?? true,
   }));
   return (
@@ -262,6 +361,11 @@ function SourceDialog({
               onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
           </Field>
         </div>
+        <Field label="Expected conversion rate (%)">
+          <Input type="number" min={0} max={100} step="0.1" value={form.expected_conversion_rate}
+            onChange={(e) => setForm({ ...form, expected_conversion_rate: Number(e.target.value) })}
+            placeholder="e.g. 25" />
+        </Field>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
           Active
