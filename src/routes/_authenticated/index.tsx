@@ -22,9 +22,9 @@ function Dashboard() {
     queryKey: ["dash-leads-v2", month],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("leads")
-        .select("activated,reported,lead_sources(pricing_model,price)")
-        .gte("created_at", `${start}T00:00:00`).lte("created_at", `${end}T23:59:59`);
+        .from("daily_lead_entries")
+        .select("received,activated,reported,lead_sources(pricing_model,price)")
+        .gte("entry_date", start).lte("entry_date", end);
       if (error) throw error;
       return data ?? [];
     },
@@ -48,24 +48,25 @@ function Dashboard() {
   });
 
   const m = useMemo(() => {
-    const leads = (leadsQ.data ?? []) as any[];
-    const received = leads.length;
-    const activated = leads.filter((l) => l.activated).length;
-    const reported = leads.filter((l) => l.activated && l.reported).length;
-    const unreported = activated - reported;
-
+    const entries = (leadsQ.data ?? []) as any[];
+    let received = 0, activated = 0, reported = 0;
     let cplCost = 0, cpaPayable = 0, cpaSavings = 0;
-    for (const l of leads) {
-      const s = l.lead_sources;
+    for (const e of entries) {
+      received += e.received ?? 0;
+      activated += e.activated ?? 0;
+      reported += e.reported ?? 0;
+      const s = e.lead_sources;
       if (!s) continue;
       const p = Number(s.price);
-      if (s.pricing_model === "CPL") cplCost += p;
+      if (s.pricing_model === "CPL") cplCost += p * (e.received ?? 0);
       else {
-        if (l.activated && l.reported) cpaPayable += p;
-        if (l.activated && !l.reported) cpaSavings += p;
+        cpaPayable += p * (e.reported ?? 0);
+        cpaSavings += p * Math.max(0, (e.activated ?? 0) - (e.reported ?? 0));
       }
     }
+    const unreported = activated - reported;
     const leadCost = cplCost + cpaPayable;
+
 
     const income = (revQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount), 0);
     const otherExp = (expQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount), 0);
