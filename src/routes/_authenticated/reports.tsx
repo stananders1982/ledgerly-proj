@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { TargetBadge } from "@/routes/_authenticated/sources";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/reports")({
@@ -76,7 +77,7 @@ function ReportsPage() {
   });
   const srcQ = useQuery({
     queryKey: ["rpt-sources"],
-    queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price")).data ?? [],
+    queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price,expected_conversion_rate")).data ?? [],
   });
 
   const data = useMemo(() => {
@@ -128,7 +129,7 @@ function ReportsPage() {
 
   const sources = useMemo(() => {
     const map = new Map<string, any>();
-    for (const s of (srcQ.data ?? []) as any[]) map.set(s.id, { id: s.id, name: s.name, model: s.pricing_model, price: Number(s.price), leads: 0, activated: 0, reported: 0, marketing: 0 });
+    for (const s of (srcQ.data ?? []) as any[]) map.set(s.id, { id: s.id, name: s.name, model: s.pricing_model, price: Number(s.price), expected: Number(s.expected_conversion_rate) || 0, leads: 0, activated: 0, reported: 0, marketing: 0 });
     for (const e of data.entries) {
       if (!e.source_id) continue;
       const r = map.get(e.source_id); if (!r) continue;
@@ -140,8 +141,15 @@ function ReportsPage() {
       const savings = r.model === "CPA" ? r.price * Math.max(0, r.activated - r.reported) : 0;
       const revenue = r.activated * revPerActivation;
       const totalCost = cost + r.marketing;
+      const actualRate = r.leads ? (r.activated / r.leads) * 100 : 0;
+      const expectedActivations = (r.leads * r.expected) / 100;
       return { ...r, cost, savings, revenue, totalCost,
-        rate: r.leads ? (r.activated / r.leads) * 100 : 0,
+        rate: actualRate,
+        actualRate,
+        variance: actualRate - r.expected,
+        expectedActivations,
+        deficit: r.activated - expectedActivations,
+        status: r.expected ? (actualRate >= r.expected ? "Above" : "Below") : "—",
         roi: totalCost ? ((revenue - totalCost) / totalCost) * 100 : 0,
         cpl: r.leads ? totalCost / r.leads : 0,
         cpaEff: r.activated ? totalCost / r.activated : 0,
@@ -414,7 +422,11 @@ function ReportsPage() {
               { key: "leads", label: "Leads", numeric: true },
               { key: "activated", label: "Activated", numeric: true },
               { key: "reported", label: "Reported", numeric: true },
-              { key: "rate", label: "Rate", numeric: true, render: (v) => fmtPct(v) },
+              { key: "expected", label: "Expected %", numeric: true, render: (v) => v ? fmtPct(v) : "—" },
+              { key: "actualRate", label: "Actual %", numeric: true, render: (v) => fmtPct(v) },
+              { key: "variance", label: "Variance", numeric: true, render: (v, r) => r.expected ? <span className={v >= 0 ? "text-emerald-500" : "text-destructive"}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span> : "—" },
+              { key: "deficit", label: "Surplus", numeric: true, render: (v, r) => r.expected ? <span className={v >= 0 ? "text-emerald-500" : "text-destructive"}>{v >= 0 ? "+" : ""}{Math.round(v)}</span> : "—" },
+              { key: "status", label: "Status", render: (_v, r) => <TargetBadge actual={r.actualRate} expected={r.expected} /> },
               { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
               { key: "totalCost", label: "Cost", numeric: true, render: (v) => fmtMoney(v) },
               { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
@@ -424,6 +436,7 @@ function ReportsPage() {
             searchable
           />
         </TabsContent>
+
 
         <TabsContent value="employees">
           <SortableTable

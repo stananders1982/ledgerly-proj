@@ -183,6 +183,7 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          expected_conversion_rate: number
           id: string
           name: string
           price: number
@@ -191,6 +192,7 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          expected_conversion_rate?: number
           id?: string
           name: string
           price?: number
@@ -199,6 +201,7 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          expected_conversion_rate?: number
           id?: string
           name?: string
           price?: number
