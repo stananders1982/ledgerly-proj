@@ -13,9 +13,10 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 function Dashboard() {
-  const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const now = new Date();
+  const month = now.toISOString().slice(0, 7); // YYYY-MM
   const start = `${month}-01`;
-  const end = `${month}-31`;
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
 
   const leadsQ = useQuery({
     queryKey: ["dash-leads", month],
