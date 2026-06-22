@@ -76,7 +76,7 @@ function ReportsPage() {
   });
   const srcQ = useQuery({
     queryKey: ["rpt-sources"],
-    queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price")).data ?? [],
+    queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price,expected_conversion_rate")).data ?? [],
   });
 
   const data = useMemo(() => {
