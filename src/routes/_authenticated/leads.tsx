@@ -12,9 +12,8 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { fmtDate, fmtMoney, fmtPct } from "@/lib/format";
+import { fmtDate, fmtMoney, fmtPct, todayISO } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
@@ -25,36 +24,32 @@ export const Route = createFileRoute("/_authenticated/leads")({
   component: LeadsPage,
 });
 
-type Lead = {
+type Entry = {
   id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
+  entry_date: string;
   source_id: string | null;
-  employee_id: string | null;
-  activated: boolean;
-  reported: boolean;
-  status: string;
+  campaign: string | null;
+  received: number;
+  activated: number;
+  reported: number;
   notes: string | null;
-  created_at: string;
   lead_sources?: { id: string; name: string; pricing_model: "CPL" | "CPA"; price: number } | null;
-  employees?: { name: string } | null;
 };
 
 function LeadsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Lead | null>(null);
+  const [editing, setEditing] = useState<Entry | null>(null);
 
   const q = useQuery({
-    queryKey: ["leads-list"],
+    queryKey: ["daily-leads-v2"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("leads")
-        .select("*, lead_sources(id,name,pricing_model,price), employees(name)")
-        .order("created_at", { ascending: false });
+        .from("daily_lead_entries")
+        .select("*, lead_sources(id,name,pricing_model,price)")
+        .order("entry_date", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Lead[];
+      return (data ?? []) as Entry[];
     },
   });
 
@@ -62,59 +57,54 @@ function LeadsPage() {
     queryKey: ["sources-min"],
     queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price").eq("active", true).order("name")).data ?? [],
   });
-  const empQ = useQuery({
-    queryKey: ["employees-min"],
-    queryFn: async () => (await supabase.from("employees").select("id,name").eq("active", true).order("name")).data ?? [],
-  });
 
   const rows = q.data ?? [];
 
   const stats = useMemo(() => {
-    let leads = rows.length;
-    let activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
-    for (const l of rows) {
-      const s = l.lead_sources;
-      if (l.activated) activated++;
-      if (l.activated && l.reported) reported++;
+    let received = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
+    for (const r of rows) {
+      received += r.received;
+      activated += r.activated;
+      reported += r.reported;
+      const s = r.lead_sources;
       if (!s) continue;
       const p = Number(s.price);
-      if (s.pricing_model === "CPL") cplCost += p;
+      if (s.pricing_model === "CPL") cplCost += p * r.received;
       else {
-        if (l.activated && l.reported) cpaCost += p;
-        if (l.activated && !l.reported) cpaSavings += p;
+        cpaCost += p * r.reported;
+        cpaSavings += p * Math.max(0, r.activated - r.reported);
       }
     }
     return {
-      leads, activated, reported,
+      received, activated, reported,
       unreported: activated - reported,
       cplCost, cpaCost, cpaSavings,
       totalCost: cplCost + cpaCost,
-      convRate: leads ? (activated / leads) * 100 : 0,
+      rate: received ? (activated / received) * 100 : 0,
     };
   }, [rows]);
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
       const payload = {
-        name: v.name,
-        email: v.email || null,
-        phone: v.phone || null,
+        entry_date: v.entry_date,
         source_id: v.source_id || null,
-        employee_id: v.employee_id || null,
-        activated: !!v.activated,
-        reported: !!v.reported,
-        status: (v.activated ? "activated" : "new") as "activated" | "new",
+        campaign: v.campaign || null,
+        received: Number(v.received) || 0,
+        activated: Number(v.activated) || 0,
+        converted: Number(v.activated) || 0,
+        reported: Number(v.reported) || 0,
+        cost: 0,
         notes: v.notes || null,
       };
       const { error } = v.id
-        ? await supabase.from("leads").update(payload).eq("id", v.id)
-        : await supabase.from("leads").insert(payload);
+        ? await supabase.from("daily_lead_entries").update(payload).eq("id", v.id)
+        : await supabase.from("daily_lead_entries").insert(payload);
       if (error) throw error;
     },
-
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["leads-list"] });
-      qc.invalidateQueries({ queryKey: ["leads-for-sources"] });
+      qc.invalidateQueries({ queryKey: ["daily-leads-v2"] });
+      qc.invalidateQueries({ queryKey: ["entries-for-sources"] });
       qc.invalidateQueries({ queryKey: ["dash-leads-v2"] });
       toast.success("Saved"); setOpen(false); setEditing(null);
     },
@@ -123,48 +113,34 @@ function LeadsPage() {
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("leads").delete().eq("id", id);
+      const { error } = await supabase.from("daily_lead_entries").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["leads-list"] }); toast.success("Deleted"); },
-  });
-
-  const toggle = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: { activated?: boolean; reported?: boolean } }) => {
-      const { error } = await supabase.from("leads").update(patch).eq("id", id);
-      if (error) throw error;
-    },
-
-
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["leads-list"] });
-      qc.invalidateQueries({ queryKey: ["leads-for-sources"] });
-      qc.invalidateQueries({ queryKey: ["dash-leads-v2"] });
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["daily-leads-v2"] }); toast.success("Deleted"); },
   });
 
   return (
     <div>
       <PageHeader
         title="Leads"
-        description="Track each lead with its source, activation status, and reporting flag."
+        description="Log daily totals per source — received, activated, reported. Costs are computed from each source's pricing model."
         actions={
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4" /> Add lead</Button>
+              <Button><Plus className="h-4 w-4" /> Add entry</Button>
             </DialogTrigger>
-            <LeadDialog lead={editing} sources={sourcesQ.data ?? []} employees={empQ.data ?? []}
+            <EntryDialog entry={editing} sources={sourcesQ.data ?? []}
               onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
           </Dialog>
         }
       />
 
       <section className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
-        <StatCard label="Received" value={String(stats.leads)} />
+        <StatCard label="Received" value={String(stats.received)} />
         <StatCard label="Activated" value={String(stats.activated)} tone="positive" />
         <StatCard label="Reported" value={String(stats.reported)} />
         <StatCard label="Unreported" value={String(stats.unreported)} />
-        <StatCard label="Conv. rate" value={fmtPct(stats.convRate)} />
+        <StatCard label="Conv. rate" value={fmtPct(stats.rate)} />
         <StatCard label="Total cost" value={fmtMoney(stats.totalCost)} />
       </section>
 
@@ -174,9 +150,9 @@ function LeadsPage() {
         ) : rows.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="No leads yet"
-            description="Add your first lead."
-            action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add lead</Button>}
+            title="No entries yet"
+            description="Add your first daily entry."
+            action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add entry</Button>}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -184,39 +160,43 @@ function LeadsPage() {
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Name</th>
                   <th className="py-3 px-4">Source</th>
                   <th className="py-3 px-4">Model</th>
-                  <th className="py-3 px-4">Price</th>
-                  <th className="py-3 px-4">Closer</th>
+                  <th className="py-3 px-4">Received</th>
                   <th className="py-3 px-4">Activated</th>
                   <th className="py-3 px-4">Reported</th>
+                  <th className="py-3 px-4">Cost</th>
+                  <th className="py-3 px-4">Savings</th>
+                  <th className="py-3 px-4">Notes</th>
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
-                      onClick={() => { setEditing(r); setOpen(true); }}>
-                    <td className="py-3 px-4">{fmtDate(r.created_at)}</td>
-                    <td className="py-3 px-4 font-medium">{r.name}</td>
-                    <td className="py-3 px-4">{r.lead_sources?.name ?? "—"}</td>
-                    <td className="py-3 px-4">{r.lead_sources ? <PricingBadge model={r.lead_sources.pricing_model} /> : "—"}</td>
-                    <td className="py-3 px-4">{r.lead_sources ? fmtMoney(r.lead_sources.price) : "—"}</td>
-                    <td className="py-3 px-4">{r.employees?.name ?? "—"}</td>
-                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                      <Switch checked={r.activated}
-                        onCheckedChange={(v) => toggle.mutate({ id: r.id, patch: { activated: v, ...(v ? {} : { reported: false }) } as any })} />
-                    </td>
-                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                      <Switch checked={r.reported} disabled={!r.activated}
-                        onCheckedChange={(v) => toggle.mutate({ id: r.id, patch: { reported: v } as any })} />
-                    </td>
-                    <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                      <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete lead?" />
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((r) => {
+                  const s = r.lead_sources;
+                  const p = s ? Number(s.price) : 0;
+                  const cost = !s ? 0
+                    : s.pricing_model === "CPL" ? p * r.received
+                    : p * r.reported;
+                  const savings = s?.pricing_model === "CPA" ? p * Math.max(0, r.activated - r.reported) : 0;
+                  return (
+                    <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                        onClick={() => { setEditing(r); setOpen(true); }}>
+                      <td className="py-3 px-4 font-medium">{fmtDate(r.entry_date)}</td>
+                      <td className="py-3 px-4">{s?.name ?? "—"}</td>
+                      <td className="py-3 px-4">{s ? <PricingBadge model={s.pricing_model} /> : "—"}</td>
+                      <td className="py-3 px-4">{r.received}</td>
+                      <td className="py-3 px-4">{r.activated}</td>
+                      <td className="py-3 px-4">{r.reported}</td>
+                      <td className="py-3 px-4">{fmtMoney(cost)}</td>
+                      <td className="py-3 px-4 text-emerald-500">{s?.pricing_model === "CPA" ? fmtMoney(savings) : "—"}</td>
+                      <td className="py-3 px-4 text-muted-foreground truncate max-w-[14rem]">{r.notes || "—"}</td>
+                      <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                        <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete entry?" />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -226,73 +206,71 @@ function LeadsPage() {
   );
 }
 
-function LeadDialog({
-  lead, sources, employees, onSubmit, loading,
-}: { lead: Lead | null; sources: any[]; employees: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+function EntryDialog({
+  entry, sources, onSubmit, loading,
+}: { entry: Entry | null; sources: any[]; onSubmit: (v: any) => void; loading: boolean }) {
   const [form, setForm] = useState(() => ({
-    id: lead?.id,
-    name: lead?.name ?? "",
-    email: lead?.email ?? "",
-    phone: lead?.phone ?? "",
-    source_id: lead?.source_id ?? "",
-    employee_id: lead?.employee_id ?? "",
-    activated: lead?.activated ?? false,
-    reported: lead?.reported ?? false,
-    notes: lead?.notes ?? "",
+    id: entry?.id,
+    entry_date: entry?.entry_date ?? todayISO(),
+    source_id: entry?.source_id ?? "",
+    campaign: entry?.campaign ?? "",
+    received: entry?.received ?? 0,
+    activated: entry?.activated ?? 0,
+    reported: entry?.reported ?? 0,
+    notes: entry?.notes ?? "",
   }));
-  const selectedSource = sources.find((s) => s.id === form.source_id);
+  const selected = sources.find((s) => s.id === form.source_id);
   return (
     <DialogContent className="max-w-md">
-      <DialogHeader><DialogTitle>{lead?.id ? "Edit lead" : "New lead"}</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle>{entry?.id ? "Edit entry" : "New daily entry"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
-        <Field label="Name">
-          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Email"><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
-          <Field label="Phone"><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
+          <Field label="Date">
+            <Input type="date" value={form.entry_date} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} />
+          </Field>
+          <Field label="Source">
+            <Select value={form.source_id || "_none"} onValueChange={(v) => setForm({ ...form, source_id: v === "_none" ? "" : v })}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">None</SelectItem>
+                {sources.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name} · {s.pricing_model} {fmtMoney(s.price)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
         </div>
-        <Field label="Source">
-          <Select value={form.source_id || "_none"} onValueChange={(v) => setForm({ ...form, source_id: v === "_none" ? "" : v })}>
-            <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_none">None</SelectItem>
-              {sources.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name} · {s.pricing_model} {fmtMoney(s.price)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {selectedSource && (
-            <div className="text-xs text-muted-foreground mt-1">
-              Billing: {selectedSource.pricing_model} at {fmtMoney(selectedSource.price)}
-            </div>
-          )}
+        {selected && (
+          <div className="text-xs text-muted-foreground -mt-1">
+            Billing: {selected.pricing_model} at {fmtMoney(selected.price)} ·
+            {selected.pricing_model === "CPL"
+              ? " Cost = Received × Price"
+              : " Cost = Reported × Price · Savings on Activated − Reported"}
+          </div>
+        )}
+        <Field label="Campaign (optional)">
+          <Input value={form.campaign} onChange={(e) => setForm({ ...form, campaign: e.target.value })} placeholder="Summer promo" />
         </Field>
-        <Field label="Closer (optional)">
-          <Select value={form.employee_id || "_none"} onValueChange={(v) => setForm({ ...form, employee_id: v === "_none" ? "" : v })}>
-            <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_none">None</SelectItem>
-              {employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </Field>
-        <div className="flex gap-6">
-          <label className="flex items-center gap-2 text-sm">
-            <Switch checked={form.activated}
-              onCheckedChange={(v) => setForm({ ...form, activated: v, reported: v ? form.reported : false })} />
-            Activated
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <Switch checked={form.reported} disabled={!form.activated}
-              onCheckedChange={(v) => setForm({ ...form, reported: v })} />
-            Reported
-          </label>
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Received">
+            <Input type="number" min={0} value={form.received}
+              onChange={(e) => setForm({ ...form, received: Number(e.target.value) })} />
+          </Field>
+          <Field label="Activated">
+            <Input type="number" min={0} value={form.activated}
+              onChange={(e) => setForm({ ...form, activated: Number(e.target.value) })} />
+          </Field>
+          <Field label="Reported">
+            <Input type="number" min={0} value={form.reported}
+              onChange={(e) => setForm({ ...form, reported: Number(e.target.value) })} />
+          </Field>
         </div>
-        <Field label="Notes"><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
+        <Field label="Notes (optional)">
+          <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+        </Field>
       </div>
       <DialogFooter>
-        <Button onClick={() => onSubmit(form)} disabled={loading || !form.name}>{loading ? "Saving…" : "Save"}</Button>
+        <Button onClick={() => onSubmit(form)} disabled={loading}>{loading ? "Saving…" : "Save"}</Button>
       </DialogFooter>
     </DialogContent>
   );
