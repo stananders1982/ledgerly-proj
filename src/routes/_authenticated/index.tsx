@@ -130,6 +130,7 @@ function Dashboard() {
         <StatCard label="Upcoming (30d)" value={fmtMoney(m.upcoming30)} icon={CalendarClock} />
         <StatCard label="Break-even revenue" value={fmtMoney(m.breakEven)} icon={Target}
           tone={m.income >= m.breakEven ? "positive" : "negative"} />
+      </section>
 
       <section className="card-surface p-5">
         <h3 className="font-display text-base font-semibold mb-3">Expense breakdown</h3>
