@@ -142,7 +142,7 @@ function RevenuePage() {
                   <th className="py-3 px-4">Customer</th>
                   <th className="py-3 px-4">Amount</th>
                   <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Lead</th>
+                  <th className="py-3 px-4">Affiliate</th>
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
@@ -217,9 +217,9 @@ function RevenueDialog({
             <SelectContent>{employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
-        <Field label="Linked lead (optional)">
+        <Field label="Affiliate (optional)">
           <Select value={form.lead_id} onValueChange={(v) => setForm({ ...form, lead_id: v })}>
-            <SelectTrigger><SelectValue placeholder="Pick lead" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Pick affiliate" /></SelectTrigger>
             <SelectContent>{leads.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.name}{l.lead_sources?.name ? ` · ${l.lead_sources.name}` : ""}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
