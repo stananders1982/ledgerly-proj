@@ -142,7 +142,7 @@ function RevenuePage() {
                   <th className="py-3 px-4">Customer</th>
                   <th className="py-3 px-4">Amount</th>
                   <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Lead</th>
+                  <th className="py-3 px-4">Affiliate</th>
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
