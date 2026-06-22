@@ -282,14 +282,10 @@ function SourcesPage() {
                   <th className="py-3 px-4">Leads</th>
                   <th className="py-3 px-4">Expected</th>
                   <th className="py-3 px-4">Actual</th>
-                  <th className="py-3 px-4">Variance</th>
-                  <th className="py-3 px-4">Exp. / Act.</th>
-                  <th className="py-3 px-4">Surplus</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Cost</th>
-                  <th className="py-3 px-4">Revenue</th>
-                  <th className="py-3 px-4">ROI</th>
                   <th className="py-3 px-4"></th>
+
                 </tr>
               </thead>
               <tbody>
@@ -303,17 +299,9 @@ function SourcesPage() {
                     <td className="py-3 px-4">{a.total}</td>
                     <td className="py-3 px-4">{a.expected ? fmtPct(a.expected) : "—"}</td>
                     <td className="py-3 px-4">{fmtPct(a.actualRate)}</td>
-                    <td className={`py-3 px-4 font-medium ${a.variance >= 0 ? "text-emerald-500" : "text-destructive"}`}>
-                      {a.expected ? `${a.variance >= 0 ? "+" : ""}${a.variance.toFixed(1)}%` : "—"}
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">{Math.round(a.expectedActivations)} / {a.activated}</td>
-                    <td className={`py-3 px-4 font-medium ${a.deficit >= 0 ? "text-emerald-500" : "text-destructive"}`}>
-                      {a.expected ? `${a.deficit >= 0 ? "+" : ""}${Math.round(a.deficit)}` : "—"}
-                    </td>
                     <td className="py-3 px-4"><TargetBadge actual={a.actualRate} expected={a.expected} /></td>
                     <td className="py-3 px-4">{fmtMoney(a.cost)}</td>
-                    <td className="py-3 px-4">{fmtMoney(a.revenue)}</td>
-                    <td className={`py-3 px-4 ${a.roi >= 0 ? "text-emerald-500" : "text-destructive"}`}>{a.cost > 0 ? fmtPct(a.roi) : "—"}</td>
+
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(a.source.id)} label="Delete source?" />
                     </td>
