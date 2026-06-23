@@ -175,9 +175,14 @@ function EmpDialog({
     salary: emp?.salary ?? 0,
     commission_pct: emp?.commission_pct ?? 0,
     active: emp?.active ?? true,
+    commission_tier1_max: emp?.commission_tier1_max ?? 50000,
+    commission_tier1_pct: emp?.commission_tier1_pct ?? 8,
+    commission_tier2_max: emp?.commission_tier2_max ?? 250000,
+    commission_tier2_pct: emp?.commission_tier2_pct ?? 10,
+    commission_tier3_pct: emp?.commission_tier3_pct ?? 12,
   }));
   return (
-    <DialogContent className="max-w-md">
+    <DialogContent className="max-w-lg">
       <DialogHeader><DialogTitle>{emp?.id ? "Edit employee" : "New employee"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
         <Field label="Name">
@@ -193,16 +198,50 @@ function EmpDialog({
               onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Base salary">
-            <Input type="number" min={0} step="0.01" value={form.salary}
-              onChange={(e) => setForm({ ...form, salary: Number(e.target.value) })} />
-          </Field>
-          <Field label="Commission %">
-            <Input type="number" min={0} step="0.01" value={form.commission_pct}
-              onChange={(e) => setForm({ ...form, commission_pct: Number(e.target.value) })} />
-          </Field>
+        <Field label="Base salary">
+          <Input type="number" min={0} step="0.01" value={form.salary}
+            onChange={(e) => setForm({ ...form, salary: Number(e.target.value) })} />
+        </Field>
+
+        <div className="rounded-md border border-border p-3 grid gap-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Commission tiers</Label>
+            <span className="text-xs text-muted-foreground">Based on monthly revenue · flat by bracket</span>
+          </div>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+            <Field label="Tier 1 up to">
+              <Input type="number" min={0} step="1" value={form.commission_tier1_max}
+                onChange={(e) => setForm({ ...form, commission_tier1_max: Number(e.target.value) })} />
+            </Field>
+            <span className="pb-2 text-muted-foreground">→</span>
+            <Field label="Rate %">
+              <Input type="number" min={0} step="0.01" value={form.commission_tier1_pct}
+                onChange={(e) => setForm({ ...form, commission_tier1_pct: Number(e.target.value) })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+            <Field label="Tier 2 up to">
+              <Input type="number" min={0} step="1" value={form.commission_tier2_max}
+                onChange={(e) => setForm({ ...form, commission_tier2_max: Number(e.target.value) })} />
+            </Field>
+            <span className="pb-2 text-muted-foreground">→</span>
+            <Field label="Rate %">
+              <Input type="number" min={0} step="0.01" value={form.commission_tier2_pct}
+                onChange={(e) => setForm({ ...form, commission_tier2_pct: Number(e.target.value) })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+            <Field label="Tier 3 above">
+              <Input type="number" value={form.commission_tier2_max} disabled />
+            </Field>
+            <span className="pb-2 text-muted-foreground">→</span>
+            <Field label="Rate %">
+              <Input type="number" min={0} step="0.01" value={form.commission_tier3_pct}
+                onChange={(e) => setForm({ ...form, commission_tier3_pct: Number(e.target.value) })} />
+            </Field>
+          </div>
         </div>
+
         <div className="flex items-center justify-between rounded-md border border-border p-3">
           <Label className="text-sm">Active</Label>
           <Switch checked={form.active} onCheckedChange={(v) => setForm({ ...form, active: v })} />
