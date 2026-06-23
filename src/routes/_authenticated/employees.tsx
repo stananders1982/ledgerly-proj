@@ -61,6 +61,11 @@ function EmployeesPage() {
         salary: Number(v.salary) || 0,
         commission_pct: Number(v.commission_pct) || 0,
         active: !!v.active,
+        commission_tier1_max: Number(v.commission_tier1_max) || 0,
+        commission_tier1_pct: Number(v.commission_tier1_pct) || 0,
+        commission_tier2_max: Number(v.commission_tier2_max) || 0,
+        commission_tier2_pct: Number(v.commission_tier2_pct) || 0,
+        commission_tier3_pct: Number(v.commission_tier3_pct) || 0,
       };
       if (v.id) {
         const { error } = await supabase.from("employees").update(payload).eq("id", v.id);
