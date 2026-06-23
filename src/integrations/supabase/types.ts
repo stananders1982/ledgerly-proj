@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance: {
+        Row: {
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          notes: string | null
+          present: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          employee_id: string
+          id?: string
+          notes?: string | null
+          present?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          present?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_lead_entries: {
         Row: {
           activated: number
