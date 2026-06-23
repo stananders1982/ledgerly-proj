@@ -29,6 +29,11 @@ type Emp = {
   salary: number;
   commission_pct: number;
   active: boolean;
+  commission_tier1_max: number;
+  commission_tier1_pct: number;
+  commission_tier2_max: number;
+  commission_tier2_pct: number;
+  commission_tier3_pct: number;
 };
 
 function EmployeesPage() {
