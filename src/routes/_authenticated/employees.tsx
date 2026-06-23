@@ -129,7 +129,7 @@ function EmployeesPage() {
                   <th className="py-3 px-4">Role</th>
                   <th className="py-3 px-4">Email</th>
                   <th className="py-3 px-4">Base salary</th>
-                  <th className="py-3 px-4">Commission</th>
+                  <th className="py-3 px-4">Commission tiers</th>
                   <th className="py-3 px-4">Active</th>
                   <th className="py-3 px-4"></th>
                 </tr>
@@ -142,7 +142,13 @@ function EmployeesPage() {
                     <td className="py-3 px-4">{e.role || "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{e.email || "—"}</td>
                     <td className="py-3 px-4">{fmtMoney(e.salary)}</td>
-                    <td className="py-3 px-4">{Number(e.commission_pct).toFixed(2)}%</td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
+                      ≤{fmtMoney(e.commission_tier1_max)}: <span className="text-foreground font-medium">{Number(e.commission_tier1_pct)}%</span>
+                      {" · "}
+                      ≤{fmtMoney(e.commission_tier2_max)}: <span className="text-foreground font-medium">{Number(e.commission_tier2_pct)}%</span>
+                      {" · "}
+                      &gt;{fmtMoney(e.commission_tier2_max)}: <span className="text-foreground font-medium">{Number(e.commission_tier3_pct)}%</span>
+                    </td>
                     <td className="py-3 px-4">{e.active ? "Yes" : "No"}</td>
                     <td className="py-3 px-4 text-right" onClick={(ev) => ev.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(e.id)} label="Delete employee?" />
