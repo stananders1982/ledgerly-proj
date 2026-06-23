@@ -77,6 +77,11 @@ export type Database = {
         Row: {
           active: boolean
           commission_pct: number
+          commission_tier1_max: number
+          commission_tier1_pct: number
+          commission_tier2_max: number
+          commission_tier2_pct: number
+          commission_tier3_pct: number
           created_at: string
           email: string | null
           id: string
@@ -89,6 +94,11 @@ export type Database = {
         Insert: {
           active?: boolean
           commission_pct?: number
+          commission_tier1_max?: number
+          commission_tier1_pct?: number
+          commission_tier2_max?: number
+          commission_tier2_pct?: number
+          commission_tier3_pct?: number
           created_at?: string
           email?: string | null
           id?: string
@@ -101,6 +111,11 @@ export type Database = {
         Update: {
           active?: boolean
           commission_pct?: number
+          commission_tier1_max?: number
+          commission_tier1_pct?: number
+          commission_tier2_max?: number
+          commission_tier2_pct?: number
+          commission_tier3_pct?: number
           created_at?: string
           email?: string | null
           id?: string
