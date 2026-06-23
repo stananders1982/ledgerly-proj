@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarIcon, CheckCircle2, XCircle } from "lucide-react";
+import { CalendarIcon, CheckCircle2, XCircle, Users } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -158,7 +158,7 @@ function AttendancePage() {
         </CardHeader>
         <CardContent>
           {employees.length === 0 ? (
-            <EmptyState title="No active employees" description="Add employees first to track attendance." />
+            <EmptyState icon={Users} title="No active employees" description="Add employees first to track attendance." />
           ) : (
             <div className="divide-y divide-border/50">
               {employees.map((e) => {
