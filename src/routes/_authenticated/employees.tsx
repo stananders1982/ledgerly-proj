@@ -188,16 +188,6 @@ function EmpDialog({
         <Field label="Name">
           <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Role">
-            <Input placeholder="Sales, Manager…" value={form.role}
-              onChange={(e) => setForm({ ...form, role: e.target.value })} />
-          </Field>
-          <Field label="Email">
-            <Input type="email" value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          </Field>
-        </div>
         <Field label="Base salary">
           <Input type="number" min={0} step="0.01" value={form.salary}
             onChange={(e) => setForm({ ...form, salary: Number(e.target.value) })} />
