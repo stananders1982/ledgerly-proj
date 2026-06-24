@@ -220,6 +220,36 @@ function ReportsPage() {
     }).sort((a, b) => b.revenue - a.revenue);
   }, [data.revenue, data.employees]);
 
+  const playerValue = useMemo(() => {
+    const leads = (pvLeadsQ.data ?? []) as any[];
+    const rev = (pvRevQ.data ?? []) as any[];
+    const affNames = new Map<string, string>(((affMapQ.data ?? []) as any[]).map((a) => [a.id, a.name]));
+    const empNames = new Map<string, string>((data.employees as any[]).map((e) => [e.id, e.name]));
+    type Row = { id: string; name: string; activated: number; revenue: number };
+    const byAff = new Map<string, Row>();
+    const byEmp = new Map<string, Row>();
+    const getA = (id: string) => byAff.get(id) ?? { id, name: affNames.get(id) ?? "—", activated: 0, revenue: 0 };
+    const getE = (id: string) => byEmp.get(id) ?? { id, name: empNames.get(id) ?? "—", activated: 0, revenue: 0 };
+    for (const l of leads) {
+      if (l.affiliate_id) { const x = getA(l.affiliate_id); x.activated += 1; byAff.set(l.affiliate_id, x); }
+      if (l.employee_id) { const x = getE(l.employee_id); x.activated += 1; byEmp.set(l.employee_id, x); }
+    }
+    for (const r of rev) {
+      const amt = Number(r.amount);
+      const pct = Number(r.split_pct ?? 100);
+      const affId = r.leads?.affiliate_id;
+      if (affId) { const x = getA(affId); x.revenue += amt; byAff.set(affId, x); }
+      if (r.employee_id) { const x = getE(r.employee_id); x.revenue += amt * (pct / 100); byEmp.set(r.employee_id, x); }
+      if (r.employee_id_2) { const x = getE(r.employee_id_2); x.revenue += amt * ((100 - pct) / 100); byEmp.set(r.employee_id_2, x); }
+    }
+    const toRows = (m: Map<string, Row>) => Array.from(m.values())
+      .map((x) => ({ ...x, playerValue: x.activated ? x.revenue / x.activated : 0 }))
+      .sort((a, b) => b.playerValue - a.playerValue);
+    return { byAff: toRows(byAff), byEmp: toRows(byEmp) };
+  }, [pvLeadsQ.data, pvRevQ.data, affMapQ.data, data.employees]);
+
+
+
   const recurringRpt = useMemo(() => {
     return data.recurring.map((r: any) => {
       const monthly = monthlyEquiv(Number(r.amount), r.frequency);
