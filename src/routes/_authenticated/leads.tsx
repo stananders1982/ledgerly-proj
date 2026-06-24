@@ -129,7 +129,7 @@ function LeadsPage() {
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4" /> Add entry</Button>
             </DialogTrigger>
-            <EntryDialog entry={editing} sources={sourcesQ.data ?? []}
+            <EntryDialog key={editing?.id ?? "new"} entry={editing} sources={sourcesQ.data ?? []}
               onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
           </Dialog>
         }
