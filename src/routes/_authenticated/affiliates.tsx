@@ -31,7 +31,7 @@ type Affiliate = {
   name: string;
   email: string | null;
   cpa_rate: number;
-  guarantee_type: "none" | "fixed" | "percentage";
+  guarantee_type: "none" | "fixed" | "percentage" | "conversion_rate";
   guarantee_value: number;
   guarantee_period: "daily" | "weekly" | "monthly";
   active: boolean;
