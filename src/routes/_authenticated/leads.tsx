@@ -165,7 +165,9 @@ function LeadsPage() {
                   <th className="py-3 px-4">Received</th>
                   <th className="py-3 px-4">Activated</th>
                   <th className="py-3 px-4">Reported</th>
+                  <th className="py-3 px-4">Expected %</th>
                   <th className="py-3 px-4">Reported %</th>
+                  <th className="py-3 px-4">Activated %</th>
                   <th className="py-3 px-4">Cost</th>
                   <th className="py-3 px-4">Savings</th>
                   <th className="py-3 px-4">Notes</th>
