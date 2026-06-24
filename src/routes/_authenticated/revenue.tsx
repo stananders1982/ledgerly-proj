@@ -76,6 +76,8 @@ function RevenuePage() {
         date: v.date,
         affiliate_id: v.affiliate_id || null,
         employee_id: v.employee_id || null,
+        employee_id_2: v.employee_id_2 || null,
+        split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
         notes: v.notes || null,
       };
       const { error } = v.id
