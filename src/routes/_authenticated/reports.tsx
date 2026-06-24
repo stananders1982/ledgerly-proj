@@ -497,6 +497,7 @@ function ReportsPage() {
             <TabsTrigger value="pl">P&amp;L</TabsTrigger>
             <TabsTrigger value="sources">Lead Sources</TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
+            <TabsTrigger value="playervalue">Player Value</TabsTrigger>
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="savings">CPA Savings</TabsTrigger>
             <TabsTrigger value="marketing">Marketing</TabsTrigger>
@@ -508,6 +509,7 @@ function ReportsPage() {
             <TabsTrigger value="audit">Audit</TabsTrigger>
           </TabsList>
         </div>
+
 
         <TabsContent value="summary" className="space-y-4">
           <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
