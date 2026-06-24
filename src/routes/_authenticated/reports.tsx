@@ -592,6 +592,56 @@ function ReportsPage() {
           />
         </TabsContent>
 
+        <TabsContent value="playervalue">
+          <div className="space-y-4">
+            <div className="flex items-end gap-3">
+              <div className="min-w-[180px]">
+                <label className="text-xs text-muted-foreground">Period</label>
+                <Select value={pvPeriod} onValueChange={(v) => setPvPeriod(v as "week" | "month" | "all")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">This week</SelectItem>
+                    <SelectItem value="month">This month</SelectItem>
+                    <SelectItem value="all">All time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-xs text-muted-foreground pb-2">
+                Window: {pvPeriod === "all" ? "All time" : `${pvWindow.start} → ${pvWindow.end}`}
+                <span className="ml-2">Player Value = Revenue ÷ Activated leads.</span>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-display font-semibold mb-2">By Affiliate</h3>
+              <SortableTable
+                columns={[
+                  { key: "name", label: "Affiliate" },
+                  { key: "activated", label: "Activated", numeric: true },
+                  { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "playerValue", label: "Player Value", numeric: true, render: (v) => fmtMoney(v) },
+                ]}
+                rows={playerValue.byAff}
+              />
+            </div>
+
+            <div>
+              <h3 className="font-display font-semibold mb-2">By Employee</h3>
+              <SortableTable
+                columns={[
+                  { key: "name", label: "Employee" },
+                  { key: "activated", label: "Activated", numeric: true },
+                  { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "playerValue", label: "Player Value", numeric: true, render: (v) => fmtMoney(v) },
+                ]}
+                rows={playerValue.byEmp}
+              />
+            </div>
+          </div>
+        </TabsContent>
+
+
+
         <TabsContent value="attendance">
           <div className="space-y-4">
             <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
