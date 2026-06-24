@@ -14,137 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      affiliate_events: {
-        Row: {
-          affiliate_id: string
-          amount: number
-          created_at: string
-          event_type: string
-          id: string
-          lead_id: string | null
-          status: string
-        }
-        Insert: {
-          affiliate_id: string
-          amount?: number
-          created_at?: string
-          event_type?: string
-          id?: string
-          lead_id?: string | null
-          status?: string
-        }
-        Update: {
-          affiliate_id?: string
-          amount?: number
-          created_at?: string
-          event_type?: string
-          id?: string
-          lead_id?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "affiliate_events_affiliate_id_fkey"
-            columns: ["affiliate_id"]
-            isOneToOne: false
-            referencedRelation: "affiliates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "affiliate_events_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      affiliate_guarantee_periods: {
-        Row: {
-          actual_cpa_cost: number
-          affiliate_id: string
-          created_at: string
-          guaranteed_amount: number
-          id: string
-          period_end: string
-          period_start: string
-          shortfall_amount: number
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          actual_cpa_cost?: number
-          affiliate_id: string
-          created_at?: string
-          guaranteed_amount?: number
-          id?: string
-          period_end: string
-          period_start: string
-          shortfall_amount?: number
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          actual_cpa_cost?: number
-          affiliate_id?: string
-          created_at?: string
-          guaranteed_amount?: number
-          id?: string
-          period_end?: string
-          period_start?: string
-          shortfall_amount?: number
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "affiliate_guarantee_periods_affiliate_id_fkey"
-            columns: ["affiliate_id"]
-            isOneToOne: false
-            referencedRelation: "affiliates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      affiliates: {
-        Row: {
-          active: boolean
-          cpa_rate: number
-          created_at: string
-          email: string | null
-          guarantee_period: string
-          guarantee_type: string
-          guarantee_value: number
-          id: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          cpa_rate?: number
-          created_at?: string
-          email?: string | null
-          guarantee_period?: string
-          guarantee_type?: string
-          guarantee_value?: number
-          id?: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          cpa_rate?: number
-          created_at?: string
-          email?: string | null
-          guarantee_period?: string
-          guarantee_type?: string
-          guarantee_value?: number
-          id?: string
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       attendance: {
         Row: {
           created_at: string
@@ -396,7 +265,6 @@ export type Database = {
       leads: {
         Row: {
           activated: boolean
-          affiliate_id: string | null
           cost: number
           created_at: string
           email: string | null
@@ -412,7 +280,6 @@ export type Database = {
         }
         Insert: {
           activated?: boolean
-          affiliate_id?: string | null
           cost?: number
           created_at?: string
           email?: string | null
@@ -428,7 +295,6 @@ export type Database = {
         }
         Update: {
           activated?: boolean
-          affiliate_id?: string | null
           cost?: number
           created_at?: string
           email?: string | null
@@ -443,13 +309,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "leads_affiliate_id_fkey"
-            columns: ["affiliate_id"]
-            isOneToOne: false
-            referencedRelation: "affiliates"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "leads_employee_id_fkey"
             columns: ["employee_id"]
@@ -627,13 +486,6 @@ export type Database = {
         }
         Returns: string
       }
-      affiliate_period_window: {
-        Args: { _period: string; _ref: string }
-        Returns: {
-          period_end: string
-          period_start: string
-        }[]
-      }
       generate_due_recurring_expenses: { Args: never; Returns: number }
       has_role: {
         Args: {
@@ -641,10 +493,6 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
-      }
-      recompute_affiliate_period: {
-        Args: { _affiliate_id: string; _ref: string }
-        Returns: undefined
       }
     }
     Enums: {
