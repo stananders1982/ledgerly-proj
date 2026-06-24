@@ -79,6 +79,10 @@ function ReportsPage() {
     queryKey: ["rpt-sources"],
     queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price,expected_conversion_rate")).data ?? [],
   });
+  const attQ = useQuery({
+    queryKey: ["rpt-attendance", start, end],
+    queryFn: async () => (await supabase.from("attendance").select("employee_id,date,present").gte("date", start).lte("date", end)).data ?? [],
+  });
 
   const data = useMemo(() => {
     const entries = (leadsQ.data ?? []) as any[];
