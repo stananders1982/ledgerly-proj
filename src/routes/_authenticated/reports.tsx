@@ -166,8 +166,14 @@ function ReportsPage() {
     const byEmp = new Map<string, { name: string; revenue: number; leads: number; activated: number; salary: number; commissionPct: number }>();
     for (const e of data.employees) byEmp.set(e.id, { name: e.name, revenue: 0, leads: 0, activated: 0, salary: Number(e.salary), commissionPct: Number(e.commission_pct) });
     for (const r of rev) {
-      if (!r.employee_id) continue;
-      const x = byEmp.get(r.employee_id); if (x) x.revenue += Number(r.amount);
+      const amt = Number(r.amount);
+      const pct = Number(r.split_pct ?? 100);
+      if (r.employee_id) {
+        const x = byEmp.get(r.employee_id); if (x) x.revenue += amt * (pct / 100);
+      }
+      if (r.employee_id_2) {
+        const x = byEmp.get(r.employee_id_2); if (x) x.revenue += amt * ((100 - pct) / 100);
+      }
     }
     // No employee_id on daily_lead_entries; leave leads/activated as 0
     return Array.from(byEmp.values()).map((e) => {
