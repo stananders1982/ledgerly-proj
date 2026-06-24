@@ -8,6 +8,8 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  navKeys: Set<string>;
+  permsLoaded: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -17,6 +19,8 @@ const Ctx = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [navKeys, setNavKeys] = useState<Set<string>>(new Set());
+  const [permsLoaded, setPermsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -39,15 +43,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!session?.user) {
       setIsAdmin(false);
+      setNavKeys(new Set());
+      setPermsLoaded(false);
       return;
     }
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", session.user.id)
-      .then(({ data }) => {
-        setIsAdmin(!!data?.some((r) => r.role === "admin"));
-      });
+    const uid = session.user.id;
+    Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", uid),
+      supabase.from("nav_permissions").select("nav_key").eq("user_id", uid),
+    ]).then(([rolesRes, permsRes]) => {
+      setIsAdmin(!!rolesRes.data?.some((r) => r.role === "admin"));
+      setNavKeys(new Set((permsRes.data ?? []).map((p: any) => p.nav_key as string)));
+      setPermsLoaded(true);
+    });
   }, [session?.user?.id]);
 
   const signOut = async () => {
