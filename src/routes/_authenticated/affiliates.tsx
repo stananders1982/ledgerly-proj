@@ -162,15 +162,31 @@ function AffiliatesPage() {
   const rows = useMemo(() => {
     return affiliates.map((a) => {
       const win = periodWindow(a.guarantee_period);
+      const endMs = new Date(win.end.getTime() + 86400000 - 1);
       const inPeriod = events.filter(
         (e) =>
           e.affiliate_id === a.id &&
           e.status !== "rejected" &&
           new Date(e.created_at) >= win.start &&
-          new Date(e.created_at) <= new Date(win.end.getTime() + 86400000 - 1),
+          new Date(e.created_at) <= endMs,
       );
       const cpaCost = inPeriod.reduce((s, e) => s + Number(e.amount), 0);
-      const guaranteed = a.guarantee_type === "fixed" ? Number(a.guarantee_value) : 0;
+
+      const receivedInPeriod = affLeads.filter(
+        (l) =>
+          l.affiliate_id === a.id &&
+          new Date(l.created_at) >= win.start &&
+          new Date(l.created_at) <= endMs,
+      ).length;
+
+      let guaranteed = 0;
+      let guaranteedConversions = 0;
+      if (a.guarantee_type === "fixed") {
+        guaranteed = Number(a.guarantee_value);
+      } else if (a.guarantee_type === "conversion_rate") {
+        guaranteedConversions = receivedInPeriod * (Number(a.guarantee_value) / 100);
+        guaranteed = guaranteedConversions * Number(a.cpa_rate);
+      }
       const shortfall = Math.max(0, guaranteed - cpaCost);
 
       const allEvents = events.filter((e) => e.affiliate_id === a.id && e.status !== "rejected");
@@ -181,12 +197,12 @@ function AffiliatesPage() {
       const liability = allEventsCost + openShortfall;
 
       let risk: "healthy" | "moderate" | "high" = "healthy";
-      if (shortfall > 0 || liability > guaranteed * 2) risk = "high";
-      else if (cpaCost > guaranteed * 0.5) risk = "moderate";
+      if (shortfall > 0) risk = "high";
+      else if (guaranteed > 0 && cpaCost > guaranteed * 0.5) risk = "moderate";
 
-      return { a, cpaCost, guaranteed, shortfall, liability, risk };
+      return { a, cpaCost, guaranteed, shortfall, liability, risk, receivedInPeriod, guaranteedConversions };
     });
-  }, [affiliates, events, periods]);
+  }, [affiliates, events, periods, affLeads]);
 
   const totals = useMemo(() => {
     const cpa = events
@@ -195,11 +211,9 @@ function AffiliatesPage() {
     const shortfalls = periods
       .filter((p) => p.status !== "paid")
       .reduce((s, p) => s + Number(p.shortfall_amount), 0);
-    const guaranteed = affiliates
-      .filter((a) => a.guarantee_type === "fixed")
-      .reduce((s, a) => s + Number(a.guarantee_value), 0);
+    const guaranteed = rows.reduce((s, r) => s + r.guaranteed, 0);
     return { cpa, shortfalls, guaranteed, liability: cpa + shortfalls };
-  }, [events, periods, affiliates]);
+  }, [events, periods, rows]);
 
   return (
     <div>
