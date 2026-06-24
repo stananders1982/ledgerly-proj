@@ -65,7 +65,7 @@ function RevenuePage() {
         customer_name: v.customer_name,
         amount: Number(v.amount) || 0,
         date: v.date,
-        lead_id: v.lead_id || null,
+        affiliate_id: v.affiliate_id || null,
         employee_id: v.employee_id || null,
         notes: v.notes || null,
       };
