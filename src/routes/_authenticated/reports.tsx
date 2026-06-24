@@ -511,6 +511,36 @@ function ReportsPage() {
           />
         </TabsContent>
 
+        <TabsContent value="attendance">
+          <div className="space-y-4">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Working Days" value={String(attendanceRpt.workingDays)} />
+              <StatCard label="Total Absences" value={String(attendanceRpt.totals.absent)} />
+              <StatCard label="Total Deductions" value={fmtMoney(attendanceRpt.totals.deduction)} tone="negative" />
+              <StatCard label="Net Payable" value={fmtMoney(attendanceRpt.totals.netPayable)} tone="positive" />
+            </div>
+            <SortableTable
+              columns={[
+                { key: "name", label: "Employee" },
+                { key: "workingDays", label: "Working Days", numeric: true },
+                { key: "present", label: "Present", numeric: true },
+                { key: "absent", label: "Absent", numeric: true, render: (v) => <span className={v > 0 ? "text-rose-500" : ""}>{v}</span> },
+                { key: "unmarked", label: "Unmarked", numeric: true },
+                { key: "attendancePct", label: "Attendance", numeric: true, render: (v) => fmtPct(v) },
+                { key: "salary", label: "Salary", numeric: true, render: (v) => fmtMoney(v) },
+                { key: "perDay", label: "Per Day", numeric: true, render: (v) => fmtMoney(v) },
+                { key: "deduction", label: "Deduction", numeric: true, render: (v) => <span className={v > 0 ? "text-rose-500" : ""}>{v > 0 ? "−" : ""}{fmtMoney(v)}</span> },
+                { key: "netPayable", label: "Net Payable", numeric: true, render: (v) => fmtMoney(v) },
+              ]}
+              rows={attendanceRpt.rows}
+              searchable
+            />
+            <p className="text-xs text-muted-foreground">Working days count Mon–Fri within the selected range. Deduction = (salary ÷ working days) × absent days.</p>
+          </div>
+        </TabsContent>
+
+
+
         <TabsContent value="savings">
           <SortableTable
             columns={[
