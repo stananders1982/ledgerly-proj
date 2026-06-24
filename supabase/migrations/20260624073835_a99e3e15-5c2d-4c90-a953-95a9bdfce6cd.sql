@@ -1,0 +1,2 @@
+ALTER TABLE public.revenue ADD COLUMN IF NOT EXISTS affiliate_id uuid REFERENCES public.affiliates(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS revenue_affiliate_id_idx ON public.revenue(affiliate_id);
