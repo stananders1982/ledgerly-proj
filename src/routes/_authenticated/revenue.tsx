@@ -35,14 +35,14 @@ function RevenuePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("revenue")
-        .select("*, employees(name), leads(name, lead_sources(name))")
+        .select("*, employees(name), affiliates(name), leads(name, lead_sources(name))")
         .order("date", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
   const empQ = useQuery({ queryKey: ["employees"], queryFn: async () => (await supabase.from("employees").select("*").order("name")).data ?? [] });
-  const leadsQ = useQuery({ queryKey: ["leads-min"], queryFn: async () => (await supabase.from("leads").select("id,name,source_id,lead_sources(name)").order("created_at", { ascending: false })).data ?? [] });
+  const affQ = useQuery({ queryKey: ["affiliates-min"], queryFn: async () => (await supabase.from("affiliates").select("id,name,active").eq("active", true).order("name")).data ?? [] });
 
   const stats = useMemo(() => {
     const list = revQ.data ?? [];
