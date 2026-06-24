@@ -566,6 +566,7 @@ export type Database = {
       }
       revenue: {
         Row: {
+          affiliate_id: string | null
           amount: number
           created_at: string
           customer_name: string
@@ -577,6 +578,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          affiliate_id?: string | null
           amount?: number
           created_at?: string
           customer_name: string
@@ -588,6 +590,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          affiliate_id?: string | null
           amount?: number
           created_at?: string
           customer_name?: string
@@ -599,6 +602,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "revenue_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "revenue_employee_id_fkey"
             columns: ["employee_id"]

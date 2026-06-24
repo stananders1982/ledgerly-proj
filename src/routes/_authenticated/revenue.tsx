@@ -35,14 +35,14 @@ function RevenuePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("revenue")
-        .select("*, employees(name), leads(name, lead_sources(name))")
+        .select("*, employees(name), affiliates(name), leads(name, lead_sources(name))")
         .order("date", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
   const empQ = useQuery({ queryKey: ["employees"], queryFn: async () => (await supabase.from("employees").select("*").order("name")).data ?? [] });
-  const leadsQ = useQuery({ queryKey: ["leads-min"], queryFn: async () => (await supabase.from("leads").select("id,name,source_id,lead_sources(name)").order("created_at", { ascending: false })).data ?? [] });
+  const affQ = useQuery({ queryKey: ["affiliates-min"], queryFn: async () => (await supabase.from("affiliates").select("id,name,active").eq("active", true).order("name")).data ?? [] });
 
   const stats = useMemo(() => {
     const list = revQ.data ?? [];
@@ -50,13 +50,13 @@ function RevenuePage() {
     const month = new Date().toISOString().slice(0, 7);
     const monthTotal = list.filter((r: any) => r.date?.startsWith(month)).reduce((s: number, r: any) => s + Number(r.amount), 0);
     const byEmp = new Map<string, number>();
-    const bySrc = new Map<string, number>();
+    const byAff = new Map<string, number>();
     list.forEach((r: any) => {
       if (r.employee_id) byEmp.set(r.employees?.name ?? "?", (byEmp.get(r.employees?.name ?? "?") ?? 0) + Number(r.amount));
-      const src = r.leads?.lead_sources?.name;
-      if (src) bySrc.set(src, (bySrc.get(src) ?? 0) + Number(r.amount));
+      const aff = r.affiliates?.name;
+      if (aff) byAff.set(aff, (byAff.get(aff) ?? 0) + Number(r.amount));
     });
-    return { total, monthTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), bySrc: [...bySrc.entries()].sort((a, b) => b[1] - a[1]) };
+    return { total, monthTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
   }, [revQ.data]);
 
   const upsert = useMutation({
@@ -65,7 +65,7 @@ function RevenuePage() {
         customer_name: v.customer_name,
         amount: Number(v.amount) || 0,
         date: v.date,
-        lead_id: v.lead_id || null,
+        affiliate_id: v.affiliate_id || null,
         employee_id: v.employee_id || null,
         notes: v.notes || null,
       };
@@ -85,7 +85,7 @@ function RevenuePage() {
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
     const rows = (revQ.data ?? []).map((r: any) => ({
       Date: r.date, Customer: r.customer_name, Amount: r.amount,
-      Employee: r.employees?.name ?? "", Lead: r.leads?.name ?? "", Source: r.leads?.lead_sources?.name ?? "",
+      Employee: r.employees?.name ?? "", Affiliate: r.affiliates?.name ?? "",
     }));
     if (!rows.length) return toast.error("Nothing to export");
     if (type === "csv") exportCSV(rows, "revenue");
@@ -110,7 +110,7 @@ function RevenuePage() {
             </DropdownMenu>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
               <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New revenue</Button></DialogTrigger>
-              <RevenueDialog rev={editing} employees={empQ.data ?? []} leads={leadsQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+              <RevenueDialog rev={editing} employees={empQ.data ?? []} affiliates={affQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
             </Dialog>
           </div>
         }
@@ -125,7 +125,7 @@ function RevenuePage() {
 
       <div className="grid lg:grid-cols-2 gap-4 mb-6">
         <BreakdownCard title="Revenue by employee" rows={stats.byEmp} />
-        <BreakdownCard title="Revenue by source" rows={stats.bySrc} />
+        <BreakdownCard title="Revenue by affiliate" rows={stats.byAff} />
       </div>
 
       <div className="card-surface overflow-hidden">
@@ -154,7 +154,7 @@ function RevenuePage() {
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     <td className="py-3 px-4 text-primary font-medium">{fmtMoney(r.amount)}</td>
                     <td className="py-3 px-4">{r.employees?.name || "—"}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{r.leads?.name || "—"}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{r.affiliates?.name || "—"}</td>
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete revenue?" />
                     </td>
@@ -191,14 +191,14 @@ function BreakdownCard({ title, rows }: { title: string; rows: [string, number][
 }
 
 function RevenueDialog({
-  rev, employees, leads, onSubmit, loading,
-}: { rev: any; employees: any[]; leads: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+  rev, employees, affiliates, onSubmit, loading,
+}: { rev: any; employees: any[]; affiliates: any[]; onSubmit: (v: any) => void; loading: boolean }) {
   const [form, setForm] = useState(() => ({
     id: rev?.id,
     customer_name: rev?.customer_name ?? "",
     amount: rev?.amount ?? "",
     date: rev?.date ?? new Date().toISOString().slice(0, 10),
-    lead_id: rev?.lead_id ?? "",
+    affiliate_id: rev?.affiliate_id ?? "",
     employee_id: rev?.employee_id ?? "",
     notes: rev?.notes ?? "",
   }));
@@ -218,9 +218,9 @@ function RevenueDialog({
           </Select>
         </Field>
         <Field label="Affiliate (optional)">
-          <Select value={form.lead_id} onValueChange={(v) => setForm({ ...form, lead_id: v })}>
-            <SelectTrigger><SelectValue placeholder="Pick affiliate" /></SelectTrigger>
-            <SelectContent>{leads.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.name}{l.lead_sources?.name ? ` · ${l.lead_sources.name}` : ""}</SelectItem>)}</SelectContent>
+          <Select value={form.affiliate_id} onValueChange={(v) => setForm({ ...form, affiliate_id: v })}>
+            <SelectTrigger><SelectValue placeholder={affiliates.length ? "Pick affiliate" : "No affiliates yet"} /></SelectTrigger>
+            <SelectContent>{affiliates.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
