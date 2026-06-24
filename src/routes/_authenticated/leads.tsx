@@ -33,7 +33,7 @@ type Entry = {
   activated: number;
   reported: number;
   notes: string | null;
-  lead_sources?: { id: string; name: string; pricing_model: "CPL" | "CPA"; price: number } | null;
+  lead_sources?: { id: string; name: string; pricing_model: "CPL" | "CPA"; price: number; expected_conversion_rate?: number } | null;
 };
 
 function LeadsPage() {
