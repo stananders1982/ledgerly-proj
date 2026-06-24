@@ -164,12 +164,7 @@ function UsersPage() {
                     </Button>
                     {u.id !== user?.id && (
                       <ConfirmDelete
-                        trigger={
-                          <Button size="sm" variant="ghost" className="text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        }
-                        title={`Delete ${u.email}?`}
+                        label={`Delete ${u.email}?`}
                         description="This permanently removes the user account."
                         onConfirm={() => deleteMut.mutate(u.id)}
                       />
