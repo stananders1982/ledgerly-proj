@@ -1,0 +1,24 @@
+import { LayoutDashboard, Users, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck } from "lucide-react";
+
+export type NavItem = {
+  key: string;
+  title: string;
+  url: string;
+  icon: typeof LayoutDashboard;
+  adminOnly?: boolean;
+};
+
+export const NAV_ITEMS: NavItem[] = [
+  { key: "dashboard", title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { key: "leads", title: "Leads", url: "/leads", icon: Users },
+  { key: "sources", title: "Sources", url: "/sources", icon: Tag },
+  { key: "revenue", title: "Income", url: "/revenue", icon: TrendingUp },
+  { key: "expenses", title: "Expenses", url: "/expenses", icon: Receipt },
+  { key: "recurring", title: "Recurring", url: "/recurring", icon: Repeat },
+  { key: "employees", title: "Employees", url: "/employees", icon: UserCog },
+  { key: "attendance", title: "Attendance", url: "/attendance", icon: CalendarCheck },
+  { key: "reports", title: "Reports", url: "/reports", icon: FileBarChart },
+  { key: "users", title: "Users", url: "/users", icon: ShieldCheck, adminOnly: true },
+];
+
+export const MANAGEABLE_NAV_KEYS = NAV_ITEMS.filter((i) => !i.adminOnly).map((i) => i.key);
