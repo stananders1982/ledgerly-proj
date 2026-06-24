@@ -255,6 +255,8 @@ function AffiliatesPage() {
                   <th className="py-3 px-4">Affiliate</th>
                   <th className="py-3 px-4">CPA rate</th>
                   <th className="py-3 px-4">Guarantee</th>
+                  <th className="py-3 px-4">Leads / Conv. period</th>
+                  <th className="py-3 px-4">Guaranteed amount</th>
                   <th className="py-3 px-4">Period CPA cost</th>
                   <th className="py-3 px-4">Shortfall</th>
                   <th className="py-3 px-4">Total liability</th>
@@ -263,7 +265,7 @@ function AffiliatesPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map(({ a, cpaCost, guaranteed, shortfall, liability, risk }) => (
+                {rows.map(({ a, cpaCost, guaranteed, shortfall, liability, risk, receivedInPeriod, guaranteedConversions }) => (
                   <tr key={a.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(a); setOpen(true); }}>
                     <td className="py-3 px-4">
@@ -274,6 +276,11 @@ function AffiliatesPage() {
                     <td className="py-3 px-4 text-xs">
                       {a.guarantee_type === "none" ? (
                         <span className="text-muted-foreground">None</span>
+                      ) : a.guarantee_type === "conversion_rate" ? (
+                        <span>
+                          <span className="font-medium">{a.guarantee_value}%</span> conv.
+                          <span className="text-muted-foreground"> / {a.guarantee_period}</span>
+                        </span>
                       ) : (
                         <span>
                           {a.guarantee_type === "fixed" ? fmtMoney(a.guarantee_value) : `${a.guarantee_value}%`}
@@ -281,6 +288,19 @@ function AffiliatesPage() {
                         </span>
                       )}
                     </td>
+                    <td className="py-3 px-4 text-xs">
+                      {a.guarantee_type === "conversion_rate" ? (
+                        <span>
+                          <span className="font-medium">{receivedInPeriod}</span>
+                          <span className="text-muted-foreground"> received → </span>
+                          <span className="font-medium">{guaranteedConversions.toFixed(2)}</span>
+                          <span className="text-muted-foreground"> owed</span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">{fmtMoney(guaranteed)}</td>
                     <td className="py-3 px-4">{fmtMoney(cpaCost)}</td>
                     <td className={"py-3 px-4 " + (shortfall > 0 ? "text-destructive font-medium" : "text-muted-foreground")}>
                       {fmtMoney(shortfall)}
