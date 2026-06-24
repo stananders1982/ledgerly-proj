@@ -46,7 +46,7 @@ function LeadsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_lead_entries")
-        .select("*, lead_sources(id,name,pricing_model,price)")
+        .select("*, lead_sources(id,name,pricing_model,price,expected_conversion_rate)")
         .order("entry_date", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Entry[];
