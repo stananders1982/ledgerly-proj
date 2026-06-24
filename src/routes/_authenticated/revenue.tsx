@@ -35,7 +35,7 @@ function RevenuePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("revenue")
-        .select("*, employees(name), affiliates(name), leads(name, lead_sources(name))")
+        .select("*, employees:employee_id(name), employee2:employee_id_2(name), affiliates(name), leads(name, lead_sources(name))")
         .order("date", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -52,9 +52,18 @@ function RevenuePage() {
     const byEmp = new Map<string, number>();
     const byAff = new Map<string, number>();
     list.forEach((r: any) => {
-      if (r.employee_id) byEmp.set(r.employees?.name ?? "?", (byEmp.get(r.employees?.name ?? "?") ?? 0) + Number(r.amount));
+      const amt = Number(r.amount);
+      const pct = Number(r.split_pct ?? 100);
+      if (r.employee_id) {
+        const n1 = r.employees?.name ?? "?";
+        byEmp.set(n1, (byEmp.get(n1) ?? 0) + amt * (pct / 100));
+      }
+      if (r.employee_id_2) {
+        const n2 = r.employee2?.name ?? "?";
+        byEmp.set(n2, (byEmp.get(n2) ?? 0) + amt * ((100 - pct) / 100));
+      }
       const aff = r.affiliates?.name;
-      if (aff) byAff.set(aff, (byAff.get(aff) ?? 0) + Number(r.amount));
+      if (aff) byAff.set(aff, (byAff.get(aff) ?? 0) + amt);
     });
     return { total, monthTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
   }, [revQ.data]);
@@ -67,6 +76,8 @@ function RevenuePage() {
         date: v.date,
         affiliate_id: v.affiliate_id || null,
         employee_id: v.employee_id || null,
+        employee_id_2: v.employee_id_2 || null,
+        split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
         notes: v.notes || null,
       };
       const { error } = v.id
@@ -110,7 +121,7 @@ function RevenuePage() {
             </DropdownMenu>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
               <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New revenue</Button></DialogTrigger>
-              <RevenueDialog rev={editing} employees={empQ.data ?? []} affiliates={affQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+              <RevenueDialog key={editing?.id ?? "new"} rev={editing} employees={empQ.data ?? []} affiliates={affQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
             </Dialog>
           </div>
         }
@@ -153,7 +164,14 @@ function RevenuePage() {
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     <td className="py-3 px-4 text-primary font-medium">{fmtMoney(r.amount)}</td>
-                    <td className="py-3 px-4">{r.employees?.name || "—"}</td>
+                    <td className="py-3 px-4">
+                      {r.employees?.name || "—"}
+                      {r.employee_id_2 && (
+                        <span className="text-muted-foreground">
+                          {" "}({Number(r.split_pct)}%) + {r.employee2?.name} ({100 - Number(r.split_pct)}%)
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-muted-foreground">{r.affiliates?.name || "—"}</td>
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete revenue?" />
@@ -200,8 +218,11 @@ function RevenueDialog({
     date: rev?.date ?? new Date().toISOString().slice(0, 10),
     affiliate_id: rev?.affiliate_id ?? "",
     employee_id: rev?.employee_id ?? "",
+    employee_id_2: rev?.employee_id_2 ?? "",
+    split_pct: rev?.split_pct ?? 50,
     notes: rev?.notes ?? "",
   }));
+  const hasSplit = !!form.employee_id_2;
   return (
     <DialogContent>
       <DialogHeader><DialogTitle>{rev?.id ? "Edit revenue" : "Record revenue"}</DialogTitle></DialogHeader>
@@ -211,12 +232,33 @@ function RevenueDialog({
           <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
           <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         </div>
-        <Field label="Employee">
+        <Field label={hasSplit ? `Employee 1 (${Number(form.split_pct)}%)` : "Employee"}>
           <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
             <SelectTrigger><SelectValue placeholder="Pick employee" /></SelectTrigger>
             <SelectContent>{employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
+        <Field label={hasSplit ? `Employee 2 (${100 - Number(form.split_pct)}%)` : "Split with second employee (optional)"}>
+          <Select
+            value={form.employee_id_2 || "_none"}
+            onValueChange={(v) => setForm({ ...form, employee_id_2: v === "_none" ? "" : v })}
+          >
+            <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">None</SelectItem>
+              {employees.filter((e) => e.id !== form.employee_id).map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
+        {hasSplit && (
+          <Field label={`Split: Employee 1 gets ${Number(form.split_pct)}%`}>
+            <Input
+              type="range" min={1} max={99} step={1}
+              value={form.split_pct}
+              onChange={(e) => setForm({ ...form, split_pct: Number(e.target.value) })}
+            />
+          </Field>
+        )}
         <Field label="Affiliate (optional)">
           <Select value={form.affiliate_id} onValueChange={(v) => setForm({ ...form, affiliate_id: v })}>
             <SelectTrigger><SelectValue placeholder={affiliates.length ? "Pick affiliate" : "No affiliates yet"} /></SelectTrigger>

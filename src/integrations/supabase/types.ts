@@ -572,9 +572,11 @@ export type Database = {
           customer_name: string
           date: string
           employee_id: string | null
+          employee_id_2: string | null
           id: string
           lead_id: string | null
           notes: string | null
+          split_pct: number
           updated_at: string
         }
         Insert: {
@@ -584,9 +586,11 @@ export type Database = {
           customer_name: string
           date?: string
           employee_id?: string | null
+          employee_id_2?: string | null
           id?: string
           lead_id?: string | null
           notes?: string | null
+          split_pct?: number
           updated_at?: string
         }
         Update: {
@@ -596,9 +600,11 @@ export type Database = {
           customer_name?: string
           date?: string
           employee_id?: string | null
+          employee_id_2?: string | null
           id?: string
           lead_id?: string | null
           notes?: string | null
+          split_pct?: number
           updated_at?: string
         }
         Relationships: [
@@ -607,6 +613,13 @@ export type Database = {
             columns: ["affiliate_id"]
             isOneToOne: false
             referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_employee_id_2_fkey"
+            columns: ["employee_id_2"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
