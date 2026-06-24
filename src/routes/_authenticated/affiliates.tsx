@@ -100,10 +100,22 @@ function AffiliatesPage() {
       return ((data ?? []) as unknown) as Period[];
     },
   });
+  const leadsQ = useQuery({
+    queryKey: ["leads_affiliate"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("id, affiliate_id, created_at")
+        .not("affiliate_id", "is", null);
+      if (error) throw error;
+      return (data ?? []) as { id: string; affiliate_id: string; created_at: string }[];
+    },
+  });
 
   const affiliates = affQ.data ?? [];
   const events = evQ.data ?? [];
   const periods = perQ.data ?? [];
+  const affLeads = leadsQ.data ?? [];
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
