@@ -365,6 +365,7 @@ function ReportsPage() {
       { Metric: "Projected Savings", Value: forecast.savings },
     ];
     else if (tab === "audit") rows = (activityQ.data ?? []).map((a: any) => ({ Time: new Date(a.time).toLocaleString(), Type: a.type, Detail: a.detail }));
+    else if (tab === "attendance") rows = attendanceRpt.rows.map((r) => ({ Employee: r.name, WorkingDays: r.workingDays, Present: r.present, Absent: r.absent, Unmarked: r.unmarked, AttendancePct: r.attendancePct.toFixed(1), Salary: r.salary, PerDay: r.perDay.toFixed(2), Deduction: r.deduction.toFixed(2), NetPayable: r.netPayable.toFixed(2) }));
 
     if (format === "csv") exportCSV(rows, fn);
     if (format === "xlsx") exportXLSX(rows, fn);
