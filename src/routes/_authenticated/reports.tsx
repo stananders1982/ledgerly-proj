@@ -46,7 +46,22 @@ function ReportsPage() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [tab, setTab] = useState("summary");
+  const [pvPeriod, setPvPeriod] = useState<"week" | "month" | "all">("month");
   const { start, end } = useMemo(() => computeRange(range, customStart, customEnd), [range, customStart, customEnd]);
+  const pvWindow = useMemo(() => {
+    const now = new Date();
+    const t = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (pvPeriod === "all") return { start: "1900-01-01", end: "2999-12-31" };
+    if (pvPeriod === "week") {
+      const day = t.getDay();
+      const diff = (day + 6) % 7;
+      const s = new Date(t); s.setDate(s.getDate() - diff);
+      const e = new Date(s); e.setDate(e.getDate() + 6);
+      return { start: iso(s), end: iso(e) };
+    }
+    return { start: iso(new Date(t.getFullYear(), t.getMonth(), 1)), end: iso(new Date(t.getFullYear(), t.getMonth() + 1, 0)) };
+  }, [pvPeriod]);
+
 
   const leadsQ = useQuery({
     queryKey: ["rpt-leads", start, end],
