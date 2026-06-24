@@ -85,7 +85,7 @@ function RevenuePage() {
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
     const rows = (revQ.data ?? []).map((r: any) => ({
       Date: r.date, Customer: r.customer_name, Amount: r.amount,
-      Employee: r.employees?.name ?? "", Lead: r.leads?.name ?? "", Source: r.leads?.lead_sources?.name ?? "",
+      Employee: r.employees?.name ?? "", Affiliate: r.affiliates?.name ?? "",
     }));
     if (!rows.length) return toast.error("Nothing to export");
     if (type === "csv") exportCSV(rows, "revenue");
