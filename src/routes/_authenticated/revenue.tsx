@@ -125,7 +125,7 @@ function RevenuePage() {
 
       <div className="grid lg:grid-cols-2 gap-4 mb-6">
         <BreakdownCard title="Revenue by employee" rows={stats.byEmp} />
-        <BreakdownCard title="Revenue by source" rows={stats.bySrc} />
+        <BreakdownCard title="Revenue by affiliate" rows={stats.byAff} />
       </div>
 
       <div className="card-surface overflow-hidden">
