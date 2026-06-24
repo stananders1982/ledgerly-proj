@@ -1,8 +1,13 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 interface AuthState {
   user: User | null;
@@ -22,12 +27,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [navKeys, setNavKeys] = useState<Set<string>>(new Set());
   const [permsLoaded, setPermsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [aalChecked, setAalChecked] = useState(false);
   const queryClient = useQueryClient();
   const router = useRouter();
+
+  const checkAAL = useCallback(async () => {
+    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const needs = !!data && data.currentLevel === "aal1" && data.nextLevel === "aal2";
+    setMfaRequired(needs);
+    setAalChecked(true);
+  }, []);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
+      if (event === "SIGNED_OUT") {
+        setMfaRequired(false);
+        setAalChecked(true);
+      } else if (s) {
+        setAalChecked(false);
+        checkAAL();
+      }
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         router.invalidate();
         if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
@@ -36,12 +57,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
+      if (data.session) checkAAL();
+      else setAalChecked(true);
     });
     return () => sub.subscription.unsubscribe();
-  }, [queryClient, router]);
+  }, [queryClient, router, checkAAL]);
 
   useEffect(() => {
-    if (!session?.user) {
+    if (!session?.user || mfaRequired) {
       setIsAdmin(false);
       setNavKeys(new Set());
       setPermsLoaded(false);
@@ -56,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setNavKeys(new Set((permsRes.data ?? []).map((p: any) => p.nav_key as string)));
       setPermsLoaded(true);
     });
-  }, [session?.user?.id]);
+  }, [session?.user?.id, mfaRequired]);
 
   const signOut = async () => {
     await queryClient.cancelQueries();
@@ -64,11 +87,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const showChallenge = !!session && aalChecked && mfaRequired;
+
   return (
     <Ctx.Provider
       value={{ user: session?.user ?? null, session, isAdmin, navKeys, permsLoaded, loading, signOut }}
     >
-      {children}
+      {showChallenge ? (
+        <MfaChallengeScreen onVerified={checkAAL} onCancel={signOut} />
+      ) : (
+        children
+      )}
     </Ctx.Provider>
   );
 }
@@ -78,3 +107,70 @@ export const useAuth = () => {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 };
+
+function MfaChallengeScreen({ onVerified, onCancel }: { onVerified: () => void; onCancel: () => void }) {
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const factors = await supabase.auth.mfa.listFactors();
+      const totp = factors.data?.totp?.find((f) => f.status === "verified");
+      if (!totp) {
+        toast.error("No verified authenticator found");
+        return;
+      }
+      const challenge = await supabase.auth.mfa.challenge({ factorId: totp.id });
+      if (challenge.error) throw challenge.error;
+      const verify = await supabase.auth.mfa.verify({
+        factorId: totp.id,
+        challengeId: challenge.data.id,
+        code: code.trim(),
+      });
+      if (verify.error) throw verify.error;
+      toast.success("Verified");
+      onVerified();
+    } catch (err: any) {
+      toast.error(err.message ?? "Invalid code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 bg-background">
+      <form onSubmit={submit} className="card-surface p-6 w-full max-w-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="h-9 w-9 rounded-md bg-primary/15 text-primary flex items-center justify-center">
+            <ShieldCheck className="h-4 w-4" />
+          </div>
+          <div>
+            <h1 className="font-semibold">Two-factor authentication</h1>
+            <p className="text-xs text-muted-foreground">Enter the 6-digit code from your authenticator app.</p>
+          </div>
+        </div>
+        <div className="grid gap-2">
+          <Label>Verification code</Label>
+          <Input
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            maxLength={6}
+            required
+            autoFocus
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+          />
+        </div>
+        <Button type="submit" className="w-full" disabled={loading || code.length < 6}>
+          {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Verify
+        </Button>
+        <Button type="button" variant="ghost" className="w-full" onClick={onCancel}>
+          Cancel and sign out
+        </Button>
+      </form>
+    </div>
+  );
+}
