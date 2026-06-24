@@ -107,7 +107,7 @@ function UsersPage() {
       <PageHeader
         title="Users"
         description="Create users and choose which pages they can see."
-        action={
+        actions={
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4" /> Add user</Button>
