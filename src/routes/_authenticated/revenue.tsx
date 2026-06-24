@@ -218,8 +218,11 @@ function RevenueDialog({
     date: rev?.date ?? new Date().toISOString().slice(0, 10),
     affiliate_id: rev?.affiliate_id ?? "",
     employee_id: rev?.employee_id ?? "",
+    employee_id_2: rev?.employee_id_2 ?? "",
+    split_pct: rev?.split_pct ?? 50,
     notes: rev?.notes ?? "",
   }));
+  const hasSplit = !!form.employee_id_2;
   return (
     <DialogContent>
       <DialogHeader><DialogTitle>{rev?.id ? "Edit revenue" : "Record revenue"}</DialogTitle></DialogHeader>
@@ -229,12 +232,33 @@ function RevenueDialog({
           <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
           <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         </div>
-        <Field label="Employee">
+        <Field label={hasSplit ? `Employee 1 (${Number(form.split_pct)}%)` : "Employee"}>
           <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
             <SelectTrigger><SelectValue placeholder="Pick employee" /></SelectTrigger>
             <SelectContent>{employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
+        <Field label={hasSplit ? `Employee 2 (${100 - Number(form.split_pct)}%)` : "Split with second employee (optional)"}>
+          <Select
+            value={form.employee_id_2 || "_none"}
+            onValueChange={(v) => setForm({ ...form, employee_id_2: v === "_none" ? "" : v })}
+          >
+            <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">None</SelectItem>
+              {employees.filter((e) => e.id !== form.employee_id).map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
+        {hasSplit && (
+          <Field label={`Split: Employee 1 gets ${Number(form.split_pct)}%`}>
+            <Input
+              type="range" min={1} max={99} step={1}
+              value={form.split_pct}
+              onChange={(e) => setForm({ ...form, split_pct: Number(e.target.value) })}
+            />
+          </Field>
+        )}
         <Field label="Affiliate (optional)">
           <Select value={form.affiliate_id} onValueChange={(v) => setForm({ ...form, affiliate_id: v })}>
             <SelectTrigger><SelectValue placeholder={affiliates.length ? "Pick affiliate" : "No affiliates yet"} /></SelectTrigger>
