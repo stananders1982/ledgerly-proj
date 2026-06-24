@@ -191,14 +191,14 @@ function BreakdownCard({ title, rows }: { title: string; rows: [string, number][
 }
 
 function RevenueDialog({
-  rev, employees, leads, onSubmit, loading,
-}: { rev: any; employees: any[]; leads: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+  rev, employees, affiliates, onSubmit, loading,
+}: { rev: any; employees: any[]; affiliates: any[]; onSubmit: (v: any) => void; loading: boolean }) {
   const [form, setForm] = useState(() => ({
     id: rev?.id,
     customer_name: rev?.customer_name ?? "",
     amount: rev?.amount ?? "",
     date: rev?.date ?? new Date().toISOString().slice(0, 10),
-    lead_id: rev?.lead_id ?? "",
+    affiliate_id: rev?.affiliate_id ?? "",
     employee_id: rev?.employee_id ?? "",
     notes: rev?.notes ?? "",
   }));
@@ -218,9 +218,9 @@ function RevenueDialog({
           </Select>
         </Field>
         <Field label="Affiliate (optional)">
-          <Select value={form.lead_id} onValueChange={(v) => setForm({ ...form, lead_id: v })}>
-            <SelectTrigger><SelectValue placeholder="Pick affiliate" /></SelectTrigger>
-            <SelectContent>{leads.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.name}{l.lead_sources?.name ? ` · ${l.lead_sources.name}` : ""}</SelectItem>)}</SelectContent>
+          <Select value={form.affiliate_id} onValueChange={(v) => setForm({ ...form, affiliate_id: v })}>
+            <SelectTrigger><SelectValue placeholder={affiliates.length ? "Pick affiliate" : "No affiliates yet"} /></SelectTrigger>
+            <SelectContent>{affiliates.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
