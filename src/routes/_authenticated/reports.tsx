@@ -183,6 +183,58 @@ function ReportsPage() {
     });
   }, [data.recurring]);
 
+  // Attendance report — working days (Mon–Fri) in selected range
+  const attendanceRpt = useMemo(() => {
+    const s = new Date(start + "T00:00:00");
+    const e = new Date(end + "T00:00:00");
+    let workingDays = 0;
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      const w = d.getDay();
+      if (w !== 0 && w !== 6) workingDays++;
+    }
+    const records = (attQ.data ?? []) as { employee_id: string; date: string; present: boolean }[];
+    const byEmp = new Map<string, { present: number; absent: number }>();
+    for (const r of records) {
+      const cur = byEmp.get(r.employee_id) ?? { present: 0, absent: 0 };
+      if (r.present) cur.present++; else cur.absent++;
+      byEmp.set(r.employee_id, cur);
+    }
+    const rows = data.employees
+      .filter((e: any) => e.active)
+      .map((e: any) => {
+        const stat = byEmp.get(e.id) ?? { present: 0, absent: 0 };
+        const marked = stat.present + stat.absent;
+        const unmarked = Math.max(0, workingDays - marked);
+        const salary = Number(e.salary);
+        const perDay = workingDays > 0 ? salary / workingDays : 0;
+        const deduction = perDay * stat.absent;
+        const attendancePct = workingDays > 0 ? ((workingDays - stat.absent) / workingDays) * 100 : 0;
+        return {
+          name: e.name,
+          salary,
+          perDay,
+          workingDays,
+          present: stat.present,
+          absent: stat.absent,
+          unmarked,
+          deduction,
+          netPayable: salary - deduction,
+          attendancePct,
+        };
+      })
+      .sort((a, b) => b.absent - a.absent);
+    const totals = rows.reduce(
+      (acc, r) => ({
+        salary: acc.salary + r.salary,
+        absent: acc.absent + r.absent,
+        deduction: acc.deduction + r.deduction,
+        netPayable: acc.netPayable + r.netPayable,
+      }),
+      { salary: 0, absent: 0, deduction: 0, netPayable: 0 },
+    );
+    return { rows, totals, workingDays };
+  }, [attQ.data, data.employees, start, end]);
+
   const recurringTotals = useMemo(() => {
     const monthly = recurringRpt.reduce((s, r) => s + r.monthly, 0);
     return { monthly, yearly: monthly * 12 };
