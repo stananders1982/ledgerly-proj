@@ -16,6 +16,7 @@ const items = [
   { title: "Recurring", url: "/recurring", icon: Repeat },
   { title: "Employees", url: "/employees", icon: UserCog },
   { title: "Attendance", url: "/attendance", icon: CalendarCheck },
+  { title: "Affiliates", url: "/affiliates", icon: Handshake },
   { title: "Reports", url: "/reports", icon: FileBarChart },
 ];
 
