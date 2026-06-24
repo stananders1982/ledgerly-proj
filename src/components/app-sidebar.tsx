@@ -1,28 +1,23 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Receipt, TrendingUp, UserCog, Sparkles, LogOut, Repeat, Tag, FileBarChart, CalendarCheck } from "lucide-react";
+import { LogOut, Sparkles } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-
-const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Leads", url: "/leads", icon: Users },
-  { title: "Sources", url: "/sources", icon: Tag },
-  { title: "Income", url: "/revenue", icon: TrendingUp },
-  { title: "Expenses", url: "/expenses", icon: Receipt },
-  { title: "Recurring", url: "/recurring", icon: Repeat },
-  { title: "Employees", url: "/employees", icon: UserCog },
-  { title: "Attendance", url: "/attendance", icon: CalendarCheck },
-  { title: "Reports", url: "/reports", icon: FileBarChart },
-];
-
+import { NAV_ITEMS } from "@/lib/nav-items";
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { signOut } = useAuth();
+  const { signOut, isAdmin, navKeys, permsLoaded } = useAuth();
+
+  const items = NAV_ITEMS.filter((item) => {
+    if (isAdmin) return true;
+    if (item.adminOnly) return false;
+    if (!permsLoaded) return false;
+    return navKeys.has(item.key);
+  });
 
   return (
     <Sidebar collapsible="icon">
