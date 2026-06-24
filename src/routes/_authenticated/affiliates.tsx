@@ -81,7 +81,7 @@ function AffiliatesPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("affiliates" as any).select("*").order("name");
       if (error) throw error;
-      return (data ?? []) as Affiliate[];
+      return ((data ?? []) as unknown) as Affiliate[];
     },
   });
   const evQ = useQuery({
@@ -89,7 +89,7 @@ function AffiliatesPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("affiliate_events" as any).select("*");
       if (error) throw error;
-      return (data ?? []) as Event[];
+      return ((data ?? []) as unknown) as Event[];
     },
   });
   const perQ = useQuery({
@@ -97,7 +97,7 @@ function AffiliatesPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("affiliate_guarantee_periods" as any).select("*");
       if (error) throw error;
-      return (data ?? []) as Period[];
+      return ((data ?? []) as unknown) as Period[];
     },
   });
 
