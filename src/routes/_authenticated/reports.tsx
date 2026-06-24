@@ -46,7 +46,22 @@ function ReportsPage() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [tab, setTab] = useState("summary");
+  const [pvPeriod, setPvPeriod] = useState<"week" | "month" | "all">("month");
   const { start, end } = useMemo(() => computeRange(range, customStart, customEnd), [range, customStart, customEnd]);
+  const pvWindow = useMemo(() => {
+    const now = new Date();
+    const t = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (pvPeriod === "all") return { start: "1900-01-01", end: "2999-12-31" };
+    if (pvPeriod === "week") {
+      const day = t.getDay();
+      const diff = (day + 6) % 7;
+      const s = new Date(t); s.setDate(s.getDate() - diff);
+      const e = new Date(s); e.setDate(e.getDate() + 6);
+      return { start: iso(s), end: iso(e) };
+    }
+    return { start: iso(new Date(t.getFullYear(), t.getMonth(), 1)), end: iso(new Date(t.getFullYear(), t.getMonth() + 1, 0)) };
+  }, [pvPeriod]);
+
 
   const leadsQ = useQuery({
     queryKey: ["rpt-leads", start, end],
@@ -83,6 +98,29 @@ function ReportsPage() {
     queryKey: ["rpt-attendance", start, end],
     queryFn: async () => (await supabase.from("attendance").select("employee_id,date,present").gte("date", start).lte("date", end)).data ?? [],
   });
+  const pvLeadsQ = useQuery({
+    queryKey: ["pv-leads", pvWindow.start, pvWindow.end],
+    queryFn: async () => (await supabase
+      .from("leads")
+      .select("id,affiliate_id,employee_id,activated,created_at")
+      .eq("activated", true)
+      .gte("created_at", pvWindow.start + "T00:00:00")
+      .lte("created_at", pvWindow.end + "T23:59:59")).data ?? [],
+  });
+  const pvRevQ = useQuery({
+    queryKey: ["pv-rev", pvWindow.start, pvWindow.end],
+    queryFn: async () => (await supabase
+      .from("revenue")
+      .select("id,amount,date,employee_id,employee_id_2,split_pct,lead_id,leads(affiliate_id)")
+      .gte("date", pvWindow.start)
+      .lte("date", pvWindow.end)).data ?? [],
+  });
+  const affMapQ = useQuery({
+    queryKey: ["pv-affs"],
+    queryFn: async () => (await supabase.from("affiliates").select("id,name")).data ?? [],
+  });
+
+
 
   const data = useMemo(() => {
     const entries = (leadsQ.data ?? []) as any[];
@@ -181,6 +219,36 @@ function ReportsPage() {
       return { ...e, commission, profit: e.revenue - commission - e.salary, rate: e.leads ? (e.activated / e.leads) * 100 : 0 };
     }).sort((a, b) => b.revenue - a.revenue);
   }, [data.revenue, data.employees]);
+
+  const playerValue = useMemo(() => {
+    const leads = (pvLeadsQ.data ?? []) as any[];
+    const rev = (pvRevQ.data ?? []) as any[];
+    const affNames = new Map<string, string>(((affMapQ.data ?? []) as any[]).map((a) => [a.id, a.name]));
+    const empNames = new Map<string, string>((data.employees as any[]).map((e) => [e.id, e.name]));
+    type Row = { id: string; name: string; activated: number; revenue: number };
+    const byAff = new Map<string, Row>();
+    const byEmp = new Map<string, Row>();
+    const getA = (id: string) => byAff.get(id) ?? { id, name: affNames.get(id) ?? "—", activated: 0, revenue: 0 };
+    const getE = (id: string) => byEmp.get(id) ?? { id, name: empNames.get(id) ?? "—", activated: 0, revenue: 0 };
+    for (const l of leads) {
+      if (l.affiliate_id) { const x = getA(l.affiliate_id); x.activated += 1; byAff.set(l.affiliate_id, x); }
+      if (l.employee_id) { const x = getE(l.employee_id); x.activated += 1; byEmp.set(l.employee_id, x); }
+    }
+    for (const r of rev) {
+      const amt = Number(r.amount);
+      const pct = Number(r.split_pct ?? 100);
+      const affId = r.leads?.affiliate_id;
+      if (affId) { const x = getA(affId); x.revenue += amt; byAff.set(affId, x); }
+      if (r.employee_id) { const x = getE(r.employee_id); x.revenue += amt * (pct / 100); byEmp.set(r.employee_id, x); }
+      if (r.employee_id_2) { const x = getE(r.employee_id_2); x.revenue += amt * ((100 - pct) / 100); byEmp.set(r.employee_id_2, x); }
+    }
+    const toRows = (m: Map<string, Row>) => Array.from(m.values())
+      .map((x) => ({ ...x, playerValue: x.activated ? x.revenue / x.activated : 0 }))
+      .sort((a, b) => b.playerValue - a.playerValue);
+    return { byAff: toRows(byAff), byEmp: toRows(byEmp) };
+  }, [pvLeadsQ.data, pvRevQ.data, affMapQ.data, data.employees]);
+
+
 
   const recurringRpt = useMemo(() => {
     return data.recurring.map((r: any) => {
@@ -372,6 +440,11 @@ function ReportsPage() {
     ];
     else if (tab === "audit") rows = (activityQ.data ?? []).map((a: any) => ({ Time: new Date(a.time).toLocaleString(), Type: a.type, Detail: a.detail }));
     else if (tab === "attendance") rows = attendanceRpt.rows.map((r) => ({ Employee: r.name, WorkingDays: r.workingDays, Present: r.present, Absent: r.absent, Unmarked: r.unmarked, AttendancePct: r.attendancePct.toFixed(1), Salary: r.salary, PerDay: r.perDay.toFixed(2), Deduction: r.deduction.toFixed(2), NetPayable: r.netPayable.toFixed(2) }));
+    else if (tab === "playervalue") rows = [
+      ...playerValue.byAff.map((r) => ({ Group: "Affiliate", Name: r.name, Activated: r.activated, Revenue: r.revenue, PlayerValue: r.playerValue.toFixed(2) })),
+      ...playerValue.byEmp.map((r) => ({ Group: "Employee", Name: r.name, Activated: r.activated, Revenue: r.revenue, PlayerValue: r.playerValue.toFixed(2) })),
+    ];
+
 
     if (format === "csv") exportCSV(rows, fn);
     if (format === "xlsx") exportXLSX(rows, fn);
@@ -424,6 +497,7 @@ function ReportsPage() {
             <TabsTrigger value="pl">P&amp;L</TabsTrigger>
             <TabsTrigger value="sources">Lead Sources</TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
+            <TabsTrigger value="playervalue">Player Value</TabsTrigger>
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="savings">CPA Savings</TabsTrigger>
             <TabsTrigger value="marketing">Marketing</TabsTrigger>
@@ -435,6 +509,7 @@ function ReportsPage() {
             <TabsTrigger value="audit">Audit</TabsTrigger>
           </TabsList>
         </div>
+
 
         <TabsContent value="summary" className="space-y-4">
           <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
@@ -516,6 +591,56 @@ function ReportsPage() {
             searchable
           />
         </TabsContent>
+
+        <TabsContent value="playervalue">
+          <div className="space-y-4">
+            <div className="flex items-end gap-3">
+              <div className="min-w-[180px]">
+                <label className="text-xs text-muted-foreground">Period</label>
+                <Select value={pvPeriod} onValueChange={(v) => setPvPeriod(v as "week" | "month" | "all")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">This week</SelectItem>
+                    <SelectItem value="month">This month</SelectItem>
+                    <SelectItem value="all">All time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-xs text-muted-foreground pb-2">
+                Window: {pvPeriod === "all" ? "All time" : `${pvWindow.start} → ${pvWindow.end}`}
+                <span className="ml-2">Player Value = Revenue ÷ Activated leads.</span>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-display font-semibold mb-2">By Affiliate</h3>
+              <SortableTable
+                columns={[
+                  { key: "name", label: "Affiliate" },
+                  { key: "activated", label: "Activated", numeric: true },
+                  { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "playerValue", label: "Player Value", numeric: true, render: (v) => fmtMoney(v) },
+                ]}
+                rows={playerValue.byAff}
+              />
+            </div>
+
+            <div>
+              <h3 className="font-display font-semibold mb-2">By Employee</h3>
+              <SortableTable
+                columns={[
+                  { key: "name", label: "Employee" },
+                  { key: "activated", label: "Activated", numeric: true },
+                  { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "playerValue", label: "Player Value", numeric: true, render: (v) => fmtMoney(v) },
+                ]}
+                rows={playerValue.byEmp}
+              />
+            </div>
+          </div>
+        </TabsContent>
+
+
 
         <TabsContent value="attendance">
           <div className="space-y-4">
