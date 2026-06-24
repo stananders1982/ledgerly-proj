@@ -52,9 +52,18 @@ function RevenuePage() {
     const byEmp = new Map<string, number>();
     const byAff = new Map<string, number>();
     list.forEach((r: any) => {
-      if (r.employee_id) byEmp.set(r.employees?.name ?? "?", (byEmp.get(r.employees?.name ?? "?") ?? 0) + Number(r.amount));
+      const amt = Number(r.amount);
+      const pct = Number(r.split_pct ?? 100);
+      if (r.employee_id) {
+        const n1 = r.employees?.name ?? "?";
+        byEmp.set(n1, (byEmp.get(n1) ?? 0) + amt * (pct / 100));
+      }
+      if (r.employee_id_2) {
+        const n2 = r.employee2?.name ?? "?";
+        byEmp.set(n2, (byEmp.get(n2) ?? 0) + amt * ((100 - pct) / 100));
+      }
       const aff = r.affiliates?.name;
-      if (aff) byAff.set(aff, (byAff.get(aff) ?? 0) + Number(r.amount));
+      if (aff) byAff.set(aff, (byAff.get(aff) ?? 0) + amt);
     });
     return { total, monthTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
   }, [revQ.data]);
