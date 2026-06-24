@@ -164,7 +164,14 @@ function RevenuePage() {
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     <td className="py-3 px-4 text-primary font-medium">{fmtMoney(r.amount)}</td>
-                    <td className="py-3 px-4">{r.employees?.name || "—"}</td>
+                    <td className="py-3 px-4">
+                      {r.employees?.name || "—"}
+                      {r.employee_id_2 && (
+                        <span className="text-muted-foreground">
+                          {" "}({Number(r.split_pct)}%) + {r.employee2?.name} ({100 - Number(r.split_pct)}%)
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-muted-foreground">{r.affiliates?.name || "—"}</td>
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete revenue?" />
