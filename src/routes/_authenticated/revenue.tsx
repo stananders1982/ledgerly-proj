@@ -35,7 +35,7 @@ function RevenuePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("revenue")
-        .select("*, employees(name), affiliates(name), leads(name, lead_sources(name))")
+        .select("*, employees:employee_id(name), employee2:employee_id_2(name), affiliates(name), leads(name, lead_sources(name))")
         .order("date", { ascending: false });
       if (error) throw error;
       return data ?? [];
