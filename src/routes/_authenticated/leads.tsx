@@ -33,7 +33,7 @@ type Entry = {
   activated: number;
   reported: number;
   notes: string | null;
-  lead_sources?: { id: string; name: string; pricing_model: "CPL" | "CPA"; price: number } | null;
+  lead_sources?: { id: string; name: string; pricing_model: "CPL" | "CPA"; price: number; expected_conversion_rate?: number } | null;
 };
 
 function LeadsPage() {
@@ -46,7 +46,7 @@ function LeadsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_lead_entries")
-        .select("*, lead_sources(id,name,pricing_model,price)")
+        .select("*, lead_sources(id,name,pricing_model,price,expected_conversion_rate)")
         .order("entry_date", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Entry[];
@@ -129,7 +129,7 @@ function LeadsPage() {
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4" /> Add entry</Button>
             </DialogTrigger>
-            <EntryDialog entry={editing} sources={sourcesQ.data ?? []}
+            <EntryDialog key={editing?.id ?? "new"} entry={editing} sources={sourcesQ.data ?? []}
               onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
           </Dialog>
         }
@@ -165,7 +165,9 @@ function LeadsPage() {
                   <th className="py-3 px-4">Received</th>
                   <th className="py-3 px-4">Activated</th>
                   <th className="py-3 px-4">Reported</th>
+                  <th className="py-3 px-4">Expected %</th>
                   <th className="py-3 px-4">Reported %</th>
+                  <th className="py-3 px-4">Activated %</th>
                   <th className="py-3 px-4">Cost</th>
                   <th className="py-3 px-4">Savings</th>
                   <th className="py-3 px-4">Notes</th>
@@ -189,7 +191,9 @@ function LeadsPage() {
                       <td className="py-3 px-4">{r.received}</td>
                       <td className="py-3 px-4">{r.activated}</td>
                       <td className="py-3 px-4">{r.reported}</td>
-                      <td className="py-3 px-4">{r.activated ? fmtPct((r.reported / r.activated) * 100) : "—"}</td>
+                      <td className="py-3 px-4">{s?.expected_conversion_rate ? fmtPct(Number(s.expected_conversion_rate)) : "—"}</td>
+                      <td className="py-3 px-4">{r.received ? fmtPct((r.reported / r.received) * 100) : "—"}</td>
+                      <td className="py-3 px-4">{r.received ? fmtPct((r.activated / r.received) * 100) : "—"}</td>
                       <td className="py-3 px-4">{fmtMoney(cost)}</td>
                       <td className="py-3 px-4 text-emerald-500">{s?.pricing_model === "CPA" ? fmtMoney(savings) : "—"}</td>
                       <td className="py-3 px-4 text-muted-foreground truncate max-w-[14rem]">{r.notes || "—"}</td>
