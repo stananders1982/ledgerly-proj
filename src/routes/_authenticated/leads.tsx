@@ -191,7 +191,9 @@ function LeadsPage() {
                       <td className="py-3 px-4">{r.received}</td>
                       <td className="py-3 px-4">{r.activated}</td>
                       <td className="py-3 px-4">{r.reported}</td>
-                      <td className="py-3 px-4">{r.activated ? fmtPct((r.reported / r.activated) * 100) : "—"}</td>
+                      <td className="py-3 px-4">{s?.expected_conversion_rate ? fmtPct(Number(s.expected_conversion_rate)) : "—"}</td>
+                      <td className="py-3 px-4">{r.received ? fmtPct((r.reported / r.received) * 100) : "—"}</td>
+                      <td className="py-3 px-4">{r.received ? fmtPct((r.activated / r.received) * 100) : "—"}</td>
                       <td className="py-3 px-4">{fmtMoney(cost)}</td>
                       <td className="py-3 px-4 text-emerald-500">{s?.pricing_model === "CPA" ? fmtMoney(savings) : "—"}</td>
                       <td className="py-3 px-4 text-muted-foreground truncate max-w-[14rem]">{r.notes || "—"}</td>
