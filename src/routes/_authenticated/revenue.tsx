@@ -50,13 +50,13 @@ function RevenuePage() {
     const month = new Date().toISOString().slice(0, 7);
     const monthTotal = list.filter((r: any) => r.date?.startsWith(month)).reduce((s: number, r: any) => s + Number(r.amount), 0);
     const byEmp = new Map<string, number>();
-    const bySrc = new Map<string, number>();
+    const byAff = new Map<string, number>();
     list.forEach((r: any) => {
       if (r.employee_id) byEmp.set(r.employees?.name ?? "?", (byEmp.get(r.employees?.name ?? "?") ?? 0) + Number(r.amount));
-      const src = r.leads?.lead_sources?.name;
-      if (src) bySrc.set(src, (bySrc.get(src) ?? 0) + Number(r.amount));
+      const aff = r.affiliates?.name;
+      if (aff) byAff.set(aff, (byAff.get(aff) ?? 0) + Number(r.amount));
     });
-    return { total, monthTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), bySrc: [...bySrc.entries()].sort((a, b) => b[1] - a[1]) };
+    return { total, monthTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
   }, [revQ.data]);
 
   const upsert = useMutation({
