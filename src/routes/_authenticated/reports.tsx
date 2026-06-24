@@ -79,6 +79,10 @@ function ReportsPage() {
     queryKey: ["rpt-sources"],
     queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price,expected_conversion_rate")).data ?? [],
   });
+  const attQ = useQuery({
+    queryKey: ["rpt-attendance", start, end],
+    queryFn: async () => (await supabase.from("attendance").select("employee_id,date,present").gte("date", start).lte("date", end)).data ?? [],
+  });
 
   const data = useMemo(() => {
     const entries = (leadsQ.data ?? []) as any[];
@@ -178,6 +182,58 @@ function ReportsPage() {
       return { name: r.name, frequency: r.frequency, monthly, yearly: monthly * 12, next_due_date: r.next_due_date, category: r.expense_categories?.name ?? "—" };
     });
   }, [data.recurring]);
+
+  // Attendance report — working days (Mon–Fri) in selected range
+  const attendanceRpt = useMemo(() => {
+    const s = new Date(start + "T00:00:00");
+    const e = new Date(end + "T00:00:00");
+    let workingDays = 0;
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      const w = d.getDay();
+      if (w !== 0 && w !== 6) workingDays++;
+    }
+    const records = (attQ.data ?? []) as { employee_id: string; date: string; present: boolean }[];
+    const byEmp = new Map<string, { present: number; absent: number }>();
+    for (const r of records) {
+      const cur = byEmp.get(r.employee_id) ?? { present: 0, absent: 0 };
+      if (r.present) cur.present++; else cur.absent++;
+      byEmp.set(r.employee_id, cur);
+    }
+    const rows = data.employees
+      .filter((e: any) => e.active)
+      .map((e: any) => {
+        const stat = byEmp.get(e.id) ?? { present: 0, absent: 0 };
+        const marked = stat.present + stat.absent;
+        const unmarked = Math.max(0, workingDays - marked);
+        const salary = Number(e.salary);
+        const perDay = workingDays > 0 ? salary / workingDays : 0;
+        const deduction = perDay * stat.absent;
+        const attendancePct = workingDays > 0 ? ((workingDays - stat.absent) / workingDays) * 100 : 0;
+        return {
+          name: e.name,
+          salary,
+          perDay,
+          workingDays,
+          present: stat.present,
+          absent: stat.absent,
+          unmarked,
+          deduction,
+          netPayable: salary - deduction,
+          attendancePct,
+        };
+      })
+      .sort((a, b) => b.absent - a.absent);
+    const totals = rows.reduce(
+      (acc, r) => ({
+        salary: acc.salary + r.salary,
+        absent: acc.absent + r.absent,
+        deduction: acc.deduction + r.deduction,
+        netPayable: acc.netPayable + r.netPayable,
+      }),
+      { salary: 0, absent: 0, deduction: 0, netPayable: 0 },
+    );
+    return { rows, totals, workingDays };
+  }, [attQ.data, data.employees, start, end]);
 
   const recurringTotals = useMemo(() => {
     const monthly = recurringRpt.reduce((s, r) => s + r.monthly, 0);
@@ -309,6 +365,7 @@ function ReportsPage() {
       { Metric: "Projected Savings", Value: forecast.savings },
     ];
     else if (tab === "audit") rows = (activityQ.data ?? []).map((a: any) => ({ Time: new Date(a.time).toLocaleString(), Type: a.type, Detail: a.detail }));
+    else if (tab === "attendance") rows = attendanceRpt.rows.map((r) => ({ Employee: r.name, WorkingDays: r.workingDays, Present: r.present, Absent: r.absent, Unmarked: r.unmarked, AttendancePct: r.attendancePct.toFixed(1), Salary: r.salary, PerDay: r.perDay.toFixed(2), Deduction: r.deduction.toFixed(2), NetPayable: r.netPayable.toFixed(2) }));
 
     if (format === "csv") exportCSV(rows, fn);
     if (format === "xlsx") exportXLSX(rows, fn);
@@ -361,6 +418,7 @@ function ReportsPage() {
             <TabsTrigger value="pl">P&amp;L</TabsTrigger>
             <TabsTrigger value="sources">Lead Sources</TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
+            <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="savings">CPA Savings</TabsTrigger>
             <TabsTrigger value="marketing">Marketing</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
@@ -452,6 +510,36 @@ function ReportsPage() {
             searchable
           />
         </TabsContent>
+
+        <TabsContent value="attendance">
+          <div className="space-y-4">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Working Days" value={String(attendanceRpt.workingDays)} />
+              <StatCard label="Total Absences" value={String(attendanceRpt.totals.absent)} />
+              <StatCard label="Total Deductions" value={fmtMoney(attendanceRpt.totals.deduction)} tone="negative" />
+              <StatCard label="Net Payable" value={fmtMoney(attendanceRpt.totals.netPayable)} tone="positive" />
+            </div>
+            <SortableTable
+              columns={[
+                { key: "name", label: "Employee" },
+                { key: "workingDays", label: "Working Days", numeric: true },
+                { key: "present", label: "Present", numeric: true },
+                { key: "absent", label: "Absent", numeric: true, render: (v) => <span className={v > 0 ? "text-rose-500" : ""}>{v}</span> },
+                { key: "unmarked", label: "Unmarked", numeric: true },
+                { key: "attendancePct", label: "Attendance", numeric: true, render: (v) => fmtPct(v) },
+                { key: "salary", label: "Salary", numeric: true, render: (v) => fmtMoney(v) },
+                { key: "perDay", label: "Per Day", numeric: true, render: (v) => fmtMoney(v) },
+                { key: "deduction", label: "Deduction", numeric: true, render: (v) => <span className={v > 0 ? "text-rose-500" : ""}>{v > 0 ? "−" : ""}{fmtMoney(v)}</span> },
+                { key: "netPayable", label: "Net Payable", numeric: true, render: (v) => fmtMoney(v) },
+              ]}
+              rows={attendanceRpt.rows}
+              searchable
+            />
+            <p className="text-xs text-muted-foreground">Working days count Mon–Fri within the selected range. Deduction = (salary ÷ working days) × absent days.</p>
+          </div>
+        </TabsContent>
+
+
 
         <TabsContent value="savings">
           <SortableTable
