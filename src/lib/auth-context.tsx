@@ -93,11 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider
       value={{ user: session?.user ?? null, session, isAdmin, navKeys, permsLoaded, loading, signOut }}
     >
-      {showChallenge ? (
-        <MfaChallengeScreen onVerified={checkAAL} onCancel={signOut} />
-      ) : (
-        children
-      )}
+      {children}
+      {showChallenge && <MfaChallengeScreen onVerified={checkAAL} onCancel={signOut} />}
     </Ctx.Provider>
   );
 }
@@ -140,7 +137,7 @@ function MfaChallengeScreen({ onVerified, onCancel }: { onVerified: () => void; 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-background">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-background/95 backdrop-blur">
       <form onSubmit={submit} className="card-surface p-6 w-full max-w-sm space-y-4">
         <div className="flex items-center gap-2">
           <div className="h-9 w-9 rounded-md bg-primary/15 text-primary flex items-center justify-center">
