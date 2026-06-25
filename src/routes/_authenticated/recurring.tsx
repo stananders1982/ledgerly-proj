@@ -44,13 +44,15 @@ function RecurringPage() {
 
   // Auto-generate due entries on page load
   useEffect(() => {
-    supabase.rpc("generate_due_recurring_expenses").then(({ data, error }) => {
-      if (!error && data && Number(data) > 0) {
-        toast.success(`Generated ${data} due expense${data === 1 ? "" : "s"}`);
-        qc.invalidateQueries({ queryKey: ["recurring"] });
-        qc.invalidateQueries({ queryKey: ["expenses-list"] });
-      }
-    });
+    import("@/lib/recurring.functions").then(({ generateDueRecurringExpenses }) =>
+      generateDueRecurringExpenses().then((res) => {
+        if (res?.count > 0) {
+          toast.success(`Generated ${res.count} due expense${res.count === 1 ? "" : "s"}`);
+          qc.invalidateQueries({ queryKey: ["recurring"] });
+          qc.invalidateQueries({ queryKey: ["expenses-list"] });
+        }
+      }).catch(() => {})
+    );
   }, [qc]);
 
   const listQ = useQuery({
@@ -114,9 +116,9 @@ function RecurringPage() {
 
   const runNow = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc("generate_due_recurring_expenses");
-      if (error) throw error;
-      return data;
+      const { generateDueRecurringExpenses } = await import("@/lib/recurring.functions");
+      const res = await generateDueRecurringExpenses();
+      return res.count;
     },
     onSuccess: (n) => {
       toast.success(`Generated ${n ?? 0} expense${n === 1 ? "" : "s"}`);
