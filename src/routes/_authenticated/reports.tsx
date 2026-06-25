@@ -99,19 +99,18 @@ function ReportsPage() {
     queryFn: async () => (await supabase.from("attendance").select("employee_id,date,present").gte("date", start).lte("date", end)).data ?? [],
   });
   const pvLeadsQ = useQuery({
-    queryKey: ["pv-leads", pvWindow.start, pvWindow.end],
+    queryKey: ["pv-entries", pvWindow.start, pvWindow.end],
     queryFn: async () => (await supabase
-      .from("leads")
-      .select("id,affiliate_id,employee_id,activated,created_at")
-      .eq("activated", true)
-      .gte("created_at", pvWindow.start + "T00:00:00")
-      .lte("created_at", pvWindow.end + "T23:59:59")).data ?? [],
+      .from("daily_lead_entries")
+      .select("source_id,activated,entry_date,lead_sources(id,name)")
+      .gte("entry_date", pvWindow.start)
+      .lte("entry_date", pvWindow.end)).data ?? [],
   });
   const pvRevQ = useQuery({
     queryKey: ["pv-rev", pvWindow.start, pvWindow.end],
     queryFn: async () => (await supabase
       .from("revenue")
-      .select("id,amount,date,employee_id,employee_id_2,split_pct,lead_id,leads(affiliate_id)")
+      .select("id,amount,date,affiliate_id,employee_id,employee_id_2,split_pct,lead_id,leads(affiliate_id)")
       .gte("date", pvWindow.start)
       .lte("date", pvWindow.end)).data ?? [],
   });
@@ -119,6 +118,7 @@ function ReportsPage() {
     queryKey: ["pv-affs"],
     queryFn: async () => (await supabase.from("affiliates").select("id,name")).data ?? [],
   });
+
 
 
 
@@ -221,23 +221,30 @@ function ReportsPage() {
   }, [data.revenue, data.employees]);
 
   const playerValue = useMemo(() => {
-    const leads = (pvLeadsQ.data ?? []) as any[];
+    const entries = (pvLeadsQ.data ?? []) as any[];
     const rev = (pvRevQ.data ?? []) as any[];
-    const affNames = new Map<string, string>(((affMapQ.data ?? []) as any[]).map((a) => [a.id, a.name]));
+    const affs = ((affMapQ.data ?? []) as any[]);
+    const affNames = new Map<string, string>(affs.map((a) => [a.id, a.name]));
+    const affByLowerName = new Map<string, string>(affs.map((a) => [String(a.name).trim().toLowerCase(), a.id]));
     const empNames = new Map<string, string>((data.employees as any[]).map((e) => [e.id, e.name]));
     type Row = { id: string; name: string; activated: number; revenue: number };
     const byAff = new Map<string, Row>();
     const byEmp = new Map<string, Row>();
     const getA = (id: string) => byAff.get(id) ?? { id, name: affNames.get(id) ?? "—", activated: 0, revenue: 0 };
     const getE = (id: string) => byEmp.get(id) ?? { id, name: empNames.get(id) ?? "—", activated: 0, revenue: 0 };
-    for (const l of leads) {
-      if (l.affiliate_id) { const x = getA(l.affiliate_id); x.activated += 1; byAff.set(l.affiliate_id, x); }
-      if (l.employee_id) { const x = getE(l.employee_id); x.activated += 1; byEmp.set(l.employee_id, x); }
+    // Activations per affiliate: from daily_lead_entries via source-name → affiliate-name match
+    for (const e of entries) {
+      const srcName = e.lead_sources?.name;
+      if (!srcName) continue;
+      const affId = affByLowerName.get(String(srcName).trim().toLowerCase());
+      if (!affId) continue;
+      const x = getA(affId); x.activated += Number(e.activated ?? 0); byAff.set(affId, x);
     }
+    // Revenue per affiliate: prefer direct revenue.affiliate_id, fallback to leads.affiliate_id
     for (const r of rev) {
       const amt = Number(r.amount);
       const pct = Number(r.split_pct ?? 100);
-      const affId = r.leads?.affiliate_id;
+      const affId = r.affiliate_id ?? r.leads?.affiliate_id;
       if (affId) { const x = getA(affId); x.revenue += amt; byAff.set(affId, x); }
       if (r.employee_id) { const x = getE(r.employee_id); x.revenue += amt * (pct / 100); byEmp.set(r.employee_id, x); }
       if (r.employee_id_2) { const x = getE(r.employee_id_2); x.revenue += amt * ((100 - pct) / 100); byEmp.set(r.employee_id_2, x); }
@@ -247,6 +254,7 @@ function ReportsPage() {
       .sort((a, b) => b.playerValue - a.playerValue);
     return { byAff: toRows(byAff), byEmp: toRows(byEmp) };
   }, [pvLeadsQ.data, pvRevQ.data, affMapQ.data, data.employees]);
+
 
 
 
