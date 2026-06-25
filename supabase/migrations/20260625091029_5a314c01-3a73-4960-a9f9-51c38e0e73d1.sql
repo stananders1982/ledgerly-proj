@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.generate_due_recurring_expenses() TO authenticated;
