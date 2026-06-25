@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, Banknote } from "lucide-react";
 
 export type NavItem = {
   key: string;
