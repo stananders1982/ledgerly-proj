@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   CalendarClock,
@@ -48,6 +48,7 @@ const toneStyles: Record<Tone, { glow: string; ring: string; text: string; strok
 };
 
 function Dashboard() {
+  const qc = useQueryClient();
   const now = new Date();
   const month = now.toISOString().slice(0, 7);
   const start = `${month}-01`;
@@ -55,6 +56,16 @@ function Dashboard() {
   // 30-day window for sparklines / trends
   const win30 = new Date(now); win30.setDate(win30.getDate() - 29);
   const win30Iso = win30.toISOString().slice(0, 10);
+
+  // Auto-generate any due recurring expenses so dashboard reflects them
+  useEffect(() => {
+    supabase.rpc("generate_due_recurring_expenses").then(({ data, error }) => {
+      if (!error && data && Number(data) > 0) {
+        qc.invalidateQueries({ queryKey: ["dash-exp-30"] });
+        qc.invalidateQueries({ queryKey: ["expenses-list"] });
+      }
+    });
+  }, [qc]);
 
   const leadsQ = useQuery({
     queryKey: ["dash-leads-v3", month],
