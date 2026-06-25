@@ -659,6 +659,60 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawals: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_name: string
+          date: string
+          employee_id: string | null
+          employee_penalty: number
+          id: string
+          notes: string | null
+          revenue_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer_name: string
+          date?: string
+          employee_id?: string | null
+          employee_penalty?: number
+          id?: string
+          notes?: string | null
+          revenue_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_name?: string
+          date?: string
+          employee_id?: string | null
+          employee_penalty?: number
+          id?: string
+          notes?: string | null
+          revenue_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawals_revenue_id_fkey"
+            columns: ["revenue_id"]
+            isOneToOne: false
+            referencedRelation: "revenue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
