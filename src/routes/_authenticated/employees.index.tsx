@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, UserCog } from "lucide-react";
@@ -16,7 +16,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { Switch } from "@/components/ui/switch";
 
-export const Route = createFileRoute("/_authenticated/employees")({
+export const Route = createFileRoute("/_authenticated/employees/")({
   head: () => ({ meta: [{ title: "Employees — Ledgerly" }] }),
   component: EmployeesPage,
 });
@@ -150,7 +150,8 @@ function EmployeesPage() {
                       &gt;{fmtMoney(e.commission_tier2_max)}: <span className="text-foreground font-medium">{Number(e.commission_tier3_pct)}%</span>
                     </td>
                     <td className="py-3 px-4">{e.active ? "Yes" : "No"}</td>
-                    <td className="py-3 px-4 text-right" onClick={(ev) => ev.stopPropagation()}>
+                    <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
+                      <Link to="/employees/$id" params={{ id: e.id }} className="text-primary hover:underline text-xs mr-3">View</Link>
                       <ConfirmDelete onConfirm={() => del.mutate(e.id)} label="Delete employee?" />
                     </td>
                   </tr>

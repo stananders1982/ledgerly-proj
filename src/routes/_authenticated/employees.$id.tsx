@@ -1,0 +1,267 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/page-header";
+import { StatCard } from "@/components/stat-card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { fmtDate, fmtMoney } from "@/lib/format";
+import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
+
+const sb = supabase as any;
+
+export const Route = createFileRoute("/_authenticated/employees/$id")({
+  head: () => ({ meta: [{ title: "Employee — Ledgerly" }] }),
+  component: EmployeeDetailPage,
+});
+
+function monthRange(month: string) {
+  // month: "YYYY-MM"
+  const [y, m] = month.split("-").map(Number);
+  const start = new Date(Date.UTC(y, m - 1, 1));
+  const end = new Date(Date.UTC(y, m, 0));
+  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+}
+
+function workingDays(startISO: string, endISO: string) {
+  let n = 0;
+  const d = new Date(startISO);
+  const e = new Date(endISO);
+  while (d <= e) {
+    const day = d.getUTCDay();
+    if (day !== 0 && day !== 6) n++;
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return n;
+}
+
+function EmployeeDetailPage() {
+  const { id } = Route.useParams();
+  const navigate = useNavigate();
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const { start, end } = monthRange(month);
+
+  const empQ = useQuery({
+    queryKey: ["employee", id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("employees").select("*").eq("id", id).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const revQ = useQuery({
+    queryKey: ["employee-revenue", id, start, end],
+    queryFn: async () =>
+      (await supabase
+        .from("revenue")
+        .select("id,date,customer_name,amount,employee_id,employee_id_2,split_pct,affiliates(name)")
+        .or(`employee_id.eq.${id},employee_id_2.eq.${id}`)
+        .gte("date", start).lte("date", end)
+        .order("date", { ascending: false })).data ?? [],
+  });
+
+  const withQ = useQuery({
+    queryKey: ["employee-withdrawals", id, start, end],
+    queryFn: async () =>
+      (await sb
+        .from("withdrawals")
+        .select("id,date,customer_name,amount,employee_penalty")
+        .eq("employee_id", id)
+        .gte("date", start).lte("date", end)
+        .order("date", { ascending: false })).data ?? [],
+  });
+
+  const attQ = useQuery({
+    queryKey: ["employee-attendance", id, start, end],
+    queryFn: async () =>
+      (await sb
+        .from("attendance")
+        .select("id,date,present")
+        .eq("employee_id", id)
+        .gte("date", start).lte("date", end)).data ?? [],
+  });
+
+  const emp = empQ.data as any;
+
+  const totals = useMemo(() => {
+    const rev = revQ.data ?? [];
+    const wds = withQ.data ?? [];
+    const att = attQ.data ?? [];
+
+    const attributed = rev.reduce((s: number, r: any) => {
+      const amt = Number(r.amount);
+      const pct = Number(r.split_pct ?? 100);
+      if (r.employee_id === id) return s + amt * (pct / 100);
+      if (r.employee_id_2 === id) return s + amt * ((100 - pct) / 100);
+      return s;
+    }, 0);
+
+    const withdrawn = wds.reduce((s: number, w: any) => s + Number(w.amount), 0);
+    const penalty = wds.reduce((s: number, w: any) => s + Number(w.employee_penalty), 0);
+
+    const tiers: CommissionTiers | null = emp ? {
+      commission_tier1_max: Number(emp.commission_tier1_max),
+      commission_tier1_pct: Number(emp.commission_tier1_pct),
+      commission_tier2_max: Number(emp.commission_tier2_max),
+      commission_tier2_pct: Number(emp.commission_tier2_pct),
+      commission_tier3_pct: Number(emp.commission_tier3_pct),
+    } : null;
+
+    const commission = tiers ? commissionAmount(attributed, tiers) : 0;
+    const rate = tiers ? commissionRate(attributed, tiers) : 0;
+
+    const wd = workingDays(start, end);
+    const present = att.filter((a: any) => a.present).length;
+    const absent = att.filter((a: any) => !a.present).length;
+    const unmarked = Math.max(0, wd - present - absent);
+    const perDay = wd > 0 ? Number(emp?.salary ?? 0) / wd : 0;
+    const deduction = absent * perDay;
+    const salary = Math.max(0, Number(emp?.salary ?? 0) - deduction);
+
+    const payout = salary + commission - penalty;
+
+    return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout };
+  }, [revQ.data, withQ.data, attQ.data, emp, id, start, end]);
+
+  if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
+  if (!emp) return (
+    <div className="p-8">
+      <p className="text-sm text-muted-foreground mb-4">Employee not found.</p>
+      <Button variant="outline" onClick={() => navigate({ to: "/employees" })}><ArrowLeft className="h-4 w-4" /> Back</Button>
+    </div>
+  );
+
+  return (
+    <div>
+      <PageHeader
+        title={emp.name}
+        description={`${emp.active ? "Active" : "Inactive"} · Base salary ${fmtMoney(emp.salary)}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Month</Label>
+            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-[160px]" />
+            <Button variant="outline" asChild><Link to="/employees"><ArrowLeft className="h-4 w-4" /> Back</Link></Button>
+          </div>
+        }
+      />
+
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <StatCard label="Attributed revenue" value={fmtMoney(totals.attributed)} tone="positive" />
+        <StatCard label={`Commission (${totals.rate}%)`} value={fmtMoney(totals.commission)} tone="positive" />
+        <StatCard label="Salary after absences" value={fmtMoney(totals.salary)} />
+        <StatCard label="Net payout" value={fmtMoney(totals.payout)} tone="positive" />
+      </section>
+
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <StatCard label="Withdrawals" value={fmtMoney(totals.withdrawn)} tone="negative" />
+        <StatCard label="Withdrawal penalty (10%)" value={fmtMoney(totals.penalty)} tone="negative" />
+        <StatCard label="Working days" value={String(totals.wd)} />
+        <StatCard label="Absences" value={`${totals.absent} · −${fmtMoney(totals.deduction)}`} tone={totals.absent ? "negative" : "default"} />
+      </section>
+
+      <div className="grid lg:grid-cols-2 gap-4 mb-6">
+        <div className="card-surface overflow-hidden">
+          <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="font-display text-base font-semibold">Revenue ({(revQ.data ?? []).length})</h3>
+            <Link to="/revenue" className="text-xs text-primary hover:underline">Manage</Link>
+          </div>
+          {(revQ.data ?? []).length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground">No revenue this month.</div>
+          ) : (
+            <div className="overflow-x-auto max-h-[400px]">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card">
+                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                    <th className="py-2 px-4">Date</th>
+                    <th className="py-2 px-4">Customer</th>
+                    <th className="py-2 px-4">Affiliate</th>
+                    <th className="py-2 px-4 text-right">Share</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(revQ.data ?? []).map((r: any) => {
+                    const pct = Number(r.split_pct ?? 100);
+                    const share = r.employee_id === id ? Number(r.amount) * (pct / 100) : Number(r.amount) * ((100 - pct) / 100);
+                    return (
+                      <tr key={r.id} className="border-b border-border/50">
+                        <td className="py-2 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
+                        <td className="py-2 px-4">{r.customer_name}</td>
+                        <td className="py-2 px-4 text-muted-foreground">{r.affiliates?.name || "—"}</td>
+                        <td className="py-2 px-4 text-right text-primary font-medium">{fmtMoney(share)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="card-surface overflow-hidden">
+          <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+            <h3 className="font-display text-base font-semibold">Withdrawals ({(withQ.data ?? []).length})</h3>
+            <Link to="/withdrawals" className="text-xs text-primary hover:underline">Manage</Link>
+          </div>
+          {(withQ.data ?? []).length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground">No withdrawals this month.</div>
+          ) : (
+            <div className="overflow-x-auto max-h-[400px]">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card">
+                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                    <th className="py-2 px-4">Date</th>
+                    <th className="py-2 px-4">Customer</th>
+                    <th className="py-2 px-4 text-right">Amount</th>
+                    <th className="py-2 px-4 text-right">Penalty</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(withQ.data ?? []).map((w: any) => (
+                    <tr key={w.id} className="border-b border-border/50">
+                      <td className="py-2 px-4 text-muted-foreground">{fmtDate(w.date)}</td>
+                      <td className="py-2 px-4">{w.customer_name}</td>
+                      <td className="py-2 px-4 text-right text-destructive">−{fmtMoney(w.amount)}</td>
+                      <td className="py-2 px-4 text-right text-destructive">−{fmtMoney(w.employee_penalty)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card-surface p-5">
+        <h3 className="font-display text-base font-semibold mb-3">Payout breakdown</h3>
+        <div className="text-sm divide-y divide-border/50">
+          <Row label="Base salary" value={fmtMoney(emp.salary)} />
+          <Row label={`Absence deduction (${totals.absent} × ${fmtMoney(totals.perDay)})`} value={`−${fmtMoney(totals.deduction)}`} negative />
+          <Row label={`Commission (${totals.rate}% on ${fmtMoney(totals.attributed)})`} value={`+${fmtMoney(totals.commission)}`} positive />
+          <Row label="Withdrawal penalty (10%)" value={`−${fmtMoney(totals.penalty)}`} negative />
+          <div className="flex justify-between py-3 mt-2 border-t border-border font-display text-lg font-semibold">
+            <span>Net payout</span>
+            <span className="text-primary">{fmtMoney(totals.payout)}</span>
+          </div>
+        </div>
+        {totals.unmarked > 0 && (
+          <div className="mt-3 text-xs text-muted-foreground">
+            {totals.unmarked} working day(s) unmarked in attendance for this month.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value, positive, negative }: { label: string; value: string; positive?: boolean; negative?: boolean }) {
+  return (
+    <div className="flex justify-between py-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={positive ? "text-primary font-medium" : negative ? "text-destructive font-medium" : "font-medium"}>{value}</span>
+    </div>
+  );
+}
