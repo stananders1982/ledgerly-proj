@@ -12,8 +12,7 @@ export const generateDueRecurringExpenses = createServerFn({ method: "POST" })
     if (roleErr) throw roleErr;
     if (!isAdmin) throw new Error("Forbidden");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin.rpc("generate_due_recurring_expenses");
+    const { data, error } = await context.supabase.rpc("generate_due_recurring_expenses");
     if (error) throw error;
     return { count: Number(data ?? 0) };
   });
