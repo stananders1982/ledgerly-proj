@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.generate_due_recurring_expenses() FROM authenticated, anon, PUBLIC;
