@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, Banknote } from "lucide-react";
 
 export type NavItem = {
   key: string;
@@ -13,6 +13,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "leads", title: "Leads", url: "/leads", icon: Users },
   { key: "sources", title: "Sources", url: "/sources", icon: Tag },
   { key: "revenue", title: "Income", url: "/revenue", icon: TrendingUp },
+  { key: "withdrawals", title: "Withdrawals", url: "/withdrawals", icon: Banknote },
   { key: "expenses", title: "Expenses", url: "/expenses", icon: Receipt },
   { key: "recurring", title: "Recurring", url: "/recurring", icon: Repeat },
   { key: "employees", title: "Employees", url: "/employees", icon: UserCog },
