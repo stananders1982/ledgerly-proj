@@ -99,19 +99,18 @@ function ReportsPage() {
     queryFn: async () => (await supabase.from("attendance").select("employee_id,date,present").gte("date", start).lte("date", end)).data ?? [],
   });
   const pvLeadsQ = useQuery({
-    queryKey: ["pv-leads", pvWindow.start, pvWindow.end],
+    queryKey: ["pv-entries", pvWindow.start, pvWindow.end],
     queryFn: async () => (await supabase
-      .from("leads")
-      .select("id,affiliate_id,employee_id,activated,created_at")
-      .eq("activated", true)
-      .gte("created_at", pvWindow.start + "T00:00:00")
-      .lte("created_at", pvWindow.end + "T23:59:59")).data ?? [],
+      .from("daily_lead_entries")
+      .select("source_id,activated,entry_date,lead_sources(id,name)")
+      .gte("entry_date", pvWindow.start)
+      .lte("entry_date", pvWindow.end)).data ?? [],
   });
   const pvRevQ = useQuery({
     queryKey: ["pv-rev", pvWindow.start, pvWindow.end],
     queryFn: async () => (await supabase
       .from("revenue")
-      .select("id,amount,date,employee_id,employee_id_2,split_pct,lead_id,leads(affiliate_id)")
+      .select("id,amount,date,affiliate_id,employee_id,employee_id_2,split_pct,lead_id,leads(affiliate_id)")
       .gte("date", pvWindow.start)
       .lte("date", pvWindow.end)).data ?? [],
   });
@@ -119,6 +118,7 @@ function ReportsPage() {
     queryKey: ["pv-affs"],
     queryFn: async () => (await supabase.from("affiliates").select("id,name")).data ?? [],
   });
+
 
 
 
