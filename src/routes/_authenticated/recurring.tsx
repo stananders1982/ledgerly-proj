@@ -116,9 +116,9 @@ function RecurringPage() {
 
   const runNow = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc("generate_due_recurring_expenses");
-      if (error) throw error;
-      return data;
+      const { generateDueRecurringExpenses } = await import("@/lib/recurring.functions");
+      const res = await generateDueRecurringExpenses();
+      return res.count;
     },
     onSuccess: (n) => {
       toast.success(`Generated ${n ?? 0} expense${n === 1 ? "" : "s"}`);
