@@ -160,7 +160,7 @@ function EmployeeDetailPage() {
         <StatCard label="Withdrawals" value={fmtMoney(totals.withdrawn)} tone="negative" />
         <StatCard label="Withdrawal penalty (10%)" value={fmtMoney(totals.penalty)} tone="negative" />
         <StatCard label="Working days" value={String(totals.wd)} />
-        <StatCard label="Absences" value={`${totals.absent} · −${fmtMoney(totals.deduction)}`} tone={totals.absent ? "negative" : "neutral"} />
+        <StatCard label="Absences" value={`${totals.absent} · −${fmtMoney(totals.deduction)}`} tone={totals.absent ? "negative" : "default"} />
       </section>
 
       <div className="grid lg:grid-cols-2 gap-4 mb-6">
