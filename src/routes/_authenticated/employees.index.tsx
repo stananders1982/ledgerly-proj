@@ -16,7 +16,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { Switch } from "@/components/ui/switch";
 
-export const Route = createFileRoute("/_authenticated/employees")({
+export const Route = createFileRoute("/_authenticated/employees/")({
   head: () => ({ meta: [{ title: "Employees — Ledgerly" }] }),
   component: EmployeesPage,
 });
