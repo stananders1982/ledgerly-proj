@@ -204,9 +204,18 @@ function ReportsPage() {
     const affByLowerName = new Map<string, { id: string; name: string }>(
       affs.map((a) => [String(a.name).trim().toLowerCase(), { id: a.id, name: a.name }])
     );
+    const affById = new Map<string, { id: string; name: string }>(affs.map((a) => [a.id, { id: a.id, name: a.name }]));
     type Row = { affiliateId: string; affiliateName: string; month: string; model: string; received: number; activated: number; reported: number; cost: number; savings: number };
     const byKey = new Map<string, Row>();
     const byAff = new Map<string, { id: string; name: string; received: number; activated: number; reported: number; cost: number; savings: number }>();
+    const touch = (affId: string, affName: string, month: string, model: string) => {
+      const key = `${affId}|${month}`;
+      const row = byKey.get(key) ?? { affiliateId: affId, affiliateName: affName, month, model, received: 0, activated: 0, reported: 0, cost: 0, savings: 0 };
+      byKey.set(key, row);
+      const a = byAff.get(affId) ?? { id: affId, name: affName, received: 0, activated: 0, reported: 0, cost: 0, savings: 0 };
+      byAff.set(affId, a);
+      return { row, a };
+    };
     for (const e of data.entries) {
       const s = e.lead_sources;
       if (!s) continue;
@@ -219,20 +228,26 @@ function ReportsPage() {
       const reported = e.reported ?? 0;
       const cost = s.pricing_model === "CPL" ? price * received : price * reported;
       const savings = s.pricing_model === "CPA" ? price * Math.max(0, activated - reported) : 0;
-      const key = `${aff.id}|${month}`;
-      const row = byKey.get(key) ?? { affiliateId: aff.id, affiliateName: aff.name, month, model: s.pricing_model, received: 0, activated: 0, reported: 0, cost: 0, savings: 0 };
+      const { row, a } = touch(aff.id, aff.name, month, s.pricing_model);
       row.received += received; row.activated += activated; row.reported += reported; row.cost += cost; row.savings += savings;
-      byKey.set(key, row);
-      const a = byAff.get(aff.id) ?? { id: aff.id, name: aff.name, received: 0, activated: 0, reported: 0, cost: 0, savings: 0 };
       a.received += received; a.activated += activated; a.reported += reported; a.cost += cost; a.savings += savings;
-      byAff.set(aff.id, a);
+    }
+    // Include manual affiliate expenses (category "Affiliate" with affiliate_id)
+    for (const x of data.expenses) {
+      if (!x.affiliate_id) continue;
+      const aff = affById.get(x.affiliate_id);
+      if (!aff) continue;
+      const month = String(x.date).slice(0, 7);
+      const amt = Number(x.amount) || 0;
+      const { row, a } = touch(aff.id, aff.name, month, "Manual");
+      row.cost += amt; a.cost += amt;
     }
     const rows = Array.from(byKey.values()).sort((a, b) => b.month.localeCompare(a.month) || a.affiliateName.localeCompare(b.affiliateName));
     const totals = Array.from(byAff.values()).sort((a, b) => b.cost - a.cost);
     const totalCost = totals.reduce((s, x) => s + x.cost, 0);
     const totalSavings = totals.reduce((s, x) => s + x.savings, 0);
     return { rows, totals, totalCost, totalSavings };
-  }, [data.entries, affMapQ.data]);
+  }, [data.entries, data.expenses, affMapQ.data]);
 
   const employeesRpt = useMemo(() => {
     const rev = data.revenue;
