@@ -636,6 +636,52 @@ function ReportsPage() {
           />
         </TabsContent>
 
+        <TabsContent value="payouts">
+          <div className="space-y-4">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Total Paid to Affiliates" value={fmtMoney(affiliatePayouts.totalCost)} tone="negative" />
+              <StatCard label="CPA Savings" value={fmtMoney(affiliatePayouts.totalSavings)} tone="positive" />
+              <StatCard label="Affiliates" value={String(affiliatePayouts.totals.length)} />
+              <StatCard label="Range" value={`${start} → ${end}`} />
+            </div>
+
+            <div>
+              <h3 className="font-display font-semibold mb-2">Totals by Affiliate</h3>
+              <SortableTable
+                columns={[
+                  { key: "name", label: "Affiliate" },
+                  { key: "received", label: "Leads", numeric: true },
+                  { key: "activated", label: "Activated", numeric: true },
+                  { key: "reported", label: "Reported", numeric: true },
+                  { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
+                ]}
+                rows={affiliatePayouts.totals}
+              />
+            </div>
+
+            <div>
+              <h3 className="font-display font-semibold mb-2">Monthly breakdown</h3>
+              <SortableTable
+                columns={[
+                  { key: "month", label: "Month" },
+                  { key: "affiliateName", label: "Affiliate" },
+                  { key: "model", label: "Model", render: (v) => <Badge variant="outline">{String(v)}</Badge> },
+                  { key: "received", label: "Leads", numeric: true },
+                  { key: "activated", label: "Activated", numeric: true },
+                  { key: "reported", label: "Reported", numeric: true },
+                  { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
+                ]}
+                rows={affiliatePayouts.rows}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Payout = (CPL: Leads × Price) or (CPA: Reported × Price). Affiliates are matched to lead sources by name.
+            </p>
+          </div>
+        </TabsContent>
+
         <TabsContent value="playervalue">
           <div className="space-y-4">
             <div className="flex items-end gap-3">
