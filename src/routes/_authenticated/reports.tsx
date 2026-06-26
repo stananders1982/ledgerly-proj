@@ -21,7 +21,12 @@ export const Route = createFileRoute("/_authenticated/reports")({
 });
 
 type RangeKey = "today" | "yesterday" | "7d" | "30d" | "month" | "lastMonth" | "custom";
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+const iso = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 function computeRange(key: RangeKey, customStart: string, customEnd: string) {
   const now = new Date();
