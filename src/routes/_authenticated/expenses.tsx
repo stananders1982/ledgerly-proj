@@ -36,7 +36,7 @@ function ExpensesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("expenses")
-        .select("*, expense_categories(name)")
+        .select("*, expense_categories(name), affiliates(id,name)")
         .order("date", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -45,6 +45,10 @@ function ExpensesPage() {
   const catQ = useQuery({
     queryKey: ["categories"],
     queryFn: async () => (await supabase.from("expense_categories").select("*").order("name")).data ?? [],
+  });
+  const affQ = useQuery({
+    queryKey: ["affiliates-min"],
+    queryFn: async () => (await supabase.from("affiliates").select("id,name").order("name")).data ?? [],
   });
 
   const stats = useMemo(() => {
@@ -65,6 +69,7 @@ function ExpensesPage() {
       const payload = {
         amount: Number(v.amount) || 0,
         category_id: v.category_id || null,
+        affiliate_id: v.affiliate_id || null,
         date: v.date,
         notes: v.notes || null,
       };
@@ -82,7 +87,7 @@ function ExpensesPage() {
   });
 
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
-    const rows = (expQ.data ?? []).map((e: any) => ({ Date: e.date, Category: e.expense_categories?.name ?? "", Amount: e.amount, Notes: e.notes ?? "" }));
+    const rows = (expQ.data ?? []).map((e: any) => ({ Date: e.date, Category: e.expense_categories?.name ?? "", Affiliate: e.affiliates?.name ?? "", Amount: e.amount, Notes: e.notes ?? "" }));
     if (!rows.length) return toast.error("Nothing to export");
     if (type === "csv") exportCSV(rows, "expenses");
     else if (type === "xlsx") exportXLSX(rows, "expenses", "Expenses");
@@ -106,7 +111,7 @@ function ExpensesPage() {
             </DropdownMenu>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
               <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New expense</Button></DialogTrigger>
-              <ExpenseDialog exp={editing} categories={catQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+              <ExpenseDialog exp={editing} categories={catQ.data ?? []} affiliates={affQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
             </Dialog>
           </div>
         }
@@ -140,6 +145,7 @@ function ExpensesPage() {
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <th className="py-3 px-4">Date</th>
                   <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">Affiliate</th>
                   <th className="py-3 px-4">Amount</th>
                   <th className="py-3 px-4">Notes</th>
                   <th className="py-3 px-4"></th>
@@ -151,6 +157,7 @@ function ExpensesPage() {
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>
                     <td className="py-3 px-4"><Badge variant="outline">{e.expense_categories?.name ?? "—"}</Badge></td>
+                    <td className="py-3 px-4 text-muted-foreground">{e.affiliates?.name ?? "—"}</td>
                     <td className="py-3 px-4 font-medium">{fmtMoney(e.amount)}</td>
                     <td className="py-3 px-4 text-muted-foreground">{e.notes || "—"}</td>
                     <td className="py-3 px-4 text-right" onClick={(ev) => ev.stopPropagation()}>
@@ -168,12 +175,13 @@ function ExpensesPage() {
 }
 
 function ExpenseDialog({
-  exp, categories, onSubmit, loading,
-}: { exp: any; categories: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+  exp, categories, affiliates, onSubmit, loading,
+}: { exp: any; categories: any[]; affiliates: any[]; onSubmit: (v: any) => void; loading: boolean }) {
   const [form, setForm] = useState(() => ({
     id: exp?.id,
     amount: exp?.amount ?? "",
     category_id: exp?.category_id ?? "",
+    affiliate_id: exp?.affiliate_id ?? "",
     date: exp?.date ?? new Date().toISOString().slice(0, 10),
     notes: exp?.notes ?? "",
   }));
@@ -189,6 +197,15 @@ function ExpenseDialog({
           <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
             <SelectTrigger><SelectValue placeholder="Pick category" /></SelectTrigger>
             <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        <Field label="Affiliate (optional)">
+          <Select value={form.affiliate_id || "__none__"} onValueChange={(v) => setForm({ ...form, affiliate_id: v === "__none__" ? "" : v })}>
+            <SelectTrigger><SelectValue placeholder="Pick affiliate" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">— None —</SelectItem>
+              {affiliates.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
           </Select>
         </Field>
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>

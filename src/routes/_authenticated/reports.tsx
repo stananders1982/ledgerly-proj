@@ -525,12 +525,14 @@ function ReportsPage() {
             </SelectContent>
           </Select>
         </div>
-        {range === "custom" && (
-          <>
-            <div><label className="text-xs text-muted-foreground">Start</label><Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} /></div>
-            <div><label className="text-xs text-muted-foreground">End</label><Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} /></div>
-          </>
-        )}
+        <div>
+          <label className="text-xs text-muted-foreground">Start</label>
+          <Input type="date" value={range === "custom" ? customStart : start} onChange={(e) => { setCustomStart(e.target.value); setCustomEnd((prev) => prev || end); setRange("custom"); }} />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">End</label>
+          <Input type="date" value={range === "custom" ? customEnd : end} onChange={(e) => { setCustomEnd(e.target.value); setCustomStart((prev) => prev || start); setRange("custom"); }} />
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>

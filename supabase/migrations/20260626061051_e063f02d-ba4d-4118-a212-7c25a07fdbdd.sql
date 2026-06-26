@@ -1,0 +1,2 @@
+ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS affiliate_id UUID REFERENCES public.affiliates(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS expenses_affiliate_id_idx ON public.expenses(affiliate_id);
