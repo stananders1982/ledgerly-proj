@@ -69,6 +69,7 @@ function ExpensesPage() {
       const payload = {
         amount: Number(v.amount) || 0,
         category_id: v.category_id || null,
+        affiliate_id: v.affiliate_id || null,
         date: v.date,
         notes: v.notes || null,
       };
