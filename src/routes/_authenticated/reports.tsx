@@ -540,6 +540,7 @@ function ReportsPage() {
             <TabsTrigger value="pl">P&amp;L</TabsTrigger>
             <TabsTrigger value="sources">Lead Sources</TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
+            <TabsTrigger value="payouts">Affiliate Payouts</TabsTrigger>
             <TabsTrigger value="playervalue">Player Value</TabsTrigger>
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="savings">CPA Savings</TabsTrigger>
