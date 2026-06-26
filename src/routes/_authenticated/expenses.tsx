@@ -111,7 +111,7 @@ function ExpensesPage() {
             </DropdownMenu>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
               <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New expense</Button></DialogTrigger>
-              <ExpenseDialog exp={editing} categories={catQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+              <ExpenseDialog exp={editing} categories={catQ.data ?? []} affiliates={affQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
             </Dialog>
           </div>
         }
