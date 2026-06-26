@@ -47,7 +47,11 @@ function ReportsPage() {
   const [customEnd, setCustomEnd] = useState("");
   const [tab, setTab] = useState("summary");
   const [pvPeriod, setPvPeriod] = useState<"week" | "month" | "all">("month");
-  const { start, end } = useMemo(() => computeRange(range, customStart, customEnd), [range, customStart, customEnd]);
+  const { start, end } = useMemo(() => {
+    const r = computeRange(range, customStart, customEnd);
+    // Ensure start <= end so Supabase range filters return data even if user inverts dates
+    return r.start > r.end ? { start: r.end, end: r.start } : r;
+  }, [range, customStart, customEnd]);
   const pvWindow = useMemo(() => {
     const now = new Date();
     const t = new Date(now.getFullYear(), now.getMonth(), now.getDate());
