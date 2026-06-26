@@ -199,6 +199,41 @@ function ReportsPage() {
     });
   }, [srcQ.data, data.entries, data.revPerActivation]);
 
+  const affiliatePayouts = useMemo(() => {
+    const affs = (affMapQ.data ?? []) as any[];
+    const affByLowerName = new Map<string, { id: string; name: string }>(
+      affs.map((a) => [String(a.name).trim().toLowerCase(), { id: a.id, name: a.name }])
+    );
+    type Row = { affiliateId: string; affiliateName: string; month: string; model: string; received: number; activated: number; reported: number; cost: number; savings: number };
+    const byKey = new Map<string, Row>();
+    const byAff = new Map<string, { id: string; name: string; received: number; activated: number; reported: number; cost: number; savings: number }>();
+    for (const e of data.entries) {
+      const s = e.lead_sources;
+      if (!s) continue;
+      const aff = affByLowerName.get(String(s.name).trim().toLowerCase());
+      if (!aff) continue;
+      const month = String(e.entry_date).slice(0, 7);
+      const price = Number(s.price);
+      const received = e.received ?? 0;
+      const activated = e.activated ?? 0;
+      const reported = e.reported ?? 0;
+      const cost = s.pricing_model === "CPL" ? price * received : price * reported;
+      const savings = s.pricing_model === "CPA" ? price * Math.max(0, activated - reported) : 0;
+      const key = `${aff.id}|${month}`;
+      const row = byKey.get(key) ?? { affiliateId: aff.id, affiliateName: aff.name, month, model: s.pricing_model, received: 0, activated: 0, reported: 0, cost: 0, savings: 0 };
+      row.received += received; row.activated += activated; row.reported += reported; row.cost += cost; row.savings += savings;
+      byKey.set(key, row);
+      const a = byAff.get(aff.id) ?? { id: aff.id, name: aff.name, received: 0, activated: 0, reported: 0, cost: 0, savings: 0 };
+      a.received += received; a.activated += activated; a.reported += reported; a.cost += cost; a.savings += savings;
+      byAff.set(aff.id, a);
+    }
+    const rows = Array.from(byKey.values()).sort((a, b) => b.month.localeCompare(a.month) || a.affiliateName.localeCompare(b.affiliateName));
+    const totals = Array.from(byAff.values()).sort((a, b) => b.cost - a.cost);
+    const totalCost = totals.reduce((s, x) => s + x.cost, 0);
+    const totalSavings = totals.reduce((s, x) => s + x.savings, 0);
+    return { rows, totals, totalCost, totalSavings };
+  }, [data.entries, affMapQ.data]);
+
   const employeesRpt = useMemo(() => {
     const rev = data.revenue;
     const byEmp = new Map<string, { name: string; revenue: number; leads: number; activated: number; salary: number; commissionPct: number }>();
@@ -505,6 +540,7 @@ function ReportsPage() {
             <TabsTrigger value="pl">P&amp;L</TabsTrigger>
             <TabsTrigger value="sources">Lead Sources</TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
+            <TabsTrigger value="payouts">Affiliate Payouts</TabsTrigger>
             <TabsTrigger value="playervalue">Player Value</TabsTrigger>
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="savings">CPA Savings</TabsTrigger>
@@ -598,6 +634,52 @@ function ReportsPage() {
             rows={employeesRpt.map((e, i) => ({ ...e, rank: i + 1 }))}
             searchable
           />
+        </TabsContent>
+
+        <TabsContent value="payouts">
+          <div className="space-y-4">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Total Paid to Affiliates" value={fmtMoney(affiliatePayouts.totalCost)} tone="negative" />
+              <StatCard label="CPA Savings" value={fmtMoney(affiliatePayouts.totalSavings)} tone="positive" />
+              <StatCard label="Affiliates" value={String(affiliatePayouts.totals.length)} />
+              <StatCard label="Range" value={`${start} → ${end}`} />
+            </div>
+
+            <div>
+              <h3 className="font-display font-semibold mb-2">Totals by Affiliate</h3>
+              <SortableTable
+                columns={[
+                  { key: "name", label: "Affiliate" },
+                  { key: "received", label: "Leads", numeric: true },
+                  { key: "activated", label: "Activated", numeric: true },
+                  { key: "reported", label: "Reported", numeric: true },
+                  { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
+                ]}
+                rows={affiliatePayouts.totals}
+              />
+            </div>
+
+            <div>
+              <h3 className="font-display font-semibold mb-2">Monthly breakdown</h3>
+              <SortableTable
+                columns={[
+                  { key: "month", label: "Month" },
+                  { key: "affiliateName", label: "Affiliate" },
+                  { key: "model", label: "Model", render: (v) => <Badge variant="outline">{String(v)}</Badge> },
+                  { key: "received", label: "Leads", numeric: true },
+                  { key: "activated", label: "Activated", numeric: true },
+                  { key: "reported", label: "Reported", numeric: true },
+                  { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
+                ]}
+                rows={affiliatePayouts.rows}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Payout = (CPL: Leads × Price) or (CPA: Reported × Price). Affiliates are matched to lead sources by name.
+            </p>
+          </div>
         </TabsContent>
 
         <TabsContent value="playervalue">
