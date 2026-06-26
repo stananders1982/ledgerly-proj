@@ -175,12 +175,13 @@ function ExpensesPage() {
 }
 
 function ExpenseDialog({
-  exp, categories, onSubmit, loading,
-}: { exp: any; categories: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+  exp, categories, affiliates, onSubmit, loading,
+}: { exp: any; categories: any[]; affiliates: any[]; onSubmit: (v: any) => void; loading: boolean }) {
   const [form, setForm] = useState(() => ({
     id: exp?.id,
     amount: exp?.amount ?? "",
     category_id: exp?.category_id ?? "",
+    affiliate_id: exp?.affiliate_id ?? "",
     date: exp?.date ?? new Date().toISOString().slice(0, 10),
     notes: exp?.notes ?? "",
   }));
@@ -196,6 +197,15 @@ function ExpenseDialog({
           <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
             <SelectTrigger><SelectValue placeholder="Pick category" /></SelectTrigger>
             <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        <Field label="Affiliate (optional)">
+          <Select value={form.affiliate_id || "__none__"} onValueChange={(v) => setForm({ ...form, affiliate_id: v === "__none__" ? "" : v })}>
+            <SelectTrigger><SelectValue placeholder="Pick affiliate" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">— None —</SelectItem>
+              {affiliates.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
           </Select>
         </Field>
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
