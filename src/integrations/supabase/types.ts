@@ -327,6 +327,7 @@ export type Database = {
       }
       expenses: {
         Row: {
+          affiliate_id: string | null
           amount: number
           category_id: string | null
           created_at: string
@@ -336,6 +337,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          affiliate_id?: string | null
           amount?: number
           category_id?: string | null
           created_at?: string
@@ -345,6 +347,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          affiliate_id?: string | null
           amount?: number
           category_id?: string | null
           created_at?: string
@@ -354,6 +357,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_category_id_fkey"
             columns: ["category_id"]
