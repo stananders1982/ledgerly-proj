@@ -194,20 +194,26 @@ function ExpenseDialog({
           <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         </div>
         <Field label="Category">
-          <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
+          <Select value={form.category_id} onValueChange={(v) => {
+            const cat = categories.find((c) => c.id === v);
+            const isAff = cat?.name?.toLowerCase() === "affiliate";
+            setForm({ ...form, category_id: v, affiliate_id: isAff ? form.affiliate_id : "" });
+          }}>
             <SelectTrigger><SelectValue placeholder="Pick category" /></SelectTrigger>
             <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
-        <Field label="Affiliate (optional)">
-          <Select value={form.affiliate_id || "__none__"} onValueChange={(v) => setForm({ ...form, affiliate_id: v === "__none__" ? "" : v })}>
-            <SelectTrigger><SelectValue placeholder="Pick affiliate" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">— None —</SelectItem>
-              {affiliates.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </Field>
+        {categories.find((c) => c.id === form.category_id)?.name?.toLowerCase() === "affiliate" && (
+          <Field label="Affiliate">
+            <Select value={form.affiliate_id || "__none__"} onValueChange={(v) => setForm({ ...form, affiliate_id: v === "__none__" ? "" : v })}>
+              <SelectTrigger><SelectValue placeholder="Pick affiliate" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— None —</SelectItem>
+                {affiliates.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
       </div>
       <DialogFooter><Button onClick={() => onSubmit(form)} disabled={loading || !form.amount}>Save</Button></DialogFooter>
