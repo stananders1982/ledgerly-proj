@@ -36,7 +36,7 @@ function ExpensesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("expenses")
-        .select("*, expense_categories(name)")
+        .select("*, expense_categories(name), affiliates(id,name)")
         .order("date", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -45,6 +45,10 @@ function ExpensesPage() {
   const catQ = useQuery({
     queryKey: ["categories"],
     queryFn: async () => (await supabase.from("expense_categories").select("*").order("name")).data ?? [],
+  });
+  const affQ = useQuery({
+    queryKey: ["affiliates-min"],
+    queryFn: async () => (await supabase.from("affiliates").select("id,name").order("name")).data ?? [],
   });
 
   const stats = useMemo(() => {
