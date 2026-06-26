@@ -80,7 +80,7 @@ function ReportsPage() {
   });
   const expQ = useQuery({
     queryKey: ["rpt-exp", start, end],
-    queryFn: async () => (await supabase.from("expenses").select("id,date,amount,notes,category_id,created_at,expense_categories(name)").gte("date", start).lte("date", end)).data ?? [],
+    queryFn: async () => (await supabase.from("expenses").select("id,date,amount,notes,category_id,affiliate_id,created_at,expense_categories(name)").gte("date", start).lte("date", end)).data ?? [],
   });
   const empQ = useQuery({
     queryKey: ["rpt-emp"],
