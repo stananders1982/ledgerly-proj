@@ -145,6 +145,7 @@ function ExpensesPage() {
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <th className="py-3 px-4">Date</th>
                   <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">Affiliate</th>
                   <th className="py-3 px-4">Amount</th>
                   <th className="py-3 px-4">Notes</th>
                   <th className="py-3 px-4"></th>
@@ -156,6 +157,7 @@ function ExpensesPage() {
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>
                     <td className="py-3 px-4"><Badge variant="outline">{e.expense_categories?.name ?? "—"}</Badge></td>
+                    <td className="py-3 px-4 text-muted-foreground">{e.affiliates?.name ?? "—"}</td>
                     <td className="py-3 px-4 font-medium">{fmtMoney(e.amount)}</td>
                     <td className="py-3 px-4 text-muted-foreground">{e.notes || "—"}</td>
                     <td className="py-3 px-4 text-right" onClick={(ev) => ev.stopPropagation()}>
