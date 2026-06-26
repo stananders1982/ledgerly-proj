@@ -531,7 +531,18 @@ function ReportsPage() {
       <div className="flex flex-wrap items-end gap-3 mb-6 print:hidden">
         <div className="min-w-[180px]">
           <label className="text-xs text-muted-foreground">Date range</label>
-          <Select value={range} onValueChange={(v) => setRange(v as RangeKey)}>
+          <Select
+            value={range}
+            onValueChange={(v) => {
+              const next = v as RangeKey;
+              if (next === "custom") {
+                // Seed custom dates with the currently visible range so the inputs aren't empty
+                setCustomStart((prev) => prev || start);
+                setCustomEnd((prev) => prev || end);
+              }
+              setRange(next);
+            }}
+          >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="today">Today</SelectItem>
@@ -546,11 +557,33 @@ function ReportsPage() {
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Start</label>
-          <Input type="date" value={range === "custom" ? customStart : start} onChange={(e) => { setCustomStart(e.target.value); setCustomEnd((prev) => prev || end); setRange("custom"); }} />
+          <Input
+            type="date"
+            value={range === "custom" ? customStart : start}
+            max={range === "custom" ? customEnd || undefined : undefined}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (!v) return;
+              setCustomStart(v);
+              setCustomEnd((prev) => prev || end);
+              setRange("custom");
+            }}
+          />
         </div>
         <div>
           <label className="text-xs text-muted-foreground">End</label>
-          <Input type="date" value={range === "custom" ? customEnd : end} onChange={(e) => { setCustomEnd(e.target.value); setCustomStart((prev) => prev || start); setRange("custom"); }} />
+          <Input
+            type="date"
+            value={range === "custom" ? customEnd : end}
+            min={range === "custom" ? customStart || undefined : undefined}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (!v) return;
+              setCustomEnd(v);
+              setCustomStart((prev) => prev || start);
+              setRange("custom");
+            }}
+          />
         </div>
       </div>
 
