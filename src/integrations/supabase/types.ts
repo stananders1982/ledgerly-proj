@@ -621,6 +621,7 @@ export type Database = {
           affiliate_id: string | null
           amount: number
           created_at: string
+          created_by: string | null
           customer_name: string
           date: string
           employee_id: string | null
@@ -635,6 +636,7 @@ export type Database = {
           affiliate_id?: string | null
           amount?: number
           created_at?: string
+          created_by?: string | null
           customer_name: string
           date?: string
           employee_id?: string | null
@@ -649,6 +651,7 @@ export type Database = {
           affiliate_id?: string | null
           amount?: number
           created_at?: string
+          created_by?: string | null
           customer_name?: string
           date?: string
           employee_id?: string | null
