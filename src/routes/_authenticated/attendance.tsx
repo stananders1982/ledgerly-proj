@@ -55,14 +55,14 @@ function AttendancePage() {
         if (error) throw error;
         return (data ?? []) as Emp[];
       }
-      const { data, error } = await supabase
-        .from("employees_directory").select("id,name,active").order("active", { ascending: false }).order("name");
+      const { data, error } = await supabase.rpc("list_employees_directory");
       if (error) throw error;
       return ((data ?? []) as EmpRow[])
         .filter((r) => r.id && r.name)
         .map((r) => ({ id: r.id as string, name: r.name as string, salary: 0, active: r.active ?? true }));
     },
   });
+
 
   const dayQ = useQuery({
     queryKey: ["attendance", isoDate],

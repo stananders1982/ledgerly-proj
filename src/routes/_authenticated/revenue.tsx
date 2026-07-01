@@ -42,17 +42,18 @@ function RevenuePage() {
     },
   });
   const empQ = useQuery({ queryKey: ["employees-dir-any"], queryFn: async () => {
-    const dir = await supabase.from("employees_directory").select("id,name,active").order("name");
-    if (!dir.error && (dir.data?.length ?? 0) > 0) return dir.data ?? [];
     const admin = await supabase.from("employees").select("id,name,active").order("name");
-    return admin.data ?? [];
+    if (!admin.error && (admin.data?.length ?? 0) > 0) return admin.data ?? [];
+    const rpc = await supabase.rpc("list_employees_directory");
+    return (rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>;
   }});
   const affQ = useQuery({ queryKey: ["affiliates-dir-any"], queryFn: async () => {
-    const dir = await supabase.from("affiliates_directory").select("id,name,active").eq("active", true).order("name");
-    if (!dir.error && (dir.data?.length ?? 0) > 0) return dir.data ?? [];
     const admin = await supabase.from("affiliates").select("id,name,active").eq("active", true).order("name");
-    return admin.data ?? [];
+    if (!admin.error && (admin.data?.length ?? 0) > 0) return admin.data ?? [];
+    const rpc = await supabase.rpc("list_affiliates_directory");
+    return ((rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>).filter((a) => a.active);
   }});
+
 
   const stats = useMemo(() => {
     const list = revQ.data ?? [];
