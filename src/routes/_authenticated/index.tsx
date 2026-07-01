@@ -92,7 +92,7 @@ function Dashboard() {
 
   const revQ = useQuery({
     queryKey: ["dash-rev", startIso, endIso],
-    queryFn: async () => (await supabase.from("revenue").select("amount,date").gte("date", startIso).lte("date", endIso)).data ?? [],
+    queryFn: async () => (await supabase.from("revenue").select("amount,date,employee_id,employee_id_2,split_pct").gte("date", startIso).lte("date", endIso)).data ?? [],
   });
   const expQ = useQuery({
     queryKey: ["dash-exp", startIso, endIso],
@@ -100,7 +100,7 @@ function Dashboard() {
   });
   const empQ = useQuery({
     queryKey: ["dash-emp"],
-    queryFn: async () => (await supabase.from("employees").select("salary,commission_pct,active").eq("active", true)).data ?? [],
+    queryFn: async () => (await supabase.from("employees").select("id,salary,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active").eq("active", true)).data ?? [],
   });
   const recQ = useQuery({
     queryKey: ["dash-recurring"],
