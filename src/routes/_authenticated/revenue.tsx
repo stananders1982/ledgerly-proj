@@ -30,6 +30,13 @@ function RevenuePage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [range, setRange] = useState<RangeKey>("month");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const activeRange = useMemo(
+    () => getRange(range, { start: customStart, end: customEnd }),
+    [range, customStart, customEnd],
+  );
 
   const revQ = useQuery({
     queryKey: ["revenue-list"],
