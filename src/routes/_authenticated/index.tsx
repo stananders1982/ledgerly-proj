@@ -363,7 +363,7 @@ function Dashboard() {
         </div>
 
         <div className="glass-surface glass-hover p-5">
-          <ChartHeader title="Lead funnel" subtitle="This month" icon={Zap} />
+          <ChartHeader title="Lead funnel" subtitle={rangeLabel} icon={Zap} />
           <div className="mt-4 space-y-3">
             <FunnelStep label="Received" value={m.received} max={m.received} tone="blue" />
             <FunnelStep label="Activated" value={m.activated} max={m.received} tone="green" />
