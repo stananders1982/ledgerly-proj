@@ -44,10 +44,10 @@ function AttendancePage() {
   const monthEnd = format(new Date(date.getFullYear(), date.getMonth() + 1, 0), "yyyy-MM-dd");
 
   const employeesQ = useQuery({
-    queryKey: ["employees", "active"],
+    queryKey: ["employees", "all"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employees").select("id,name,salary,active").eq("active", true).order("name");
+        .from("employees").select("id,name,salary,active").order("active", { ascending: false }).order("name");
       if (error) throw error;
       return (data ?? []) as Emp[];
     },
