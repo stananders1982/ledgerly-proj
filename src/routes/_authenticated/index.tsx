@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
+
 import {
   Activity,
   CalendarClock,
@@ -49,20 +51,27 @@ const toneStyles: Record<Tone, { glow: string; ring: string; text: string; strok
 
 function Dashboard() {
   const qc = useQueryClient();
-  const now = new Date();
-  const month = now.toISOString().slice(0, 7);
-  const start = `${month}-01`;
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-  // 30-day window for sparklines / trends
-  const win30 = new Date(now); win30.setDate(win30.getDate() - 29);
-  const win30Iso = win30.toISOString().slice(0, 10);
+  const [rangeKey, setRangeKey] = useState<RangeKey>("month");
+  const [customStart, setCustomStart] = useState<string>("");
+  const [customEnd, setCustomEnd] = useState<string>("");
+
+  const iso = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+  const range = getRange(rangeKey, { start: customStart, end: customEnd });
+  const startIso = iso(range.start);
+  const endIso = iso(range.end);
+  const rangeLabel = range.label;
 
   // Auto-generate any due recurring expenses so dashboard reflects them
   useEffect(() => {
     import("@/lib/recurring.functions").then(({ generateDueRecurringExpenses }) =>
       generateDueRecurringExpenses().then((res) => {
         if (res?.count > 0) {
-          qc.invalidateQueries({ queryKey: ["dash-exp-30"] });
+          qc.invalidateQueries({ queryKey: ["dash-exp"] });
           qc.invalidateQueries({ queryKey: ["expenses-list"] });
         }
       }).catch(() => {})
@@ -70,24 +79,24 @@ function Dashboard() {
   }, [qc]);
 
   const leadsQ = useQuery({
-    queryKey: ["dash-leads-v3", month],
+    queryKey: ["dash-leads", startIso, endIso],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_lead_entries")
         .select("entry_date,received,activated,reported,lead_sources(name,pricing_model,price,expected_conversion_rate)")
-        .gte("entry_date", win30Iso).lte("entry_date", end);
+        .gte("entry_date", startIso).lte("entry_date", endIso);
       if (error) throw error;
       return data ?? [];
     },
   });
 
   const revQ = useQuery({
-    queryKey: ["dash-rev-30", win30Iso],
-    queryFn: async () => (await supabase.from("revenue").select("amount,date").gte("date", win30Iso).lte("date", end)).data ?? [],
+    queryKey: ["dash-rev", startIso, endIso],
+    queryFn: async () => (await supabase.from("revenue").select("amount,date").gte("date", startIso).lte("date", endIso)).data ?? [],
   });
   const expQ = useQuery({
-    queryKey: ["dash-exp-30", win30Iso],
-    queryFn: async () => (await supabase.from("expenses").select("amount,date").gte("date", win30Iso).lte("date", end)).data ?? [],
+    queryKey: ["dash-exp", startIso, endIso],
+    queryFn: async () => (await supabase.from("expenses").select("amount,date").gte("date", startIso).lte("date", endIso)).data ?? [],
   });
   const empQ = useQuery({
     queryKey: ["dash-emp"],
@@ -98,9 +107,10 @@ function Dashboard() {
     queryFn: async () => (await supabase.from("recurring_expenses").select("amount,frequency,next_due_date,active,end_date").eq("active", true)).data ?? [],
   });
 
+
   const m = useMemo(() => {
     const entries = (leadsQ.data ?? []) as any[];
-    const monthEntries = entries.filter((e) => e.entry_date >= start);
+    const rangeEntries = entries; // already filtered by query
 
     const agg = (arr: any[]) => {
       let received = 0, activated = 0, reported = 0;
@@ -124,15 +134,21 @@ function Dashboard() {
       return { received, activated, reported, cplCost, cpaPayable, cpaSavings, expectedActivations };
     };
 
-    const a = agg(monthEntries);
+    const a = agg(rangeEntries);
     const leadCost = a.cplCost + a.cpaPayable;
 
-    const monthRev = (revQ.data ?? []).filter((r: any) => r.date >= start);
-    const monthExp = (expQ.data ?? []).filter((r: any) => r.date >= start);
+    const rangeRev = (revQ.data ?? []);
+    const rangeExp = (expQ.data ?? []);
 
-    const income = monthRev.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const otherExp = monthExp.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const salaries = (empQ.data ?? []).reduce((s: number, e: any) => s + Number(e.salary), 0);
+    // Scale salaries + expected commissions to the length of the selected range
+    const msPerDay = 86_400_000;
+    const days = Math.max(1, Math.round((range.end.getTime() - range.start.getTime()) / msPerDay) + 1);
+    const monthFactor = days / 30;
+
+    const income = rangeRev.reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const otherExp = rangeExp.reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const salariesMonthly = (empQ.data ?? []).reduce((s: number, e: any) => s + Number(e.salary), 0);
+    const salaries = salariesMonthly * monthFactor;
     const commissions = (empQ.data ?? []).reduce((s: number, e: any) => s + (income * Number(e.commission_pct)) / 100, 0);
     const expTotal = leadCost + otherExp + salaries + commissions;
     const profit = income - expTotal;
@@ -141,21 +157,23 @@ function Dashboard() {
     const monthlyEquiv = (amt: number, f: string) =>
       f === "weekly" ? amt * 52 / 12 : f === "quarterly" ? amt / 3 : f === "yearly" ? amt / 12 : amt;
     const recurringMonthly = rec.reduce((s, r) => s + monthlyEquiv(Number(r.amount), r.frequency), 0);
-    const fixedMonthly = recurringMonthly + salaries;
+    const fixedMonthly = recurringMonthly + salariesMonthly;
     const in30 = new Date(); in30.setDate(in30.getDate() + 30);
     const upcoming30 = rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
       .reduce((s, r) => s + Number(r.amount), 0);
 
-    // Build daily series (last 30d)
-    const days: string[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(now); d.setDate(d.getDate() - i);
-      days.push(d.toISOString().slice(0, 10));
+    // Build daily series across the selected range
+    const dayList: string[] = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(range.start); d.setDate(d.getDate() + i);
+      const y = d.getFullYear(); const mo = String(d.getMonth() + 1).padStart(2, "0");
+      const da = String(d.getDate()).padStart(2, "0");
+      dayList.push(`${y}-${mo}-${da}`);
     }
     const revMap = new Map<string, number>();
-    (revQ.data ?? []).forEach((r: any) => revMap.set(r.date, (revMap.get(r.date) ?? 0) + Number(r.amount)));
+    rangeRev.forEach((r: any) => revMap.set(r.date, (revMap.get(r.date) ?? 0) + Number(r.amount)));
     const expMap = new Map<string, number>();
-    (expQ.data ?? []).forEach((r: any) => expMap.set(r.date, (expMap.get(r.date) ?? 0) + Number(r.amount)));
+    rangeExp.forEach((r: any) => expMap.set(r.date, (expMap.get(r.date) ?? 0) + Number(r.amount)));
     const leadDay = new Map<string, { received: number; activated: number; cost: number }>();
     entries.forEach((e: any) => {
       const cur = leadDay.get(e.entry_date) ?? { received: 0, activated: 0, cost: 0 };
@@ -168,7 +186,7 @@ function Dashboard() {
       }
       leadDay.set(e.entry_date, cur);
     });
-    const series = days.map((d) => ({
+    const series = dayList.map((d) => ({
       date: d,
       label: d.slice(5),
       revenue: revMap.get(d) ?? 0,
@@ -178,9 +196,9 @@ function Dashboard() {
     }));
     const profitSeries = series.map((s) => ({ ...s, profit: s.revenue - s.expenses }));
 
-    // Source performance (this month)
+    // Source performance (this range)
     const bySource = new Map<string, { name: string; received: number; activated: number; expected: number; cost: number }>();
-    monthEntries.forEach((e: any) => {
+    rangeEntries.forEach((e: any) => {
       const s = e.lead_sources; if (!s) return;
       const key = s.name ?? "Unknown";
       const cur = bySource.get(key) ?? { name: key, received: 0, activated: 0, expected: 0, cost: 0 };
@@ -212,7 +230,8 @@ function Dashboard() {
       roi,
       series: profitSeries, sourceRows,
     };
-  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, start]);
+  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, range.start, range.end]);
+
 
   const insights = useMemo(() => buildInsights(m), [m]);
 
@@ -231,7 +250,15 @@ function Dashboard() {
             {new Date().toLocaleString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
           </p>
         </div>
+        <DateRangePicker
+          value={rangeKey}
+          onChange={setRangeKey}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+        />
       </div>
+
 
       {/* Hero KPIs */}
       <section className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mb-10">
@@ -249,7 +276,7 @@ function Dashboard() {
           value={fmtMoney(m.income)}
           tone="blue"
           icon={DollarSign}
-          sub="This month"
+          sub={rangeLabel}
           data={m.series.map((s) => ({ v: s.revenue }))}
         />
         <HeroCard
@@ -310,7 +337,7 @@ function Dashboard() {
       {/* Charts */}
       <section className="mb-10 grid gap-4 lg:grid-cols-3">
         <div className="glass-surface glass-hover p-5 lg:col-span-2">
-          <ChartHeader title="Revenue vs expenses" subtitle="Last 30 days" icon={Activity} />
+          <ChartHeader title="Revenue vs expenses" subtitle={rangeLabel} icon={Activity} />
           <div className="h-64 mt-2">
             <ResponsiveContainer>
               <AreaChart data={m.series} margin={{ top: 10, right: 8, left: -10, bottom: 0 }}>
@@ -336,7 +363,7 @@ function Dashboard() {
         </div>
 
         <div className="glass-surface glass-hover p-5">
-          <ChartHeader title="Lead funnel" subtitle="This month" icon={Zap} />
+          <ChartHeader title="Lead funnel" subtitle={rangeLabel} icon={Zap} />
           <div className="mt-4 space-y-3">
             <FunnelStep label="Received" value={m.received} max={m.received} tone="blue" />
             <FunnelStep label="Activated" value={m.activated} max={m.received} tone="green" />
@@ -352,7 +379,7 @@ function Dashboard() {
 
       <section className="mb-10 grid gap-4 lg:grid-cols-3">
         <div className="glass-surface glass-hover p-5 lg:col-span-2">
-          <ChartHeader title="Lead source performance" subtitle="Activated vs received — this month" icon={Users} />
+          <ChartHeader title="Lead source performance" subtitle={`Activated vs received — ${rangeLabel.toLowerCase()}`} icon={Users} />
           <div className="h-64 mt-2">
             {m.sourceRows.length ? (
               <ResponsiveContainer>
