@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
+import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 
 export const Route = createFileRoute("/_authenticated/expenses")({
   head: () => ({ meta: [{ title: "Expenses — Ledgerly" }] }),
