@@ -22,6 +22,7 @@ export const Route = createFileRoute("/_authenticated/attendance")({
 });
 
 type Emp = { id: string; name: string; salary: number; active: boolean };
+type EmpRow = { id: string | null; name: string | null; active: boolean | null };
 type Att = { id: string; employee_id: string; date: string; present: boolean };
 
 // Mon–Fri working days in the month containing `d`
