@@ -98,7 +98,7 @@ function ExpensesPage() {
   });
 
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
-    const rows = (expQ.data ?? []).map((e: any) => ({ Date: e.date, Category: e.expense_categories?.name ?? "", Affiliate: e.affiliates?.name ?? "", Amount: e.amount, Notes: e.notes ?? "" }));
+    const rows = filtered.map((e: any) => ({ Date: e.date, Category: e.expense_categories?.name ?? "", Affiliate: e.affiliates?.name ?? "", Amount: e.amount, Notes: e.notes ?? "" }));
     if (!rows.length) return toast.error("Nothing to export");
     if (type === "csv") exportCSV(rows, "expenses");
     else if (type === "xlsx") exportXLSX(rows, "expenses", "Expenses");
