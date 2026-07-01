@@ -101,7 +101,7 @@ function Dashboard() {
   });
   const empQ = useQuery({
     queryKey: ["dash-emp"],
-    queryFn: async () => (await supabase.from("employees").select("id,salary,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active").eq("active", true)).data ?? [],
+    queryFn: async () => (await supabase.from("employees").select("id,salary,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active,created_at").eq("active", true)).data ?? [],
   });
   const recQ = useQuery({
     queryKey: ["dash-recurring"],
@@ -167,8 +167,8 @@ function Dashboard() {
       const amt = Number(r.amount) || 0;
       if (r.employee_id_2 && r.split_pct != null) {
         const pct = Number(r.split_pct) / 100;
-        if (r.employee_id) perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt * (1 - pct));
-        perEmp.set(r.employee_id_2, (perEmp.get(r.employee_id_2) ?? 0) + amt * pct);
+        if (r.employee_id) perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt * pct);
+        perEmp.set(r.employee_id_2, (perEmp.get(r.employee_id_2) ?? 0) + amt * (1 - pct));
       } else if (r.employee_id) {
         perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt);
       }
