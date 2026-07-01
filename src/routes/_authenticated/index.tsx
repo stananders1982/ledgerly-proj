@@ -51,20 +51,27 @@ const toneStyles: Record<Tone, { glow: string; ring: string; text: string; strok
 
 function Dashboard() {
   const qc = useQueryClient();
-  const now = new Date();
-  const month = now.toISOString().slice(0, 7);
-  const start = `${month}-01`;
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-  // 30-day window for sparklines / trends
-  const win30 = new Date(now); win30.setDate(win30.getDate() - 29);
-  const win30Iso = win30.toISOString().slice(0, 10);
+  const [rangeKey, setRangeKey] = useState<RangeKey>("month");
+  const [customStart, setCustomStart] = useState<string>("");
+  const [customEnd, setCustomEnd] = useState<string>("");
+
+  const iso = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+  const range = getRange(rangeKey, { start: customStart, end: customEnd });
+  const startIso = iso(range.start);
+  const endIso = iso(range.end);
+  const rangeLabel = range.label;
 
   // Auto-generate any due recurring expenses so dashboard reflects them
   useEffect(() => {
     import("@/lib/recurring.functions").then(({ generateDueRecurringExpenses }) =>
       generateDueRecurringExpenses().then((res) => {
         if (res?.count > 0) {
-          qc.invalidateQueries({ queryKey: ["dash-exp-30"] });
+          qc.invalidateQueries({ queryKey: ["dash-exp"] });
           qc.invalidateQueries({ queryKey: ["expenses-list"] });
         }
       }).catch(() => {})
@@ -72,24 +79,24 @@ function Dashboard() {
   }, [qc]);
 
   const leadsQ = useQuery({
-    queryKey: ["dash-leads-v3", month],
+    queryKey: ["dash-leads", startIso, endIso],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_lead_entries")
         .select("entry_date,received,activated,reported,lead_sources(name,pricing_model,price,expected_conversion_rate)")
-        .gte("entry_date", win30Iso).lte("entry_date", end);
+        .gte("entry_date", startIso).lte("entry_date", endIso);
       if (error) throw error;
       return data ?? [];
     },
   });
 
   const revQ = useQuery({
-    queryKey: ["dash-rev-30", win30Iso],
-    queryFn: async () => (await supabase.from("revenue").select("amount,date").gte("date", win30Iso).lte("date", end)).data ?? [],
+    queryKey: ["dash-rev", startIso, endIso],
+    queryFn: async () => (await supabase.from("revenue").select("amount,date").gte("date", startIso).lte("date", endIso)).data ?? [],
   });
   const expQ = useQuery({
-    queryKey: ["dash-exp-30", win30Iso],
-    queryFn: async () => (await supabase.from("expenses").select("amount,date").gte("date", win30Iso).lte("date", end)).data ?? [],
+    queryKey: ["dash-exp", startIso, endIso],
+    queryFn: async () => (await supabase.from("expenses").select("amount,date").gte("date", startIso).lte("date", endIso)).data ?? [],
   });
   const empQ = useQuery({
     queryKey: ["dash-emp"],
@@ -99,6 +106,7 @@ function Dashboard() {
     queryKey: ["dash-recurring"],
     queryFn: async () => (await supabase.from("recurring_expenses").select("amount,frequency,next_due_date,active,end_date").eq("active", true)).data ?? [],
   });
+
 
   const m = useMemo(() => {
     const entries = (leadsQ.data ?? []) as any[];
