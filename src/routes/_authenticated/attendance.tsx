@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/empty-state";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/attendance")({
   head: () => ({ meta: [{ title: "Attendance — Ledgerly" }] }),
