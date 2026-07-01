@@ -182,14 +182,22 @@ function AttendancePage() {
                   <div key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                     <div className="min-w-[180px]">
                       <div className="font-medium">{e.name}</div>
+                      {isAdmin && (
+                        <div className="text-xs text-muted-foreground">
+                          Salary {fmtMoney(e.salary)} · per day {fmtMoney(perDay)}
+                        </div>
+                      )}
+                    </div>
+                    {isAdmin ? (
                       <div className="text-xs text-muted-foreground">
-                        Salary {fmtMoney(e.salary)} · per day {fmtMoney(perDay)}
+                        Month: <span className="font-medium text-foreground">{absentDays}</span> absent ·
+                        deduction <span className="font-medium text-rose-500">−{fmtMoney(deduction)}</span>
                       </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Month: <span className="font-medium text-foreground">{absentDays}</span> absent ·
-                      deduction <span className="font-medium text-rose-500">−{fmtMoney(deduction)}</span>
-                    </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">
+                        Month: <span className="font-medium text-foreground">{absentDays}</span> absent
+                      </div>
+                    )}
                     <div className="flex items-center gap-3">
                       {marked ? (
                         present ? (
