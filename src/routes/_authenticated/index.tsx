@@ -110,7 +110,7 @@ function Dashboard() {
 
   const m = useMemo(() => {
     const entries = (leadsQ.data ?? []) as any[];
-    const monthEntries = entries.filter((e) => e.entry_date >= start);
+    const rangeEntries = entries; // already filtered by query
 
     const agg = (arr: any[]) => {
       let received = 0, activated = 0, reported = 0;
@@ -134,15 +134,21 @@ function Dashboard() {
       return { received, activated, reported, cplCost, cpaPayable, cpaSavings, expectedActivations };
     };
 
-    const a = agg(monthEntries);
+    const a = agg(rangeEntries);
     const leadCost = a.cplCost + a.cpaPayable;
 
-    const monthRev = (revQ.data ?? []).filter((r: any) => r.date >= start);
-    const monthExp = (expQ.data ?? []).filter((r: any) => r.date >= start);
+    const rangeRev = (revQ.data ?? []);
+    const rangeExp = (expQ.data ?? []);
 
-    const income = monthRev.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const otherExp = monthExp.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const salaries = (empQ.data ?? []).reduce((s: number, e: any) => s + Number(e.salary), 0);
+    // Scale salaries + expected commissions to the length of the selected range
+    const msPerDay = 86_400_000;
+    const days = Math.max(1, Math.round((range.end.getTime() - range.start.getTime()) / msPerDay) + 1);
+    const monthFactor = days / 30;
+
+    const income = rangeRev.reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const otherExp = rangeExp.reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const salariesMonthly = (empQ.data ?? []).reduce((s: number, e: any) => s + Number(e.salary), 0);
+    const salaries = salariesMonthly * monthFactor;
     const commissions = (empQ.data ?? []).reduce((s: number, e: any) => s + (income * Number(e.commission_pct)) / 100, 0);
     const expTotal = leadCost + otherExp + salaries + commissions;
     const profit = income - expTotal;
@@ -151,21 +157,23 @@ function Dashboard() {
     const monthlyEquiv = (amt: number, f: string) =>
       f === "weekly" ? amt * 52 / 12 : f === "quarterly" ? amt / 3 : f === "yearly" ? amt / 12 : amt;
     const recurringMonthly = rec.reduce((s, r) => s + monthlyEquiv(Number(r.amount), r.frequency), 0);
-    const fixedMonthly = recurringMonthly + salaries;
+    const fixedMonthly = recurringMonthly + salariesMonthly;
     const in30 = new Date(); in30.setDate(in30.getDate() + 30);
     const upcoming30 = rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
       .reduce((s, r) => s + Number(r.amount), 0);
 
-    // Build daily series (last 30d)
-    const days: string[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(now); d.setDate(d.getDate() - i);
-      days.push(d.toISOString().slice(0, 10));
+    // Build daily series across the selected range
+    const dayList: string[] = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(range.start); d.setDate(d.getDate() + i);
+      const y = d.getFullYear(); const mo = String(d.getMonth() + 1).padStart(2, "0");
+      const da = String(d.getDate()).padStart(2, "0");
+      dayList.push(`${y}-${mo}-${da}`);
     }
     const revMap = new Map<string, number>();
-    (revQ.data ?? []).forEach((r: any) => revMap.set(r.date, (revMap.get(r.date) ?? 0) + Number(r.amount)));
+    rangeRev.forEach((r: any) => revMap.set(r.date, (revMap.get(r.date) ?? 0) + Number(r.amount)));
     const expMap = new Map<string, number>();
-    (expQ.data ?? []).forEach((r: any) => expMap.set(r.date, (expMap.get(r.date) ?? 0) + Number(r.amount)));
+    rangeExp.forEach((r: any) => expMap.set(r.date, (expMap.get(r.date) ?? 0) + Number(r.amount)));
     const leadDay = new Map<string, { received: number; activated: number; cost: number }>();
     entries.forEach((e: any) => {
       const cur = leadDay.get(e.entry_date) ?? { received: 0, activated: 0, cost: 0 };
@@ -178,7 +186,7 @@ function Dashboard() {
       }
       leadDay.set(e.entry_date, cur);
     });
-    const series = days.map((d) => ({
+    const series = dayList.map((d) => ({
       date: d,
       label: d.slice(5),
       revenue: revMap.get(d) ?? 0,
@@ -188,9 +196,9 @@ function Dashboard() {
     }));
     const profitSeries = series.map((s) => ({ ...s, profit: s.revenue - s.expenses }));
 
-    // Source performance (this month)
+    // Source performance (this range)
     const bySource = new Map<string, { name: string; received: number; activated: number; expected: number; cost: number }>();
-    monthEntries.forEach((e: any) => {
+    rangeEntries.forEach((e: any) => {
       const s = e.lead_sources; if (!s) return;
       const key = s.name ?? "Unknown";
       const cur = bySource.get(key) ?? { name: key, received: 0, activated: 0, expected: 0, cost: 0 };
@@ -222,7 +230,8 @@ function Dashboard() {
       roi,
       series: profitSeries, sourceRows,
     };
-  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, start]);
+  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, range.start, range.end]);
+
 
   const insights = useMemo(() => buildInsights(m), [m]);
 
