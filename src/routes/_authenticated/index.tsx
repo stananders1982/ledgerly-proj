@@ -141,26 +141,17 @@ function Dashboard() {
     const rangeRev = (revQ.data ?? []);
     const rangeExp = (expQ.data ?? []);
 
-    // Prorate fixed payroll from the date the app has employee records, so a
-    // year-to-date dashboard doesn't invent payroll for months before setup.
+    // Prorate fixed payroll by the length of the selected range (monthly salary
+    // spread over 30 days). Full monthly salary shows for a month-long range.
     const msPerDay = 86_400_000;
     const days = Math.max(1, Math.round((range.end.getTime() - range.start.getTime()) / msPerDay) + 1);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const effectiveEnd = new Date(Math.min(range.end.getTime(), today.getTime()));
-    const rangeStartTime = range.start.getTime();
 
     const income = rangeRev.reduce((s: number, r: any) => s + Number(r.amount), 0);
     const otherExp = rangeExp.reduce((s: number, r: any) => s + Number(r.amount), 0);
     const employees = (empQ.data ?? []) as any[];
     const salariesMonthly = employees.reduce((s: number, e: any) => s + Number(e.salary), 0);
-    const salaryDays = employees.reduce((s: number, e: any) => {
-      const created = e.created_at ? new Date(`${String(e.created_at).slice(0, 10)}T00:00:00`) : range.start;
-      const activeStart = new Date(Math.max(rangeStartTime, created.getTime()));
-      if (activeStart.getTime() > effectiveEnd.getTime()) return s;
-      return s + Math.max(1, Math.round((effectiveEnd.getTime() - activeStart.getTime()) / msPerDay) + 1);
-    }, 0);
-    const salaries = employees.length ? (salariesMonthly / employees.length / 30) * salaryDays : 0;
+    const salaries = salariesMonthly * (days / 30);
+
     // Per-employee commission using tiered rate on their attributed revenue in range
     const perEmp = new Map<string, number>();
     for (const r of rangeRev as any[]) {
