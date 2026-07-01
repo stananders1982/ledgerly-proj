@@ -101,7 +101,7 @@ function Dashboard() {
   });
   const empQ = useQuery({
     queryKey: ["dash-emp"],
-    queryFn: async () => (await supabase.from("employees").select("id,salary,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active").eq("active", true)).data ?? [],
+    queryFn: async () => (await supabase.from("employees").select("id,salary,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active,created_at").eq("active", true)).data ?? [],
   });
   const recQ = useQuery({
     queryKey: ["dash-recurring"],
@@ -141,29 +141,39 @@ function Dashboard() {
     const rangeRev = (revQ.data ?? []);
     const rangeExp = (expQ.data ?? []);
 
-    // Scale salaries + expected commissions to the length of the selected range
+    // Prorate fixed payroll from the date the app has employee records, so a
+    // year-to-date dashboard doesn't invent payroll for months before setup.
     const msPerDay = 86_400_000;
     const days = Math.max(1, Math.round((range.end.getTime() - range.start.getTime()) / msPerDay) + 1);
-    const monthFactor = days / 30;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const effectiveEnd = new Date(Math.min(range.end.getTime(), today.getTime()));
+    const rangeStartTime = range.start.getTime();
 
     const income = rangeRev.reduce((s: number, r: any) => s + Number(r.amount), 0);
     const otherExp = rangeExp.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const salariesMonthly = (empQ.data ?? []).reduce((s: number, e: any) => s + Number(e.salary), 0);
-    const salaries = salariesMonthly * monthFactor;
+    const employees = (empQ.data ?? []) as any[];
+    const salariesMonthly = employees.reduce((s: number, e: any) => s + Number(e.salary), 0);
+    const salaryDays = employees.reduce((s: number, e: any) => {
+      const created = e.created_at ? new Date(`${String(e.created_at).slice(0, 10)}T00:00:00`) : range.start;
+      const activeStart = new Date(Math.max(rangeStartTime, created.getTime()));
+      if (activeStart.getTime() > effectiveEnd.getTime()) return s;
+      return s + Math.max(1, Math.round((effectiveEnd.getTime() - activeStart.getTime()) / msPerDay) + 1);
+    }, 0);
+    const salaries = employees.length ? (salariesMonthly / employees.length / 30) * salaryDays : 0;
     // Per-employee commission using tiered rate on their attributed revenue in range
-    const emps = (empQ.data ?? []) as any[];
     const perEmp = new Map<string, number>();
     for (const r of rangeRev as any[]) {
       const amt = Number(r.amount) || 0;
       if (r.employee_id_2 && r.split_pct != null) {
         const pct = Number(r.split_pct) / 100;
-        if (r.employee_id) perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt * (1 - pct));
-        perEmp.set(r.employee_id_2, (perEmp.get(r.employee_id_2) ?? 0) + amt * pct);
+        if (r.employee_id) perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt * pct);
+        perEmp.set(r.employee_id_2, (perEmp.get(r.employee_id_2) ?? 0) + amt * (1 - pct));
       } else if (r.employee_id) {
         perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt);
       }
     }
-    const commissions = emps.reduce((s, e) => {
+    const commissions = employees.reduce((s, e) => {
       const rev = perEmp.get(e.id) ?? 0;
       return s + commissionAmount(rev, e);
     }, 0);
