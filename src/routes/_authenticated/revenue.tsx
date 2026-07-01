@@ -136,7 +136,7 @@ function RevenuePage() {
   });
 
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
-    const rows = (revQ.data ?? []).map((r: any) => ({
+    const rows = filtered.map((r: any) => ({
       Date: r.date, Customer: r.customer_name, Amount: r.amount,
       Employee: getEmployeeName(r.employee_id, r.employees) ?? "",
       Affiliate: getAffiliateName(r.affiliate_id, r.affiliates) ?? "",
