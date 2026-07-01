@@ -170,9 +170,19 @@ function RevenuePage() {
         }
       />
 
+      <div className="mb-4">
+        <DateRangePicker
+          value={range}
+          onChange={setRange}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+        />
+      </div>
+
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total revenue" value={fmtMoney(stats.total)} tone="positive" />
-        <StatCard label="This month" value={fmtMoney(stats.monthTotal)} />
+        <StatCard label={activeRange.label} value={fmtMoney(stats.total)} tone="positive" />
+        <StatCard label="All-time revenue" value={fmtMoney(stats.allTotal)} />
         <StatCard label="Transactions" value={String(stats.count)} />
         <StatCard label="Avg deal" value={fmtMoney(stats.count ? stats.total / stats.count : 0)} />
       </section>
@@ -184,8 +194,8 @@ function RevenuePage() {
 
       <div className="card-surface overflow-hidden">
         {revQ.isLoading ? <div className="p-8 text-sm text-muted-foreground">Loading…</div>
-        : (revQ.data?.length ?? 0) === 0 ? (
-          <EmptyState icon={TrendingUp} title="No revenue yet" description="Record your first sale to start tracking performance."
+        : filtered.length === 0 ? (
+          <EmptyState icon={TrendingUp} title="No revenue in this range" description="Try a different time frame or record a new sale."
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New revenue</Button>} />
         ) : (
           <div className="overflow-x-auto">
@@ -201,7 +211,7 @@ function RevenuePage() {
                 </tr>
               </thead>
               <tbody>
-                {revQ.data!.map((r: any) => (
+                {filtered.map((r: any) => (
                   <RevenueRow
                     key={r.id}
                     revenue={r}
