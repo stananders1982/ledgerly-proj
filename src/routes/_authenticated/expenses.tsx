@@ -128,9 +128,13 @@ function ExpensesPage() {
         }
       />
 
+      <div className="mb-4">
+        <DateRangePicker value={range} onChange={setRange} />
+      </div>
+
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total spend" value={fmtMoney(stats.total)} />
-        <StatCard label="This month" value={fmtMoney(stats.monthTotal)} />
+        <StatCard label={activeRange.label} value={fmtMoney(stats.total)} />
+        <StatCard label="All-time spend" value={fmtMoney(stats.allTotal)} />
         <StatCard label="Entries" value={String(stats.count)} />
         <StatCard label="Avg expense" value={fmtMoney(stats.count ? stats.total / stats.count : 0)} />
       </section>
