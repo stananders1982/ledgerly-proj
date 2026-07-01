@@ -858,6 +858,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_affiliates_directory: {
+        Args: never
+        Returns: {
+          active: boolean
+          id: string
+          name: string
+        }[]
+      }
+      list_employees_directory: {
+        Args: never
+        Returns: {
+          active: boolean
+          id: string
+          name: string
+        }[]
+      }
       mfa_satisfied: { Args: never; Returns: boolean }
       recompute_affiliate_period: {
         Args: { _affiliate_id: string; _ref: string }
