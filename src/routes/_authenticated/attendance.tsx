@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/empty-state";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/attendance")({
   head: () => ({ meta: [{ title: "Attendance — Ledgerly" }] }),
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/_authenticated/attendance")({
 });
 
 type Emp = { id: string; name: string; salary: number; active: boolean };
+type EmpRow = { id: string | null; name: string | null; active: boolean | null };
 type Att = { id: string; employee_id: string; date: string; present: boolean };
 
 // Mon–Fri working days in the month containing `d`
@@ -38,18 +40,27 @@ function workingDaysInMonth(d: Date) {
 
 function AttendancePage() {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const [date, setDate] = useState<Date>(new Date());
   const isoDate = format(date, "yyyy-MM-dd");
   const monthStart = format(new Date(date.getFullYear(), date.getMonth(), 1), "yyyy-MM-dd");
   const monthEnd = format(new Date(date.getFullYear(), date.getMonth() + 1, 0), "yyyy-MM-dd");
 
   const employeesQ = useQuery({
-    queryKey: ["employees", "all"],
+    queryKey: ["employees", "all", isAdmin],
     queryFn: async () => {
+      if (isAdmin) {
+        const { data, error } = await supabase
+          .from("employees").select("id,name,salary,active").order("active", { ascending: false }).order("name");
+        if (error) throw error;
+        return (data ?? []) as Emp[];
+      }
       const { data, error } = await supabase
-        .from("employees").select("id,name,salary,active").order("active", { ascending: false }).order("name");
+        .from("employees_directory").select("id,name,active").order("active", { ascending: false }).order("name");
       if (error) throw error;
-      return (data ?? []) as Emp[];
+      return ((data ?? []) as EmpRow[])
+        .filter((r) => r.id && r.name)
+        .map((r) => ({ id: r.id as string, name: r.name as string, salary: 0, active: r.active ?? true }));
     },
   });
 
@@ -171,14 +182,22 @@ function AttendancePage() {
                   <div key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                     <div className="min-w-[180px]">
                       <div className="font-medium">{e.name}</div>
+                      {isAdmin && (
+                        <div className="text-xs text-muted-foreground">
+                          Salary {fmtMoney(e.salary)} · per day {fmtMoney(perDay)}
+                        </div>
+                      )}
+                    </div>
+                    {isAdmin ? (
                       <div className="text-xs text-muted-foreground">
-                        Salary {fmtMoney(e.salary)} · per day {fmtMoney(perDay)}
+                        Month: <span className="font-medium text-foreground">{absentDays}</span> absent ·
+                        deduction <span className="font-medium text-rose-500">−{fmtMoney(deduction)}</span>
                       </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Month: <span className="font-medium text-foreground">{absentDays}</span> absent ·
-                      deduction <span className="font-medium text-rose-500">−{fmtMoney(deduction)}</span>
-                    </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">
+                        Month: <span className="font-medium text-foreground">{absentDays}</span> absent
+                      </div>
+                    )}
                     <div className="flex items-center gap-3">
                       {marked ? (
                         present ? (
