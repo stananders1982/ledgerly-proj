@@ -31,6 +31,8 @@ function ExpensesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [range, setRange] = useState<RangeKey>("month");
+  const activeRange = useMemo(() => getRange(range), [range]);
 
   const expQ = useQuery({
     queryKey: ["expenses-list"],
