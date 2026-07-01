@@ -54,7 +54,8 @@ function ExpensesPage() {
   const stats = useMemo(() => {
     const list = expQ.data ?? [];
     const total = list.reduce((s: number, e: any) => s + Number(e.amount), 0);
-    const month = new Date().toISOString().slice(0, 7);
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const monthTotal = list.filter((e: any) => e.date?.startsWith(month)).reduce((s: number, e: any) => s + Number(e.amount), 0);
     const byCat = new Map<string, number>();
     list.forEach((e: any) => {
