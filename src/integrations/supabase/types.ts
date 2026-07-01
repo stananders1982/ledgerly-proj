@@ -818,14 +818,17 @@ export type Database = {
       }
       employees_directory: {
         Row: {
+          active: boolean | null
           id: string | null
           name: string | null
         }
         Insert: {
+          active?: boolean | null
           id?: string | null
           name?: string | null
         }
         Update: {
+          active?: boolean | null
           id?: string | null
           name?: string | null
         }
