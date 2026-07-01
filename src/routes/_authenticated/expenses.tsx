@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
+import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 
 export const Route = createFileRoute("/_authenticated/expenses")({
   head: () => ({ meta: [{ title: "Expenses — Ledgerly" }] }),
@@ -30,6 +31,8 @@ function ExpensesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [range, setRange] = useState<RangeKey>("month");
+  const activeRange = useMemo(() => getRange(range), [range]);
 
   const expQ = useQuery({
     queryKey: ["expenses-list"],
@@ -51,19 +54,26 @@ function ExpensesPage() {
     queryFn: async () => (await supabase.from("affiliates").select("id,name").order("name")).data ?? [],
   });
 
-  const stats = useMemo(() => {
+  const filtered = useMemo(() => {
     const list = expQ.data ?? [];
-    const total = list.reduce((s: number, e: any) => s + Number(e.amount), 0);
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const monthTotal = list.filter((e: any) => e.date?.startsWith(month)).reduce((s: number, e: any) => s + Number(e.amount), 0);
+    const s = activeRange.start.getTime();
+    const e = activeRange.end.getTime();
+    return list.filter((x: any) => {
+      const t = new Date(x.date + "T00:00:00").getTime();
+      return t >= s && t <= e;
+    });
+  }, [expQ.data, activeRange]);
+
+  const stats = useMemo(() => {
+    const total = filtered.reduce((s: number, e: any) => s + Number(e.amount), 0);
     const byCat = new Map<string, number>();
-    list.forEach((e: any) => {
+    filtered.forEach((e: any) => {
       const k = e.expense_categories?.name ?? "Uncategorized";
       byCat.set(k, (byCat.get(k) ?? 0) + Number(e.amount));
     });
-    return { total, monthTotal, count: list.length, byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [expQ.data]);
+    const allTotal = (expQ.data ?? []).reduce((s: number, e: any) => s + Number(e.amount), 0);
+    return { total, allTotal, count: filtered.length, byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]) };
+  }, [filtered, expQ.data]);
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
@@ -88,7 +98,7 @@ function ExpensesPage() {
   });
 
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
-    const rows = (expQ.data ?? []).map((e: any) => ({ Date: e.date, Category: e.expense_categories?.name ?? "", Affiliate: e.affiliates?.name ?? "", Amount: e.amount, Notes: e.notes ?? "" }));
+    const rows = filtered.map((e: any) => ({ Date: e.date, Category: e.expense_categories?.name ?? "", Affiliate: e.affiliates?.name ?? "", Amount: e.amount, Notes: e.notes ?? "" }));
     if (!rows.length) return toast.error("Nothing to export");
     if (type === "csv") exportCSV(rows, "expenses");
     else if (type === "xlsx") exportXLSX(rows, "expenses", "Expenses");
@@ -118,9 +128,13 @@ function ExpensesPage() {
         }
       />
 
+      <div className="mb-4">
+        <DateRangePicker value={range} onChange={setRange} />
+      </div>
+
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total spend" value={fmtMoney(stats.total)} />
-        <StatCard label="This month" value={fmtMoney(stats.monthTotal)} />
+        <StatCard label={activeRange.label} value={fmtMoney(stats.total)} />
+        <StatCard label="All-time spend" value={fmtMoney(stats.allTotal)} />
         <StatCard label="Entries" value={String(stats.count)} />
         <StatCard label="Avg expense" value={fmtMoney(stats.count ? stats.total / stats.count : 0)} />
       </section>
@@ -153,7 +167,7 @@ function ExpensesPage() {
                 </tr>
               </thead>
               <tbody>
-                {expQ.data!.map((e: any) => (
+                {filtered.map((e: any) => (
                   <tr key={e.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>
