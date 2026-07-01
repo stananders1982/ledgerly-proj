@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
+import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 
 export const Route = createFileRoute("/_authenticated/revenue")({
   head: () => ({ meta: [{ title: "Revenue — Ledgerly" }] }),
@@ -29,6 +30,13 @@ function RevenuePage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [range, setRange] = useState<RangeKey>("month");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const activeRange = useMemo(
+    () => getRange(range, { start: customStart, end: customEnd }),
+    [range, customStart, customEnd],
+  );
 
   const revQ = useQuery({
     queryKey: ["revenue-list"],
@@ -69,11 +77,20 @@ function RevenuePage() {
     joined?.name ?? (id ? affiliateNameById.get(id) : undefined);
 
 
-  const stats = useMemo(() => {
+  const filtered = useMemo(() => {
     const list = revQ.data ?? [];
+    const s = activeRange.start.getTime();
+    const e = activeRange.end.getTime();
+    return list.filter((r: any) => {
+      const t = new Date(r.date + "T00:00:00").getTime();
+      return t >= s && t <= e;
+    });
+  }, [revQ.data, activeRange]);
+
+  const stats = useMemo(() => {
+    const list = filtered;
     const total = list.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const month = new Date().toISOString().slice(0, 7);
-    const monthTotal = list.filter((r: any) => r.date?.startsWith(month)).reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const allTotal = (revQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount), 0);
     const byEmp = new Map<string, number>();
     const byAff = new Map<string, number>();
     list.forEach((r: any) => {
@@ -90,8 +107,8 @@ function RevenuePage() {
       const aff = getAffiliateName(r.affiliate_id, r.affiliates);
       if (aff) byAff.set(aff, (byAff.get(aff) ?? 0) + amt);
     });
-    return { total, monthTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [revQ.data, employeeNameById, affiliateNameById]);
+    return { total, allTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
+  }, [filtered, revQ.data, employeeNameById, affiliateNameById]);
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
@@ -119,7 +136,7 @@ function RevenuePage() {
   });
 
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
-    const rows = (revQ.data ?? []).map((r: any) => ({
+    const rows = filtered.map((r: any) => ({
       Date: r.date, Customer: r.customer_name, Amount: r.amount,
       Employee: getEmployeeName(r.employee_id, r.employees) ?? "",
       Affiliate: getAffiliateName(r.affiliate_id, r.affiliates) ?? "",
@@ -153,9 +170,19 @@ function RevenuePage() {
         }
       />
 
+      <div className="mb-4">
+        <DateRangePicker
+          value={range}
+          onChange={setRange}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+        />
+      </div>
+
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total revenue" value={fmtMoney(stats.total)} tone="positive" />
-        <StatCard label="This month" value={fmtMoney(stats.monthTotal)} />
+        <StatCard label={activeRange.label} value={fmtMoney(stats.total)} tone="positive" />
+        <StatCard label="All-time revenue" value={fmtMoney(stats.allTotal)} />
         <StatCard label="Transactions" value={String(stats.count)} />
         <StatCard label="Avg deal" value={fmtMoney(stats.count ? stats.total / stats.count : 0)} />
       </section>
@@ -167,8 +194,8 @@ function RevenuePage() {
 
       <div className="card-surface overflow-hidden">
         {revQ.isLoading ? <div className="p-8 text-sm text-muted-foreground">Loading…</div>
-        : (revQ.data?.length ?? 0) === 0 ? (
-          <EmptyState icon={TrendingUp} title="No revenue yet" description="Record your first sale to start tracking performance."
+        : filtered.length === 0 ? (
+          <EmptyState icon={TrendingUp} title="No revenue in this range" description="Try a different time frame or record a new sale."
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New revenue</Button>} />
         ) : (
           <div className="overflow-x-auto">
@@ -184,7 +211,7 @@ function RevenuePage() {
                 </tr>
               </thead>
               <tbody>
-                {revQ.data!.map((r: any) => (
+                {filtered.map((r: any) => (
                   <RevenueRow
                     key={r.id}
                     revenue={r}
