@@ -167,7 +167,7 @@ function ExpensesPage() {
                 </tr>
               </thead>
               <tbody>
-                {expQ.data!.map((e: any) => (
+                {filtered.map((e: any) => (
                   <tr key={e.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>
