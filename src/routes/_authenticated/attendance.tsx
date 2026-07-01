@@ -40,18 +40,27 @@ function workingDaysInMonth(d: Date) {
 
 function AttendancePage() {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const [date, setDate] = useState<Date>(new Date());
   const isoDate = format(date, "yyyy-MM-dd");
   const monthStart = format(new Date(date.getFullYear(), date.getMonth(), 1), "yyyy-MM-dd");
   const monthEnd = format(new Date(date.getFullYear(), date.getMonth() + 1, 0), "yyyy-MM-dd");
 
   const employeesQ = useQuery({
-    queryKey: ["employees", "all"],
+    queryKey: ["employees", "all", isAdmin],
     queryFn: async () => {
+      if (isAdmin) {
+        const { data, error } = await supabase
+          .from("employees").select("id,name,salary,active").order("active", { ascending: false }).order("name");
+        if (error) throw error;
+        return (data ?? []) as Emp[];
+      }
       const { data, error } = await supabase
-        .from("employees").select("id,name,salary,active").order("active", { ascending: false }).order("name");
+        .from("employees_directory").select("id,name,active").order("active", { ascending: false }).order("name");
       if (error) throw error;
-      return (data ?? []) as Emp[];
+      return ((data ?? []) as EmpRow[])
+        .filter((r) => r.id && r.name)
+        .map((r) => ({ id: r.id as string, name: r.name as string, salary: 0, active: r.active ?? true }));
     },
   });
 
