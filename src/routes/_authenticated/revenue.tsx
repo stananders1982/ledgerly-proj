@@ -41,8 +41,18 @@ function RevenuePage() {
       return data ?? [];
     },
   });
-  const empQ = useQuery({ queryKey: ["employees"], queryFn: async () => (await supabase.from("employees").select("*").order("name")).data ?? [] });
-  const affQ = useQuery({ queryKey: ["affiliates-min"], queryFn: async () => (await supabase.from("affiliates").select("id,name,active").eq("active", true).order("name")).data ?? [] });
+  const empQ = useQuery({ queryKey: ["employees-dir"], queryFn: async () => {
+    const admin = await supabase.from("employees").select("id,name,active").order("name");
+    if (!admin.error) return admin.data ?? [];
+    const dir = await supabase.from("employees_directory").select("id,name,active").order("name");
+    return dir.data ?? [];
+  }});
+  const affQ = useQuery({ queryKey: ["affiliates-dir"], queryFn: async () => {
+    const admin = await supabase.from("affiliates").select("id,name,active").eq("active", true).order("name");
+    if (!admin.error) return admin.data ?? [];
+    const dir = await supabase.from("affiliates_directory").select("id,name,active").eq("active", true).order("name");
+    return dir.data ?? [];
+  }});
 
   const stats = useMemo(() => {
     const list = revQ.data ?? [];
