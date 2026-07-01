@@ -240,8 +240,6 @@ function RevenueRow({
                   </tr>
   );
 }
-  );
-}
 
 function BreakdownCard({ title, rows }: { title: string; rows: [string, number][] }) {
   const max = Math.max(1, ...rows.map((r) => r[1]));
