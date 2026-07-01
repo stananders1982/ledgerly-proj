@@ -379,7 +379,7 @@ function Dashboard() {
 
       <section className="mb-10 grid gap-4 lg:grid-cols-3">
         <div className="glass-surface glass-hover p-5 lg:col-span-2">
-          <ChartHeader title="Lead source performance" subtitle="Activated vs received — this month" icon={Users} />
+          <ChartHeader title="Lead source performance" subtitle={`Activated vs received — ${rangeLabel.toLowerCase()}`} icon={Users} />
           <div className="h-64 mt-2">
             {m.sourceRows.length ? (
               <ResponsiveContainer>
