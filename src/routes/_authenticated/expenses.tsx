@@ -32,7 +32,12 @@ function ExpensesPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [range, setRange] = useState<RangeKey>("month");
-  const activeRange = useMemo(() => getRange(range), [range]);
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const activeRange = useMemo(
+    () => getRange(range, { start: customStart, end: customEnd }),
+    [range, customStart, customEnd],
+  );
 
   const expQ = useQuery({
     queryKey: ["expenses-list"],
@@ -129,7 +134,13 @@ function ExpensesPage() {
       />
 
       <div className="mb-4">
-        <DateRangePicker value={range} onChange={setRange} />
+        <DateRangePicker
+          value={range}
+          onChange={setRange}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+        />
       </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
