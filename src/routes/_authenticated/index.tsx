@@ -141,16 +141,26 @@ function Dashboard() {
     const rangeRev = (revQ.data ?? []);
     const rangeExp = (expQ.data ?? []);
 
-    // Prorate fixed payroll by the length of the selected range (monthly salary
-    // spread over 30 days). Full monthly salary shows for a month-long range.
+    // Salaries reflect the full selected period (not just elapsed days within
+    // it). A "Month" range always shows the full monthly payroll; a "Year"
+    // range shows 12 months; a "Week" range shows a week's worth; custom
+    // ranges scale by their day span.
     const msPerDay = 86_400_000;
     const days = Math.max(1, Math.round((range.end.getTime() - range.start.getTime()) / msPerDay) + 1);
+    const monthMultiplier =
+      rangeKey === "today" ? 1 / 30 :
+      rangeKey === "week" ? 7 / 30 :
+      rangeKey === "month" ? 1 :
+      rangeKey === "quarter" ? 3 :
+      rangeKey === "year" ? 12 :
+      days / 30;
 
     const income = rangeRev.reduce((s: number, r: any) => s + Number(r.amount), 0);
     const otherExp = rangeExp.reduce((s: number, r: any) => s + Number(r.amount), 0);
     const employees = (empQ.data ?? []) as any[];
     const salariesMonthly = employees.reduce((s: number, e: any) => s + Number(e.salary), 0);
-    const salaries = salariesMonthly * (days / 30);
+    const salaries = salariesMonthly * monthMultiplier;
+
 
     // Per-employee commission using tiered rate on their attributed revenue in range
     const perEmp = new Map<string, number>();
