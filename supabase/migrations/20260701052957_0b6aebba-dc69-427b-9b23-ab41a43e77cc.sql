@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.advance_due_date(date, recurrence_frequency) TO authenticated;
