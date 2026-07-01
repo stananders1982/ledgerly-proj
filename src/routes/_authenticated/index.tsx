@@ -276,7 +276,7 @@ function Dashboard() {
           value={fmtMoney(m.income)}
           tone="blue"
           icon={DollarSign}
-          sub="This month"
+          sub={rangeLabel}
           data={m.series.map((s) => ({ v: s.revenue }))}
         />
         <HeroCard
