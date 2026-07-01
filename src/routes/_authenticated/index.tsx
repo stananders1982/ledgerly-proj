@@ -32,6 +32,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { commissionAmount } from "@/lib/commission";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — Ledgerly" }] }),
