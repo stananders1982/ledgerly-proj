@@ -54,6 +54,20 @@ function RevenuePage() {
     return ((rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>).filter((a) => a.active);
   }});
 
+  const employeeNameById = useMemo(
+    () => new Map((empQ.data ?? []).map((e: any) => [e.id, e.name])),
+    [empQ.data],
+  );
+  const affiliateNameById = useMemo(
+    () => new Map((affQ.data ?? []).map((a: any) => [a.id, a.name])),
+    [affQ.data],
+  );
+
+  const getEmployeeName = (id?: string | null, joined?: { name?: string } | null) =>
+    joined?.name ?? (id ? employeeNameById.get(id) : undefined);
+  const getAffiliateName = (id?: string | null, joined?: { name?: string } | null) =>
+    joined?.name ?? (id ? affiliateNameById.get(id) : undefined);
+
 
   const stats = useMemo(() => {
     const list = revQ.data ?? [];
@@ -66,18 +80,18 @@ function RevenuePage() {
       const amt = Number(r.amount);
       const pct = Number(r.split_pct ?? 100);
       if (r.employee_id) {
-        const n1 = r.employees?.name ?? "?";
+        const n1 = getEmployeeName(r.employee_id, r.employees) ?? "?";
         byEmp.set(n1, (byEmp.get(n1) ?? 0) + amt * (pct / 100));
       }
       if (r.employee_id_2) {
-        const n2 = r.employee2?.name ?? "?";
+        const n2 = getEmployeeName(r.employee_id_2, r.employee2) ?? "?";
         byEmp.set(n2, (byEmp.get(n2) ?? 0) + amt * ((100 - pct) / 100));
       }
-      const aff = r.affiliates?.name;
+      const aff = getAffiliateName(r.affiliate_id, r.affiliates);
       if (aff) byAff.set(aff, (byAff.get(aff) ?? 0) + amt);
     });
     return { total, monthTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [revQ.data]);
+  }, [revQ.data, employeeNameById, affiliateNameById]);
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
@@ -107,7 +121,8 @@ function RevenuePage() {
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
     const rows = (revQ.data ?? []).map((r: any) => ({
       Date: r.date, Customer: r.customer_name, Amount: r.amount,
-      Employee: r.employees?.name ?? "", Affiliate: r.affiliates?.name ?? "",
+      Employee: getEmployeeName(r.employee_id, r.employees) ?? "",
+      Affiliate: getAffiliateName(r.affiliate_id, r.affiliates) ?? "",
     }));
     if (!rows.length) return toast.error("Nothing to export");
     if (type === "csv") exportCSV(rows, "revenue");
@@ -170,24 +185,15 @@ function RevenuePage() {
               </thead>
               <tbody>
                 {revQ.data!.map((r: any) => (
-                  <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
-                      onClick={() => { setEditing(r); setOpen(true); }}>
-                    <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
-                    <td className="py-3 px-4 font-medium">{r.customer_name}</td>
-                    <td className="py-3 px-4 text-primary font-medium">{fmtMoney(r.amount)}</td>
-                    <td className="py-3 px-4">
-                      {r.employees?.name || "—"}
-                      {r.employee_id_2 && (
-                        <span className="text-muted-foreground">
-                          {" "}({Number(r.split_pct)}%) + {r.employee2?.name} ({100 - Number(r.split_pct)}%)
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">{r.affiliates?.name || "—"}</td>
-                    <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                      <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete revenue?" />
-                    </td>
-                  </tr>
+                  <RevenueRow
+                    key={r.id}
+                    revenue={r}
+                    employeeName={getEmployeeName(r.employee_id, r.employees)}
+                    employee2Name={getEmployeeName(r.employee_id_2, r.employee2)}
+                    affiliateName={getAffiliateName(r.affiliate_id, r.affiliates)}
+                    onEdit={() => { setEditing(r); setOpen(true); }}
+                    onDelete={() => del.mutate(r.id)}
+                  />
                 ))}
               </tbody>
             </table>
@@ -195,6 +201,43 @@ function RevenuePage() {
         )}
       </div>
     </div>
+  );
+}
+
+function RevenueRow({
+  revenue: r,
+  employeeName,
+  employee2Name,
+  affiliateName,
+  onEdit,
+  onDelete,
+}: {
+  revenue: any;
+  employeeName?: string;
+  employee2Name?: string;
+  affiliateName?: string;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+                  <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                      onClick={onEdit}>
+                    <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
+                    <td className="py-3 px-4 font-medium">{r.customer_name}</td>
+                    <td className="py-3 px-4 text-primary font-medium">{fmtMoney(r.amount)}</td>
+                    <td className="py-3 px-4">
+                      {employeeName || "—"}
+                      {r.employee_id_2 && (
+                        <span className="text-muted-foreground">
+                          {" "}({Number(r.split_pct)}%) + {employee2Name || "—"} ({100 - Number(r.split_pct)}%)
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-muted-foreground">{affiliateName || "—"}</td>
+                    <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <ConfirmDelete onConfirm={onDelete} label="Delete revenue?" />
+                    </td>
+                  </tr>
   );
 }
 
