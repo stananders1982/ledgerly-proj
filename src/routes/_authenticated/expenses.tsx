@@ -134,7 +134,13 @@ function ExpensesPage() {
       />
 
       <div className="mb-4">
-        <DateRangePicker value={range} onChange={setRange} />
+        <DateRangePicker
+          value={range}
+          onChange={setRange}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+        />
       </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
