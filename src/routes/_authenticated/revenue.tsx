@@ -41,17 +41,17 @@ function RevenuePage() {
       return data ?? [];
     },
   });
-  const empQ = useQuery({ queryKey: ["employees-dir"], queryFn: async () => {
-    const admin = await supabase.from("employees").select("id,name,active").order("name");
-    if (!admin.error) return admin.data ?? [];
+  const empQ = useQuery({ queryKey: ["employees-dir-any"], queryFn: async () => {
     const dir = await supabase.from("employees_directory").select("id,name,active").order("name");
-    return dir.data ?? [];
+    if (!dir.error && (dir.data?.length ?? 0) > 0) return dir.data ?? [];
+    const admin = await supabase.from("employees").select("id,name,active").order("name");
+    return admin.data ?? [];
   }});
-  const affQ = useQuery({ queryKey: ["affiliates-dir"], queryFn: async () => {
-    const admin = await supabase.from("affiliates").select("id,name,active").eq("active", true).order("name");
-    if (!admin.error) return admin.data ?? [];
+  const affQ = useQuery({ queryKey: ["affiliates-dir-any"], queryFn: async () => {
     const dir = await supabase.from("affiliates_directory").select("id,name,active").eq("active", true).order("name");
-    return dir.data ?? [];
+    if (!dir.error && (dir.data?.length ?? 0) > 0) return dir.data ?? [];
+    const admin = await supabase.from("affiliates").select("id,name,active").eq("active", true).order("name");
+    return admin.data ?? [];
   }});
 
   const stats = useMemo(() => {
