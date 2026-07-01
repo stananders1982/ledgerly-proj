@@ -337,7 +337,7 @@ function Dashboard() {
       {/* Charts */}
       <section className="mb-10 grid gap-4 lg:grid-cols-3">
         <div className="glass-surface glass-hover p-5 lg:col-span-2">
-          <ChartHeader title="Revenue vs expenses" subtitle="Last 30 days" icon={Activity} />
+          <ChartHeader title="Revenue vs expenses" subtitle={rangeLabel} icon={Activity} />
           <div className="h-64 mt-2">
             <ResponsiveContainer>
               <AreaChart data={m.series} margin={{ top: 10, right: 8, left: -10, bottom: 0 }}>
