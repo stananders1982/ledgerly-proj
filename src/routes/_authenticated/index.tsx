@@ -250,7 +250,15 @@ function Dashboard() {
             {new Date().toLocaleString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
           </p>
         </div>
+        <DateRangePicker
+          value={rangeKey}
+          onChange={setRangeKey}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+        />
       </div>
+
 
       {/* Hero KPIs */}
       <section className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mb-10">
