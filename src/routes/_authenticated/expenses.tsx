@@ -54,19 +54,26 @@ function ExpensesPage() {
     queryFn: async () => (await supabase.from("affiliates").select("id,name").order("name")).data ?? [],
   });
 
-  const stats = useMemo(() => {
+  const filtered = useMemo(() => {
     const list = expQ.data ?? [];
-    const total = list.reduce((s: number, e: any) => s + Number(e.amount), 0);
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const monthTotal = list.filter((e: any) => e.date?.startsWith(month)).reduce((s: number, e: any) => s + Number(e.amount), 0);
+    const s = activeRange.start.getTime();
+    const e = activeRange.end.getTime();
+    return list.filter((x: any) => {
+      const t = new Date(x.date + "T00:00:00").getTime();
+      return t >= s && t <= e;
+    });
+  }, [expQ.data, activeRange]);
+
+  const stats = useMemo(() => {
+    const total = filtered.reduce((s: number, e: any) => s + Number(e.amount), 0);
     const byCat = new Map<string, number>();
-    list.forEach((e: any) => {
+    filtered.forEach((e: any) => {
       const k = e.expense_categories?.name ?? "Uncategorized";
       byCat.set(k, (byCat.get(k) ?? 0) + Number(e.amount));
     });
-    return { total, monthTotal, count: list.length, byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [expQ.data]);
+    const allTotal = (expQ.data ?? []).reduce((s: number, e: any) => s + Number(e.amount), 0);
+    return { total, allTotal, count: filtered.length, byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]) };
+  }, [filtered, expQ.data]);
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
