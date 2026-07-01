@@ -855,6 +855,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      mfa_satisfied: { Args: never; Returns: boolean }
       recompute_affiliate_period: {
         Args: { _affiliate_id: string; _ref: string }
         Returns: undefined
