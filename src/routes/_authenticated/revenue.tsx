@@ -77,11 +77,20 @@ function RevenuePage() {
     joined?.name ?? (id ? affiliateNameById.get(id) : undefined);
 
 
-  const stats = useMemo(() => {
+  const filtered = useMemo(() => {
     const list = revQ.data ?? [];
+    const s = activeRange.start.getTime();
+    const e = activeRange.end.getTime();
+    return list.filter((r: any) => {
+      const t = new Date(r.date + "T00:00:00").getTime();
+      return t >= s && t <= e;
+    });
+  }, [revQ.data, activeRange]);
+
+  const stats = useMemo(() => {
+    const list = filtered;
     const total = list.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const month = new Date().toISOString().slice(0, 7);
-    const monthTotal = list.filter((r: any) => r.date?.startsWith(month)).reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const allTotal = (revQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount), 0);
     const byEmp = new Map<string, number>();
     const byAff = new Map<string, number>();
     list.forEach((r: any) => {
@@ -98,8 +107,8 @@ function RevenuePage() {
       const aff = getAffiliateName(r.affiliate_id, r.affiliates);
       if (aff) byAff.set(aff, (byAff.get(aff) ?? 0) + amt);
     });
-    return { total, monthTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [revQ.data, employeeNameById, affiliateNameById]);
+    return { total, allTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
+  }, [filtered, revQ.data, employeeNameById, affiliateNameById]);
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
