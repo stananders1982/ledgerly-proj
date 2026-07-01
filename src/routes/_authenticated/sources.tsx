@@ -207,9 +207,9 @@ function SourcesPage() {
         actions={
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4" /> Add source</Button>
+              <Button onClick={() => setEditing(null)}><Plus className="h-4 w-4" /> Add source</Button>
             </DialogTrigger>
-            <SourceDialog source={editing} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+            <SourceDialog key={editing?.id ?? "new"} source={editing} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
           </Dialog>
         }
       />
