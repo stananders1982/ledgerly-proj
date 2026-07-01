@@ -10,7 +10,7 @@ export const generateDueRecurringExpenses = createServerFn({ method: "POST" })
       _role: "admin",
     });
     if (roleErr) throw roleErr;
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) return { count: 0 };
 
     const { data, error } = await context.supabase.rpc("generate_due_recurring_expenses");
     if (error) throw error;
