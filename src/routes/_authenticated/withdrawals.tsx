@@ -53,6 +53,12 @@ function WithdrawalsPage() {
     queryFn: async () => (await supabase.from("revenue").select("id,customer_name,amount,date,employee_id").order("date", { ascending: false })).data ?? [],
   });
 
+  const empNameById = useMemo(
+    () => new Map((empQ.data ?? []).map((e: any) => [e.id, e.name])),
+    [empQ.data],
+  );
+  const getEmpName = (r: any) => r.employees?.name ?? (r.employee_id ? empNameById.get(r.employee_id) : undefined) ?? "—";
+
   const stats = useMemo(() => {
     const list = wQ.data ?? [];
     const total = list.reduce((s: number, r: any) => s + Number(r.amount), 0);
@@ -62,11 +68,12 @@ function WithdrawalsPage() {
     const byEmp = new Map<string, number>();
     list.forEach((r: any) => {
       if (!r.employee_id) return;
-      const n = r.employees?.name ?? "?";
+      const n = r.employees?.name ?? empNameById.get(r.employee_id) ?? "?";
       byEmp.set(n, (byEmp.get(n) ?? 0) + Number(r.employee_penalty));
     });
     return { total, monthTotal, count: list.length, penalty, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [wQ.data]);
+  }, [wQ.data, empNameById]);
+
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
