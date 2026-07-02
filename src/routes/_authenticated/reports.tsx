@@ -85,7 +85,7 @@ function ReportsPage() {
   });
   const revQ = useQuery({
     queryKey: ["rpt-rev", start, end],
-    queryFn: async () => (await supabase.from("revenue").select("id,date,amount,customer_name,employee_id,employee_id_2,split_pct,lead_id,notes,created_at,employees:employee_id(name),employee2:employee_id_2(name)").gte("date", start).lte("date", end)).data ?? [],
+    queryFn: async () => (await supabase.from("revenue").select("id,date,amount,customer_name,employee_id,employee_id_2,split_pct,lead_id,affiliate_id,notes,created_at,employees:employee_id(name),employee2:employee_id_2(name),leads(affiliate_id)").gte("date", start).lte("date", end)).data ?? [],
   });
   const expQ = useQuery({
     queryKey: ["rpt-exp", start, end],
