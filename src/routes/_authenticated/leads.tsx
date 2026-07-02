@@ -154,6 +154,17 @@ function LeadsPage() {
         }
       />
 
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <DateRangePicker
+          value={range}
+          onChange={setRange}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+        />
+        <div className="text-xs text-muted-foreground">{activeRange.label}</div>
+      </div>
+
       <section className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
         <StatCard label="Received" value={String(stats.received)} />
         <StatCard label="Activated" value={String(stats.activated)} tone="positive" />
