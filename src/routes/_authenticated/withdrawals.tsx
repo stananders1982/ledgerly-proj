@@ -36,7 +36,7 @@ function WithdrawalsPage() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("withdrawals")
-        .select("*, employees:employee_id(name), revenue:revenue_id(customer_name, amount, date)")
+        .select("*, employees:employee_id(name), employee2:employee_id_2(name), revenue:revenue_id(customer_name, amount, date)")
         .order("date", { ascending: false });
       if (error) throw error;
       return data ?? [];
