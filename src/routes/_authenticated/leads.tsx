@@ -43,6 +43,14 @@ function LeadsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Entry | null>(null);
+  const [range, setRange] = useState<RangeKey>("month");
+  const [customStart, setCustomStart] = useState<string>("");
+  const [customEnd, setCustomEnd] = useState<string>("");
+  const activeRange = useMemo(
+    () => getRange(range, { start: customStart, end: customEnd }),
+    [range, customStart, customEnd],
+  );
+
 
   const q = useQuery({
     queryKey: ["daily-leads-v2"],
