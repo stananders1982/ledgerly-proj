@@ -69,7 +69,15 @@ function LeadsPage() {
     queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price").eq("active", true).order("name")).data ?? [],
   });
 
-  const rows = q.data ?? [];
+  const allRows = q.data ?? [];
+  const rows = useMemo(() => {
+    const s = activeRange.start.getTime();
+    const e = activeRange.end.getTime();
+    return allRows.filter((r) => {
+      const t = new Date(r.entry_date + "T00:00:00").getTime();
+      return t >= s && t <= e;
+    });
+  }, [allRows, activeRange]);
 
   const stats = useMemo(() => {
     let received = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
