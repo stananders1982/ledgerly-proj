@@ -85,7 +85,7 @@ function ReportsPage() {
   });
   const revQ = useQuery({
     queryKey: ["rpt-rev", start, end],
-    queryFn: async () => (await supabase.from("revenue").select("id,date,amount,customer_name,employee_id,employee_id_2,split_pct,lead_id,notes,created_at,employees:employee_id(name),employee2:employee_id_2(name)").gte("date", start).lte("date", end)).data ?? [],
+    queryFn: async () => (await supabase.from("revenue").select("id,date,amount,customer_name,employee_id,employee_id_2,split_pct,lead_id,affiliate_id,notes,created_at,employees:employee_id(name),employee2:employee_id_2(name),leads(affiliate_id)").gte("date", start).lte("date", end)).data ?? [],
   });
   const expQ = useQuery({
     queryKey: ["rpt-exp", start, end],
@@ -180,33 +180,44 @@ function ReportsPage() {
 
   const sources = useMemo(() => {
     const map = new Map<string, any>();
-    for (const s of (srcQ.data ?? []) as any[]) map.set(s.id, { id: s.id, name: s.name, model: s.pricing_model, price: Number(s.price), expected: Number(s.expected_conversion_rate) || 0, leads: 0, activated: 0, reported: 0, marketing: 0 });
+    for (const s of (srcQ.data ?? []) as any[]) map.set(s.id, { id: s.id, name: s.name, model: s.pricing_model, price: Number(s.price), expected: Number(s.expected_conversion_rate) || 0, leads: 0, activated: 0, reported: 0, marketing: 0, revenue: 0 });
     for (const e of data.entries) {
       if (!e.source_id) continue;
       const r = map.get(e.source_id); if (!r) continue;
       r.leads += e.received ?? 0; r.activated += e.activated ?? 0; r.reported += e.reported ?? 0; r.marketing += Number(e.cost ?? 0);
     }
-    const revPerActivation = data.revPerActivation;
+    // Actual revenue per source: match by affiliate name == source name (or via lead.affiliate_id)
+    const affs = (affMapQ.data ?? []) as any[];
+    const affIdToName = new Map<string, string>(affs.map((a) => [a.id, String(a.name).trim().toLowerCase()]));
+    const nameToSource = new Map<string, any>();
+    map.forEach((r) => nameToSource.set(String(r.name).trim().toLowerCase(), r));
+    for (const rev of data.revenue) {
+      const affId = rev.affiliate_id ?? rev.leads?.affiliate_id ?? null;
+      if (!affId) continue;
+      const affName = affIdToName.get(affId);
+      if (!affName) continue;
+      const src = nameToSource.get(affName);
+      if (src) src.revenue += Number(rev.amount) || 0;
+    }
     return Array.from(map.values()).map((r) => {
       const cost = r.model === "CPL" ? r.price * r.leads : r.price * r.reported;
       const savings = r.model === "CPA" ? r.price * Math.max(0, r.activated - r.reported) : 0;
-      const revenue = r.activated * revPerActivation;
       const totalCost = cost + r.marketing;
       const actualRate = r.leads ? (r.activated / r.leads) * 100 : 0;
       const expectedActivations = (r.leads * r.expected) / 100;
-      return { ...r, cost, savings, revenue, totalCost,
+      return { ...r, cost, savings, totalCost,
         rate: actualRate,
         actualRate,
         variance: actualRate - r.expected,
         expectedActivations,
         deficit: r.activated - expectedActivations,
         status: r.expected ? (actualRate >= r.expected ? "Above" : "Below") : "—",
-        roi: totalCost ? ((revenue - totalCost) / totalCost) * 100 : 0,
+        roi: totalCost ? ((r.revenue - totalCost) / totalCost) * 100 : 0,
         cpl: r.leads ? totalCost / r.leads : 0,
         cpaEff: r.activated ? totalCost / r.activated : 0,
       };
     });
-  }, [srcQ.data, data.entries, data.revPerActivation]);
+  }, [srcQ.data, data.entries, data.revenue, affMapQ.data]);
 
   const affiliatePayouts = useMemo(() => {
     const affs = (affMapQ.data ?? []) as any[];
