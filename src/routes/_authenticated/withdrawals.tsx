@@ -67,9 +67,16 @@ function WithdrawalsPage() {
     const penalty = list.reduce((s: number, r: any) => s + Number(r.employee_penalty), 0);
     const byEmp = new Map<string, number>();
     list.forEach((r: any) => {
-      if (!r.employee_id) return;
-      const n = r.employees?.name ?? empNameById.get(r.employee_id) ?? "?";
-      byEmp.set(n, (byEmp.get(n) ?? 0) + Number(r.employee_penalty));
+      const totalPenalty = Number(r.employee_penalty) || 0;
+      const pct = Number(r.split_pct ?? 100) / 100;
+      if (r.employee_id) {
+        const n = r.employees?.name ?? empNameById.get(r.employee_id) ?? "?";
+        byEmp.set(n, (byEmp.get(n) ?? 0) + totalPenalty * (r.employee_id_2 ? pct : 1));
+      }
+      if (r.employee_id_2) {
+        const n = r.employee2?.name ?? empNameById.get(r.employee_id_2) ?? "?";
+        byEmp.set(n, (byEmp.get(n) ?? 0) + totalPenalty * (1 - pct));
+      }
     });
     return { total, monthTotal, count: list.length, penalty, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]) };
   }, [wQ.data, empNameById]);
