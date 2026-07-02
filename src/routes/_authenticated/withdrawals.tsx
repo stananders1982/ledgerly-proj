@@ -209,12 +209,15 @@ function WithdrawalDialog({
     revenue_id: row?.revenue_id ?? "",
     customer_name: row?.customer_name ?? "",
     employee_id: row?.employee_id ?? "",
+    employee_id_2: row?.employee_id_2 ?? "",
+    split_pct: row?.split_pct ?? 50,
     amount: row?.amount ?? "",
     date: row?.date ?? new Date().toISOString().slice(0, 10),
     notes: row?.notes ?? "",
   }));
 
   const penaltyPreview = (Number(form.amount) || 0) * PENALTY_RATE;
+  const hasSplit = !!form.employee_id_2;
 
   const onPickRevenue = (id: string) => {
     if (id === "_none") {
