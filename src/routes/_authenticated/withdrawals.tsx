@@ -256,14 +256,36 @@ function WithdrawalDialog({
           <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
           <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         </div>
-        <Field label="Sales agent">
+        <Field label={hasSplit ? `Sales agent 1 (${Number(form.split_pct)}%)` : "Sales agent"}>
           <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
             <SelectTrigger><SelectValue placeholder="Pick agent" /></SelectTrigger>
             <SelectContent>{employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
+        <Field label={hasSplit ? `Sales agent 2 (${100 - Number(form.split_pct)}%)` : "Split with second agent (optional)"}>
+          <Select
+            value={form.employee_id_2 || "_none"}
+            onValueChange={(v) => setForm({ ...form, employee_id_2: v === "_none" ? "" : v })}
+          >
+            <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">None</SelectItem>
+              {employees.filter((e) => e.id !== form.employee_id).map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
+        {hasSplit && (
+          <Field label={`Split: Agent 1 gets ${Number(form.split_pct)}%`}>
+            <Input
+              type="range" min={1} max={99} step={1}
+              value={form.split_pct}
+              onChange={(e) => setForm({ ...form, split_pct: Number(e.target.value) })}
+            />
+          </Field>
+        )}
         <div className="rounded-md border border-border bg-accent/30 px-3 py-2 text-xs text-muted-foreground">
           Agent penalty (10%): <span className="text-destructive font-medium">−{fmtMoney(penaltyPreview)}</span>
+          {hasSplit && <span> · split {Number(form.split_pct)}% / {100 - Number(form.split_pct)}%</span>}
         </div>
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
       </div>
