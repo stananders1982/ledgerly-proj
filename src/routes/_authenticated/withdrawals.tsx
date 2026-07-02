@@ -42,7 +42,12 @@ function WithdrawalsPage() {
       return data ?? [];
     },
   });
-  const empQ = useQuery({ queryKey: ["employees"], queryFn: async () => (await supabase.from("employees").select("*").order("name")).data ?? [] });
+  const empQ = useQuery({ queryKey: ["employees-dir-any"], queryFn: async () => {
+    const admin = await supabase.from("employees").select("id,name,active").order("name");
+    if (!admin.error && (admin.data?.length ?? 0) > 0) return admin.data ?? [];
+    const rpc = await supabase.rpc("list_employees_directory");
+    return (rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>;
+  }});
   const revQ = useQuery({
     queryKey: ["revenue-min"],
     queryFn: async () => (await supabase.from("revenue").select("id,customer_name,amount,date,employee_id").order("date", { ascending: false })).data ?? [],
