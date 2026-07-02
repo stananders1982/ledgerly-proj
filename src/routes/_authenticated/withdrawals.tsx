@@ -42,11 +42,22 @@ function WithdrawalsPage() {
       return data ?? [];
     },
   });
-  const empQ = useQuery({ queryKey: ["employees"], queryFn: async () => (await supabase.from("employees").select("*").order("name")).data ?? [] });
+  const empQ = useQuery({ queryKey: ["employees-dir-any"], queryFn: async () => {
+    const admin = await supabase.from("employees").select("id,name,active").order("name");
+    if (!admin.error && (admin.data?.length ?? 0) > 0) return admin.data ?? [];
+    const rpc = await supabase.rpc("list_employees_directory");
+    return (rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>;
+  }});
   const revQ = useQuery({
     queryKey: ["revenue-min"],
     queryFn: async () => (await supabase.from("revenue").select("id,customer_name,amount,date,employee_id").order("date", { ascending: false })).data ?? [],
   });
+
+  const empNameById = useMemo(
+    () => new Map((empQ.data ?? []).map((e: any) => [e.id, e.name])),
+    [empQ.data],
+  );
+  const getEmpName = (r: any) => r.employees?.name ?? (r.employee_id ? empNameById.get(r.employee_id) : undefined) ?? "—";
 
   const stats = useMemo(() => {
     const list = wQ.data ?? [];
@@ -57,11 +68,12 @@ function WithdrawalsPage() {
     const byEmp = new Map<string, number>();
     list.forEach((r: any) => {
       if (!r.employee_id) return;
-      const n = r.employees?.name ?? "?";
+      const n = r.employees?.name ?? empNameById.get(r.employee_id) ?? "?";
       byEmp.set(n, (byEmp.get(n) ?? 0) + Number(r.employee_penalty));
     });
     return { total, monthTotal, count: list.length, penalty, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [wQ.data]);
+  }, [wQ.data, empNameById]);
+
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
@@ -154,7 +166,7 @@ function WithdrawalsPage() {
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     <td className="py-3 px-4 text-destructive font-medium">−{fmtMoney(r.amount)}</td>
-                    <td className="py-3 px-4">{r.employees?.name || "—"}</td>
+                    <td className="py-3 px-4">{getEmpName(r)}</td>
                     <td className="py-3 px-4 text-destructive">−{fmtMoney(r.employee_penalty)}</td>
                     <td className="py-3 px-4 text-muted-foreground">
                       {r.revenue ? `${r.revenue.customer_name} · ${fmtMoney(r.revenue.amount)}` : "—"}
