@@ -36,7 +36,7 @@ function WithdrawalsPage() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("withdrawals")
-        .select("*, employees:employee_id(name), revenue:revenue_id(customer_name, amount, date)")
+        .select("*, employees:employee_id(name), employee2:employee_id_2(name), revenue:revenue_id(customer_name, amount, date)")
         .order("date", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -67,9 +67,16 @@ function WithdrawalsPage() {
     const penalty = list.reduce((s: number, r: any) => s + Number(r.employee_penalty), 0);
     const byEmp = new Map<string, number>();
     list.forEach((r: any) => {
-      if (!r.employee_id) return;
-      const n = r.employees?.name ?? empNameById.get(r.employee_id) ?? "?";
-      byEmp.set(n, (byEmp.get(n) ?? 0) + Number(r.employee_penalty));
+      const totalPenalty = Number(r.employee_penalty) || 0;
+      const pct = Number(r.split_pct ?? 100) / 100;
+      if (r.employee_id) {
+        const n = r.employees?.name ?? empNameById.get(r.employee_id) ?? "?";
+        byEmp.set(n, (byEmp.get(n) ?? 0) + totalPenalty * (r.employee_id_2 ? pct : 1));
+      }
+      if (r.employee_id_2) {
+        const n = r.employee2?.name ?? empNameById.get(r.employee_id_2) ?? "?";
+        byEmp.set(n, (byEmp.get(n) ?? 0) + totalPenalty * (1 - pct));
+      }
     });
     return { total, monthTotal, count: list.length, penalty, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]) };
   }, [wQ.data, empNameById]);
@@ -82,6 +89,8 @@ function WithdrawalsPage() {
         revenue_id: v.revenue_id || null,
         customer_name: v.customer_name,
         employee_id: v.employee_id || null,
+        employee_id_2: v.employee_id_2 || null,
+        split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
         amount,
         employee_penalty: +(amount * PENALTY_RATE).toFixed(2),
         date: v.date,
@@ -166,7 +175,14 @@ function WithdrawalsPage() {
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     <td className="py-3 px-4 text-destructive font-medium">−{fmtMoney(r.amount)}</td>
-                    <td className="py-3 px-4">{getEmpName(r)}</td>
+                    <td className="py-3 px-4">
+                      {getEmpName(r)}
+                      {r.employee_id_2 && (
+                        <span className="text-xs text-muted-foreground">
+                          {" "}({Number(r.split_pct)}%) + {r.employee2?.name ?? empNameById.get(r.employee_id_2) ?? "—"} ({100 - Number(r.split_pct)}%)
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-destructive">−{fmtMoney(r.employee_penalty)}</td>
                     <td className="py-3 px-4 text-muted-foreground">
                       {r.revenue ? `${r.revenue.customer_name} · ${fmtMoney(r.revenue.amount)}` : "—"}
@@ -193,12 +209,15 @@ function WithdrawalDialog({
     revenue_id: row?.revenue_id ?? "",
     customer_name: row?.customer_name ?? "",
     employee_id: row?.employee_id ?? "",
+    employee_id_2: row?.employee_id_2 ?? "",
+    split_pct: row?.split_pct ?? 50,
     amount: row?.amount ?? "",
     date: row?.date ?? new Date().toISOString().slice(0, 10),
     notes: row?.notes ?? "",
   }));
 
   const penaltyPreview = (Number(form.amount) || 0) * PENALTY_RATE;
+  const hasSplit = !!form.employee_id_2;
 
   const onPickRevenue = (id: string) => {
     if (id === "_none") {
@@ -237,14 +256,36 @@ function WithdrawalDialog({
           <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
           <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         </div>
-        <Field label="Sales agent">
+        <Field label={hasSplit ? `Sales agent 1 (${Number(form.split_pct)}%)` : "Sales agent"}>
           <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
             <SelectTrigger><SelectValue placeholder="Pick agent" /></SelectTrigger>
             <SelectContent>{employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
+        <Field label={hasSplit ? `Sales agent 2 (${100 - Number(form.split_pct)}%)` : "Split with second agent (optional)"}>
+          <Select
+            value={form.employee_id_2 || "_none"}
+            onValueChange={(v) => setForm({ ...form, employee_id_2: v === "_none" ? "" : v })}
+          >
+            <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">None</SelectItem>
+              {employees.filter((e) => e.id !== form.employee_id).map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
+        {hasSplit && (
+          <Field label={`Split: Agent 1 gets ${Number(form.split_pct)}%`}>
+            <Input
+              type="range" min={1} max={99} step={1}
+              value={form.split_pct}
+              onChange={(e) => setForm({ ...form, split_pct: Number(e.target.value) })}
+            />
+          </Field>
+        )}
         <div className="rounded-md border border-border bg-accent/30 px-3 py-2 text-xs text-muted-foreground">
           Agent penalty (10%): <span className="text-destructive font-medium">−{fmtMoney(penaltyPreview)}</span>
+          {hasSplit && <span> · split {Number(form.split_pct)}% / {100 - Number(form.split_pct)}%</span>}
         </div>
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
       </div>

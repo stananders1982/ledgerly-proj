@@ -742,10 +742,12 @@ export type Database = {
           customer_name: string
           date: string
           employee_id: string | null
+          employee_id_2: string | null
           employee_penalty: number
           id: string
           notes: string | null
           revenue_id: string | null
+          split_pct: number
           updated_at: string
         }
         Insert: {
@@ -754,10 +756,12 @@ export type Database = {
           customer_name: string
           date?: string
           employee_id?: string | null
+          employee_id_2?: string | null
           employee_penalty?: number
           id?: string
           notes?: string | null
           revenue_id?: string | null
+          split_pct?: number
           updated_at?: string
         }
         Update: {
@@ -766,13 +770,29 @@ export type Database = {
           customer_name?: string
           date?: string
           employee_id?: string | null
+          employee_id_2?: string | null
           employee_penalty?: number
           id?: string
           notes?: string | null
           revenue_id?: string | null
+          split_pct?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "withdrawals_employee_id_2_fkey"
+            columns: ["employee_id_2"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawals_employee_id_2_fkey"
+            columns: ["employee_id_2"]
+            isOneToOne: false
+            referencedRelation: "employees_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "withdrawals_employee_id_fkey"
             columns: ["employee_id"]
