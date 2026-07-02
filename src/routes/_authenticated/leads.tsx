@@ -18,6 +18,9 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { PricingBadge } from "./sources";
+import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
+
+
 
 export const Route = createFileRoute("/_authenticated/leads")({
   head: () => ({ meta: [{ title: "Leads — Ledgerly" }] }),
@@ -40,6 +43,14 @@ function LeadsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Entry | null>(null);
+  const [range, setRange] = useState<RangeKey>("month");
+  const [customStart, setCustomStart] = useState<string>("");
+  const [customEnd, setCustomEnd] = useState<string>("");
+  const activeRange = useMemo(
+    () => getRange(range, { start: customStart, end: customEnd }),
+    [range, customStart, customEnd],
+  );
+
 
   const q = useQuery({
     queryKey: ["daily-leads-v2"],
@@ -58,7 +69,15 @@ function LeadsPage() {
     queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price").eq("active", true).order("name")).data ?? [],
   });
 
-  const rows = q.data ?? [];
+  const allRows = q.data ?? [];
+  const rows = useMemo(() => {
+    const s = activeRange.start.getTime();
+    const e = activeRange.end.getTime();
+    return allRows.filter((r) => {
+      const t = new Date(r.entry_date + "T00:00:00").getTime();
+      return t >= s && t <= e;
+    });
+  }, [allRows, activeRange]);
 
   const stats = useMemo(() => {
     let received = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
@@ -134,6 +153,17 @@ function LeadsPage() {
           </Dialog>
         }
       />
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <DateRangePicker
+          value={range}
+          onChange={setRange}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+        />
+        <div className="text-xs text-muted-foreground">{activeRange.label}</div>
+      </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
         <StatCard label="Received" value={String(stats.received)} />
