@@ -175,7 +175,14 @@ function WithdrawalsPage() {
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     <td className="py-3 px-4 text-destructive font-medium">−{fmtMoney(r.amount)}</td>
-                    <td className="py-3 px-4">{getEmpName(r)}</td>
+                    <td className="py-3 px-4">
+                      {getEmpName(r)}
+                      {r.employee_id_2 && (
+                        <span className="text-xs text-muted-foreground">
+                          {" "}({Number(r.split_pct)}%) + {r.employee2?.name ?? empNameById.get(r.employee_id_2) ?? "—"} ({100 - Number(r.split_pct)}%)
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-destructive">−{fmtMoney(r.employee_penalty)}</td>
                     <td className="py-3 px-4 text-muted-foreground">
                       {r.revenue ? `${r.revenue.customer_name} · ${fmtMoney(r.revenue.amount)}` : "—"}
