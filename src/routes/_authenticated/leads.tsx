@@ -46,6 +46,7 @@ function LeadsPage() {
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState<string>("");
   const [customEnd, setCustomEnd] = useState<string>("");
+  const [sourceFilter, setSourceFilter] = useState<string>("_all");
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
@@ -75,9 +76,11 @@ function LeadsPage() {
     const e = activeRange.end.getTime();
     return allRows.filter((r) => {
       const t = new Date(r.entry_date + "T00:00:00").getTime();
-      return t >= s && t <= e;
+      if (t < s || t > e) return false;
+      if (sourceFilter !== "_all" && r.source_id !== sourceFilter) return false;
+      return true;
     });
-  }, [allRows, activeRange]);
+  }, [allRows, activeRange, sourceFilter]);
 
   const stats = useMemo(() => {
     let received = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
@@ -162,7 +165,18 @@ function LeadsPage() {
           customEnd={customEnd}
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
-        <div className="text-xs text-muted-foreground">{activeRange.label}</div>
+        <div className="flex items-center gap-2">
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <SelectTrigger className="h-9 w-[200px]"><SelectValue placeholder="All affiliates" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">All affiliates</SelectItem>
+              {(sourcesQ.data ?? []).map((s: any) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="text-xs text-muted-foreground">{activeRange.label}</div>
+        </div>
       </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
