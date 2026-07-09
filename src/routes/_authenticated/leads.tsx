@@ -76,9 +76,11 @@ function LeadsPage() {
     const e = activeRange.end.getTime();
     return allRows.filter((r) => {
       const t = new Date(r.entry_date + "T00:00:00").getTime();
-      return t >= s && t <= e;
+      if (t < s || t > e) return false;
+      if (sourceFilter !== "_all" && r.source_id !== sourceFilter) return false;
+      return true;
     });
-  }, [allRows, activeRange]);
+  }, [allRows, activeRange, sourceFilter]);
 
   const stats = useMemo(() => {
     let received = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
