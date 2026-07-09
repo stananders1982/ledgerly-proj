@@ -46,6 +46,7 @@ function LeadsPage() {
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState<string>("");
   const [customEnd, setCustomEnd] = useState<string>("");
+  const [sourceFilter, setSourceFilter] = useState<string>("_all");
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
