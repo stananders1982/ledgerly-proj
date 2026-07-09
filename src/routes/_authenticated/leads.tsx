@@ -165,7 +165,18 @@ function LeadsPage() {
           customEnd={customEnd}
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
-        <div className="text-xs text-muted-foreground">{activeRange.label}</div>
+        <div className="flex items-center gap-2">
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <SelectTrigger className="h-9 w-[200px]"><SelectValue placeholder="All affiliates" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">All affiliates</SelectItem>
+              {(sourcesQ.data ?? []).map((s: any) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="text-xs text-muted-foreground">{activeRange.label}</div>
+        </div>
       </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
