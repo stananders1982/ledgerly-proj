@@ -12,6 +12,9 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney, fmtPct, todayISO } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -46,7 +49,7 @@ function LeadsPage() {
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState<string>("");
   const [customEnd, setCustomEnd] = useState<string>("");
-  const [sourceFilter, setSourceFilter] = useState<string>("_all");
+  const [sourceFilter, setSourceFilter] = useState<string[]>([]);
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
@@ -77,7 +80,7 @@ function LeadsPage() {
     return allRows.filter((r) => {
       const t = new Date(r.entry_date + "T00:00:00").getTime();
       if (t < s || t > e) return false;
-      if (sourceFilter !== "_all" && r.source_id !== sourceFilter) return false;
+      if (sourceFilter.length > 0 && !sourceFilter.includes(r.source_id ?? "")) return false;
       return true;
     });
   }, [allRows, activeRange, sourceFilter]);
@@ -166,15 +169,49 @@ function LeadsPage() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <div className="flex items-center gap-2">
-          <Select value={sourceFilter} onValueChange={setSourceFilter}>
-            <SelectTrigger className="h-9 w-[200px]"><SelectValue placeholder="All affiliates" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">All affiliates</SelectItem>
-              {(sourcesQ.data ?? []).map((s: any) => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-9 w-[220px] justify-between font-normal">
+                <span className="truncate">
+                  {sourceFilter.length === 0
+                    ? "All affiliates"
+                    : sourceFilter.length === 1
+                      ? (sourcesQ.data ?? []).find((s: any) => s.id === sourceFilter[0])?.name ?? "1 selected"
+                      : `${sourceFilter.length} affiliates`}
+                </span>
+                <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs">
+                  {sourceFilter.length === 0 ? "All" : String(sourceFilter.length)}
+                </Badge>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[220px] p-2" align="end">
+              <div className="space-y-2">
+                <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-accent">
+                  <Checkbox
+                    checked={sourceFilter.length === 0}
+                    onCheckedChange={() => setSourceFilter([])}
+                  />
+                  <span className="text-sm">All affiliates</span>
+                </label>
+                <div className="h-px bg-border" />
+                {(sourcesQ.data ?? []).map((s: any) => (
+                  <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-accent">
+                    <Checkbox
+                      checked={sourceFilter.includes(s.id)}
+                      onCheckedChange={(checked) => {
+                        setSourceFilter((prev) =>
+                          checked
+                            ? [...prev.filter((id) => id !== s.id), s.id]
+                            : prev.filter((id) => id !== s.id)
+                        );
+                      }}
+                    />
+                    <span className="text-sm">{s.name}</span>
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           <div className="text-xs text-muted-foreground">{activeRange.label}</div>
         </div>
       </div>
