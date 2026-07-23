@@ -85,6 +85,20 @@ function EmployeeDetailPage() {
         .gte("date", start).lte("date", end)).data ?? [],
   });
 
+  const clientsQ = useQuery({
+    queryKey: ["employee-clients", id, start, end],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("daily_lead_activations")
+        .select("activated_count, daily_lead_entries!inner(date)")
+        .eq("employee_id", id)
+        .gte("daily_lead_entries.date", start)
+        .lte("daily_lead_entries.date", end);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const emp = empQ.data as any;
 
   const totals = useMemo(() => {
@@ -124,8 +138,11 @@ function EmployeeDetailPage() {
 
     const payout = salary + commission - penalty;
 
-    return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout };
-  }, [revQ.data, withQ.data, attQ.data, emp, id, start, end]);
+    const clients = (clientsQ.data ?? []).reduce((s: number, r: any) => s + Number(r.activated_count || 0), 0);
+    const revenuePerClient = clients > 0 ? attributed / clients : 0;
+
+    return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient };
+  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, emp, id, start, end]);
 
   if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
   if (!emp) return (
@@ -157,8 +174,13 @@ function EmployeeDetailPage() {
       </section>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <StatCard label="Clients received (retention)" value={String(totals.clients)} tone="positive" />
+        <StatCard label="Revenue / client" value={fmtMoney(totals.revenuePerClient)} tone="positive" />
         <StatCard label="Withdrawals" value={fmtMoney(totals.withdrawn)} tone="negative" />
         <StatCard label="Withdrawal penalty (10%)" value={fmtMoney(totals.penalty)} tone="negative" />
+      </section>
+
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label="Working days" value={String(totals.wd)} />
         <StatCard label="Absences" value={`${totals.absent} · −${fmtMoney(totals.deduction)}`} tone={totals.absent ? "negative" : "default"} />
       </section>
