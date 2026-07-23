@@ -786,6 +786,7 @@ export type Database = {
       }
       withdrawals: {
         Row: {
+          affiliate_id: string | null
           amount: number
           created_at: string
           customer_name: string
@@ -800,6 +801,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          affiliate_id?: string | null
           amount?: number
           created_at?: string
           customer_name: string
@@ -814,6 +816,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          affiliate_id?: string | null
           amount?: number
           created_at?: string
           customer_name?: string
@@ -828,6 +831,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "withdrawals_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawals_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "withdrawals_employee_id_2_fkey"
             columns: ["employee_id_2"]

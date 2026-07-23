@@ -36,7 +36,7 @@ function WithdrawalsPage() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("withdrawals")
-        .select("*, employees:employee_id(name), employee2:employee_id_2(name), revenue:revenue_id(customer_name, amount, date)")
+        .select("*, employees:employee_id(name), employee2:employee_id_2(name), affiliates:affiliate_id(name), revenue:revenue_id(customer_name, amount, date)")
         .order("date", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -48,9 +48,15 @@ function WithdrawalsPage() {
     const rpc = await supabase.rpc("list_employees_directory");
     return (rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>;
   }});
+  const affQ = useQuery({ queryKey: ["affiliates-dir-any"], queryFn: async () => {
+    const admin = await supabase.from("affiliates").select("id,name,active").order("name");
+    if (!admin.error && (admin.data?.length ?? 0) > 0) return admin.data ?? [];
+    const rpc = await supabase.rpc("list_affiliates_directory");
+    return (rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>;
+  }});
   const revQ = useQuery({
     queryKey: ["revenue-min"],
-    queryFn: async () => (await supabase.from("revenue").select("id,customer_name,amount,date,employee_id").order("date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("revenue").select("id,customer_name,amount,date,employee_id,affiliate_id").order("date", { ascending: false })).data ?? [],
   });
 
   const empNameById = useMemo(
@@ -91,6 +97,7 @@ function WithdrawalsPage() {
         employee_id: v.employee_id || null,
         employee_id_2: v.employee_id_2 || null,
         split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
+        affiliate_id: v.affiliate_id || null,
         amount,
         employee_penalty: +(amount * PENALTY_RATE).toFixed(2),
         date: v.date,
@@ -121,6 +128,7 @@ function WithdrawalsPage() {
               key={editing?.id ?? "new"}
               row={editing}
               employees={empQ.data ?? []}
+              affiliates={affQ.data ?? []}
               revenues={revQ.data ?? []}
               onSubmit={(v) => upsert.mutate(v)}
               loading={upsert.isPending}
@@ -164,6 +172,7 @@ function WithdrawalsPage() {
                   <th className="py-3 px-4">Amount</th>
                   <th className="py-3 px-4">Agent</th>
                   <th className="py-3 px-4">Penalty (10%)</th>
+                  <th className="py-3 px-4">Source</th>
                   <th className="py-3 px-4">Linked sale</th>
                   <th className="py-3 px-4"></th>
                 </tr>
@@ -184,6 +193,7 @@ function WithdrawalsPage() {
                       )}
                     </td>
                     <td className="py-3 px-4 text-destructive">−{fmtMoney(r.employee_penalty)}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{r.affiliates?.name ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">
                       {r.revenue ? `${r.revenue.customer_name} · ${fmtMoney(r.revenue.amount)}` : "—"}
                     </td>
@@ -202,8 +212,8 @@ function WithdrawalsPage() {
 }
 
 function WithdrawalDialog({
-  row, employees, revenues, onSubmit, loading,
-}: { row: any; employees: any[]; revenues: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+  row, employees, affiliates, revenues, onSubmit, loading,
+}: { row: any; employees: any[]; affiliates: any[]; revenues: any[]; onSubmit: (v: any) => void; loading: boolean }) {
   const [form, setForm] = useState(() => ({
     id: row?.id,
     revenue_id: row?.revenue_id ?? "",
@@ -211,6 +221,7 @@ function WithdrawalDialog({
     employee_id: row?.employee_id ?? "",
     employee_id_2: row?.employee_id_2 ?? "",
     split_pct: row?.split_pct ?? 50,
+    affiliate_id: row?.affiliate_id ?? "",
     amount: row?.amount ?? "",
     date: row?.date ?? new Date().toISOString().slice(0, 10),
     notes: row?.notes ?? "",
@@ -230,6 +241,7 @@ function WithdrawalDialog({
       revenue_id: id,
       customer_name: r?.customer_name ?? form.customer_name,
       employee_id: r?.employee_id ?? form.employee_id,
+      affiliate_id: r?.affiliate_id ?? form.affiliate_id,
       amount: r?.amount ?? form.amount,
     });
   };
@@ -283,6 +295,18 @@ function WithdrawalDialog({
             />
           </Field>
         )}
+        <Field label="Source (affiliate)">
+          <Select
+            value={form.affiliate_id || "_none"}
+            onValueChange={(v) => setForm({ ...form, affiliate_id: v === "_none" ? "" : v })}
+          >
+            <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">None</SelectItem>
+              {affiliates.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
         <div className="rounded-md border border-border bg-accent/30 px-3 py-2 text-xs text-muted-foreground">
           Agent penalty (10%): <span className="text-destructive font-medium">−{fmtMoney(penaltyPreview)}</span>
           {hasSplit && <span> · split {Number(form.split_pct)}% / {100 - Number(form.split_pct)}%</span>}

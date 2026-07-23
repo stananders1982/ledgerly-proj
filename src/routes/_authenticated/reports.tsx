@@ -91,6 +91,10 @@ function ReportsPage() {
     queryKey: ["rpt-exp", start, end],
     queryFn: async () => (await supabase.from("expenses").select("id,date,amount,notes,category_id,affiliate_id,created_at,expense_categories(name)").gte("date", start).lte("date", end)).data ?? [],
   });
+  const wdQ = useQuery({
+    queryKey: ["rpt-wd", start, end],
+    queryFn: async () => (await supabase.from("withdrawals").select("id,date,amount,affiliate_id,revenue_id,revenue:revenue_id(affiliate_id)").gte("date", start).lte("date", end)).data ?? [],
+  });
   const empQ = useQuery({
     queryKey: ["rpt-emp"],
     queryFn: async () => (await supabase.from("employees").select("id,name,salary,commission_pct,active,role,updated_at,created_at")).data ?? [],
@@ -225,14 +229,14 @@ function ReportsPage() {
       affs.map((a) => [String(a.name).trim().toLowerCase(), { id: a.id, name: a.name }])
     );
     const affById = new Map<string, { id: string; name: string }>(affs.map((a) => [a.id, { id: a.id, name: a.name }]));
-    type Row = { affiliateId: string; affiliateName: string; month: string; model: string; received: number; activated: number; reported: number; cost: number; savings: number };
+    type Row = { affiliateId: string; affiliateName: string; month: string; model: string; received: number; activated: number; reported: number; cost: number; savings: number; revenue: number; withdrawals: number; net: number };
     const byKey = new Map<string, Row>();
-    const byAff = new Map<string, { id: string; name: string; received: number; activated: number; reported: number; cost: number; savings: number }>();
+    const byAff = new Map<string, { id: string; name: string; received: number; activated: number; reported: number; cost: number; savings: number; revenue: number; withdrawals: number; net: number }>();
     const touch = (affId: string, affName: string, month: string, model: string) => {
       const key = `${affId}|${month}`;
-      const row = byKey.get(key) ?? { affiliateId: affId, affiliateName: affName, month, model, received: 0, activated: 0, reported: 0, cost: 0, savings: 0 };
+      const row = byKey.get(key) ?? { affiliateId: affId, affiliateName: affName, month, model, received: 0, activated: 0, reported: 0, cost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
       byKey.set(key, row);
-      const a = byAff.get(affId) ?? { id: affId, name: affName, received: 0, activated: 0, reported: 0, cost: 0, savings: 0 };
+      const a = byAff.get(affId) ?? { id: affId, name: affName, received: 0, activated: 0, reported: 0, cost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
       byAff.set(affId, a);
       return { row, a };
     };
@@ -262,12 +266,40 @@ function ReportsPage() {
       const { row, a } = touch(aff.id, aff.name, month, "Manual");
       row.cost += amt; a.cost += amt;
     }
+    // Revenue per affiliate (direct or via linked lead)
+    for (const rev of data.revenue) {
+      const affId = rev.affiliate_id ?? rev.leads?.affiliate_id ?? null;
+      if (!affId) continue;
+      const aff = affById.get(affId);
+      if (!aff) continue;
+      const month = String(rev.date).slice(0, 7);
+      const amt = Number(rev.amount) || 0;
+      const { row, a } = touch(aff.id, aff.name, month, "");
+      row.revenue += amt; a.revenue += amt;
+    }
+    // Withdrawals per affiliate (direct or via linked revenue)
+    for (const w of (wdQ.data ?? []) as any[]) {
+      const affId = w.affiliate_id ?? w.revenue?.affiliate_id ?? null;
+      if (!affId) continue;
+      const aff = affById.get(affId);
+      if (!aff) continue;
+      const month = String(w.date).slice(0, 7);
+      const amt = Number(w.amount) || 0;
+      const { row, a } = touch(aff.id, aff.name, month, "");
+      row.withdrawals += amt; a.withdrawals += amt;
+    }
+    // Compute net = revenue - cost - withdrawals
+    byAff.forEach((a) => { a.net = a.revenue - a.cost - a.withdrawals; });
+    byKey.forEach((r) => { r.net = r.revenue - r.cost - r.withdrawals; });
     const rows = Array.from(byKey.values()).sort((a, b) => b.month.localeCompare(a.month) || a.affiliateName.localeCompare(b.affiliateName));
-    const totals = Array.from(byAff.values()).sort((a, b) => b.cost - a.cost);
+    const totals = Array.from(byAff.values()).sort((a, b) => b.net - a.net);
     const totalCost = totals.reduce((s, x) => s + x.cost, 0);
     const totalSavings = totals.reduce((s, x) => s + x.savings, 0);
-    return { rows, totals, totalCost, totalSavings };
-  }, [data.entries, data.expenses, affMapQ.data]);
+    const totalRevenue = totals.reduce((s, x) => s + x.revenue, 0);
+    const totalWithdrawals = totals.reduce((s, x) => s + x.withdrawals, 0);
+    const totalNet = totals.reduce((s, x) => s + x.net, 0);
+    return { rows, totals, totalCost, totalSavings, totalRevenue, totalWithdrawals, totalNet };
+  }, [data.entries, data.expenses, data.revenue, wdQ.data, affMapQ.data]);
 
   const employeesRpt = useMemo(() => {
     const rev = data.revenue;
@@ -710,9 +742,9 @@ function ReportsPage() {
           <div className="space-y-4">
             <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
               <StatCard label="Total Paid to Affiliates" value={fmtMoney(affiliatePayouts.totalCost)} tone="negative" />
-              <StatCard label="CPA Savings" value={fmtMoney(affiliatePayouts.totalSavings)} tone="positive" />
-              <StatCard label="Affiliates" value={String(affiliatePayouts.totals.length)} />
-              <StatCard label="Range" value={`${start} → ${end}`} />
+              <StatCard label="Revenue" value={fmtMoney(affiliatePayouts.totalRevenue)} tone="positive" />
+              <StatCard label="Withdrawals" value={fmtMoney(affiliatePayouts.totalWithdrawals)} tone="negative" />
+              <StatCard label="Net (after everything)" value={fmtMoney(affiliatePayouts.totalNet)} tone={affiliatePayouts.totalNet >= 0 ? "positive" : "negative"} />
             </div>
 
             <div>
@@ -725,6 +757,9 @@ function ReportsPage() {
                   { key: "reported", label: "Reported", numeric: true },
                   { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "withdrawals", label: "Withdrawals", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "net", label: "Net", numeric: true, render: (v) => <span className={Number(v) >= 0 ? "text-emerald-500" : "text-destructive"}>{fmtMoney(v)}</span> },
                 ]}
                 rows={affiliatePayouts.totals}
               />
@@ -736,18 +771,20 @@ function ReportsPage() {
                 columns={[
                   { key: "month", label: "Month" },
                   { key: "affiliateName", label: "Affiliate" },
-                  { key: "model", label: "Model", render: (v) => <Badge variant="outline">{String(v)}</Badge> },
                   { key: "received", label: "Leads", numeric: true },
                   { key: "activated", label: "Activated", numeric: true },
                   { key: "reported", label: "Reported", numeric: true },
                   { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "withdrawals", label: "Withdrawals", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "net", label: "Net", numeric: true, render: (v) => <span className={Number(v) >= 0 ? "text-emerald-500" : "text-destructive"}>{fmtMoney(v)}</span> },
                 ]}
                 rows={affiliatePayouts.rows}
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Payout = (CPL: Leads × Price) or (CPA: Reported × Price). Affiliates are matched to lead sources by name.
+              Net = Revenue − Paid − Withdrawals. Withdrawals attribute to an affiliate via the Source field on each withdrawal, or via the linked sale's affiliate.
             </p>
           </div>
         </TabsContent>
