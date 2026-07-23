@@ -172,6 +172,7 @@ function WithdrawalsPage() {
                   <th className="py-3 px-4">Amount</th>
                   <th className="py-3 px-4">Agent</th>
                   <th className="py-3 px-4">Penalty (10%)</th>
+                  <th className="py-3 px-4">Source</th>
                   <th className="py-3 px-4">Linked sale</th>
                   <th className="py-3 px-4"></th>
                 </tr>
