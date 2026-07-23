@@ -1,0 +1,2 @@
+ALTER TABLE public.withdrawals ADD COLUMN IF NOT EXISTS affiliate_id uuid REFERENCES public.affiliates(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_withdrawals_affiliate_id ON public.withdrawals(affiliate_id);
