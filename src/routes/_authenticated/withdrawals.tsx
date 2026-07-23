@@ -97,6 +97,7 @@ function WithdrawalsPage() {
         employee_id: v.employee_id || null,
         employee_id_2: v.employee_id_2 || null,
         split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
+        affiliate_id: v.affiliate_id || null,
         amount,
         employee_penalty: +(amount * PENALTY_RATE).toFixed(2),
         date: v.date,
