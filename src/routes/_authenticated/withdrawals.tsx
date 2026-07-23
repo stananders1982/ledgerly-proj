@@ -36,7 +36,7 @@ function WithdrawalsPage() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("withdrawals")
-        .select("*, employees:employee_id(name), employee2:employee_id_2(name), revenue:revenue_id(customer_name, amount, date)")
+        .select("*, employees:employee_id(name), employee2:employee_id_2(name), affiliates:affiliate_id(name), revenue:revenue_id(customer_name, amount, date)")
         .order("date", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -48,9 +48,15 @@ function WithdrawalsPage() {
     const rpc = await supabase.rpc("list_employees_directory");
     return (rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>;
   }});
+  const affQ = useQuery({ queryKey: ["affiliates-dir-any"], queryFn: async () => {
+    const admin = await supabase.from("affiliates").select("id,name,active").order("name");
+    if (!admin.error && (admin.data?.length ?? 0) > 0) return admin.data ?? [];
+    const rpc = await supabase.rpc("list_affiliates_directory");
+    return (rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>;
+  }});
   const revQ = useQuery({
     queryKey: ["revenue-min"],
-    queryFn: async () => (await supabase.from("revenue").select("id,customer_name,amount,date,employee_id").order("date", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("revenue").select("id,customer_name,amount,date,employee_id,affiliate_id").order("date", { ascending: false })).data ?? [],
   });
 
   const empNameById = useMemo(
