@@ -742,9 +742,9 @@ function ReportsPage() {
           <div className="space-y-4">
             <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
               <StatCard label="Total Paid to Affiliates" value={fmtMoney(affiliatePayouts.totalCost)} tone="negative" />
-              <StatCard label="CPA Savings" value={fmtMoney(affiliatePayouts.totalSavings)} tone="positive" />
-              <StatCard label="Affiliates" value={String(affiliatePayouts.totals.length)} />
-              <StatCard label="Range" value={`${start} → ${end}`} />
+              <StatCard label="Revenue" value={fmtMoney(affiliatePayouts.totalRevenue)} tone="positive" />
+              <StatCard label="Withdrawals" value={fmtMoney(affiliatePayouts.totalWithdrawals)} tone="negative" />
+              <StatCard label="Net (after everything)" value={fmtMoney(affiliatePayouts.totalNet)} tone={affiliatePayouts.totalNet >= 0 ? "positive" : "negative"} />
             </div>
 
             <div>
@@ -757,6 +757,9 @@ function ReportsPage() {
                   { key: "reported", label: "Reported", numeric: true },
                   { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "withdrawals", label: "Withdrawals", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "net", label: "Net", numeric: true, render: (v) => <span className={Number(v) >= 0 ? "text-emerald-500" : "text-destructive"}>{fmtMoney(v)}</span> },
                 ]}
                 rows={affiliatePayouts.totals}
               />
@@ -768,18 +771,20 @@ function ReportsPage() {
                 columns={[
                   { key: "month", label: "Month" },
                   { key: "affiliateName", label: "Affiliate" },
-                  { key: "model", label: "Model", render: (v) => <Badge variant="outline">{String(v)}</Badge> },
                   { key: "received", label: "Leads", numeric: true },
                   { key: "activated", label: "Activated", numeric: true },
                   { key: "reported", label: "Reported", numeric: true },
                   { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "withdrawals", label: "Withdrawals", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "net", label: "Net", numeric: true, render: (v) => <span className={Number(v) >= 0 ? "text-emerald-500" : "text-destructive"}>{fmtMoney(v)}</span> },
                 ]}
                 rows={affiliatePayouts.rows}
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Payout = (CPL: Leads × Price) or (CPA: Reported × Price). Affiliates are matched to lead sources by name.
+              Net = Revenue − Paid − Withdrawals. Withdrawals attribute to an affiliate via the Source field on each withdrawal, or via the linked sale's affiliate.
             </p>
           </div>
         </TabsContent>
