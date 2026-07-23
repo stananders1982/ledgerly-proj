@@ -85,6 +85,20 @@ function EmployeeDetailPage() {
         .gte("date", start).lte("date", end)).data ?? [],
   });
 
+  const clientsQ = useQuery({
+    queryKey: ["employee-clients", id, start, end],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("daily_lead_activations")
+        .select("activated_count, daily_lead_entries!inner(date)")
+        .eq("employee_id", id)
+        .gte("daily_lead_entries.date", start)
+        .lte("daily_lead_entries.date", end);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const emp = empQ.data as any;
 
   const totals = useMemo(() => {
