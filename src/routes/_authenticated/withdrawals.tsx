@@ -128,6 +128,7 @@ function WithdrawalsPage() {
               key={editing?.id ?? "new"}
               row={editing}
               employees={empQ.data ?? []}
+              affiliates={affQ.data ?? []}
               revenues={revQ.data ?? []}
               onSubmit={(v) => upsert.mutate(v)}
               loading={upsert.isPending}
