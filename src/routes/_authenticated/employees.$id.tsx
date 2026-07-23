@@ -138,8 +138,11 @@ function EmployeeDetailPage() {
 
     const payout = salary + commission - penalty;
 
-    return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout };
-  }, [revQ.data, withQ.data, attQ.data, emp, id, start, end]);
+    const clients = (clientsQ.data ?? []).reduce((s: number, r: any) => s + Number(r.activated_count || 0), 0);
+    const revenuePerClient = clients > 0 ? attributed / clients : 0;
+
+    return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient };
+  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, emp, id, start, end]);
 
   if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
   if (!emp) return (
