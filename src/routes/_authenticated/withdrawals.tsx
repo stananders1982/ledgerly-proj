@@ -293,6 +293,18 @@ function WithdrawalDialog({
             />
           </Field>
         )}
+        <Field label="Source (affiliate)">
+          <Select
+            value={form.affiliate_id || "_none"}
+            onValueChange={(v) => setForm({ ...form, affiliate_id: v === "_none" ? "" : v })}
+          >
+            <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">None</SelectItem>
+              {affiliates.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
         <div className="rounded-md border border-border bg-accent/30 px-3 py-2 text-xs text-muted-foreground">
           Agent penalty (10%): <span className="text-destructive font-medium">−{fmtMoney(penaltyPreview)}</span>
           {hasSplit && <span> · split {Number(form.split_pct)}% / {100 - Number(form.split_pct)}%</span>}
