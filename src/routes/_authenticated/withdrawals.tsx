@@ -239,6 +239,7 @@ function WithdrawalDialog({
       revenue_id: id,
       customer_name: r?.customer_name ?? form.customer_name,
       employee_id: r?.employee_id ?? form.employee_id,
+      affiliate_id: r?.affiliate_id ?? form.affiliate_id,
       amount: r?.amount ?? form.amount,
     });
   };
