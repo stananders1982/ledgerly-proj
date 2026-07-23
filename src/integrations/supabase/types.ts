@@ -204,6 +204,55 @@ export type Database = {
           },
         ]
       }
+      daily_lead_activations: {
+        Row: {
+          activated_count: number
+          created_at: string
+          employee_id: string
+          entry_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          activated_count?: number
+          created_at?: string
+          employee_id: string
+          entry_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_count?: number
+          created_at?: string
+          employee_id?: string
+          entry_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_lead_activations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_lead_activations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_lead_activations_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "daily_lead_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_lead_entries: {
         Row: {
           activated: number
