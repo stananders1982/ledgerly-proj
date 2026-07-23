@@ -210,8 +210,8 @@ function WithdrawalsPage() {
 }
 
 function WithdrawalDialog({
-  row, employees, revenues, onSubmit, loading,
-}: { row: any; employees: any[]; revenues: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+  row, employees, affiliates, revenues, onSubmit, loading,
+}: { row: any; employees: any[]; affiliates: any[]; revenues: any[]; onSubmit: (v: any) => void; loading: boolean }) {
   const [form, setForm] = useState(() => ({
     id: row?.id,
     revenue_id: row?.revenue_id ?? "",
@@ -219,6 +219,7 @@ function WithdrawalDialog({
     employee_id: row?.employee_id ?? "",
     employee_id_2: row?.employee_id_2 ?? "",
     split_pct: row?.split_pct ?? 50,
+    affiliate_id: row?.affiliate_id ?? "",
     amount: row?.amount ?? "",
     date: row?.date ?? new Date().toISOString().slice(0, 10),
     notes: row?.notes ?? "",
