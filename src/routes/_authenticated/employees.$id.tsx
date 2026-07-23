@@ -174,8 +174,13 @@ function EmployeeDetailPage() {
       </section>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <StatCard label="Clients received (retention)" value={String(totals.clients)} tone="positive" />
+        <StatCard label="Revenue / client" value={fmtMoney(totals.revenuePerClient)} tone="positive" />
         <StatCard label="Withdrawals" value={fmtMoney(totals.withdrawn)} tone="negative" />
         <StatCard label="Withdrawal penalty (10%)" value={fmtMoney(totals.penalty)} tone="negative" />
+      </section>
+
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label="Working days" value={String(totals.wd)} />
         <StatCard label="Absences" value={`${totals.absent} · −${fmtMoney(totals.deduction)}`} tone={totals.absent ? "negative" : "default"} />
       </section>
