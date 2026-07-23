@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,9 @@ type Entry = {
   lead_sources?: { id: string; name: string; pricing_model: "CPL" | "CPA"; price: number; expected_conversion_rate?: number } | null;
 };
 
+type Activation = { id: string; entry_id: string; employee_id: string; activated_count: number };
+type Split = { employee_id: string; activated_count: number };
+
 function LeadsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -73,6 +76,24 @@ function LeadsPage() {
     queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price").eq("active", true).order("name")).data ?? [],
   });
 
+  const employeesQ = useQuery({
+    queryKey: ["employees-directory"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("list_employees_directory");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string; active: boolean }[];
+    },
+  });
+
+  const activationsQ = useQuery({
+    queryKey: ["daily-lead-activations"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("daily_lead_activations").select("*");
+      if (error) throw error;
+      return (data ?? []) as Activation[];
+    },
+  });
+
   const allRows = q.data ?? [];
   const rows = useMemo(() => {
     const s = activeRange.start.getTime();
@@ -84,6 +105,31 @@ function LeadsPage() {
       return true;
     });
   }, [allRows, activeRange, sourceFilter]);
+
+  const activationsByEntry = useMemo(() => {
+    const m = new Map<string, Activation[]>();
+    for (const a of activationsQ.data ?? []) {
+      const arr = m.get(a.entry_id) ?? [];
+      arr.push(a);
+      m.set(a.entry_id, arr);
+    }
+    return m;
+  }, [activationsQ.data]);
+
+  const employeeName = (id: string) =>
+    (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
+
+  const byEmployee = useMemo(() => {
+    const visibleIds = new Set(rows.map((r) => r.id));
+    const totals = new Map<string, number>();
+    for (const a of activationsQ.data ?? []) {
+      if (!visibleIds.has(a.entry_id)) continue;
+      totals.set(a.employee_id, (totals.get(a.employee_id) ?? 0) + a.activated_count);
+    }
+    return Array.from(totals.entries())
+      .map(([id, count]) => ({ id, name: employeeName(id), count }))
+      .sort((a, b) => b.count - a.count);
+  }, [rows, activationsQ.data, employeesQ.data]);
 
   const stats = useMemo(() => {
     let received = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
@@ -122,13 +168,37 @@ function LeadsPage() {
         cost: 0,
         notes: v.notes || null,
       };
-      const { error } = v.id
-        ? await supabase.from("daily_lead_entries").update(payload).eq("id", v.id)
-        : await supabase.from("daily_lead_entries").insert(payload);
-      if (error) throw error;
+      let entryId: string | undefined = v.id;
+      if (entryId) {
+        const { error } = await supabase.from("daily_lead_entries").update(payload).eq("id", entryId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from("daily_lead_entries").insert(payload).select("id").single();
+        if (error) throw error;
+        entryId = data.id;
+      }
+
+      // Replace attribution rows
+      const splits: Split[] = (v.splits ?? []).filter(
+        (s: Split) => s.employee_id && Number(s.activated_count) > 0,
+      );
+      const { error: delErr } = await supabase
+        .from("daily_lead_activations").delete().eq("entry_id", entryId!);
+      if (delErr) throw delErr;
+      if (splits.length > 0) {
+        const { error: insErr } = await supabase.from("daily_lead_activations").insert(
+          splits.map((s) => ({
+            entry_id: entryId!,
+            employee_id: s.employee_id,
+            activated_count: Number(s.activated_count) || 0,
+          })),
+        );
+        if (insErr) throw insErr;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["daily-leads-v2"] });
+      qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
       qc.invalidateQueries({ queryKey: ["entries-for-sources"] });
       qc.invalidateQueries({ queryKey: ["dash-leads-v2"] });
       toast.success("Saved"); setOpen(false); setEditing(null);
@@ -154,8 +224,20 @@ function LeadsPage() {
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4" /> Add entry</Button>
             </DialogTrigger>
-            <EntryDialog key={editing?.id ?? "new"} entry={editing} sources={sourcesQ.data ?? []}
-              onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+            <EntryDialog
+              key={editing?.id ?? "new"}
+              entry={editing}
+              sources={sourcesQ.data ?? []}
+              employees={employeesQ.data ?? []}
+              existingSplits={
+                editing ? (activationsByEntry.get(editing.id) ?? []).map((a) => ({
+                  employee_id: a.employee_id,
+                  activated_count: a.activated_count,
+                })) : []
+              }
+              onSubmit={(v) => upsert.mutate(v)}
+              loading={upsert.isPending}
+            />
           </Dialog>
         }
       />
@@ -226,6 +308,43 @@ function LeadsPage() {
         <StatCard label="Saved (CPA)" value={fmtMoney(stats.cpaSavings)} tone="positive" />
       </section>
 
+      <div className="card-surface p-4 mb-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Activated leads by employee</h3>
+          <span className="text-xs text-muted-foreground">{activeRange.label}</span>
+        </div>
+        {byEmployee.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No employee attributions yet. Open an entry and assign activated leads to employees.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-2 px-3">Employee</th>
+                  <th className="py-2 px-3">Activated leads</th>
+                  <th className="py-2 px-3">Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                {byEmployee.map((e) => {
+                  const totalAttributed = byEmployee.reduce((s, x) => s + x.count, 0);
+                  const pct = totalAttributed ? (e.count / totalAttributed) * 100 : 0;
+                  return (
+                    <tr key={e.id} className="border-b border-border/50">
+                      <td className="py-2 px-3 font-medium">{e.name}</td>
+                      <td className="py-2 px-3">{e.count}</td>
+                      <td className="py-2 px-3 text-muted-foreground">{fmtPct(pct)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <div className="card-surface overflow-hidden">
         {q.isLoading ? (
           <div className="p-8 text-sm text-muted-foreground">Loading…</div>
@@ -252,6 +371,7 @@ function LeadsPage() {
                   <th className="py-3 px-4">Activated %</th>
                   <th className="py-3 px-4">Cost</th>
                   <th className="py-3 px-4">Savings</th>
+                  <th className="py-3 px-4">Attribution</th>
                   <th className="py-3 px-4">Notes</th>
                   <th className="py-3 px-4"></th>
                 </tr>
@@ -264,6 +384,11 @@ function LeadsPage() {
                     : s.pricing_model === "CPL" ? p * r.received
                     : p * r.reported;
                   const savings = s?.pricing_model === "CPA" ? p * Math.max(0, r.activated - r.reported) : 0;
+                  const splits = activationsByEntry.get(r.id) ?? [];
+                  const attrSum = splits.reduce((a, b) => a + b.activated_count, 0);
+                  const attrLabel = splits.length === 0
+                    ? "—"
+                    : splits.map((sp) => `${employeeName(sp.employee_id)} ${sp.activated_count}`).join(" · ");
                   return (
                     <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                         onClick={() => { setEditing(r); setOpen(true); }}>
@@ -278,6 +403,12 @@ function LeadsPage() {
                       <td className="py-3 px-4">{r.received ? fmtPct((r.activated / r.received) * 100) : "—"}</td>
                       <td className="py-3 px-4">{fmtMoney(cost)}</td>
                       <td className="py-3 px-4 text-emerald-500">{s?.pricing_model === "CPA" ? fmtMoney(savings) : "—"}</td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground max-w-[16rem] truncate">
+                        {attrLabel}
+                        {splits.length > 0 && attrSum !== r.activated && (
+                          <span className="ml-1 text-amber-500">({attrSum}/{r.activated})</span>
+                        )}
+                      </td>
                       <td className="py-3 px-4 text-muted-foreground truncate max-w-[14rem]">{r.notes || "—"}</td>
                       <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete entry?" />
@@ -295,8 +426,15 @@ function LeadsPage() {
 }
 
 function EntryDialog({
-  entry, sources, onSubmit, loading,
-}: { entry: Entry | null; sources: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+  entry, sources, employees, existingSplits, onSubmit, loading,
+}: {
+  entry: Entry | null;
+  sources: any[];
+  employees: { id: string; name: string; active: boolean }[];
+  existingSplits: Split[];
+  onSubmit: (v: any) => void;
+  loading: boolean;
+}) {
   const [form, setForm] = useState(() => ({
     id: entry?.id,
     entry_date: entry?.entry_date ?? todayISO(),
@@ -307,9 +445,24 @@ function EntryDialog({
     reported: entry?.reported ?? 0,
     notes: entry?.notes ?? "",
   }));
+  const [splits, setSplits] = useState<Split[]>(existingSplits);
+
+  // Auto-seed one empty row when activated > 0 and no splits set
+  useEffect(() => {
+    if (form.activated > 0 && splits.length === 0) {
+      setSplits([{ employee_id: "", activated_count: form.activated }]);
+    }
+  }, [form.activated]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const selected = sources.find((s) => s.id === form.source_id);
+  const splitSum = splits.reduce((a, b) => a + (Number(b.activated_count) || 0), 0);
+  const remainder = form.activated - splitSum;
+  const validSplits = form.activated === 0 || splitSum === form.activated;
+  const dupEmployees = new Set(splits.map((s) => s.employee_id).filter(Boolean)).size !==
+    splits.filter((s) => s.employee_id).length;
+
   return (
-    <DialogContent className="max-w-md">
+    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{entry?.id ? "Edit entry" : "New daily entry"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
         <div className="grid grid-cols-2 gap-3">
@@ -353,12 +506,72 @@ function EntryDialog({
               onChange={(e) => setForm({ ...form, reported: Number(e.target.value) })} />
           </Field>
         </div>
+
+        {form.activated > 0 && (
+          <div className="rounded-md border border-border p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Attribute activated leads to employees</Label>
+              <span className={`text-xs ${validSplits ? "text-muted-foreground" : "text-amber-500"}`}>
+                {splitSum} / {form.activated}
+                {remainder !== 0 && ` (${remainder > 0 ? "+" : ""}${remainder})`}
+              </span>
+            </div>
+            {splits.map((sp, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <Select
+                  value={sp.employee_id || "_none"}
+                  onValueChange={(v) => {
+                    const copy = [...splits];
+                    copy[i] = { ...copy[i], employee_id: v === "_none" ? "" : v };
+                    setSplits(copy);
+                  }}
+                >
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Employee" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Select…</SelectItem>
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  min={0}
+                  className="w-24"
+                  value={sp.activated_count}
+                  onChange={(e) => {
+                    const copy = [...splits];
+                    copy[i] = { ...copy[i], activated_count: Number(e.target.value) };
+                    setSplits(copy);
+                  }}
+                />
+                <Button type="button" variant="ghost" size="icon"
+                  onClick={() => setSplits(splits.filter((_, idx) => idx !== i))}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <div className="flex items-center justify-between">
+              <Button type="button" variant="outline" size="sm"
+                onClick={() => setSplits([...splits, { employee_id: "", activated_count: Math.max(0, remainder) }])}>
+                <Plus className="h-3 w-3" /> Add employee
+              </Button>
+              {dupEmployees && <span className="text-xs text-amber-500">Duplicate employees</span>}
+            </div>
+          </div>
+        )}
+
         <Field label="Notes (optional)">
           <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </Field>
       </div>
       <DialogFooter>
-        <Button onClick={() => onSubmit(form)} disabled={loading}>{loading ? "Saving…" : "Save"}</Button>
+        <Button
+          onClick={() => onSubmit({ ...form, splits })}
+          disabled={loading || !validSplits || dupEmployees}
+        >
+          {loading ? "Saving…" : "Save"}
+        </Button>
       </DialogFooter>
     </DialogContent>
   );
