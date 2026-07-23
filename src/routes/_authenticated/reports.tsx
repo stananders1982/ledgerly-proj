@@ -229,14 +229,14 @@ function ReportsPage() {
       affs.map((a) => [String(a.name).trim().toLowerCase(), { id: a.id, name: a.name }])
     );
     const affById = new Map<string, { id: string; name: string }>(affs.map((a) => [a.id, { id: a.id, name: a.name }]));
-    type Row = { affiliateId: string; affiliateName: string; month: string; model: string; received: number; activated: number; reported: number; cost: number; savings: number };
+    type Row = { affiliateId: string; affiliateName: string; month: string; model: string; received: number; activated: number; reported: number; cost: number; savings: number; revenue: number; withdrawals: number; net: number };
     const byKey = new Map<string, Row>();
-    const byAff = new Map<string, { id: string; name: string; received: number; activated: number; reported: number; cost: number; savings: number }>();
+    const byAff = new Map<string, { id: string; name: string; received: number; activated: number; reported: number; cost: number; savings: number; revenue: number; withdrawals: number; net: number }>();
     const touch = (affId: string, affName: string, month: string, model: string) => {
       const key = `${affId}|${month}`;
-      const row = byKey.get(key) ?? { affiliateId: affId, affiliateName: affName, month, model, received: 0, activated: 0, reported: 0, cost: 0, savings: 0 };
+      const row = byKey.get(key) ?? { affiliateId: affId, affiliateName: affName, month, model, received: 0, activated: 0, reported: 0, cost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
       byKey.set(key, row);
-      const a = byAff.get(affId) ?? { id: affId, name: affName, received: 0, activated: 0, reported: 0, cost: 0, savings: 0 };
+      const a = byAff.get(affId) ?? { id: affId, name: affName, received: 0, activated: 0, reported: 0, cost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
       byAff.set(affId, a);
       return { row, a };
     };
@@ -266,12 +266,40 @@ function ReportsPage() {
       const { row, a } = touch(aff.id, aff.name, month, "Manual");
       row.cost += amt; a.cost += amt;
     }
+    // Revenue per affiliate (direct or via linked lead)
+    for (const rev of data.revenue) {
+      const affId = rev.affiliate_id ?? rev.leads?.affiliate_id ?? null;
+      if (!affId) continue;
+      const aff = affById.get(affId);
+      if (!aff) continue;
+      const month = String(rev.date).slice(0, 7);
+      const amt = Number(rev.amount) || 0;
+      const { row, a } = touch(aff.id, aff.name, month, "");
+      row.revenue += amt; a.revenue += amt;
+    }
+    // Withdrawals per affiliate (direct or via linked revenue)
+    for (const w of (wdQ.data ?? []) as any[]) {
+      const affId = w.affiliate_id ?? w.revenue?.affiliate_id ?? null;
+      if (!affId) continue;
+      const aff = affById.get(affId);
+      if (!aff) continue;
+      const month = String(w.date).slice(0, 7);
+      const amt = Number(w.amount) || 0;
+      const { row, a } = touch(aff.id, aff.name, month, "");
+      row.withdrawals += amt; a.withdrawals += amt;
+    }
+    // Compute net = revenue - cost - withdrawals
+    byAff.forEach((a) => { a.net = a.revenue - a.cost - a.withdrawals; });
+    byKey.forEach((r) => { r.net = r.revenue - r.cost - r.withdrawals; });
     const rows = Array.from(byKey.values()).sort((a, b) => b.month.localeCompare(a.month) || a.affiliateName.localeCompare(b.affiliateName));
-    const totals = Array.from(byAff.values()).sort((a, b) => b.cost - a.cost);
+    const totals = Array.from(byAff.values()).sort((a, b) => b.net - a.net);
     const totalCost = totals.reduce((s, x) => s + x.cost, 0);
     const totalSavings = totals.reduce((s, x) => s + x.savings, 0);
-    return { rows, totals, totalCost, totalSavings };
-  }, [data.entries, data.expenses, affMapQ.data]);
+    const totalRevenue = totals.reduce((s, x) => s + x.revenue, 0);
+    const totalWithdrawals = totals.reduce((s, x) => s + x.withdrawals, 0);
+    const totalNet = totals.reduce((s, x) => s + x.net, 0);
+    return { rows, totals, totalCost, totalSavings, totalRevenue, totalWithdrawals, totalNet };
+  }, [data.entries, data.expenses, data.revenue, wdQ.data, affMapQ.data]);
 
   const employeesRpt = useMemo(() => {
     const rev = data.revenue;
