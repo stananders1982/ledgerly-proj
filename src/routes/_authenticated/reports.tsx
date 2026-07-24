@@ -302,17 +302,19 @@ function ReportsPage() {
       const { row, a } = touch(aff.id, aff.name, month, "");
       row.withdrawals += amt; a.withdrawals += amt;
     }
-    // Compute net = revenue - cost - withdrawals
-    byAff.forEach((a) => { a.net = a.revenue - a.cost - a.withdrawals; });
-    byKey.forEach((r) => { r.net = r.revenue - r.cost - r.withdrawals; });
+    // Effective payout = larger of computed CPA/CPL cost vs actual invoiced manual expense (avoids double counting when the invoice is logged as an expense)
+    // Net = revenue - effective payout - withdrawals
+    byAff.forEach((a) => { const paid = Math.max(a.cost, a.manualCost); a.net = a.revenue - paid - a.withdrawals; });
+    byKey.forEach((r) => { const paid = Math.max(r.cost, r.manualCost); r.net = r.revenue - paid - r.withdrawals; });
     const rows = Array.from(byKey.values()).sort((a, b) => b.month.localeCompare(a.month) || a.affiliateName.localeCompare(b.affiliateName));
     const totals = Array.from(byAff.values()).sort((a, b) => b.net - a.net);
-    const totalCost = totals.reduce((s, x) => s + x.cost, 0);
+    const totalCost = totals.reduce((s, x) => s + Math.max(x.cost, x.manualCost), 0);
     const totalSavings = totals.reduce((s, x) => s + x.savings, 0);
     const totalRevenue = totals.reduce((s, x) => s + x.revenue, 0);
     const totalWithdrawals = totals.reduce((s, x) => s + x.withdrawals, 0);
     const totalNet = totals.reduce((s, x) => s + x.net, 0);
     return { rows, totals, totalCost, totalSavings, totalRevenue, totalWithdrawals, totalNet };
+
   }, [data.entries, data.expenses, data.revenue, wdQ.data, revCustAffQ.data, affMapQ.data]);
 
   const employeesRpt = useMemo(() => {
