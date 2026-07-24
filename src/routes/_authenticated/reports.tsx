@@ -772,7 +772,8 @@ function ReportsPage() {
                   { key: "activated", label: "Activated", numeric: true },
                   { key: "reported", label: "Reported", numeric: true },
                   { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
-                  { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "cost", label: "CPA/CPL cost", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "manualCost", label: "Invoiced", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "withdrawals", label: "Withdrawals", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "net", label: "Net", numeric: true, render: (v) => <span className={Number(v) >= 0 ? "text-emerald-500" : "text-destructive"}>{fmtMoney(v)}</span> },
@@ -791,7 +792,8 @@ function ReportsPage() {
                   { key: "activated", label: "Activated", numeric: true },
                   { key: "reported", label: "Reported", numeric: true },
                   { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
-                  { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "cost", label: "CPA/CPL cost", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "manualCost", label: "Invoiced", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "withdrawals", label: "Withdrawals", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "net", label: "Net", numeric: true, render: (v) => <span className={Number(v) >= 0 ? "text-emerald-500" : "text-destructive"}>{fmtMoney(v)}</span> },
@@ -800,8 +802,9 @@ function ReportsPage() {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Net = Revenue − Paid − Withdrawals. Withdrawals attribute to an affiliate via the Source field on each withdrawal, or via the linked sale's affiliate.
+              Net = Revenue − max(CPA/CPL cost, Invoiced) − Withdrawals. The larger of the two cost columns is used so a manually filed affiliate invoice does not double-count against the computed CPA/CPL cost. Withdrawals attribute via the Source field on the withdrawal, the linked sale's affiliate, or a matching customer name.
             </p>
+
           </div>
         </TabsContent>
 
