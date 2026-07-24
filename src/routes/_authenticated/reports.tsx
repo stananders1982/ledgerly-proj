@@ -93,7 +93,11 @@ function ReportsPage() {
   });
   const wdQ = useQuery({
     queryKey: ["rpt-wd", start, end],
-    queryFn: async () => (await supabase.from("withdrawals").select("id,date,amount,affiliate_id,revenue_id,revenue:revenue_id(affiliate_id)").gte("date", start).lte("date", end)).data ?? [],
+    queryFn: async () => (await supabase.from("withdrawals").select("id,date,amount,customer_name,affiliate_id,revenue_id,revenue:revenue_id(affiliate_id)").gte("date", start).lte("date", end)).data ?? [],
+  });
+  const revCustAffQ = useQuery({
+    queryKey: ["rpt-rev-cust-aff"],
+    queryFn: async () => (await supabase.from("revenue").select("customer_name,affiliate_id,leads(affiliate_id)")).data ?? [],
   });
   const empQ = useQuery({
     queryKey: ["rpt-emp"],
@@ -277,9 +281,18 @@ function ReportsPage() {
       const { row, a } = touch(aff.id, aff.name, month, "");
       row.revenue += amt; a.revenue += amt;
     }
-    // Withdrawals per affiliate (direct or via linked revenue)
+    // Build customer_name -> affiliate_id fallback map from all revenue
+
+    const custToAff = new Map<string, string>();
+    for (const r of (revCustAffQ.data ?? []) as any[]) {
+      const name = String(r.customer_name ?? "").trim().toLowerCase();
+      const affId = r.affiliate_id ?? r.leads?.affiliate_id ?? null;
+      if (name && affId && !custToAff.has(name)) custToAff.set(name, affId);
+    }
+    // Withdrawals per affiliate (direct, via linked revenue, or via matching customer name)
     for (const w of (wdQ.data ?? []) as any[]) {
-      const affId = w.affiliate_id ?? w.revenue?.affiliate_id ?? null;
+      const nameKey = String(w.customer_name ?? "").trim().toLowerCase();
+      const affId = w.affiliate_id ?? w.revenue?.affiliate_id ?? (nameKey ? custToAff.get(nameKey) : null) ?? null;
       if (!affId) continue;
       const aff = affById.get(affId);
       if (!aff) continue;
@@ -299,7 +312,7 @@ function ReportsPage() {
     const totalWithdrawals = totals.reduce((s, x) => s + x.withdrawals, 0);
     const totalNet = totals.reduce((s, x) => s + x.net, 0);
     return { rows, totals, totalCost, totalSavings, totalRevenue, totalWithdrawals, totalNet };
-  }, [data.entries, data.expenses, data.revenue, wdQ.data, affMapQ.data]);
+  }, [data.entries, data.expenses, data.revenue, wdQ.data, revCustAffQ.data, affMapQ.data]);
 
   const employeesRpt = useMemo(() => {
     const rev = data.revenue;
