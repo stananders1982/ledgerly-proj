@@ -233,14 +233,14 @@ function ReportsPage() {
       affs.map((a) => [String(a.name).trim().toLowerCase(), { id: a.id, name: a.name }])
     );
     const affById = new Map<string, { id: string; name: string }>(affs.map((a) => [a.id, { id: a.id, name: a.name }]));
-    type Row = { affiliateId: string; affiliateName: string; month: string; model: string; received: number; activated: number; reported: number; cost: number; savings: number; revenue: number; withdrawals: number; net: number };
+    type Row = { affiliateId: string; affiliateName: string; month: string; model: string; received: number; activated: number; reported: number; cost: number; manualCost: number; savings: number; revenue: number; withdrawals: number; net: number };
     const byKey = new Map<string, Row>();
-    const byAff = new Map<string, { id: string; name: string; received: number; activated: number; reported: number; cost: number; savings: number; revenue: number; withdrawals: number; net: number }>();
+    const byAff = new Map<string, { id: string; name: string; received: number; activated: number; reported: number; cost: number; manualCost: number; savings: number; revenue: number; withdrawals: number; net: number }>();
     const touch = (affId: string, affName: string, month: string, model: string) => {
       const key = `${affId}|${month}`;
-      const row = byKey.get(key) ?? { affiliateId: affId, affiliateName: affName, month, model, received: 0, activated: 0, reported: 0, cost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
+      const row = byKey.get(key) ?? { affiliateId: affId, affiliateName: affName, month, model, received: 0, activated: 0, reported: 0, cost: 0, manualCost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
       byKey.set(key, row);
-      const a = byAff.get(affId) ?? { id: affId, name: affName, received: 0, activated: 0, reported: 0, cost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
+      const a = byAff.get(affId) ?? { id: affId, name: affName, received: 0, activated: 0, reported: 0, cost: 0, manualCost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
       byAff.set(affId, a);
       return { row, a };
     };
@@ -260,7 +260,7 @@ function ReportsPage() {
       row.received += received; row.activated += activated; row.reported += reported; row.cost += cost; row.savings += savings;
       a.received += received; a.activated += activated; a.reported += reported; a.cost += cost; a.savings += savings;
     }
-    // Include manual affiliate expenses (category "Affiliate" with affiliate_id)
+    // Manual affiliate expenses (category "Affiliate" with affiliate_id) — kept SEPARATE from computed CPA/CPL cost to avoid double-counting
     for (const x of data.expenses) {
       if (!x.affiliate_id) continue;
       const aff = affById.get(x.affiliate_id);
@@ -268,8 +268,9 @@ function ReportsPage() {
       const month = String(x.date).slice(0, 7);
       const amt = Number(x.amount) || 0;
       const { row, a } = touch(aff.id, aff.name, month, "Manual");
-      row.cost += amt; a.cost += amt;
+      row.manualCost += amt; a.manualCost += amt;
     }
+
     // Revenue per affiliate (direct or via linked lead)
     for (const rev of data.revenue) {
       const affId = rev.affiliate_id ?? rev.leads?.affiliate_id ?? null;
