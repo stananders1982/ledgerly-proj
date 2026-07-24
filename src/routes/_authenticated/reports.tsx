@@ -281,11 +281,8 @@ function ReportsPage() {
       const { row, a } = touch(aff.id, aff.name, month, "");
       row.revenue += amt; a.revenue += amt;
     }
-    // Withdrawals per affiliate (direct or via linked revenue)
-    for (const w of (wdQ.data ?? []) as any[]) {
-      const affId = w.affiliate_id ?? w.revenue?.affiliate_id ?? null;
-      if (!affId) continue;
     // Build customer_name -> affiliate_id fallback map from all revenue
+
     const custToAff = new Map<string, string>();
     for (const r of (revCustAffQ.data ?? []) as any[]) {
       const name = String(r.customer_name ?? "").trim().toLowerCase();
