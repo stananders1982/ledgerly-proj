@@ -233,14 +233,14 @@ function ReportsPage() {
       affs.map((a) => [String(a.name).trim().toLowerCase(), { id: a.id, name: a.name }])
     );
     const affById = new Map<string, { id: string; name: string }>(affs.map((a) => [a.id, { id: a.id, name: a.name }]));
-    type Row = { affiliateId: string; affiliateName: string; month: string; model: string; received: number; activated: number; reported: number; cost: number; manualCost: number; savings: number; revenue: number; withdrawals: number; net: number };
+    type Row = { affiliateId: string; affiliateName: string; month: string; model: string; received: number; activated: number; reported: number; cost: number; savings: number; revenue: number; withdrawals: number; net: number };
     const byKey = new Map<string, Row>();
-    const byAff = new Map<string, { id: string; name: string; received: number; activated: number; reported: number; cost: number; manualCost: number; savings: number; revenue: number; withdrawals: number; net: number }>();
+    const byAff = new Map<string, { id: string; name: string; received: number; activated: number; reported: number; cost: number; savings: number; revenue: number; withdrawals: number; net: number }>();
     const touch = (affId: string, affName: string, month: string, model: string) => {
       const key = `${affId}|${month}`;
-      const row = byKey.get(key) ?? { affiliateId: affId, affiliateName: affName, month, model, received: 0, activated: 0, reported: 0, cost: 0, manualCost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
+      const row = byKey.get(key) ?? { affiliateId: affId, affiliateName: affName, month, model, received: 0, activated: 0, reported: 0, cost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
       byKey.set(key, row);
-      const a = byAff.get(affId) ?? { id: affId, name: affName, received: 0, activated: 0, reported: 0, cost: 0, manualCost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
+      const a = byAff.get(affId) ?? { id: affId, name: affName, received: 0, activated: 0, reported: 0, cost: 0, savings: 0, revenue: 0, withdrawals: 0, net: 0 };
       byAff.set(affId, a);
       return { row, a };
     };
@@ -260,7 +260,7 @@ function ReportsPage() {
       row.received += received; row.activated += activated; row.reported += reported; row.cost += cost; row.savings += savings;
       a.received += received; a.activated += activated; a.reported += reported; a.cost += cost; a.savings += savings;
     }
-    // Manual affiliate expenses (category "Affiliate" with affiliate_id) — kept SEPARATE from computed CPA/CPL cost to avoid double-counting
+    // Include manual affiliate expenses (category "Affiliate" with affiliate_id)
     for (const x of data.expenses) {
       if (!x.affiliate_id) continue;
       const aff = affById.get(x.affiliate_id);
@@ -268,9 +268,8 @@ function ReportsPage() {
       const month = String(x.date).slice(0, 7);
       const amt = Number(x.amount) || 0;
       const { row, a } = touch(aff.id, aff.name, month, "Manual");
-      row.manualCost += amt; a.manualCost += amt;
+      row.cost += amt; a.cost += amt;
     }
-
     // Revenue per affiliate (direct or via linked lead)
     for (const rev of data.revenue) {
       const affId = rev.affiliate_id ?? rev.leads?.affiliate_id ?? null;
@@ -302,19 +301,17 @@ function ReportsPage() {
       const { row, a } = touch(aff.id, aff.name, month, "");
       row.withdrawals += amt; a.withdrawals += amt;
     }
-    // Effective payout = larger of computed CPA/CPL cost vs actual invoiced manual expense (avoids double counting when the invoice is logged as an expense)
-    // Net = revenue - effective payout - withdrawals
-    byAff.forEach((a) => { const paid = Math.max(a.cost, a.manualCost); a.net = a.revenue - paid - a.withdrawals; });
-    byKey.forEach((r) => { const paid = Math.max(r.cost, r.manualCost); r.net = r.revenue - paid - r.withdrawals; });
+    // Compute net = revenue - cost - withdrawals
+    byAff.forEach((a) => { a.net = a.revenue - a.cost - a.withdrawals; });
+    byKey.forEach((r) => { r.net = r.revenue - r.cost - r.withdrawals; });
     const rows = Array.from(byKey.values()).sort((a, b) => b.month.localeCompare(a.month) || a.affiliateName.localeCompare(b.affiliateName));
     const totals = Array.from(byAff.values()).sort((a, b) => b.net - a.net);
-    const totalCost = totals.reduce((s, x) => s + Math.max(x.cost, x.manualCost), 0);
+    const totalCost = totals.reduce((s, x) => s + x.cost, 0);
     const totalSavings = totals.reduce((s, x) => s + x.savings, 0);
     const totalRevenue = totals.reduce((s, x) => s + x.revenue, 0);
     const totalWithdrawals = totals.reduce((s, x) => s + x.withdrawals, 0);
     const totalNet = totals.reduce((s, x) => s + x.net, 0);
     return { rows, totals, totalCost, totalSavings, totalRevenue, totalWithdrawals, totalNet };
-
   }, [data.entries, data.expenses, data.revenue, wdQ.data, revCustAffQ.data, affMapQ.data]);
 
   const employeesRpt = useMemo(() => {
@@ -772,8 +769,7 @@ function ReportsPage() {
                   { key: "activated", label: "Activated", numeric: true },
                   { key: "reported", label: "Reported", numeric: true },
                   { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
-                  { key: "cost", label: "CPA/CPL cost", numeric: true, render: (v) => fmtMoney(v) },
-                  { key: "manualCost", label: "Invoiced", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "withdrawals", label: "Withdrawals", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "net", label: "Net", numeric: true, render: (v) => <span className={Number(v) >= 0 ? "text-emerald-500" : "text-destructive"}>{fmtMoney(v)}</span> },
@@ -792,8 +788,7 @@ function ReportsPage() {
                   { key: "activated", label: "Activated", numeric: true },
                   { key: "reported", label: "Reported", numeric: true },
                   { key: "savings", label: "Savings", numeric: true, render: (v) => fmtMoney(v) },
-                  { key: "cost", label: "CPA/CPL cost", numeric: true, render: (v) => fmtMoney(v) },
-                  { key: "manualCost", label: "Invoiced", numeric: true, render: (v) => fmtMoney(v) },
+                  { key: "cost", label: "Paid", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "withdrawals", label: "Withdrawals", numeric: true, render: (v) => fmtMoney(v) },
                   { key: "net", label: "Net", numeric: true, render: (v) => <span className={Number(v) >= 0 ? "text-emerald-500" : "text-destructive"}>{fmtMoney(v)}</span> },
@@ -802,9 +797,8 @@ function ReportsPage() {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Net = Revenue − max(CPA/CPL cost, Invoiced) − Withdrawals. The larger of the two cost columns is used so a manually filed affiliate invoice does not double-count against the computed CPA/CPL cost. Withdrawals attribute via the Source field on the withdrawal, the linked sale's affiliate, or a matching customer name.
+              Net = Revenue − Paid − Withdrawals. Withdrawals attribute to an affiliate via the Source field on each withdrawal, or via the linked sale's affiliate.
             </p>
-
           </div>
         </TabsContent>
 
