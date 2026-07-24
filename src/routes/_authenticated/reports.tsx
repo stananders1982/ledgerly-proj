@@ -93,7 +93,11 @@ function ReportsPage() {
   });
   const wdQ = useQuery({
     queryKey: ["rpt-wd", start, end],
-    queryFn: async () => (await supabase.from("withdrawals").select("id,date,amount,affiliate_id,revenue_id,revenue:revenue_id(affiliate_id)").gte("date", start).lte("date", end)).data ?? [],
+    queryFn: async () => (await supabase.from("withdrawals").select("id,date,amount,customer_name,affiliate_id,revenue_id,revenue:revenue_id(affiliate_id)").gte("date", start).lte("date", end)).data ?? [],
+  });
+  const revCustAffQ = useQuery({
+    queryKey: ["rpt-rev-cust-aff"],
+    queryFn: async () => (await supabase.from("revenue").select("customer_name,affiliate_id,leads(affiliate_id)")).data ?? [],
   });
   const empQ = useQuery({
     queryKey: ["rpt-emp"],
