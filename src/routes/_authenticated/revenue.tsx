@@ -66,7 +66,7 @@ function RevenuePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_lead_activations")
-        .select("id, lead_name, employee_id, conversion_employee_id, daily_lead_entries(entry_date, source_id)")
+        .select("id, lead_name, employee_id, conversion_employee_id, daily_lead_entries(entry_date, lead_sources(name))")
         .not("lead_name", "is", null)
         .order("created_at", { ascending: false })
         .limit(500);
@@ -178,7 +178,7 @@ function RevenuePage() {
             </DropdownMenu>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
               <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New revenue</Button></DialogTrigger>
-              <RevenueDialog key={editing?.id ?? "new"} rev={editing} employees={empQ.data ?? []} affiliates={affQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+              <RevenueDialog key={editing?.id ?? "new"} rev={editing} employees={empQ.data ?? []} affiliates={affQ.data ?? []} activations={activationsQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
             </Dialog>
           </div>
         }
@@ -304,8 +304,8 @@ function BreakdownCard({ title, rows }: { title: string; rows: [string, number][
 }
 
 function RevenueDialog({
-  rev, employees, affiliates, onSubmit, loading,
-}: { rev: any; employees: any[]; affiliates: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+  rev, employees, affiliates, activations, onSubmit, loading,
+}: { rev: any; employees: any[]; affiliates: any[]; activations: any[]; onSubmit: (v: any) => void; loading: boolean }) {
   const [form, setForm] = useState(() => ({
     id: rev?.id,
     customer_name: rev?.customer_name ?? "",
@@ -318,10 +318,42 @@ function RevenueDialog({
     notes: rev?.notes ?? "",
   }));
   const hasSplit = !!form.employee_id_2;
+  const [activationId, setActivationId] = useState("");
+
+  const pickActivation = (id: string) => {
+    setActivationId(id);
+    if (id === "_none") { setActivationId(""); return; }
+    const a = activations.find((x) => x.id === id);
+    if (!a) return;
+    const sourceName = a.daily_lead_entries?.lead_sources?.name;
+    const aff = sourceName ? affiliates.find((f: any) => f.name === sourceName) : undefined;
+    setForm((f) => ({
+      ...f,
+      customer_name: a.lead_name ?? f.customer_name,
+      employee_id: a.employee_id || f.employee_id,
+      affiliate_id: aff?.id ?? f.affiliate_id,
+      date: a.daily_lead_entries?.entry_date ?? f.date,
+    }));
+  };
   return (
     <DialogContent>
       <DialogHeader><DialogTitle>{rev?.id ? "Edit revenue" : "Record revenue"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
+        <Field label="Pick from activated leads (optional)">
+          <Select value={activationId || "_none"} onValueChange={pickActivation}>
+            <SelectTrigger><SelectValue placeholder={activations.length ? "Search activated lead" : "No activated leads yet"} /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="_none">None</SelectItem>
+              {activations.map((a: any) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.lead_name}
+                  {a.daily_lead_entries?.lead_sources?.name ? ` · ${a.daily_lead_entries.lead_sources.name}` : ""}
+                  {a.daily_lead_entries?.entry_date ? ` · ${a.daily_lead_entries.entry_date}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
         <Field label="Customer name"><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
