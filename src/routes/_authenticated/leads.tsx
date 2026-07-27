@@ -42,8 +42,8 @@ type Entry = {
   lead_sources?: { id: string; name: string; pricing_model: "CPL" | "CPA"; price: number; expected_conversion_rate?: number } | null;
 };
 
-type Activation = { id: string; entry_id: string; employee_id: string; activated_count: number };
-type Split = { employee_id: string; activated_count: number };
+type Activation = { id: string; entry_id: string; employee_id: string; activated_count: number; lead_name?: string | null };
+type Split = { employee_id: string; activated_count: number; lead_name?: string | null };
 
 function LeadsPage() {
   const qc = useQueryClient();
