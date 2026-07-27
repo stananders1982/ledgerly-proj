@@ -1,0 +1,1 @@
+ALTER TABLE public.daily_lead_activations ALTER COLUMN balance SET DEFAULT 250;
