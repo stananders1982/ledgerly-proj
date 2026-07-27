@@ -477,8 +477,10 @@ function EntryDialog({
   const splitSum = splits.length;
   const remainder = form.activated - splitSum;
   const validSplits = form.activated === 0 || splitSum === form.activated;
-  // Same employee may appear twice only when the lead names differ
-  const dupKeys = splits.filter((s) => s.employee_id).map((s) => `${s.employee_id}|${(s.lead_name ?? "").trim().toLowerCase()}`);
+  // Only flag as duplicate when the same employee has the same non-empty lead name twice
+  const dupKeys = splits
+    .filter((s) => s.employee_id && (s.lead_name ?? "").trim())
+    .map((s) => `${s.employee_id}|${(s.lead_name ?? "").trim().toLowerCase()}`);
   const dupEmployees = new Set(dupKeys).size !== dupKeys.length;
 
 
