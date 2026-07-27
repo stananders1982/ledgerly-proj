@@ -460,20 +460,25 @@ function EntryDialog({
   }));
   const [splits, setSplits] = useState<Split[]>(existingSplits);
 
-  // Auto-seed one empty row when activated > 0 and no splits set
+  // Auto-seed one row per activated lead
   useEffect(() => {
     if (form.activated > 0 && splits.length === 0) {
-      setSplits([{ employee_id: "", conversion_employee_id: "", activated_count: form.activated, lead_name: "" }]);
+      setSplits(
+        Array.from({ length: form.activated }, () => ({
+          employee_id: "", conversion_employee_id: "", activated_count: 1, lead_name: "",
+        })),
+      );
     }
   }, [form.activated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = sources.find((s) => s.id === form.source_id);
-  const splitSum = splits.reduce((a, b) => a + (Number(b.activated_count) || 0), 0);
+  const splitSum = splits.length;
   const remainder = form.activated - splitSum;
   const validSplits = form.activated === 0 || splitSum === form.activated;
   // Same employee may appear twice only when the lead names differ
   const dupKeys = splits.filter((s) => s.employee_id).map((s) => `${s.employee_id}|${(s.lead_name ?? "").trim().toLowerCase()}`);
   const dupEmployees = new Set(dupKeys).size !== dupKeys.length;
+
 
   return (
     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
