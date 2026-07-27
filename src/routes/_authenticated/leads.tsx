@@ -399,7 +399,7 @@ function LeadsPage() {
                   const attrSum = splits.reduce((a, b) => a + b.activated_count, 0);
                   const attrLabel = splits.length === 0
                     ? "—"
-                    : splits.map((sp) => `${employeeName(sp.employee_id)} ${sp.activated_count}`).join(" · ");
+                    : splits.map((sp) => `${employeeName(sp.employee_id)} ${sp.activated_count}${sp.lead_name ? ` (${sp.lead_name})` : ""}`).join(" · ");
                   return (
                     <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                         onClick={() => { setEditing(r); setOpen(true); }}>
