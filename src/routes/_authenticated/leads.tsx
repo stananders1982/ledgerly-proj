@@ -235,12 +235,14 @@ function LeadsPage() {
               sources={sourcesQ.data ?? []}
               employees={employeesQ.data ?? []}
               existingSplits={
-                editing ? (activationsByEntry.get(editing.id) ?? []).map((a) => ({
-                  employee_id: a.employee_id,
-                  conversion_employee_id: a.conversion_employee_id ?? "",
-                  activated_count: a.activated_count,
-                  lead_name: a.lead_name ?? "",
-                })) : []
+                editing ? (activationsByEntry.get(editing.id) ?? []).flatMap((a) =>
+                  Array.from({ length: Math.max(1, a.activated_count) }, () => ({
+                    employee_id: a.employee_id,
+                    conversion_employee_id: a.conversion_employee_id ?? "",
+                    activated_count: 1,
+                    lead_name: a.lead_name ?? "",
+                  })),
+                ) : []
               }
               onSubmit={(v) => upsert.mutate(v)}
               loading={upsert.isPending}
@@ -460,20 +462,25 @@ function EntryDialog({
   }));
   const [splits, setSplits] = useState<Split[]>(existingSplits);
 
-  // Auto-seed one empty row when activated > 0 and no splits set
+  // Auto-seed one row per activated lead
   useEffect(() => {
     if (form.activated > 0 && splits.length === 0) {
-      setSplits([{ employee_id: "", conversion_employee_id: "", activated_count: form.activated, lead_name: "" }]);
+      setSplits(
+        Array.from({ length: form.activated }, () => ({
+          employee_id: "", conversion_employee_id: "", activated_count: 1, lead_name: "",
+        })),
+      );
     }
   }, [form.activated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = sources.find((s) => s.id === form.source_id);
-  const splitSum = splits.reduce((a, b) => a + (Number(b.activated_count) || 0), 0);
+  const splitSum = splits.length;
   const remainder = form.activated - splitSum;
   const validSplits = form.activated === 0 || splitSum === form.activated;
   // Same employee may appear twice only when the lead names differ
   const dupKeys = splits.filter((s) => s.employee_id).map((s) => `${s.employee_id}|${(s.lead_name ?? "").trim().toLowerCase()}`);
   const dupEmployees = new Set(dupKeys).size !== dupKeys.length;
+
 
   return (
     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -578,17 +585,6 @@ function EntryDialog({
                     setSplits(copy);
                   }}
                 />
-                <Input
-                  type="number"
-                  min={0}
-                  className="w-20"
-                  value={sp.activated_count}
-                  onChange={(e) => {
-                    const copy = [...splits];
-                    copy[i] = { ...copy[i], activated_count: Number(e.target.value) };
-                    setSplits(copy);
-                  }}
-                />
                 <Button type="button" variant="ghost" size="icon"
                   onClick={() => setSplits(splits.filter((_, idx) => idx !== i))}>
                   <X className="h-4 w-4" />
@@ -597,7 +593,7 @@ function EntryDialog({
             ))}
             <div className="flex items-center justify-between">
               <Button type="button" variant="outline" size="sm"
-                onClick={() => setSplits([...splits, { employee_id: "", conversion_employee_id: "", activated_count: Math.max(0, remainder), lead_name: "" }])}>
+                onClick={() => setSplits([...splits, { employee_id: "", conversion_employee_id: "", activated_count: 1, lead_name: "" }])}>
                 <Plus className="h-3 w-3" /> Add lead
               </Button>
               {dupEmployees && <span className="text-xs text-amber-500">Duplicate employee + lead name</span>}
