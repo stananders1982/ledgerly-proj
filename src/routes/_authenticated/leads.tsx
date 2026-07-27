@@ -42,8 +42,8 @@ type Entry = {
   lead_sources?: { id: string; name: string; pricing_model: "CPL" | "CPA"; price: number; expected_conversion_rate?: number } | null;
 };
 
-type Activation = { id: string; entry_id: string; employee_id: string; activated_count: number; lead_name?: string | null };
-type Split = { employee_id: string; activated_count: number; lead_name?: string | null };
+type Activation = { id: string; entry_id: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null };
+type Split = { employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null };
 
 function LeadsPage() {
   const qc = useQueryClient();
@@ -193,6 +193,7 @@ function LeadsPage() {
           splits.map((s) => ({
             entry_id: entryId!,
             employee_id: s.employee_id,
+            conversion_employee_id: s.conversion_employee_id || null,
             activated_count: Number(s.activated_count) || 0,
             lead_name: s.lead_name?.trim() || null,
           })),
@@ -236,6 +237,7 @@ function LeadsPage() {
               existingSplits={
                 editing ? (activationsByEntry.get(editing.id) ?? []).map((a) => ({
                   employee_id: a.employee_id,
+                  conversion_employee_id: a.conversion_employee_id ?? "",
                   activated_count: a.activated_count,
                   lead_name: a.lead_name ?? "",
                 })) : []
@@ -399,7 +401,7 @@ function LeadsPage() {
                   const attrSum = splits.reduce((a, b) => a + b.activated_count, 0);
                   const attrLabel = splits.length === 0
                     ? "—"
-                    : splits.map((sp) => `${employeeName(sp.employee_id)} ${sp.activated_count}${sp.lead_name ? ` (${sp.lead_name})` : ""}`).join(" · ");
+                    : splits.map((sp) => `${sp.lead_name ? `${sp.lead_name}: ` : ""}R ${employeeName(sp.employee_id)}${sp.conversion_employee_id ? ` · C ${employeeName(sp.conversion_employee_id)}` : ""} (${sp.activated_count})`).join(" · ");
                   return (
                     <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                         onClick={() => { setEditing(r); setOpen(true); }}>
@@ -461,7 +463,7 @@ function EntryDialog({
   // Auto-seed one empty row when activated > 0 and no splits set
   useEffect(() => {
     if (form.activated > 0 && splits.length === 0) {
-      setSplits([{ employee_id: "", activated_count: form.activated, lead_name: "" }]);
+      setSplits([{ employee_id: "", conversion_employee_id: "", activated_count: form.activated, lead_name: "" }]);
     }
   }, [form.activated]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -522,7 +524,7 @@ function EntryDialog({
         {form.activated > 0 && (
           <div className="rounded-md border border-border p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs">Attribute activated leads to employees (Team C)</Label>
+              <Label className="text-xs">Activated leads — retention (R), conversion (C) and lead name</Label>
               <span className={`text-xs ${validSplits ? "text-muted-foreground" : "text-amber-500"}`}>
                 {splitSum} / {form.activated}
                 {remainder !== 0 && ` (${remainder > 0 ? "+" : ""}${remainder})`}
@@ -538,18 +540,36 @@ function EntryDialog({
                     setSplits(copy);
                   }}
                 >
-                  <SelectTrigger className="flex-1"><SelectValue placeholder="Employee" /></SelectTrigger>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Retention" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="_none">Select…</SelectItem>
+                    <SelectItem value="_none">Retention…</SelectItem>
                     {employees
-                      .filter((emp) => (emp.team ?? "C") === "C" || emp.id === sp.employee_id)
+                      .filter((emp) => (emp.team ?? "R") === "R" || emp.id === sp.employee_id)
+                      .map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={sp.conversion_employee_id || "_none"}
+                  onValueChange={(v) => {
+                    const copy = [...splits];
+                    copy[i] = { ...copy[i], conversion_employee_id: v === "_none" ? "" : v };
+                    setSplits(copy);
+                  }}
+                >
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Conversion" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Conversion…</SelectItem>
+                    {employees
+                      .filter((emp) => (emp.team ?? "C") === "C" || emp.id === sp.conversion_employee_id)
                       .map((emp) => (
                         <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
                       ))}
                   </SelectContent>
                 </Select>
                 <Input
-                  placeholder="Lead name (optional)"
+                  placeholder="Lead name"
                   className="flex-1"
                   value={sp.lead_name ?? ""}
                   onChange={(e) => {
@@ -561,7 +581,7 @@ function EntryDialog({
                 <Input
                   type="number"
                   min={0}
-                  className="w-24"
+                  className="w-20"
                   value={sp.activated_count}
                   onChange={(e) => {
                     const copy = [...splits];
@@ -577,7 +597,7 @@ function EntryDialog({
             ))}
             <div className="flex items-center justify-between">
               <Button type="button" variant="outline" size="sm"
-                onClick={() => setSplits([...splits, { employee_id: "", activated_count: Math.max(0, remainder), lead_name: "" }])}>
+                onClick={() => setSplits([...splits, { employee_id: "", conversion_employee_id: "", activated_count: Math.max(0, remainder), lead_name: "" }])}>
                 <Plus className="h-3 w-3" /> Add lead
               </Button>
               {dupEmployees && <span className="text-xs text-amber-500">Duplicate employee + lead name</span>}
