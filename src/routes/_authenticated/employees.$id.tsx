@@ -238,6 +238,56 @@ function EmployeeDetailPage() {
 
       <div className="card-surface overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-base font-semibold">FTDs ({conversions.counted.length})</h3>
+            <p className="text-xs text-muted-foreground">
+              Answered leads with mid/high potential, or low potential with balance $251+.
+            </p>
+          </div>
+          <Link to="/activations" className="text-xs text-primary hover:underline">Manage</Link>
+        </div>
+        {conversions.all.length === 0 ? (
+          <div className="p-6 text-sm text-muted-foreground">No activations as conversion agent this month.</div>
+        ) : (
+          <div className="overflow-x-auto max-h-[360px]">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-card">
+                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-2 px-4">Date</th>
+                  <th className="py-2 px-4">Lead</th>
+                  <th className="py-2 px-4">Potential</th>
+                  <th className="py-2 px-4 text-right">Balance</th>
+                  <th className="py-2 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {conversions.counted.map((c: any, i: number) => (
+                  <tr key={`ftd-${i}`} className="border-b border-border/50">
+                    <td className="py-2 px-4 text-muted-foreground">{fmtDate(c.daily_lead_entries?.entry_date)}</td>
+                    <td className="py-2 px-4">{c.lead_name || "—"}</td>
+                    <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
+                    <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
+                    <td className="py-2 px-4 text-primary">Counted</td>
+                  </tr>
+                ))}
+                {conversions.pending.map((c: any, i: number) => (
+                  <tr key={`pend-${i}`} className="border-b border-border/50 text-muted-foreground">
+                    <td className="py-2 px-4">{fmtDate(c.daily_lead_entries?.entry_date)}</td>
+                    <td className="py-2 px-4">{c.lead_name || "—"}</td>
+                    <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
+                    <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
+                    <td className="py-2 px-4">{c.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+
+      <div className="card-surface overflow-hidden mb-6">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
           <h3 className="font-display text-base font-semibold">Activated leads ({(clientsQ.data ?? []).length})</h3>
           <Link to="/leads" className="text-xs text-primary hover:underline">Manage</Link>
         </div>
