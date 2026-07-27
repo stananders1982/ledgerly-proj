@@ -237,6 +237,7 @@ function LeadsPage() {
                 editing ? (activationsByEntry.get(editing.id) ?? []).map((a) => ({
                   employee_id: a.employee_id,
                   activated_count: a.activated_count,
+                  lead_name: a.lead_name ?? "",
                 })) : []
               }
               onSubmit={(v) => upsert.mutate(v)}
