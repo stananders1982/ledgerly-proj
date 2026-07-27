@@ -1,0 +1,1 @@
+ALTER TABLE public.daily_lead_activations ADD COLUMN IF NOT EXISTS lead_name text;

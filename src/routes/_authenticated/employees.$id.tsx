@@ -90,7 +90,7 @@ function EmployeeDetailPage() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("daily_lead_activations")
-        .select("activated_count, daily_lead_entries!inner(entry_date)")
+        .select("activated_count, lead_name, daily_lead_entries!inner(entry_date)")
         .eq("employee_id", id)
         .gte("daily_lead_entries.entry_date", start)
         .lte("daily_lead_entries.entry_date", end);
@@ -184,6 +184,38 @@ function EmployeeDetailPage() {
         <StatCard label="Working days" value={String(totals.wd)} />
         <StatCard label="Absences" value={`${totals.absent} · −${fmtMoney(totals.deduction)}`} tone={totals.absent ? "negative" : "default"} />
       </section>
+
+      <div className="card-surface overflow-hidden mb-6">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <h3 className="font-display text-base font-semibold">Activated leads ({(clientsQ.data ?? []).length})</h3>
+          <Link to="/leads" className="text-xs text-primary hover:underline">Manage</Link>
+        </div>
+        {(clientsQ.data ?? []).length === 0 ? (
+          <div className="p-6 text-sm text-muted-foreground">No activated leads this month.</div>
+        ) : (
+          <div className="overflow-x-auto max-h-[320px]">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-card">
+                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-2 px-4">Date</th>
+                  <th className="py-2 px-4">Lead</th>
+                  <th className="py-2 px-4 text-right">Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(clientsQ.data ?? []).map((c: any, i: number) => (
+                  <tr key={i} className="border-b border-border/50">
+                    <td className="py-2 px-4 text-muted-foreground">{fmtDate(c.daily_lead_entries?.entry_date)}</td>
+                    <td className="py-2 px-4">{c.lead_name || "—"}</td>
+                    <td className="py-2 px-4 text-right">{c.activated_count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
 
       <div className="grid lg:grid-cols-2 gap-4 mb-6">
         <div className="card-surface overflow-hidden">

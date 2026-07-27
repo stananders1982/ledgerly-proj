@@ -42,8 +42,8 @@ type Entry = {
   lead_sources?: { id: string; name: string; pricing_model: "CPL" | "CPA"; price: number; expected_conversion_rate?: number } | null;
 };
 
-type Activation = { id: string; entry_id: string; employee_id: string; activated_count: number };
-type Split = { employee_id: string; activated_count: number };
+type Activation = { id: string; entry_id: string; employee_id: string; activated_count: number; lead_name?: string | null };
+type Split = { employee_id: string; activated_count: number; lead_name?: string | null };
 
 function LeadsPage() {
   const qc = useQueryClient();
@@ -194,6 +194,7 @@ function LeadsPage() {
             entry_id: entryId!,
             employee_id: s.employee_id,
             activated_count: Number(s.activated_count) || 0,
+            lead_name: s.lead_name?.trim() || null,
           })),
         );
         if (insErr) throw insErr;
@@ -236,6 +237,7 @@ function LeadsPage() {
                 editing ? (activationsByEntry.get(editing.id) ?? []).map((a) => ({
                   employee_id: a.employee_id,
                   activated_count: a.activated_count,
+                  lead_name: a.lead_name ?? "",
                 })) : []
               }
               onSubmit={(v) => upsert.mutate(v)}
@@ -397,7 +399,7 @@ function LeadsPage() {
                   const attrSum = splits.reduce((a, b) => a + b.activated_count, 0);
                   const attrLabel = splits.length === 0
                     ? "—"
-                    : splits.map((sp) => `${employeeName(sp.employee_id)} ${sp.activated_count}`).join(" · ");
+                    : splits.map((sp) => `${employeeName(sp.employee_id)} ${sp.activated_count}${sp.lead_name ? ` (${sp.lead_name})` : ""}`).join(" · ");
                   return (
                     <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                         onClick={() => { setEditing(r); setOpen(true); }}>
@@ -459,7 +461,7 @@ function EntryDialog({
   // Auto-seed one empty row when activated > 0 and no splits set
   useEffect(() => {
     if (form.activated > 0 && splits.length === 0) {
-      setSplits([{ employee_id: "", activated_count: form.activated }]);
+      setSplits([{ employee_id: "", activated_count: form.activated, lead_name: "" }]);
     }
   }, [form.activated]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -467,8 +469,9 @@ function EntryDialog({
   const splitSum = splits.reduce((a, b) => a + (Number(b.activated_count) || 0), 0);
   const remainder = form.activated - splitSum;
   const validSplits = form.activated === 0 || splitSum === form.activated;
-  const dupEmployees = new Set(splits.map((s) => s.employee_id).filter(Boolean)).size !==
-    splits.filter((s) => s.employee_id).length;
+  // Same employee may appear twice only when the lead names differ
+  const dupKeys = splits.filter((s) => s.employee_id).map((s) => `${s.employee_id}|${(s.lead_name ?? "").trim().toLowerCase()}`);
+  const dupEmployees = new Set(dupKeys).size !== dupKeys.length;
 
   return (
     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -546,6 +549,16 @@ function EntryDialog({
                   </SelectContent>
                 </Select>
                 <Input
+                  placeholder="Lead name (optional)"
+                  className="flex-1"
+                  value={sp.lead_name ?? ""}
+                  onChange={(e) => {
+                    const copy = [...splits];
+                    copy[i] = { ...copy[i], lead_name: e.target.value };
+                    setSplits(copy);
+                  }}
+                />
+                <Input
                   type="number"
                   min={0}
                   className="w-24"
@@ -564,10 +577,10 @@ function EntryDialog({
             ))}
             <div className="flex items-center justify-between">
               <Button type="button" variant="outline" size="sm"
-                onClick={() => setSplits([...splits, { employee_id: "", activated_count: Math.max(0, remainder) }])}>
-                <Plus className="h-3 w-3" /> Add employee
+                onClick={() => setSplits([...splits, { employee_id: "", activated_count: Math.max(0, remainder), lead_name: "" }])}>
+                <Plus className="h-3 w-3" /> Add lead
               </Button>
-              {dupEmployees && <span className="text-xs text-amber-500">Duplicate employees</span>}
+              {dupEmployees && <span className="text-xs text-amber-500">Duplicate employee + lead name</span>}
             </div>
           </div>
         )}
