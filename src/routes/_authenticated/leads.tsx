@@ -549,6 +549,16 @@ function EntryDialog({
                   </SelectContent>
                 </Select>
                 <Input
+                  placeholder="Lead name (optional)"
+                  className="flex-1"
+                  value={sp.lead_name ?? ""}
+                  onChange={(e) => {
+                    const copy = [...splits];
+                    copy[i] = { ...copy[i], lead_name: e.target.value };
+                    setSplits(copy);
+                  }}
+                />
+                <Input
                   type="number"
                   min={0}
                   className="w-24"
@@ -567,10 +577,10 @@ function EntryDialog({
             ))}
             <div className="flex items-center justify-between">
               <Button type="button" variant="outline" size="sm"
-                onClick={() => setSplits([...splits, { employee_id: "", activated_count: Math.max(0, remainder) }])}>
-                <Plus className="h-3 w-3" /> Add employee
+                onClick={() => setSplits([...splits, { employee_id: "", activated_count: Math.max(0, remainder), lead_name: "" }])}>
+                <Plus className="h-3 w-3" /> Add lead
               </Button>
-              {dupEmployees && <span className="text-xs text-amber-500">Duplicate employees</span>}
+              {dupEmployees && <span className="text-xs text-amber-500">Duplicate employee + lead name</span>}
             </div>
           </div>
         )}
