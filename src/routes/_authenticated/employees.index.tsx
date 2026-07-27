@@ -114,7 +114,7 @@ function EmployeesPage() {
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4" /> Add employee</Button>
             </DialogTrigger>
-            <EmpDialog emp={editing} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+            <EmpDialog key={editing?.id ?? "new"} emp={editing} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
           </Dialog>
         }
       />
