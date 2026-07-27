@@ -194,6 +194,7 @@ function LeadsPage() {
             entry_id: entryId!,
             employee_id: s.employee_id,
             activated_count: Number(s.activated_count) || 0,
+            lead_name: s.lead_name?.trim() || null,
           })),
         );
         if (insErr) throw insErr;
