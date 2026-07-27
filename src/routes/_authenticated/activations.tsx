@@ -154,11 +154,10 @@ function ActivationsPage() {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <DateRangePicker
           value={range}
-          onValueChange={setRange}
-          start={customStart}
-          end={customEnd}
-          onStartChange={setCustomStart}
-          onEndChange={setCustomEnd}
+          onChange={setRange}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <Select value={answeredFilter} onValueChange={(v) => setAnsweredFilter(v as any)}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
@@ -180,14 +179,14 @@ function ActivationsPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
-        <StatCard title="Activated leads" value={String(rows.length)} icon={CheckCircle2} />
-        <StatCard title="Total balance" value={fmtMoney(totalBalance)} icon={Wallet} />
-        <StatCard title="Answered" value={`${answeredCount} / ${rows.length}`} icon={PhoneCall} />
+        <StatCard label="Activated leads" value={String(rows.length)} icon={CheckCircle2} />
+        <StatCard label="Total balance" value={fmtMoney(totalBalance)} icon={Wallet} />
+        <StatCard label="Answered" value={`${answeredCount} / ${rows.length}`} icon={PhoneCall} />
       </div>
 
       <div className="rounded-lg border border-border overflow-x-auto">
         {rows.length === 0 ? (
-          <EmptyState title="No activated leads" description="Activated leads logged on the Leads page appear here." />
+          <EmptyState icon={CheckCircle2} title="No activated leads" description="Activated leads logged on the Leads page appear here." />
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
