@@ -319,10 +319,14 @@ function RevenueDialog({
   }));
   const hasSplit = !!form.employee_id_2;
   const [activationId, setActivationId] = useState("");
+  const [manual, setManual] = useState(false);
+  const picked = activations.find((x: any) => x.id === activationId);
+  const detailsHidden = !!picked && !manual;
 
   const pickActivation = (id: string) => {
-    setActivationId(id);
     if (id === "_none") { setActivationId(""); return; }
+    setActivationId(id);
+    setManual(false);
     const a = activations.find((x) => x.id === id);
     if (!a) return;
     const sourceName = a.daily_lead_entries?.lead_sources?.name;
@@ -354,7 +358,25 @@ function RevenueDialog({
             </SelectContent>
           </Select>
         </Field>
-        <Field label="Customer name"><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></Field>
+
+        {detailsHidden ? (
+          <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-medium">{form.customer_name || "—"}</span>
+              <Button variant="ghost" size="sm" onClick={() => setManual(true)}>Edit details</Button>
+            </div>
+            <div className="text-muted-foreground text-xs">
+              {[
+                affiliates.find((a: any) => a.id === form.affiliate_id)?.name,
+                employees.find((e: any) => e.id === form.employee_id)?.name,
+                form.date,
+              ].filter(Boolean).join(" · ") || "No linked details"}
+            </div>
+          </div>
+        ) : (
+          <Field label="Customer name"><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></Field>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
           <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
