@@ -99,14 +99,14 @@ function EmployeeDetailPage() {
     },
   });
 
-  // Leads this employee activated (as conversion agent).
-  // Only answered leads with mid/high potential count.
+  // FTDs — leads this employee activated (as conversion agent).
+  // Counted when answered AND (mid/high potential OR effective balance >= 251).
   const conversionsQ = useQuery({
     queryKey: ["employee-conversions", id, start, end],
     queryFn: async () => {
       const { data, error } = await sb
         .from("daily_lead_activations")
-        .select("lead_name, potential, answered, daily_lead_entries!inner(entry_date)")
+        .select("lead_name, potential, answered, balance, daily_lead_entries!inner(entry_date)")
         .eq("conversion_employee_id", id)
         .gte("daily_lead_entries.entry_date", start)
         .lte("daily_lead_entries.entry_date", end);
@@ -115,11 +115,35 @@ function EmployeeDetailPage() {
     },
   });
 
+  // Deposits matched by customer name (same rule as the Activated Leads page).
+  const depositsQ = useQuery({
+    queryKey: ["revenue-by-name"],
+    queryFn: async () => {
+      const { data, error } = await sb.from("revenue").select("customer_name, amount");
+      if (error) throw error;
+      return (data ?? []) as { customer_name: string | null; amount: number }[];
+    },
+  });
+
   const conversions = useMemo(() => {
-    const all = (conversionsQ.data ?? []) as any[];
-    const counted = all.filter((r) => r.answered && (r.potential === "mid" || r.potential === "high"));
-    return { all, counted };
-  }, [conversionsQ.data]);
+    const deposits = new Map<string, number>();
+    for (const r of depositsQ.data ?? []) {
+      const k = (r.customer_name ?? "").trim().toLowerCase();
+      if (!k) continue;
+      deposits.set(k, (deposits.get(k) ?? 0) + Number(r.amount || 0));
+    }
+    const all = ((conversionsQ.data ?? []) as any[]).map((r) => {
+      const effectiveBalance =
+        Number(r.balance || 0) + (deposits.get((r.lead_name ?? "").trim().toLowerCase()) ?? 0);
+      const qualifies =
+        !!r.answered &&
+        (r.potential === "mid" || r.potential === "high" || effectiveBalance >= 251);
+      const reason = !r.answered ? "Not answered yet" : "Low potential under $251";
+      return { ...r, effectiveBalance, qualifies, reason };
+    });
+    return { all, counted: all.filter((r) => r.qualifies), pending: all.filter((r) => !r.qualifies) };
+  }, [conversionsQ.data, depositsQ.data]);
+
 
 
 
@@ -198,8 +222,9 @@ function EmployeeDetailPage() {
       </section>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Leads activated (conversion)" value={String(conversions.counted.length)} tone="positive" />
-        <StatCard label="Pending (unanswered / low)" value={String(conversions.all.length - conversions.counted.length)} />
+        <StatCard label="FTDs (activations)" value={String(conversions.counted.length)} tone="positive" />
+        <StatCard label="Pending FTDs" value={String(conversions.pending.length)} />
+
         <StatCard label="Clients received (retention)" value={String(totals.clients)} tone="positive" />
         <StatCard label="Revenue / client" value={fmtMoney(totals.revenuePerClient)} tone="positive" />
         <StatCard label="Withdrawals" value={fmtMoney(totals.withdrawn)} tone="negative" />
@@ -210,6 +235,56 @@ function EmployeeDetailPage() {
         <StatCard label="Working days" value={String(totals.wd)} />
         <StatCard label="Absences" value={`${totals.absent} · −${fmtMoney(totals.deduction)}`} tone={totals.absent ? "negative" : "default"} />
       </section>
+
+      <div className="card-surface overflow-hidden mb-6">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-base font-semibold">FTDs ({conversions.counted.length})</h3>
+            <p className="text-xs text-muted-foreground">
+              Answered leads with mid/high potential, or low potential with balance $251+.
+            </p>
+          </div>
+          <Link to="/activations" className="text-xs text-primary hover:underline">Manage</Link>
+        </div>
+        {conversions.all.length === 0 ? (
+          <div className="p-6 text-sm text-muted-foreground">No activations as conversion agent this month.</div>
+        ) : (
+          <div className="overflow-x-auto max-h-[360px]">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-card">
+                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-2 px-4">Date</th>
+                  <th className="py-2 px-4">Lead</th>
+                  <th className="py-2 px-4">Potential</th>
+                  <th className="py-2 px-4 text-right">Balance</th>
+                  <th className="py-2 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {conversions.counted.map((c: any, i: number) => (
+                  <tr key={`ftd-${i}`} className="border-b border-border/50">
+                    <td className="py-2 px-4 text-muted-foreground">{fmtDate(c.daily_lead_entries?.entry_date)}</td>
+                    <td className="py-2 px-4">{c.lead_name || "—"}</td>
+                    <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
+                    <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
+                    <td className="py-2 px-4 text-primary">Counted</td>
+                  </tr>
+                ))}
+                {conversions.pending.map((c: any, i: number) => (
+                  <tr key={`pend-${i}`} className="border-b border-border/50 text-muted-foreground">
+                    <td className="py-2 px-4">{fmtDate(c.daily_lead_entries?.entry_date)}</td>
+                    <td className="py-2 px-4">{c.lead_name || "—"}</td>
+                    <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
+                    <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
+                    <td className="py-2 px-4">{c.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
 
       <div className="card-surface overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
