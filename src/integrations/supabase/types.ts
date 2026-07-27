@@ -207,32 +207,41 @@ export type Database = {
       daily_lead_activations: {
         Row: {
           activated_count: number
+          answered: boolean
+          balance: number
           conversion_employee_id: string | null
           created_at: string
           employee_id: string
           entry_id: string
           id: string
           lead_name: string | null
+          potential: string | null
           updated_at: string
         }
         Insert: {
           activated_count?: number
+          answered?: boolean
+          balance?: number
           conversion_employee_id?: string | null
           created_at?: string
           employee_id: string
           entry_id: string
           id?: string
           lead_name?: string | null
+          potential?: string | null
           updated_at?: string
         }
         Update: {
           activated_count?: number
+          answered?: boolean
+          balance?: number
           conversion_employee_id?: string | null
           created_at?: string
           employee_id?: string
           entry_id?: string
           id?: string
           lead_name?: string | null
+          potential?: string | null
           updated_at?: string
         }
         Relationships: [
