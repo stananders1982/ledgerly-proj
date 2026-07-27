@@ -20,6 +20,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { useSort, SortTh } from "@/components/sortable-table";
 
 export const Route = createFileRoute("/_authenticated/recurring")({
   head: () => ({ meta: [{ title: "Recurring Expenses — Ledgerly" }] }),
@@ -81,6 +82,15 @@ function RecurringPage() {
       .reduce((s: number, r: any) => s + Number(r.amount), 0);
     return { monthly, upcoming, count: list.length };
   }, [listQ.data]);
+
+  const { sorted, sort, toggle } = useSort<any>(listQ.data ?? [], {
+    name: (r) => r.name ?? "",
+    category: (r) => r.expense_categories?.name ?? "",
+    amount: (r) => Number(r.amount ?? 0),
+    frequency: (r) => r.frequency ?? "",
+    next: (r) => r.next_due_date ?? "",
+    status: (r) => !!r.active,
+  });
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
