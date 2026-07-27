@@ -26,6 +26,7 @@ type Emp = {
   name: string;
   email: string | null;
   role: string | null;
+  team: string;
   salary: number;
   commission_pct: number;
   active: boolean;
@@ -35,6 +36,12 @@ type Emp = {
   commission_tier2_pct: number;
   commission_tier3_pct: number;
 };
+
+const TEAMS = [
+  { value: "R", label: "R — Registration" },
+  { value: "C", label: "C — Conversion (activations)" },
+  { value: "M", label: "M — Management" },
+];
 
 function EmployeesPage() {
   const qc = useQueryClient();
