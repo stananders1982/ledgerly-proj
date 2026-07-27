@@ -61,6 +61,20 @@ function RevenuePage() {
     const rpc = await supabase.rpc("list_affiliates_directory");
     return ((rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>).filter((a) => a.active);
   }});
+  const activationsQ = useQuery({
+    queryKey: ["activated-leads-picker"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("daily_lead_activations")
+        .select("id, lead_name, employee_id, conversion_employee_id, daily_lead_entries(entry_date, source_id)")
+        .not("lead_name", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
 
   const employeeNameById = useMemo(
     () => new Map((empQ.data ?? []).map((e: any) => [e.id, e.name])),
