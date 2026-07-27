@@ -39,7 +39,7 @@ type Emp = {
 };
 
 const TEAMS = [
-  { value: "R", label: "R — Registration" },
+  { value: "R", label: "R — Retention" },
   { value: "C", label: "C — Conversion (activations)" },
   { value: "M", label: "M — Management" },
 ];
