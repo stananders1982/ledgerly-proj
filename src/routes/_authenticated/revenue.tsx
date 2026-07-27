@@ -192,7 +192,7 @@ function RevenuePage() {
         }
       />
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <DateRangePicker
           value={range}
           onChange={setRange}
@@ -200,6 +200,8 @@ function RevenuePage() {
           customEnd={customEnd}
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
+        <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
+
       </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
