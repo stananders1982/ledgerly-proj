@@ -99,11 +99,15 @@ function RevenuePage() {
     const list = revQ.data ?? [];
     const s = activeRange.start.getTime();
     const e = activeRange.end.getTime();
+    const term = search.trim().toLowerCase();
     return list.filter((r: any) => {
       const t = new Date(r.date + "T00:00:00").getTime();
-      return t >= s && t <= e;
+      if (t < s || t > e) return false;
+      if (term && !(r.customer_name ?? "").toLowerCase().includes(term)) return false;
+      return true;
     });
-  }, [revQ.data, activeRange]);
+  }, [revQ.data, activeRange, search]);
+
 
   const stats = useMemo(() => {
     const list = filtered;
