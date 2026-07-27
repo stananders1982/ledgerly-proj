@@ -237,7 +237,15 @@ function ActivationsPage() {
                   <td className="py-3 px-4">{r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : "—"}</td>
                   <td className="py-3 px-4 font-medium">{r.lead_name || "—"}</td>
                   <td className="py-3 px-4">{r.daily_lead_entries?.lead_sources?.name ?? "—"}</td>
-                  <td className="py-3 px-4">{fmtMoney(Number(r.balance || 0))}</td>
+                  <td className="py-3 px-4">
+                    {fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}
+                    {depositsFor(r.lead_name) > 0 && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (base {fmtMoney(Number(r.balance || 0))} + {fmtMoney(depositsFor(r.lead_name))})
+                      </span>
+                    )}
+                  </td>
+
                   <td className="py-3 px-4"><PotentialBadge value={r.potential} /></td>
                   <td className="py-3 px-4">{employeeName(r.conversion_employee_id)}</td>
                   <td className="py-3 px-4">{employeeName(r.employee_id)}</td>
