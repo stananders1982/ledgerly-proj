@@ -241,6 +241,34 @@ function ActivationsPage() {
         <StatCard label="Answered" value={`${answeredCount} / ${rows.length}`} icon={PhoneCall} />
       </div>
 
+      <div className="mb-6 rounded-lg border border-border">
+        <div className="border-b border-border px-4 py-3">
+          <h2 className="text-sm font-semibold">Conversions by agent</h2>
+          <p className="text-xs text-muted-foreground">Only answered leads are counted.</p>
+        </div>
+        {conversionsByAgent.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-muted-foreground">No answered conversions in this range.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="py-2 px-4 font-medium">Conversion agent</th>
+                <th className="py-2 px-4 font-medium">Conversions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {conversionsByAgent.map((a) => (
+                <tr key={a.id} className="border-t border-border/50">
+                  <td className="py-2 px-4">{a.name}</td>
+                  <td className="py-2 px-4 font-medium">{a.count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+
       <div className="rounded-lg border border-border overflow-x-auto">
         {rows.length === 0 ? (
           <EmptyState icon={CheckCircle2} title="No activated leads" description="Activated leads logged on the Leads page appear here." />
