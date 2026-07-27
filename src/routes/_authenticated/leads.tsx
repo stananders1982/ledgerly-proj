@@ -131,6 +131,9 @@ function LeadsPage() {
       .sort((a, b) => b.count - a.count);
   }, [rows, activationsQ.data, employeesQ.data]);
 
+  const allocated = useMemo(() => byEmployee.reduce((s, e) => s + e.count, 0), [byEmployee]);
+
+
   const stats = useMemo(() => {
     let received = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
     for (const r of rows) {
