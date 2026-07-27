@@ -65,6 +65,7 @@ function EmployeesPage() {
         name: v.name,
         email: v.email || null,
         role: v.role || null,
+        team: v.team || "C",
         salary: Number(v.salary) || 0,
         commission_pct: Number(v.commission_pct) || 0,
         active: !!v.active,
@@ -134,6 +135,7 @@ function EmployeesPage() {
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <th className="py-3 px-4">Name</th>
                   <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">Team</th>
                   <th className="py-3 px-4">Email</th>
                   <th className="py-3 px-4">Base salary</th>
                   <th className="py-3 px-4">Commission tiers</th>
