@@ -199,6 +199,7 @@ function EmployeeDetailPage() {
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label="Leads activated (conversion)" value={String(conversions.counted.length)} tone="positive" />
+        <StatCard label="Pending (unanswered / low)" value={String(conversions.all.length - conversions.counted.length)} />
         <StatCard label="Clients received (retention)" value={String(totals.clients)} tone="positive" />
         <StatCard label="Revenue / client" value={fmtMoney(totals.revenuePerClient)} tone="positive" />
         <StatCard label="Withdrawals" value={fmtMoney(totals.withdrawn)} tone="negative" />
