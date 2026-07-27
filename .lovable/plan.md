@@ -1,34 +1,24 @@
 ## Goal
-Track how many activated leads each employee received per day, by splitting a daily entry's activated count across multiple employees.
+On the employee detail page (`/employees/$id`), give conversion agents a clear, auto-updating **FTDs (activations)** metric with the correct qualification rules.
 
-## Database
-New table `public.daily_lead_activations`:
-- `entry_id` → `daily_lead_entries(id)` on delete cascade
-- `employee_id` → `employees(id)`
-- `activated_count` int (>= 0)
-- unique (entry_id, employee_id)
-- RLS: authenticated read/write (consistent with existing leads tables)
-- GRANTs to authenticated + service_role
+## Counting rules (a lead counts as an FTD for the conversion agent when)
+1. The activation's **conversion agent** is this employee, and
+2. The lead is marked **answered**, and
+3. **Potential is mid or high** — OR potential is low but the lead's **balance is $251 or more**.
 
-## Leads page (`/leads`)
-In the entry dialog, when `activated > 0` show an "Attribution" section:
-- List of rows: employee dropdown (from `list_employees_directory`) + count input
-- "Add employee" button
-- Live validation: sum of counts must equal `activated` (show remainder / over-allocation warning); save disabled if mismatched
-- On save: upsert entry, then replace child rows in `daily_lead_activations`
-- On edit: load existing splits
+Balance = the activation's base balance (default $250) plus any recorded deposits matched by customer name (same rule already used on the Activated Leads page). So a low-potential lead automatically qualifies the moment a deposit pushes it past $250, and any lead qualifies the moment it's marked answered — no manual recalculation.
 
-Table row: small "Attribution" summary (e.g. "Jack 5 · Sara 3") under the Activated cell, or expand-on-click.
-
-## New KPI / view
-Add a new stat card "By employee" on the Leads page that opens a breakdown, OR add a compact table below KPIs:
-- Columns: Employee · Activated leads (in selected date range + affiliate filter)
-- Sorted desc
-
-## Reports
-Add "Activations by Employee" tab in Report Center using the same aggregation, exportable to CSV/XLSX.
+## Page changes
+- Rename the card "Leads activated (conversion)" to **"FTDs (activations)"**, showing the qualified count for the selected month.
+- Keep a second card **"Pending"** for activations that don't yet qualify, with a short hint of why (unanswered vs. low potential under $251).
+- Add an **FTDs table** listing qualifying activations: date, lead name, potential, balance (base + deposits), answered.
+- Optionally list the pending ones underneath in a muted section so agents can see what's close to qualifying.
 
 ## Technical notes
-- New fetcher joins `daily_lead_activations` → `daily_lead_entries` filtered by date range and selected source IDs.
-- No changes to CPA/CPL cost math; attribution is display-only.
-- Backfill: existing entries have no splits — they'll simply show as unattributed until edited.
+- Extend the existing conversion query in `src/routes/_authenticated/employees.$id.tsx` to also select `balance` and the entry date.
+- Add a revenue-by-customer-name lookup (same aggregation as `/activations`) to compute effective balance.
+- Qualification helper: `answered && (potential === 'mid' || potential === 'high' || effectiveBalance >= 251)`.
+- No schema or business-logic changes in the database; this is display/aggregation only.
+
+## Open follow-up (not in this plan unless you want it)
+The same FTD rule could be mirrored on the Activated Leads page's "Conversions by agent" table so the two screens always agree.
