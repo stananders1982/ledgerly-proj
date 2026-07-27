@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { SearchInput } from "@/components/search-input";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +62,7 @@ function ActivationsPage() {
   const [editing, setEditing] = useState<Row | null>(null);
   const [answeredFilter, setAnsweredFilter] = useState<"all" | "yes" | "no">("all");
   const [potentialFilter, setPotentialFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
@@ -125,9 +127,11 @@ function ActivationsPage() {
       if (answeredFilter === "yes" && !r.answered) return false;
       if (answeredFilter === "no" && r.answered) return false;
       if (potentialFilter !== "all" && (r.potential ?? "") !== potentialFilter) return false;
+      const term = search.trim().toLowerCase();
+      if (term && !(r.lead_name ?? "").toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [q.data, activeRange, answeredFilter, potentialFilter]);
+  }, [q.data, activeRange, answeredFilter, potentialFilter, search]);
 
   const totalBalance = rows.reduce(
     (a, r) => a + Number(r.balance || 0) + depositsFor(r.lead_name),
@@ -185,6 +189,7 @@ function ActivationsPage() {
           customEnd={customEnd}
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
+        <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
         <Select value={answeredFilter} onValueChange={(v) => setAnsweredFilter(v as any)}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
