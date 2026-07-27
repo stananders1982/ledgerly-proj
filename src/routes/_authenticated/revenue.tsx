@@ -35,7 +35,8 @@ function RevenuePage() {
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
-  const activeRange = useMemo(
+  const [search, setSearch] = useState("");
+
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
   );
