@@ -88,6 +88,28 @@ function ActivationsPage() {
     },
   });
 
+  const revenueQ = useQuery({
+    queryKey: ["revenue-for-activations"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("revenue").select("customer_name, amount");
+      if (error) throw error;
+      return (data ?? []) as { customer_name: string | null; amount: number }[];
+    },
+  });
+
+  const depositsByName = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of revenueQ.data ?? []) {
+      const k = (r.customer_name ?? "").trim().toLowerCase();
+      if (!k) continue;
+      m.set(k, (m.get(k) ?? 0) + Number(r.amount || 0));
+    }
+    return m;
+  }, [revenueQ.data]);
+
+  const depositsFor = (name?: string | null) =>
+    depositsByName.get((name ?? "").trim().toLowerCase()) ?? 0;
+
   const employeeName = (id?: string | null) =>
     (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
 
@@ -107,7 +129,11 @@ function ActivationsPage() {
     });
   }, [q.data, activeRange, answeredFilter, potentialFilter]);
 
-  const totalBalance = rows.reduce((a, r) => a + Number(r.balance || 0), 0);
+  const totalBalance = rows.reduce(
+    (a, r) => a + Number(r.balance || 0) + depositsFor(r.lead_name),
+    0,
+  );
+
   const answeredCount = rows.filter((r) => r.answered).length;
   const highCount = rows.filter((r) => r.potential === "high").length;
 
