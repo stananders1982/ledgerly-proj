@@ -17,6 +17,7 @@ import { fmtDate, fmtMoney } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
+import { SearchInput } from "@/components/search-input";
 
 const sb = supabase as any;
 const PENALTY_RATE = 0.1;
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/withdrawals")({
 function WithdrawalsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
 
   const wQ = useQuery({
@@ -64,6 +66,13 @@ function WithdrawalsPage() {
     [empQ.data],
   );
   const getEmpName = (r: any) => r.employees?.name ?? (r.employee_id ? empNameById.get(r.employee_id) : undefined) ?? "—";
+
+  const rows = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const list = wQ.data ?? [];
+    if (!term) return list;
+    return list.filter((r: any) => (r.customer_name ?? "").toLowerCase().includes(term));
+  }, [wQ.data, search]);
 
   const stats = useMemo(() => {
     const list = wQ.data ?? [];
@@ -137,6 +146,10 @@ function WithdrawalsPage() {
         }
       />
 
+      <div className="mb-4">
+        <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
+      </div>
+
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label="Total withdrawn" value={fmtMoney(stats.total)} tone="negative" />
         <StatCard label="This month" value={fmtMoney(stats.monthTotal)} />
@@ -159,7 +172,7 @@ function WithdrawalsPage() {
 
       <div className="card-surface overflow-hidden">
         {wQ.isLoading ? <div className="p-8 text-sm text-muted-foreground">Loading…</div>
-        : (wQ.data?.length ?? 0) === 0 ? (
+        : rows.length === 0 ? (
           <EmptyState icon={Banknote} title="No withdrawals yet" description="Record your first withdrawal to track payouts and agent penalties."
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New withdrawal</Button>} />
         ) : (
@@ -178,7 +191,7 @@ function WithdrawalsPage() {
                 </tr>
               </thead>
               <tbody>
-                {wQ.data!.map((r: any) => (
+                {rows.map((r: any) => (
                   <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(r); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>

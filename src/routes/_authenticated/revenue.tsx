@@ -20,6 +20,8 @@ import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
+import { SearchInput } from "@/components/search-input";
+
 
 export const Route = createFileRoute("/_authenticated/revenue")({
   head: () => ({ meta: [{ title: "Revenue — Ledgerly" }] }),
@@ -33,7 +35,9 @@ function RevenuePage() {
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
+  const [search, setSearch] = useState("");
   const activeRange = useMemo(
+
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
   );
@@ -95,11 +99,15 @@ function RevenuePage() {
     const list = revQ.data ?? [];
     const s = activeRange.start.getTime();
     const e = activeRange.end.getTime();
+    const term = search.trim().toLowerCase();
     return list.filter((r: any) => {
       const t = new Date(r.date + "T00:00:00").getTime();
-      return t >= s && t <= e;
+      if (t < s || t > e) return false;
+      if (term && !(r.customer_name ?? "").toLowerCase().includes(term)) return false;
+      return true;
     });
-  }, [revQ.data, activeRange]);
+  }, [revQ.data, activeRange, search]);
+
 
   const stats = useMemo(() => {
     const list = filtered;
@@ -184,7 +192,7 @@ function RevenuePage() {
         }
       />
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <DateRangePicker
           value={range}
           onChange={setRange}
@@ -192,6 +200,8 @@ function RevenuePage() {
           customEnd={customEnd}
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
+        <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
+
       </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
