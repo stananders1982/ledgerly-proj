@@ -298,15 +298,21 @@ function LeadsPage() {
         </div>
       </div>
 
-      <section className="grid grid-cols-2 lg:grid-cols-7 gap-3 mb-6">
+      <section className="grid grid-cols-2 lg:grid-cols-8 gap-3 mb-6">
         <StatCard label="Received" value={String(stats.received)} />
         <StatCard label="Activated" value={String(stats.activated)} tone="positive" />
+        <StatCard
+          label="Allocated"
+          value={`${allocated} / ${stats.activated}`}
+          tone={allocated < stats.activated ? "negative" : "positive"}
+        />
         <StatCard label="Reported" value={String(stats.reported)} />
         <StatCard label="Unreported" value={String(stats.unreported)} />
         <StatCard label="Conv. rate" value={fmtPct(stats.rate)} />
         <StatCard label="Total cost" value={fmtMoney(stats.totalCost)} />
         <StatCard label="Saved (CPA)" value={fmtMoney(stats.cpaSavings)} tone="positive" />
       </section>
+
 
       <div className="card-surface p-4 mb-6">
         <div className="mb-3 flex items-center justify-between">
