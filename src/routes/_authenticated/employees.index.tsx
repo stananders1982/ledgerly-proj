@@ -114,7 +114,7 @@ function EmployeesPage() {
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4" /> Add employee</Button>
             </DialogTrigger>
-            <EmpDialog emp={editing} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+            <EmpDialog key={editing?.id ?? "new"} emp={editing} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
           </Dialog>
         }
       />
@@ -164,6 +164,8 @@ function EmployeesPage() {
                     </td>
                     <td className="py-3 px-4">{e.active ? "Yes" : "No"}</td>
                     <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
+                      <button type="button" className="text-primary hover:underline text-xs mr-3"
+                        onClick={() => { setEditing(e); setOpen(true); }}>Edit</button>
                       <Link to="/employees/$id" params={{ id: e.id }} className="text-primary hover:underline text-xs mr-3">View</Link>
                       <ConfirmDelete onConfirm={() => del.mutate(e.id)} label="Delete employee?" />
                     </td>
