@@ -149,6 +149,9 @@ function EmployeesPage() {
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 font-medium">{e.name}</td>
                     <td className="py-3 px-4">{e.role || "—"}</td>
+                    <td className="py-3 px-4">
+                      <span className="rounded border border-border px-1.5 py-0.5 text-xs font-medium">{e.team ?? "C"}</span>
+                    </td>
                     <td className="py-3 px-4 text-muted-foreground">{e.email || "—"}</td>
                     <td className="py-3 px-4">{fmtMoney(e.salary)}</td>
                     <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
@@ -182,6 +185,7 @@ function EmpDialog({
     name: emp?.name ?? "",
     email: emp?.email ?? "",
     role: emp?.role ?? "",
+    team: emp?.team ?? "C",
     salary: emp?.salary ?? 0,
     commission_pct: emp?.commission_pct ?? 0,
     active: emp?.active ?? true,
