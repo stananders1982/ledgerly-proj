@@ -43,8 +43,8 @@ type Entry = {
   lead_sources?: { id: string; name: string; pricing_model: "CPL" | "CPA"; price: number; expected_conversion_rate?: number } | null;
 };
 
-type Activation = { id: string; entry_id: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null };
-type Split = { employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null };
+type Activation = { id: string; entry_id: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null };
+type Split = { employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null };
 
 function LeadsPage() {
   const qc = useQueryClient();
@@ -220,6 +220,7 @@ function LeadsPage() {
             conversion_employee_id: s.conversion_employee_id || null,
             activated_count: Number(s.activated_count) || 0,
             lead_name: s.lead_name?.trim() || null,
+            potential: s.potential || null,
           })),
         );
         if (insErr) throw insErr;
@@ -265,6 +266,7 @@ function LeadsPage() {
                     conversion_employee_id: a.conversion_employee_id ?? "",
                     activated_count: 1,
                     lead_name: a.lead_name ?? "",
+                    potential: a.potential ?? "",
                   })),
                 ) : []
               }
@@ -491,7 +493,7 @@ function EntryDialog({
     if (form.activated > 0 && splits.length === 0) {
       setSplits(
         Array.from({ length: form.activated }, () => ({
-          employee_id: "", conversion_employee_id: "", activated_count: 1, lead_name: "",
+          employee_id: "", conversion_employee_id: "", activated_count: 1, lead_name: "", potential: "",
         })),
       );
     }
@@ -509,7 +511,7 @@ function EntryDialog({
 
 
   return (
-    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{entry?.id ? "Edit entry" : "New daily entry"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
         <div className="grid grid-cols-2 gap-3">
@@ -557,7 +559,7 @@ function EntryDialog({
         {form.activated > 0 && (
           <div className="rounded-md border border-border p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs">Activated leads — retention (R), conversion (C) and lead name</Label>
+              <Label className="text-xs">Activated leads — retention (R), conversion (C), lead name and potential</Label>
               <span className={`text-xs ${validSplits ? "text-muted-foreground" : "text-amber-500"}`}>
                 {splitSum} / {form.activated}
                 {remainder !== 0 && ` (${remainder > 0 ? "+" : ""}${remainder})`}
@@ -611,6 +613,22 @@ function EntryDialog({
                     setSplits(copy);
                   }}
                 />
+                <Select
+                  value={sp.potential || "_none"}
+                  onValueChange={(v) => {
+                    const copy = [...splits];
+                    copy[i] = { ...copy[i], potential: v === "_none" ? "" : v };
+                    setSplits(copy);
+                  }}
+                >
+                  <SelectTrigger className="w-[110px]"><SelectValue placeholder="Potential" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Potential…</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="mid">Mid</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button type="button" variant="ghost" size="icon"
                   onClick={() => setSplits(splits.filter((_, idx) => idx !== i))}>
                   <X className="h-4 w-4" />
@@ -619,7 +637,7 @@ function EntryDialog({
             ))}
             <div className="flex items-center justify-between">
               <Button type="button" variant="outline" size="sm"
-                onClick={() => setSplits([...splits, { employee_id: "", conversion_employee_id: "", activated_count: 1, lead_name: "" }])}>
+                onClick={() => setSplits([...splits, { employee_id: "", conversion_employee_id: "", activated_count: 1, lead_name: "", potential: "" }])}>
                 <Plus className="h-3 w-3" /> Add lead
               </Button>
               {dupEmployees && <span className="text-xs text-amber-500">Duplicate employee + lead name</span>}
