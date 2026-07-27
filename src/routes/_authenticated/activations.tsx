@@ -153,6 +153,20 @@ function ActivationsPage() {
   const answeredCount = rows.filter((r) => r.answered).length;
   const highCount = rows.filter((r) => r.potential === "high").length;
 
+  // Conversions per conversion agent — only answered leads count
+  const conversionsByAgent = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of rows) {
+      if (!r.answered) continue;
+      const id = r.conversion_employee_id;
+      if (!id) continue;
+      m.set(id, (m.get(id) ?? 0) + 1);
+    }
+    return [...m.entries()]
+      .map(([id, count]) => ({ id, name: employeeName(id), count }))
+      .sort((a, b) => b.count - a.count);
+  }, [rows, employeesQ.data]);
+
   const save = useMutation({
     mutationFn: async (v: Row) => {
       const { error } = await supabase
