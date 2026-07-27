@@ -90,7 +90,7 @@ function EmployeeDetailPage() {
     queryFn: async () => {
       const { data, error } = await sb
         .from("daily_lead_activations")
-        .select("activated_count, daily_lead_entries!inner(entry_date)")
+        .select("activated_count, lead_name, daily_lead_entries!inner(entry_date)")
         .eq("employee_id", id)
         .gte("daily_lead_entries.entry_date", start)
         .lte("daily_lead_entries.entry_date", end);
