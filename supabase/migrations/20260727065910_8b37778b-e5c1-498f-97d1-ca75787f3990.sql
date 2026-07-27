@@ -1,0 +1,1 @@
+ALTER TABLE public.daily_lead_activations ADD COLUMN IF NOT EXISTS conversion_employee_id uuid REFERENCES public.employees(id) ON DELETE SET NULL;

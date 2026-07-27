@@ -207,6 +207,7 @@ export type Database = {
       daily_lead_activations: {
         Row: {
           activated_count: number
+          conversion_employee_id: string | null
           created_at: string
           employee_id: string
           entry_id: string
@@ -216,6 +217,7 @@ export type Database = {
         }
         Insert: {
           activated_count?: number
+          conversion_employee_id?: string | null
           created_at?: string
           employee_id: string
           entry_id: string
@@ -225,6 +227,7 @@ export type Database = {
         }
         Update: {
           activated_count?: number
+          conversion_employee_id?: string | null
           created_at?: string
           employee_id?: string
           entry_id?: string
@@ -233,6 +236,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "daily_lead_activations_conversion_employee_id_fkey"
+            columns: ["conversion_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_lead_activations_conversion_employee_id_fkey"
+            columns: ["conversion_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "daily_lead_activations_employee_id_fkey"
             columns: ["employee_id"]
