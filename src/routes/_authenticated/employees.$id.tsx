@@ -99,6 +99,30 @@ function EmployeeDetailPage() {
     },
   });
 
+  // Leads this employee activated (as conversion agent).
+  // Only answered leads with mid/high potential count.
+  const conversionsQ = useQuery({
+    queryKey: ["employee-conversions", id, start, end],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("daily_lead_activations")
+        .select("lead_name, potential, answered, daily_lead_entries!inner(entry_date)")
+        .eq("conversion_employee_id", id)
+        .gte("daily_lead_entries.entry_date", start)
+        .lte("daily_lead_entries.entry_date", end);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const conversions = useMemo(() => {
+    const all = (conversionsQ.data ?? []) as any[];
+    const counted = all.filter((r) => r.answered && (r.potential === "mid" || r.potential === "high"));
+    return { all, counted };
+  }, [conversionsQ.data]);
+
+
+
   const emp = empQ.data as any;
 
   const totals = useMemo(() => {
@@ -174,6 +198,8 @@ function EmployeeDetailPage() {
       </section>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <StatCard label="Leads activated (conversion)" value={String(conversions.counted.length)} tone="positive" />
+        <StatCard label="Pending (unanswered / low)" value={String(conversions.all.length - conversions.counted.length)} />
         <StatCard label="Clients received (retention)" value={String(totals.clients)} tone="positive" />
         <StatCard label="Revenue / client" value={fmtMoney(totals.revenuePerClient)} tone="positive" />
         <StatCard label="Withdrawals" value={fmtMoney(totals.withdrawn)} tone="negative" />
