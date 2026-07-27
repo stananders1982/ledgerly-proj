@@ -377,16 +377,21 @@ function RevenueDialog({
           <Field label="Customer name"><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></Field>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className={detailsHidden ? "" : "grid grid-cols-2 gap-3"}>
           <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
-          <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+          {!detailsHidden && (
+            <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+          )}
         </div>
-        <Field label={hasSplit ? `Employee 1 (${Number(form.split_pct)}%)` : "Employee"}>
-          <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
-            <SelectTrigger><SelectValue placeholder="Pick employee" /></SelectTrigger>
-            <SelectContent>{employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
-          </Select>
-        </Field>
+        {!detailsHidden && (
+          <Field label={hasSplit ? `Employee 1 (${Number(form.split_pct)}%)` : "Employee"}>
+            <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Pick employee" /></SelectTrigger>
+              <SelectContent>{employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+        )}
+
         <Field label={hasSplit ? `Employee 2 (${100 - Number(form.split_pct)}%)` : "Split with second employee (optional)"}>
           <Select
             value={form.employee_id_2 || "_none"}
