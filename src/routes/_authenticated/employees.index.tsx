@@ -15,6 +15,7 @@ import { fmtMoney } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/employees/")({
   head: () => ({ meta: [{ title: "Employees — Ledgerly" }] }),
@@ -26,6 +27,7 @@ type Emp = {
   name: string;
   email: string | null;
   role: string | null;
+  team: string;
   salary: number;
   commission_pct: number;
   active: boolean;
@@ -35,6 +37,12 @@ type Emp = {
   commission_tier2_pct: number;
   commission_tier3_pct: number;
 };
+
+const TEAMS = [
+  { value: "R", label: "R — Registration" },
+  { value: "C", label: "C — Conversion (activations)" },
+  { value: "M", label: "M — Management" },
+];
 
 function EmployeesPage() {
   const qc = useQueryClient();
@@ -58,6 +66,7 @@ function EmployeesPage() {
         name: v.name,
         email: v.email || null,
         role: v.role || null,
+        team: v.team || "C",
         salary: Number(v.salary) || 0,
         commission_pct: Number(v.commission_pct) || 0,
         active: !!v.active,
@@ -127,6 +136,7 @@ function EmployeesPage() {
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <th className="py-3 px-4">Name</th>
                   <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">Team</th>
                   <th className="py-3 px-4">Email</th>
                   <th className="py-3 px-4">Base salary</th>
                   <th className="py-3 px-4">Commission tiers</th>
@@ -140,6 +150,9 @@ function EmployeesPage() {
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 font-medium">{e.name}</td>
                     <td className="py-3 px-4">{e.role || "—"}</td>
+                    <td className="py-3 px-4">
+                      <span className="rounded border border-border px-1.5 py-0.5 text-xs font-medium">{e.team ?? "C"}</span>
+                    </td>
                     <td className="py-3 px-4 text-muted-foreground">{e.email || "—"}</td>
                     <td className="py-3 px-4">{fmtMoney(e.salary)}</td>
                     <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
@@ -173,6 +186,7 @@ function EmpDialog({
     name: emp?.name ?? "",
     email: emp?.email ?? "",
     role: emp?.role ?? "",
+    team: emp?.team ?? "C",
     salary: emp?.salary ?? 0,
     commission_pct: emp?.commission_pct ?? 0,
     active: emp?.active ?? true,
@@ -188,6 +202,16 @@ function EmpDialog({
       <div className="grid gap-3 py-2">
         <Field label="Name">
           <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </Field>
+        <Field label="Team">
+          <Select value={form.team} onValueChange={(v) => setForm({ ...form, team: v })}>
+            <SelectTrigger><SelectValue placeholder="Select team" /></SelectTrigger>
+            <SelectContent>
+              {TEAMS.map((t) => (
+                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field label="Base salary">
           <Input type="number" min={0} step="0.01" value={form.salary}

@@ -81,7 +81,7 @@ function LeadsPage() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("list_employees_directory");
       if (error) throw error;
-      return (data ?? []) as { id: string; name: string; active: boolean }[];
+      return (data ?? []) as { id: string; name: string; active: boolean; team?: string | null }[];
     },
   });
 
@@ -439,7 +439,7 @@ function EntryDialog({
 }: {
   entry: Entry | null;
   sources: any[];
-  employees: { id: string; name: string; active: boolean }[];
+  employees: { id: string; name: string; active: boolean; team?: string | null }[];
   existingSplits: Split[];
   onSubmit: (v: any) => void;
   loading: boolean;
@@ -519,7 +519,7 @@ function EntryDialog({
         {form.activated > 0 && (
           <div className="rounded-md border border-border p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs">Attribute activated leads to employees</Label>
+              <Label className="text-xs">Attribute activated leads to employees (Team C)</Label>
               <span className={`text-xs ${validSplits ? "text-muted-foreground" : "text-amber-500"}`}>
                 {splitSum} / {form.activated}
                 {remainder !== 0 && ` (${remainder > 0 ? "+" : ""}${remainder})`}
@@ -538,9 +538,11 @@ function EntryDialog({
                   <SelectTrigger className="flex-1"><SelectValue placeholder="Employee" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="_none">Select…</SelectItem>
-                    {employees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                    ))}
+                    {employees
+                      .filter((emp) => (emp.team ?? "C") === "C" || emp.id === sp.employee_id)
+                      .map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 <Input
