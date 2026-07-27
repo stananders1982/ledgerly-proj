@@ -297,7 +297,7 @@ function EditDialog({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-1.5">
-            <label className="text-xs text-muted-foreground">Balance</label>
+            <label className="text-xs text-muted-foreground">Base balance</label>
             <Input type="number" min={0} value={form.balance ?? 0}
               onChange={(e) => setForm({ ...form, balance: Number(e.target.value) })} />
           </div>
