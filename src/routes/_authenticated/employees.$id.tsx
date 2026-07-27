@@ -99,14 +99,14 @@ function EmployeeDetailPage() {
     },
   });
 
-  // Leads this employee activated (as conversion agent).
-  // Only answered leads with mid/high potential count.
+  // FTDs — leads this employee activated (as conversion agent).
+  // Counted when answered AND (mid/high potential OR effective balance >= 251).
   const conversionsQ = useQuery({
     queryKey: ["employee-conversions", id, start, end],
     queryFn: async () => {
       const { data, error } = await sb
         .from("daily_lead_activations")
-        .select("lead_name, potential, answered, daily_lead_entries!inner(entry_date)")
+        .select("lead_name, potential, answered, balance, daily_lead_entries!inner(entry_date)")
         .eq("conversion_employee_id", id)
         .gte("daily_lead_entries.entry_date", start)
         .lte("daily_lead_entries.entry_date", end);
@@ -115,11 +115,35 @@ function EmployeeDetailPage() {
     },
   });
 
+  // Deposits matched by customer name (same rule as the Activated Leads page).
+  const depositsQ = useQuery({
+    queryKey: ["revenue-by-name"],
+    queryFn: async () => {
+      const { data, error } = await sb.from("revenue").select("customer_name, amount");
+      if (error) throw error;
+      return (data ?? []) as { customer_name: string | null; amount: number }[];
+    },
+  });
+
   const conversions = useMemo(() => {
-    const all = (conversionsQ.data ?? []) as any[];
-    const counted = all.filter((r) => r.answered && (r.potential === "mid" || r.potential === "high"));
-    return { all, counted };
-  }, [conversionsQ.data]);
+    const deposits = new Map<string, number>();
+    for (const r of depositsQ.data ?? []) {
+      const k = (r.customer_name ?? "").trim().toLowerCase();
+      if (!k) continue;
+      deposits.set(k, (deposits.get(k) ?? 0) + Number(r.amount || 0));
+    }
+    const all = ((conversionsQ.data ?? []) as any[]).map((r) => {
+      const effectiveBalance =
+        Number(r.balance || 0) + (deposits.get((r.lead_name ?? "").trim().toLowerCase()) ?? 0);
+      const qualifies =
+        !!r.answered &&
+        (r.potential === "mid" || r.potential === "high" || effectiveBalance >= 251);
+      const reason = !r.answered ? "Not answered yet" : "Low potential under $251";
+      return { ...r, effectiveBalance, qualifies, reason };
+    });
+    return { all, counted: all.filter((r) => r.qualifies), pending: all.filter((r) => !r.qualifies) };
+  }, [conversionsQ.data, depositsQ.data]);
+
 
 
 
