@@ -235,12 +235,14 @@ function LeadsPage() {
               sources={sourcesQ.data ?? []}
               employees={employeesQ.data ?? []}
               existingSplits={
-                editing ? (activationsByEntry.get(editing.id) ?? []).map((a) => ({
-                  employee_id: a.employee_id,
-                  conversion_employee_id: a.conversion_employee_id ?? "",
-                  activated_count: a.activated_count,
-                  lead_name: a.lead_name ?? "",
-                })) : []
+                editing ? (activationsByEntry.get(editing.id) ?? []).flatMap((a) =>
+                  Array.from({ length: Math.max(1, a.activated_count) }, () => ({
+                    employee_id: a.employee_id,
+                    conversion_employee_id: a.conversion_employee_id ?? "",
+                    activated_count: 1,
+                    lead_name: a.lead_name ?? "",
+                  })),
+                ) : []
               }
               onSubmit={(v) => upsert.mutate(v)}
               loading={upsert.isPending}
@@ -591,7 +593,7 @@ function EntryDialog({
             ))}
             <div className="flex items-center justify-between">
               <Button type="button" variant="outline" size="sm"
-                onClick={() => setSplits([...splits, { employee_id: "", conversion_employee_id: "", activated_count: Math.max(0, remainder), lead_name: "" }])}>
+                onClick={() => setSplits([...splits, { employee_id: "", conversion_employee_id: "", activated_count: 1, lead_name: "" }])}>
                 <Plus className="h-3 w-3" /> Add lead
               </Button>
               {dupEmployees && <span className="text-xs text-amber-500">Duplicate employee + lead name</span>}
