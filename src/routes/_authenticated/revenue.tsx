@@ -21,6 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { SearchInput } from "@/components/search-input";
+import { useSort, SortTh } from "@/components/sortable-table";
 
 
 export const Route = createFileRoute("/_authenticated/revenue")({
@@ -107,6 +108,14 @@ function RevenuePage() {
       return true;
     });
   }, [revQ.data, activeRange, search]);
+
+  const { sorted, sort, toggle } = useSort<any>(filtered, {
+    date: (r) => r.date,
+    customer: (r) => r.customer_name,
+    amount: (r) => Number(r.amount ?? 0),
+    employee: (r) => getEmployeeName(r.employee_id, r.employees) ?? "",
+    affiliate: (r) => getAffiliateName(r.affiliate_id, r.affiliates) ?? "",
+  });
 
 
   const stats = useMemo(() => {
@@ -226,16 +235,16 @@ function RevenuePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Customer</th>
-                  <th className="py-3 px-4">Amount</th>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Affiliate</th>
+                  <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Customer" k="customer" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Employee" k="employee" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r: any) => (
+                {sorted.map((r: any) => (
                   <RevenueRow
                     key={r.id}
                     revenue={r}

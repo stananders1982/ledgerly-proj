@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { CheckCircle2, PhoneCall, Wallet } from "lucide-react";
+import { useSort, SortTh } from "@/components/sortable-table";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   head: () => ({
@@ -133,6 +134,17 @@ function ActivationsPage() {
     });
   }, [q.data, activeRange, answeredFilter, potentialFilter, search]);
 
+  const { sorted, sort, toggle } = useSort<any>(rows, {
+    date: (r) => r.daily_lead_entries?.entry_date ?? "",
+    lead: (r) => r.lead_name ?? "",
+    source: (r) => r.daily_lead_entries?.lead_sources?.name ?? "",
+    balance: (r) => Number(r.balance || 0) + depositsFor(r.lead_name),
+    potential: (r) => ({ low: 1, mid: 2, high: 3 } as any)[r.potential ?? ""] ?? 0,
+    conversion: (r) => r.conversion_employee_id ?? "",
+    retention: (r) => r.employee_id ?? "",
+    answered: (r) => !!r.answered,
+  });
+
   const totalBalance = rows.reduce(
     (a, r) => a + Number(r.balance || 0) + depositsFor(r.lead_name),
     0,
@@ -222,18 +234,18 @@ function ActivationsPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Lead name</th>
-                <th className="py-3 px-4">Source</th>
-                <th className="py-3 px-4">Balance</th>
-                <th className="py-3 px-4">Potential</th>
-                <th className="py-3 px-4">Conversion agent</th>
-                <th className="py-3 px-4">Retention agent</th>
-                <th className="py-3 px-4">Answered</th>
+                <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
+                <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-3 px-4" />
+                <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
+                <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-3 px-4" />
+                <SortTh label="Potential" k="potential" sort={sort} toggle={toggle} className="py-3 px-4" />
+                <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-3 px-4" />
+                <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-3 px-4" />
+                <SortTh label="Answered" k="answered" sort={sort} toggle={toggle} className="py-3 px-4" />
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {sorted.map((r: any) => (
                 <tr
                   key={r.id}
                   className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
