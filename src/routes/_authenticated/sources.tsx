@@ -17,6 +17,7 @@ import { fmtMoney, fmtPct } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
+import { useSort, SortTh } from "@/components/sortable-table";
 
 export const Route = createFileRoute("/_authenticated/sources")({
   head: () => ({ meta: [{ title: "Lead Sources — Ledgerly" }] }),
@@ -153,6 +154,16 @@ function SourcesPage() {
     });
   }, [analytics, perfFilter, sortKey]);
 
+  const { sorted, sort, toggle } = useSort<any>(visible, {
+    name: (a) => a.source.name ?? "",
+    model: (a) => a.source.pricing_model ?? "",
+    price: (a) => Number(a.source.price ?? 0),
+    leads: (a) => Number(a.total ?? 0),
+    expected: (a) => Number(a.expected ?? 0),
+    actual: (a) => Number(a.actualRate ?? 0),
+    cost: (a) => Number(a.cost ?? 0),
+  });
+
   const totals = useMemo(() => analytics.reduce(
     (a, x) => ({
       leads: a.leads + x.total,
@@ -276,20 +287,20 @@ function SourcesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="py-3 px-4">Source</th>
-                  <th className="py-3 px-4">Model</th>
-                  <th className="py-3 px-4">Price</th>
-                  <th className="py-3 px-4">Leads</th>
-                  <th className="py-3 px-4">Expected</th>
-                  <th className="py-3 px-4">Actual</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Cost</th>
+                  <SortTh label="Source" k="name" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Model" k="model" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Price" k="price" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Leads" k="leads" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Expected" k="expected" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Actual" k="actual" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <th className="py-3 px-4"></th>
+                  <SortTh label="Cost" k="cost" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <th className="py-3 px-4"></th>
 
                 </tr>
               </thead>
               <tbody>
-                {visible.map((a) => (
+                {sorted.map((a: any) => (
                   <tr key={a.source.id}
                       className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(a.source); setOpen(true); }}>

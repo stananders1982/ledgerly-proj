@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { PricingBadge } from "./sources";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
+import { useSort, SortTh } from "@/components/sortable-table";
 
 
 
@@ -105,6 +106,29 @@ function LeadsPage() {
       return true;
     });
   }, [allRows, activeRange, sourceFilter]);
+
+  const { sorted, sort, toggle } = useSort<any>(rows, {
+    date: (r) => r.entry_date,
+    source: (r) => r.lead_sources?.name ?? "",
+    model: (r) => r.lead_sources?.pricing_model ?? "",
+    received: (r) => Number(r.received ?? 0),
+    activated: (r) => Number(r.activated ?? 0),
+    reported: (r) => Number(r.reported ?? 0),
+    expected: (r) => Number(r.lead_sources?.expected_conversion_rate ?? 0),
+    reportedPct: (r) => (r.received ? Number(r.reported) / Number(r.received) : 0),
+    activatedPct: (r) => (r.received ? Number(r.activated) / Number(r.received) : 0),
+    cost: (r) => {
+      const s2 = r.lead_sources;
+      if (!s2) return 0;
+      const p2 = Number(s2.price);
+      return s2.pricing_model === "CPL" ? p2 * r.received : p2 * r.reported;
+    },
+    savings: (r) =>
+      r.lead_sources?.pricing_model === "CPA"
+        ? Number(r.lead_sources.price) * Math.max(0, r.activated - r.reported)
+        : 0,
+    notes: (r) => r.notes ?? "",
+  });
 
   const activationsByEntry = useMemo(() => {
     const m = new Map<string, Activation[]>();
@@ -375,24 +399,24 @@ function LeadsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Source</th>
-                  <th className="py-3 px-4">Model</th>
-                  <th className="py-3 px-4">Received</th>
-                  <th className="py-3 px-4">Activated</th>
-                  <th className="py-3 px-4">Reported</th>
-                  <th className="py-3 px-4">Expected %</th>
-                  <th className="py-3 px-4">Reported %</th>
-                  <th className="py-3 px-4">Activated %</th>
-                  <th className="py-3 px-4">Cost</th>
-                  <th className="py-3 px-4">Savings</th>
+                  <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Model" k="model" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Received" k="received" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Activated" k="activated" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Reported" k="reported" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Expected %" k="expected" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Reported %" k="reportedPct" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Activated %" k="activatedPct" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Cost" k="cost" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Savings" k="savings" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <th className="py-3 px-4">Attribution</th>
-                  <th className="py-3 px-4">Notes</th>
+                  <SortTh label="Notes" k="notes" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => {
+                {sorted.map((r: any) => {
                   const s = r.lead_sources;
                   const p = s ? Number(s.price) : 0;
                   const cost = !s ? 0

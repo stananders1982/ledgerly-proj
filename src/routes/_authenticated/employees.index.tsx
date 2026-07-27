@@ -16,6 +16,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSort, SortTh } from "@/components/sortable-table";
 
 export const Route = createFileRoute("/_authenticated/employees/")({
   head: () => ({ meta: [{ title: "Employees — Ledgerly" }] }),
@@ -59,6 +60,14 @@ function EmployeesPage() {
   });
 
   const rows = q.data ?? [];
+  const { sorted, sort, toggle } = useSort<any>(rows, {
+    name: (e) => e.name ?? "",
+    role: (e) => e.role ?? "",
+    team: (e) => e.team ?? "C",
+    email: (e) => e.email ?? "",
+    salary: (e) => Number(e.salary ?? 0),
+    active: (e) => !!e.active,
+  });
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
@@ -134,18 +143,18 @@ function EmployeesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="py-3 px-4">Name</th>
-                  <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Team</th>
-                  <th className="py-3 px-4">Email</th>
-                  <th className="py-3 px-4">Base salary</th>
-                  <th className="py-3 px-4">Commission tiers</th>
-                  <th className="py-3 px-4">Active</th>
+                  <SortTh label="Name" k="name" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Role" k="role" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Team" k="team" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Email" k="email" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Base salary" k="salary" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <th className="py-3 px-4"></th>
+                  <SortTh label="Active" k="active" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((e) => (
+                {sorted.map((e: any) => (
                   <tr key={e.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 font-medium">{e.name}</td>

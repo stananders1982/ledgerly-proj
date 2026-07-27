@@ -18,6 +18,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { SearchInput } from "@/components/search-input";
+import { useSort, SortTh } from "@/components/sortable-table";
 
 const sb = supabase as any;
 const PENALTY_RATE = 0.1;
@@ -73,6 +74,16 @@ function WithdrawalsPage() {
     if (!term) return list;
     return list.filter((r: any) => (r.customer_name ?? "").toLowerCase().includes(term));
   }, [wQ.data, search]);
+
+  const { sorted, sort, toggle } = useSort<any>(rows, {
+    date: (r) => r.date,
+    customer: (r) => r.customer_name ?? "",
+    amount: (r) => Number(r.amount ?? 0),
+    agent: (r) => getEmpName(r),
+    penalty: (r) => Number(r.employee_penalty ?? 0),
+    source: (r) => r.affiliates?.name ?? "",
+    sale: (r) => r.revenue?.customer_name ?? "",
+  });
 
   const stats = useMemo(() => {
     const list = wQ.data ?? [];
@@ -180,18 +191,18 @@ function WithdrawalsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Customer</th>
-                  <th className="py-3 px-4">Amount</th>
-                  <th className="py-3 px-4">Agent</th>
-                  <th className="py-3 px-4">Penalty (10%)</th>
-                  <th className="py-3 px-4">Source</th>
-                  <th className="py-3 px-4">Linked sale</th>
+                  <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Customer" k="customer" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Agent" k="agent" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Penalty (10%)" k="penalty" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Linked sale" k="sale" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r: any) => (
+                {sorted.map((r: any) => (
                   <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(r); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>

@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import { useSort } from "@/components/sortable-table";
+import { ArrowUpDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -101,6 +103,17 @@ function UsersPage() {
   if (permsLoaded && !isAdmin) return <Navigate to="/" />;
 
   const rows = (q.data ?? []) as AppUser[];
+  const { sorted, sort, toggle } = useSort<AppUser>(rows, {
+    name: (u: any) => u.name ?? "",
+    email: (u: any) => u.email ?? "",
+    role: (u: any) => (u.roles.includes("admin") ? "admin" : "user"),
+    pages: (u: any) => (u.nav_permissions?.length ?? 0),
+  });
+  const th = (label: string, k: string) => (
+    <button type="button" onClick={() => toggle(k)} className="inline-flex items-center gap-1 hover:text-foreground">
+      {label} <ArrowUpDown className={`h-3 w-3 ${sort?.key === k ? "opacity-100" : "opacity-40"}`} />
+    </button>
+  );
 
   return (
     <div className="space-y-6">
@@ -121,10 +134,10 @@ function UsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Pages</TableHead>
+              <TableHead>{th("Name", "name")}</TableHead>
+              <TableHead>{th("Email", "email")}</TableHead>
+              <TableHead>{th("Role", "role")}</TableHead>
+              <TableHead>{th("Pages", "pages")}</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -135,7 +148,7 @@ function UsersPage() {
             {!q.isLoading && rows.length === 0 && (
               <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No users yet.</TableCell></TableRow>
             )}
-            {rows.map((u) => {
+            {sorted.map((u) => {
               const adm = u.roles.includes("admin");
               return (
                 <TableRow key={u.id}>

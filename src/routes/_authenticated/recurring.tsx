@@ -19,6 +19,7 @@ import { fmtDate, fmtMoney } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
+import { useSort, SortTh } from "@/components/sortable-table";
 
 export const Route = createFileRoute("/_authenticated/recurring")({
   head: () => ({ meta: [{ title: "Recurring Expenses — Ledgerly" }] }),
@@ -80,6 +81,15 @@ function RecurringPage() {
       .reduce((s: number, r: any) => s + Number(r.amount), 0);
     return { monthly, upcoming, count: list.length };
   }, [listQ.data]);
+
+  const { sorted, sort, toggle } = useSort<any>(listQ.data ?? [], {
+    name: (r) => r.name ?? "",
+    category: (r) => r.expense_categories?.name ?? "",
+    amount: (r) => Number(r.amount ?? 0),
+    frequency: (r) => r.frequency ?? "",
+    next: (r) => r.next_due_date ?? "",
+    status: (r) => !!r.active,
+  });
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
@@ -162,17 +172,17 @@ function RecurringPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="py-3 px-4">Name</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Amount</th>
-                  <th className="py-3 px-4">Frequency</th>
-                  <th className="py-3 px-4">Next due</th>
-                  <th className="py-3 px-4">Status</th>
+                  <SortTh label="Name" k="name" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Category" k="category" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Frequency" k="frequency" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Next due" k="next" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Status" k="status" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
               <tbody>
-                {listQ.data!.map((r: any) => (
+                {sorted.map((r: any) => (
                   <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(r); setOpen(true); }}>
                     <td className="py-3 px-4 font-medium">{r.name}</td>

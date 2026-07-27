@@ -21,6 +21,7 @@ import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
+import { useSort, SortTh } from "@/components/sortable-table";
 
 export const Route = createFileRoute("/_authenticated/expenses")({
   head: () => ({ meta: [{ title: "Expenses — Ledgerly" }] }),
@@ -68,6 +69,14 @@ function ExpensesPage() {
       return t >= s && t <= e;
     });
   }, [expQ.data, activeRange]);
+
+  const { sorted, sort, toggle } = useSort<any>(filtered, {
+    date: (e) => e.date,
+    category: (e) => e.expense_categories?.name ?? "",
+    affiliate: (e) => e.affiliates?.name ?? "",
+    amount: (e) => Number(e.amount ?? 0),
+    notes: (e) => e.notes ?? "",
+  });
 
   const stats = useMemo(() => {
     const total = filtered.reduce((s: number, e: any) => s + Number(e.amount), 0);
@@ -169,16 +178,16 @@ function ExpensesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Affiliate</th>
-                  <th className="py-3 px-4">Amount</th>
-                  <th className="py-3 px-4">Notes</th>
+                  <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Category" k="category" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <SortTh label="Notes" k="notes" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((e: any) => (
+                {sorted.map((e: any) => (
                   <tr key={e.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>
