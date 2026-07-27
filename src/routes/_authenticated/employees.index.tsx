@@ -15,6 +15,7 @@ import { fmtMoney } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/employees/")({
   head: () => ({ meta: [{ title: "Employees — Ledgerly" }] }),
@@ -201,6 +202,16 @@ function EmpDialog({
       <div className="grid gap-3 py-2">
         <Field label="Name">
           <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </Field>
+        <Field label="Team">
+          <Select value={form.team} onValueChange={(v) => setForm({ ...form, team: v })}>
+            <SelectTrigger><SelectValue placeholder="Select team" /></SelectTrigger>
+            <SelectContent>
+              {TEAMS.map((t) => (
+                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field label="Base salary">
           <Input type="number" min={0} step="0.01" value={form.salary}
