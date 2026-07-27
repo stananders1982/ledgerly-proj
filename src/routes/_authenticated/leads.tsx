@@ -578,17 +578,6 @@ function EntryDialog({
                     setSplits(copy);
                   }}
                 />
-                <Input
-                  type="number"
-                  min={0}
-                  className="w-20"
-                  value={sp.activated_count}
-                  onChange={(e) => {
-                    const copy = [...splits];
-                    copy[i] = { ...copy[i], activated_count: Number(e.target.value) };
-                    setSplits(copy);
-                  }}
-                />
                 <Button type="button" variant="ghost" size="icon"
                   onClick={() => setSplits(splits.filter((_, idx) => idx !== i))}>
                   <X className="h-4 w-4" />
