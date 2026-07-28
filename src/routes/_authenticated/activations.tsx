@@ -23,10 +23,10 @@ import { useSort, SortTh } from "@/components/sortable-table";
 export const Route = createFileRoute("/_authenticated/activations")({
   head: () => ({
     meta: [
-      { title: "Activated Leads — Ledgerly" },
-      { name: "description", content: "Track activated leads with balance, potential, agents and answer status." },
-      { property: "og:title", content: "Activated Leads — Ledgerly" },
-      { property: "og:description", content: "Track activated leads with balance, potential, agents and answer status." },
+      { title: "Clients — Ledgerly" },
+      { name: "description", content: "Track clients with balance, potential, agents and answer status." },
+      { property: "og:title", content: "Clients — Ledgerly" },
+      { property: "og:description", content: "Track clients with balance, potential, agents and answer status." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -203,8 +203,8 @@ function ActivationsPage() {
   return (
     <div>
       <PageHeader
-        title="Activated Leads"
-        description="Every activated lead with its balance, potential, agents and answer status."
+        title="Clients"
+        description="Every client with its balance, potential, agents and answer status."
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -236,7 +236,7 @@ function ActivationsPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
-        <StatCard label="Activated leads" value={String(rows.length)} icon={CheckCircle2} />
+        <StatCard label="Clients" value={String(rows.length)} icon={CheckCircle2} />
         <StatCard label="Total balance" value={fmtMoney(totalBalance)} icon={Wallet} />
         <StatCard label="Answered" value={`${answeredCount} / ${rows.length}`} icon={PhoneCall} />
       </div>
@@ -271,7 +271,7 @@ function ActivationsPage() {
 
       <div className="rounded-lg border border-border overflow-x-auto">
         {rows.length === 0 ? (
-          <EmptyState icon={CheckCircle2} title="No activated leads" description="Activated leads logged on the Leads page appear here." />
+          <EmptyState icon={CheckCircle2} title="No clients" description="Activated leads logged on the Leads page appear here." />
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
