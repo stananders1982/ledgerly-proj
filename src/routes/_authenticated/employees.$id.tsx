@@ -356,8 +356,9 @@ function EmployeeDetailPage() {
           </div>
         )}
       </div>
+      )}
 
-
+      {isRetention && (
       <div className="grid lg:grid-cols-2 gap-4 mb-6">
         <div className="card-surface overflow-hidden">
           <div className="px-5 py-3 border-b border-border flex items-center justify-between">
