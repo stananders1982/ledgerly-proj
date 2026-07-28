@@ -1,13 +1,12 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Building2, Calendar, TrendingUp, Wallet } from "lucide-react";
+import { ArrowLeft, Building2, TrendingUp, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { fmtMoney } from "@/lib/format";
+import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 
@@ -31,7 +30,17 @@ function monthKey(iso: string) {
 
 function AffiliateStatementPage() {
   const { id } = useParams({ from: "/_authenticated/affiliates/$id" });
-  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [range, setRange] = useState<RangeKey>("month");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const activeRange = useMemo(
+    () => getRange(range, { start: customStart, end: customEnd }),
+    [range, customStart, customEnd],
+  );
+  const inRange = (d: string) => {
+    const t = new Date(d + "T12:00:00").getTime();
+    return t >= activeRange.start.getTime() && t <= activeRange.end.getTime();
+  };
 
   const affQ = useQuery({
     queryKey: ["affiliate", id],
@@ -84,19 +93,19 @@ function AffiliateStatementPage() {
   const monthly = useMemo(() => {
     const blank = () => ({ revenue: 0, withdrawals: 0, paid: 0 });
     const map = new Map<string, { revenue: number; withdrawals: number; paid: number }>();
-    for (const r of revQ.data ?? []) {
+    for (const r of (revQ.data ?? []).filter((x) => inRange(x.date))) {
       const k = monthKey(r.date);
       const m = map.get(k) ?? blank();
       m.revenue += Number(r.amount || 0);
       map.set(k, m);
     }
-    for (const w of withQ.data ?? []) {
+    for (const w of (withQ.data ?? []).filter((x) => inRange(x.date))) {
       const k = monthKey(w.date);
       const m = map.get(k) ?? blank();
       m.withdrawals += Number(w.amount || 0);
       map.set(k, m);
     }
-    for (const e of expQ.data ?? []) {
+    for (const e of (expQ.data ?? []).filter((x) => inRange(x.date))) {
       const k = monthKey(e.date);
       const m = map.get(k) ?? blank();
       m.paid += Number(e.amount || 0);
@@ -105,9 +114,7 @@ function AffiliateStatementPage() {
     return [...map.entries()]
       .map(([month, v]) => ({ month, ...v, net: v.revenue - v.withdrawals - v.paid }))
       .sort((a, b) => b.month.localeCompare(a.month));
-  }, [revQ.data, withQ.data, expQ.data]);
-
-  const filteredMonth = monthly.find((m) => m.month === month);
+  }, [revQ.data, withQ.data, expQ.data, activeRange]);
 
   const totals = useMemo(
     () => ({
@@ -128,11 +135,11 @@ function AffiliateStatementPage() {
   });
 
   const transactions = useMemo(() => {
-    const rev = (revQ.data ?? []).map((r) => ({ type: "Revenue" as const, date: r.date, amount: Number(r.amount || 0), label: r.customer_name || "Revenue", id: r.id }));
-    const withs = (withQ.data ?? []).map((w) => ({ type: "Withdrawal" as const, date: w.date, amount: -Number(w.amount || 0), label: w.notes || "Withdrawal", id: w.id }));
-    const exps = (expQ.data ?? []).map((e) => ({ type: "Paid to affiliate" as const, date: e.date, amount: -Number(e.amount || 0), label: e.notes || "Affiliate payout", id: e.id }));
+    const rev = (revQ.data ?? []).filter((x) => inRange(x.date)).map((r) => ({ type: "Revenue" as const, date: r.date, amount: Number(r.amount || 0), label: r.customer_name || "Revenue", id: r.id }));
+    const withs = (withQ.data ?? []).filter((x) => inRange(x.date)).map((w) => ({ type: "Withdrawal" as const, date: w.date, amount: -Number(w.amount || 0), label: w.notes || "Withdrawal", id: w.id }));
+    const exps = (expQ.data ?? []).filter((x) => inRange(x.date)).map((e) => ({ type: "Paid to affiliate" as const, date: e.date, amount: -Number(e.amount || 0), label: e.notes || "Affiliate payout", id: e.id }));
     return [...rev, ...withs, ...exps].sort((a, b) => b.date.localeCompare(a.date));
-  }, [revQ.data, withQ.data, expQ.data]);
+  }, [revQ.data, withQ.data, expQ.data, activeRange]);
 
   return (
     <div>
@@ -144,53 +151,36 @@ function AffiliateStatementPage() {
       <PageHeader
         title={affQ.data?.name ?? "Affiliate"}
         description={affQ.data?.active ? "Monthly statement and transaction history." : "Inactive affiliate"}
-        actions={
-          <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted-foreground">Month</Label>
-            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-[160px]" />
-          </div>
-        }
       />
+
+      <div className="mb-4">
+        <DateRangePicker
+          value={range}
+          onChange={setRange}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s2, e2) => { setCustomStart(s2); setCustomEnd(e2); }}
+        />
+      </div>
 
       <section className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Total revenue</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Revenue ({activeRange.label})</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold">{fmtMoney(totals.revenue)}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total withdrawals</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Withdrawals ({activeRange.label})</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold text-rose-500">{fmtMoney(totals.withdrawals)}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Wallet className="h-4 w-4" /> Paid to affiliate</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Wallet className="h-4 w-4" /> Paid to affiliate ({activeRange.label})</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold text-amber-500">{fmtMoney(totals.paid)}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Building2 className="h-4 w-4" /> Net balance</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Building2 className="h-4 w-4" /> Net ({activeRange.label})</CardTitle></CardHeader>
           <CardContent className={cn("text-2xl font-semibold", totals.net >= 0 ? "text-emerald-500" : "text-rose-500")}>{fmtMoney(totals.net)}</CardContent>
         </Card>
       </section>
-
-      {filteredMonth && (
-        <section className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Calendar className="h-4 w-4" /> {month} revenue</CardTitle></CardHeader>
-            <CardContent className="text-2xl font-semibold">{fmtMoney(filteredMonth.revenue)}</CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{month} withdrawals</CardTitle></CardHeader>
-            <CardContent className="text-2xl font-semibold text-rose-500">{fmtMoney(filteredMonth.withdrawals)}</CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{month} paid to affiliate</CardTitle></CardHeader>
-            <CardContent className="text-2xl font-semibold text-amber-500">{fmtMoney(filteredMonth.paid)}</CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{month} net</CardTitle></CardHeader>
-            <CardContent className={cn("text-2xl font-semibold", filteredMonth.net >= 0 ? "text-emerald-500" : "text-rose-500")}>{fmtMoney(filteredMonth.net)}</CardContent>
-          </Card>
-        </section>
-      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card-surface overflow-hidden">
