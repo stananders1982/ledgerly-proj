@@ -506,10 +506,10 @@ function EngineBlock({ title, accent, icon: Icon, children }: { title: string; a
   );
 }
 
-function Mini({ label, value, tone, data }: { label: string; value: string; tone: Tone; data: { v: number }[] }) {
+function Mini({ label, value, tone, data, to }: { label: string; value: string; tone: Tone; data: { v: number }[]; to?: string }) {
   const t = toneStyles[tone];
-  return (
-    <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 flex items-center gap-3 transition hover:bg-white/[0.04]">
+  const content = (
+    <>
       <div className="flex-1 min-w-0">
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">{label}</div>
         <div className={cn("font-display text-lg font-semibold mt-0.5", t.text)}>{value}</div>
@@ -517,7 +517,13 @@ function Mini({ label, value, tone, data }: { label: string; value: string; tone
       <div className="h-10 w-20 shrink-0">
         <Sparkline data={data} tone={tone} thin />
       </div>
-    </div>
+    </>
+  );
+  const className = "rounded-lg border border-white/5 bg-white/[0.02] p-3 flex items-center gap-3 transition hover:bg-white/[0.04]";
+  return to ? (
+    <Link to={to} className={cn(className, "block cursor-pointer")}>{content}</Link>
+  ) : (
+    <div className={className}>{content}</div>
   );
 }
 
