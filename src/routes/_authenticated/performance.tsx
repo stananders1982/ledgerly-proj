@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { DataCard, DataCardList } from "@/components/data-card-list";
+import { TableSkeleton } from "@/components/table-skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -240,11 +242,27 @@ function PerformancePage() {
 
       <div className="card-surface overflow-hidden">
         {loading ? (
-          <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+          <TableSkeleton cols={8} />
         ) : sorted.length === 0 ? (
           <div className="p-8 text-sm text-muted-foreground">No employees match.</div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <DataCardList>
+            {sorted.map((r: any) => (
+              <DataCard
+                key={r.id}
+                title={r.name}
+                subtitle={`Team ${r.team ?? "C"}`}
+                fields={[
+                  { label: "FTDs", value: <span className="num">{r.ftds}</span> },
+                  { label: "Clients", value: <span className="num">{r.clients}</span> },
+                  { label: "Revenue", value: <span className="num">{fmtMoney(r.attributed)}</span> },
+                  { label: "Net payout", value: <span className="num font-medium">{fmtMoney(r.payout)}</span> },
+                ]}
+              />
+            ))}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
@@ -309,6 +327,7 @@ function PerformancePage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>
