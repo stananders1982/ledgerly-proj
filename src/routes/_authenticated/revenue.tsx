@@ -270,6 +270,7 @@ function RevenueRow({
   employeeName,
   employee2Name,
   affiliateName,
+  affiliateId,
   onEdit,
   onDelete,
 }: {
@@ -277,6 +278,7 @@ function RevenueRow({
   employeeName?: string;
   employee2Name?: string;
   affiliateName?: string;
+  affiliateId?: string | null;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -294,7 +296,15 @@ function RevenueRow({
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground">{affiliateName || "—"}</td>
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      {affiliateId ? (
+                        <Link to="/affiliates/$id" params={{ id: affiliateId }} className="text-primary hover:underline">
+                          {affiliateName}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">{affiliateName || "—"}</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={onDelete} label="Delete revenue?" />
                     </td>
