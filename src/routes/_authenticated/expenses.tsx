@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { DataCard, DataCardList } from "@/components/data-card-list";
+import { TableSkeleton } from "@/components/table-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -169,12 +171,29 @@ function ExpensesPage() {
       </div>
 
       <div className="card-surface overflow-hidden">
-        {expQ.isLoading ? <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+        {expQ.isLoading ? <TableSkeleton cols={6} />
         : (expQ.data?.length ?? 0) === 0 ? (
           <EmptyState icon={Receipt} title="No expenses yet" description="Start logging to see category breakdowns."
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New expense</Button>} />
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <DataCardList>
+            {sorted.map((e: any) => (
+              <DataCard
+                key={e.id}
+                title={e.expense_categories?.name ?? "Expense"}
+                subtitle={fmtDate(e.date)}
+                onClick={() => { setEditing(e); setOpen(true); }}
+                actions={<ConfirmDelete onConfirm={() => del.mutate(e.id)} label="Delete expense?" />}
+                fields={[
+                  { label: "Amount", value: <span className="num font-medium">{fmtMoney(e.amount)}</span> },
+                  { label: "Affiliate", value: e.affiliates?.name ?? "—" },
+                  { label: "Notes", value: e.notes || "—" },
+                ]}
+              />
+            ))}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
@@ -203,6 +222,7 @@ function ExpensesPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

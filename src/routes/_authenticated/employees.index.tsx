@@ -14,6 +14,8 @@ import {
 import { toast } from "sonner";
 import { fmtMoney } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { DataCard, DataCardList } from "@/components/data-card-list";
+import { TableSkeleton } from "@/components/table-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -138,7 +140,7 @@ function EmployeesPage() {
 
       <div className="card-surface overflow-hidden">
         {q.isLoading ? (
-          <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+          <TableSkeleton cols={6} />
         ) : rows.length === 0 ? (
           <EmptyState
             icon={UserCog}
@@ -147,7 +149,25 @@ function EmployeesPage() {
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add employee</Button>}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <DataCardList>
+            {sorted.map((e: any) => (
+              <DataCard
+                key={e.id}
+                title={e.name}
+                subtitle={e.role || undefined}
+                onClick={() => { setEditing(e); setOpen(true); }}
+                actions={<Link to="/employees/$id" params={{ id: e.id }} className="text-primary hover:underline text-xs">View</Link>}
+                fields={[
+                  { label: "Team", value: <StatusBadge tone="info">{e.team ?? "C"}</StatusBadge> },
+                  { label: "Salary", value: <span className="num">{fmtMoney(e.salary)}</span> },
+                  { label: "Email", value: e.email || "—" },
+                  { label: "Status", value: <ActiveBadge active={!!e.active} /> },
+                ]}
+              />
+            ))}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
@@ -191,6 +211,7 @@ function EmployeesPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>
