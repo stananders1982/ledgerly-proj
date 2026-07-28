@@ -298,6 +298,7 @@ function Dashboard() {
           sub={`ROI ${m.roi.toFixed(1)}%`}
           data={m.series.map((s) => ({ v: s.profit }))}
           primary
+          to="/reports"
         />
         <HeroCard
           label="Revenue"
@@ -306,6 +307,7 @@ function Dashboard() {
           icon={DollarSign}
           sub={rangeLabel}
           data={m.series.map((s) => ({ v: s.revenue }))}
+          to="/revenue"
         />
         <HeroCard
           label="Expenses"
@@ -314,6 +316,7 @@ function Dashboard() {
           icon={TrendingDown}
           sub={`Lead cost ${fmtMoney(m.leadCost)}`}
           data={m.series.map((s) => ({ v: s.expenses }))}
+          to="/expenses"
         />
         <HeroCard
           label="Activation rate"
@@ -322,6 +325,7 @@ function Dashboard() {
           icon={Target}
           sub={`Target ${m.expectedRate.toFixed(1)}%`}
           data={m.series.map((s) => ({ v: s.received ? (s.activated / s.received) * 100 : 0 }))}
+          to="/leads"
         />
       </section>
 
