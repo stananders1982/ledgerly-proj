@@ -22,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "performance", title: "Performance", url: "/performance", icon: Gauge },
   { key: "attendance", title: "Attendance", url: "/attendance", icon: CalendarCheck },
   { key: "reports", title: "Reports", url: "/reports", icon: FileBarChart },
+  { key: "affiliates", title: "Affiliates", url: "/affiliates", icon: Building2 },
   { key: "users", title: "Users", url: "/users", icon: ShieldCheck, adminOnly: true },
 ];
 
