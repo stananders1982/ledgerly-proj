@@ -462,14 +462,14 @@ function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
 }
 
 function HeroCard({
-  label, value, sub, tone, icon: Icon, data, primary,
+  label, value, sub, tone, icon: Icon, data, primary, to,
 }: {
   label: string; value: string; sub?: string; tone: Tone;
-  icon: typeof DollarSign; data: { v: number }[]; primary?: boolean;
+  icon: typeof DollarSign; data: { v: number }[]; primary?: boolean; to?: string;
 }) {
   const t = toneStyles[tone];
-  return (
-    <div className={cn("glass-surface glass-hover p-5 flex flex-col gap-3 overflow-hidden relative", t.glow, primary && "md:col-span-2 xl:col-span-1")}>
+  const content = (
+    <>
       <div className="flex items-start justify-between">
         <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
         <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", t.ring)}>
@@ -481,7 +481,13 @@ function HeroCard({
         <Sparkline data={data} tone={tone} />
       </div>
       {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
-    </div>
+    </>
+  );
+  const className = cn("glass-surface glass-hover p-5 flex flex-col gap-3 overflow-hidden relative", t.glow, primary && "md:col-span-2 xl:col-span-1");
+  return to ? (
+    <Link to={to} className={cn(className, "block cursor-pointer")}>{content}</Link>
+  ) : (
+    <div className={className}>{content}</div>
   );
 }
 
