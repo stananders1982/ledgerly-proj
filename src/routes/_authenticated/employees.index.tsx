@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, UserCog } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,7 +59,14 @@ function EmployeesPage() {
     },
   });
 
-  const rows = q.data ?? [];
+  const rows = useMemo(() => {
+    const rank: Record<string, number> = { C: 0, R: 1, M: 2 };
+    return [...(q.data ?? [])].sort(
+      (a, b) =>
+        (rank[String(a.team ?? "C").toUpperCase()] ?? 3) - (rank[String(b.team ?? "C").toUpperCase()] ?? 3) ||
+        a.name.localeCompare(b.name),
+    );
+  }, [q.data]);
   const { sorted, sort, toggle } = useSort<any>(rows, {
     name: (e) => e.name ?? "",
     role: (e) => e.role ?? "",
