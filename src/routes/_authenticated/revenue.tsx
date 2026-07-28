@@ -251,6 +251,7 @@ function RevenuePage() {
                     employeeName={getEmployeeName(r.employee_id, r.employees)}
                     employee2Name={getEmployeeName(r.employee_id_2, r.employee2)}
                     affiliateName={getAffiliateName(r.affiliate_id, r.affiliates)}
+                    affiliateId={r.affiliate_id}
                     onEdit={() => { setEditing(r); setOpen(true); }}
                     onDelete={() => del.mutate(r.id)}
                   />
