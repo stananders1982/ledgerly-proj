@@ -56,7 +56,14 @@ function EmployeeDetailPage() {
     },
   });
 
+  const team = String((empQ.data as any)?.team ?? "R").toUpperCase();
+  const isConversion = team === "C";
+  const isRetention = team === "R";
+  const isMarketing = team === "M";
+  const teamLabel = isConversion ? "Conversion" : isRetention ? "Retention" : isMarketing ? "Marketing" : "Team";
+
   const revQ = useQuery({
+    enabled: isRetention,
     queryKey: ["employee-revenue", id, start, end],
     queryFn: async () =>
       (await supabase
@@ -68,6 +75,7 @@ function EmployeeDetailPage() {
   });
 
   const withQ = useQuery({
+    enabled: isRetention,
     queryKey: ["employee-withdrawals", id, start, end],
     queryFn: async () =>
       (await sb
@@ -89,6 +97,7 @@ function EmployeeDetailPage() {
   });
 
   const clientsQ = useQuery({
+    enabled: isRetention || isConversion,
     queryKey: ["employee-clients", id, start, end],
     queryFn: async () => {
       const { data, error } = await sb
@@ -105,6 +114,7 @@ function EmployeeDetailPage() {
   // FTDs — leads this employee activated (as conversion agent).
   // Counted when answered AND (mid/high potential OR effective balance >= 251).
   const conversionsQ = useQuery({
+    enabled: isConversion,
     queryKey: ["employee-conversions", id, start, end],
     queryFn: async () => {
       const { data, error } = await sb
@@ -120,6 +130,7 @@ function EmployeeDetailPage() {
 
   // Deposits matched by customer name (same rule as the Activated Leads page).
   const depositsQ = useQuery({
+    enabled: isConversion,
     queryKey: ["revenue-by-name"],
     queryFn: async () => {
       const { data, error } = await sb.from("revenue").select("customer_name, amount");
@@ -127,6 +138,7 @@ function EmployeeDetailPage() {
       return (data ?? []) as { customer_name: string | null; amount: number }[];
     },
   });
+
 
   const conversions = useMemo(() => {
     const deposits = new Map<string, number>();
@@ -187,16 +199,16 @@ function EmployeeDetailPage() {
     const deduction = absent * perDay;
     const salary = Math.max(0, Number(emp?.salary ?? 0) - deduction);
 
-    const ftdCount = conversions.counted.length;
+    const ftdCount = isConversion ? conversions.counted.length : 0;
     const ftdCommission = ftdCount * FTD_COMMISSION;
 
-    const payout = salary + commission + ftdCommission - penalty;
+    const payout = salary + (isRetention ? commission - penalty : 0) + ftdCommission;
 
     const clients = (clientsQ.data ?? []).reduce((s: number, r: any) => s + Number(r.activated_count || 0), 0);
     const revenuePerClient = clients > 0 ? attributed / clients : 0;
 
     return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission };
-  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end]);
+  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention]);
 
   if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
   if (!emp) return (
@@ -210,7 +222,7 @@ function EmployeeDetailPage() {
     <div>
       <PageHeader
         title={emp.name}
-        description={`${emp.active ? "Active" : "Inactive"} · Base salary ${fmtMoney(emp.salary)}`}
+        description={`${emp.active ? "Active" : "Inactive"} · ${teamLabel} · Base salary ${fmtMoney(emp.salary)}`}
         actions={
           <div className="flex items-center gap-2">
             <Label className="text-xs text-muted-foreground">Month</Label>
@@ -221,28 +233,48 @@ function EmployeeDetailPage() {
       />
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Attributed revenue" value={fmtMoney(totals.attributed)} tone="positive" />
-        <StatCard label={`Commission (${totals.rate}%)`} value={fmtMoney(totals.commission)} tone="positive" />
+        {isRetention && (
+          <>
+            <StatCard label="Attributed revenue" value={fmtMoney(totals.attributed)} tone="positive" />
+            <StatCard label={`Commission (${totals.rate}%)`} value={fmtMoney(totals.commission)} tone="positive" />
+          </>
+        )}
+        {isConversion && (
+          <>
+            <StatCard label="FTDs (activations)" value={String(conversions.counted.length)} tone="positive" />
+            <StatCard label={`FTD commission ($${FTD_COMMISSION}/FTD)`} value={fmtMoney(totals.ftdCommission)} tone="positive" />
+          </>
+        )}
         <StatCard label="Salary after absences" value={fmtMoney(totals.salary)} />
         <StatCard label="Net payout" value={fmtMoney(totals.payout)} tone="positive" />
       </section>
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="FTDs (activations)" value={String(conversions.counted.length)} tone="positive" />
-        <StatCard label={`FTD commission ($${FTD_COMMISSION}/FTD)`} value={fmtMoney(totals.ftdCommission)} tone="positive" />
-        <StatCard label="Pending FTDs" value={String(conversions.pending.length)} />
-
-        <StatCard label="Clients received (retention)" value={String(totals.clients)} tone="positive" />
-        <StatCard label="Revenue / client" value={fmtMoney(totals.revenuePerClient)} tone="positive" />
-        <StatCard label="Withdrawals" value={fmtMoney(totals.withdrawn)} tone="negative" />
-        <StatCard label="Withdrawal penalty (10%)" value={fmtMoney(totals.penalty)} tone="negative" />
-      </section>
+      {(isConversion || isRetention) && (
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          {isConversion && (
+            <>
+              <StatCard label="Pending FTDs" value={String(conversions.pending.length)} />
+              <StatCard label="Activated leads (clients)" value={String(totals.clients)} tone="positive" />
+            </>
+          )}
+          {isRetention && (
+            <>
+              <StatCard label="Clients received (retention)" value={String(totals.clients)} tone="positive" />
+              <StatCard label="Revenue / client" value={fmtMoney(totals.revenuePerClient)} tone="positive" />
+              <StatCard label="Withdrawals" value={fmtMoney(totals.withdrawn)} tone="negative" />
+              <StatCard label="Withdrawal penalty (10%)" value={fmtMoney(totals.penalty)} tone="negative" />
+            </>
+          )}
+        </section>
+      )}
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label="Working days" value={String(totals.wd)} />
         <StatCard label="Absences" value={`${totals.absent} · −${fmtMoney(totals.deduction)}`} tone={totals.absent ? "negative" : "default"} />
       </section>
 
+
+      {isConversion && (
       <div className="card-surface overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
           <div>
@@ -291,8 +323,9 @@ function EmployeeDetailPage() {
           </div>
         )}
       </div>
+      )}
 
-
+      {(isConversion || isRetention) && (
       <div className="card-surface overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
           <h3 className="font-display text-base font-semibold">Activated leads ({(clientsQ.data ?? []).length})</h3>
@@ -323,8 +356,9 @@ function EmployeeDetailPage() {
           </div>
         )}
       </div>
+      )}
 
-
+      {isRetention && (
       <div className="grid lg:grid-cols-2 gap-4 mb-6">
         <div className="card-surface overflow-hidden">
           <div className="px-5 py-3 border-b border-border flex items-center justify-between">
@@ -396,15 +430,22 @@ function EmployeeDetailPage() {
           )}
         </div>
       </div>
+      )}
 
       <div className="card-surface p-5">
         <h3 className="font-display text-base font-semibold mb-3">Payout breakdown</h3>
         <div className="text-sm divide-y divide-border/50">
           <Row label="Base salary" value={fmtMoney(emp.salary)} />
           <Row label={`Absence deduction (${totals.absent} × ${fmtMoney(totals.perDay)})`} value={`−${fmtMoney(totals.deduction)}`} negative />
-          <Row label={`Commission (${totals.rate}% on ${fmtMoney(totals.attributed)})`} value={`+${fmtMoney(totals.commission)}`} positive />
-          <Row label={`FTD commission (${totals.ftdCount} × ${fmtMoney(FTD_COMMISSION)})`} value={`+${fmtMoney(totals.ftdCommission)}`} positive />
-          <Row label="Withdrawal penalty (10%)" value={`−${fmtMoney(totals.penalty)}`} negative />
+          {isRetention && (
+            <>
+              <Row label={`Commission (${totals.rate}% on ${fmtMoney(totals.attributed)})`} value={`+${fmtMoney(totals.commission)}`} positive />
+              <Row label="Withdrawal penalty (10%)" value={`−${fmtMoney(totals.penalty)}`} negative />
+            </>
+          )}
+          {isConversion && (
+            <Row label={`FTD commission (${totals.ftdCount} × ${fmtMoney(FTD_COMMISSION)})`} value={`+${fmtMoney(totals.ftdCommission)}`} positive />
+          )}
           <div className="flex justify-between py-3 mt-2 border-t border-border font-display text-lg font-semibold">
             <span>Net payout</span>
             <span className="text-primary">{fmtMoney(totals.payout)}</span>
