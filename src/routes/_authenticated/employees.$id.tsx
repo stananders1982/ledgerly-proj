@@ -222,7 +222,7 @@ function EmployeeDetailPage() {
     <div>
       <PageHeader
         title={emp.name}
-        description={`${emp.active ? "Active" : "Inactive"} · Base salary ${fmtMoney(emp.salary)}`}
+        description={`${emp.active ? "Active" : "Inactive"} · ${teamLabel} · Base salary ${fmtMoney(emp.salary)}`}
         actions={
           <div className="flex items-center gap-2">
             <Label className="text-xs text-muted-foreground">Month</Label>
@@ -233,27 +233,46 @@ function EmployeeDetailPage() {
       />
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Attributed revenue" value={fmtMoney(totals.attributed)} tone="positive" />
-        <StatCard label={`Commission (${totals.rate}%)`} value={fmtMoney(totals.commission)} tone="positive" />
+        {isRetention && (
+          <>
+            <StatCard label="Attributed revenue" value={fmtMoney(totals.attributed)} tone="positive" />
+            <StatCard label={`Commission (${totals.rate}%)`} value={fmtMoney(totals.commission)} tone="positive" />
+          </>
+        )}
+        {isConversion && (
+          <>
+            <StatCard label="FTDs (activations)" value={String(conversions.counted.length)} tone="positive" />
+            <StatCard label={`FTD commission ($${FTD_COMMISSION}/FTD)`} value={fmtMoney(totals.ftdCommission)} tone="positive" />
+          </>
+        )}
         <StatCard label="Salary after absences" value={fmtMoney(totals.salary)} />
         <StatCard label="Net payout" value={fmtMoney(totals.payout)} tone="positive" />
       </section>
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="FTDs (activations)" value={String(conversions.counted.length)} tone="positive" />
-        <StatCard label={`FTD commission ($${FTD_COMMISSION}/FTD)`} value={fmtMoney(totals.ftdCommission)} tone="positive" />
-        <StatCard label="Pending FTDs" value={String(conversions.pending.length)} />
-
-        <StatCard label="Clients received (retention)" value={String(totals.clients)} tone="positive" />
-        <StatCard label="Revenue / client" value={fmtMoney(totals.revenuePerClient)} tone="positive" />
-        <StatCard label="Withdrawals" value={fmtMoney(totals.withdrawn)} tone="negative" />
-        <StatCard label="Withdrawal penalty (10%)" value={fmtMoney(totals.penalty)} tone="negative" />
-      </section>
+      {(isConversion || isRetention) && (
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          {isConversion && (
+            <>
+              <StatCard label="Pending FTDs" value={String(conversions.pending.length)} />
+              <StatCard label="Activated leads (clients)" value={String(totals.clients)} tone="positive" />
+            </>
+          )}
+          {isRetention && (
+            <>
+              <StatCard label="Clients received (retention)" value={String(totals.clients)} tone="positive" />
+              <StatCard label="Revenue / client" value={fmtMoney(totals.revenuePerClient)} tone="positive" />
+              <StatCard label="Withdrawals" value={fmtMoney(totals.withdrawn)} tone="negative" />
+              <StatCard label="Withdrawal penalty (10%)" value={fmtMoney(totals.penalty)} tone="negative" />
+            </>
+          )}
+        </section>
+      )}
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label="Working days" value={String(totals.wd)} />
         <StatCard label="Absences" value={`${totals.absent} · −${fmtMoney(totals.deduction)}`} tone={totals.absent ? "negative" : "default"} />
       </section>
+
 
       <div className="card-surface overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
