@@ -193,7 +193,7 @@ function AffiliateStatementPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                     <SortTh label="Month" k="month" sort={sort} toggle={toggle} />
                     <SortTh label="Revenue" k="revenue" sort={sort} toggle={toggle} />
                     <SortTh label="Withdrawals" k="withdrawals" sort={sort} toggle={toggle} />
@@ -203,7 +203,7 @@ function AffiliateStatementPage() {
                 </thead>
                 <tbody>
                   {sorted.map((r) => (
-                    <tr key={r.month} className="border-b border-border/50 hover:bg-accent/30">
+                    <tr key={r.month} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                       <td className="py-3 px-4 font-medium">{r.month}</td>
                       <td className="py-3 px-4">{fmtMoney(r.revenue)}</td>
                       <td className="py-3 px-4 text-rose-500">−{fmtMoney(r.withdrawals)}</td>
@@ -227,7 +227,7 @@ function AffiliateStatementPage() {
             <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                     <th className="py-3 px-4">Date</th>
                     <th className="py-3 px-4">Type</th>
                     <th className="py-3 px-4">Details</th>
@@ -236,7 +236,7 @@ function AffiliateStatementPage() {
                 </thead>
                 <tbody>
                   {transactions.slice(0, 50).map((t) => (
-                    <tr key={`${t.type}-${t.id}`} className="border-b border-border/50 hover:bg-accent/30">
+                    <tr key={`${t.type}-${t.id}`} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                       <td className="py-3 px-4">{t.date}</td>
                       <td className="py-3 px-4">
                         <span className={cn("rounded border px-1.5 py-0.5 text-xs font-medium", t.type === "Revenue" ? "border-emerald-500/30 text-emerald-500" : t.type === "Paid to affiliate" ? "border-amber-500/30 text-amber-500" : "border-rose-500/30 text-rose-500")}>{t.type}</span>

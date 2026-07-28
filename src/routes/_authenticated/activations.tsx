@@ -290,7 +290,7 @@ function ActivationsPage() {
               {sorted.map((r: any) => (
                 <tr
                   key={r.id}
-                  className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                  className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                   onClick={() => setEditing(r)}
                 >
                   <td className="py-3 px-4">{r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : "—"}</td>

@@ -247,7 +247,7 @@ function PerformancePage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Agent" k="name" sort={sort} toggle={toggle} />
                   <SortTh label="Dept" k="team" sort={sort} toggle={toggle} />
                   <SortTh label="FTDs" k="ftds" sort={sort} toggle={toggle} />
@@ -263,7 +263,7 @@ function PerformancePage() {
               </thead>
               <tbody>
                 {sorted.map((r: any) => (
-                  <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30">
+                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                     <td className="py-3 px-4 font-medium">
                       {r.name}
                       {!r.active && <span className="ml-2 text-xs text-muted-foreground">inactive</span>}

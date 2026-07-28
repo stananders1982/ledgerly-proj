@@ -177,7 +177,7 @@ function ExpensesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Category" k="category" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -188,7 +188,7 @@ function ExpensesPage() {
               </thead>
               <tbody>
                 {sorted.map((e: any) => (
-                  <tr key={e.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                  <tr key={e.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>
                     <td className="py-3 px-4"><Badge variant="outline">{e.expense_categories?.name ?? "—"}</Badge></td>

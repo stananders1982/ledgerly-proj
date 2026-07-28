@@ -151,7 +151,7 @@ function AffiliatesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Affiliate" k="name" sort={sort} toggle={toggle} />
                   <SortTh label="Revenue" k="revenue" sort={sort} toggle={toggle} />
                   <SortTh label="Withdrawals" k="withdrawn" sort={sort} toggle={toggle} />
@@ -162,7 +162,7 @@ function AffiliatesPage() {
               </thead>
               <tbody>
                 {sorted.map((r) => (
-                  <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30">
+                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                     <td className="py-3 px-4 font-medium">
                       {r.name}
                       {!r.active && <span className="ml-2 text-xs text-muted-foreground">inactive</span>}

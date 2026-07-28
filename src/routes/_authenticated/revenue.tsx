@@ -234,7 +234,7 @@ function RevenuePage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Customer" k="customer" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -283,7 +283,7 @@ function RevenueRow({
   onDelete: () => void;
 }) {
   return (
-                  <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={onEdit}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>

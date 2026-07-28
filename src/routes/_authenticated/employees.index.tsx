@@ -149,7 +149,7 @@ function EmployeesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Name" k="name" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Role" k="role" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Team" k="team" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -162,7 +162,7 @@ function EmployeesPage() {
               </thead>
               <tbody>
                 {sorted.map((e: any) => (
-                  <tr key={e.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                  <tr key={e.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 font-medium">{e.name}</td>
                     <td className="py-3 px-4">{e.role || "—"}</td>
