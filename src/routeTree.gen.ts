@@ -26,7 +26,9 @@ import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authenticated/attendance'
 import { Route as AuthenticatedActivationsRouteImport } from './routes/_authenticated/activations'
 import { Route as AuthenticatedEmployeesIndexRouteImport } from './routes/_authenticated/employees.index'
+import { Route as AuthenticatedAffiliatesIndexRouteImport } from './routes/_authenticated/affiliates.index'
 import { Route as AuthenticatedEmployeesIdRouteImport } from './routes/_authenticated/employees.$id'
+import { Route as AuthenticatedAffiliatesIdRouteImport } from './routes/_authenticated/affiliates.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -116,10 +118,22 @@ const AuthenticatedEmployeesIndexRoute =
     path: '/employees/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAffiliatesIndexRoute =
+  AuthenticatedAffiliatesIndexRouteImport.update({
+    id: '/affiliates/',
+    path: '/affiliates/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEmployeesIdRoute =
   AuthenticatedEmployeesIdRouteImport.update({
     id: '/employees/$id',
     path: '/employees/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAffiliatesIdRoute =
+  AuthenticatedAffiliatesIdRouteImport.update({
+    id: '/affiliates/$id',
+    path: '/affiliates/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
@@ -139,7 +153,9 @@ export interface FileRoutesByFullPath {
   '/sources': typeof AuthenticatedSourcesRoute
   '/users': typeof AuthenticatedUsersRoute
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
+  '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
+  '/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/employees/': typeof AuthenticatedEmployeesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -158,7 +174,9 @@ export interface FileRoutesByTo {
   '/users': typeof AuthenticatedUsersRoute
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/': typeof AuthenticatedIndexRoute
+  '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
+  '/affiliates': typeof AuthenticatedAffiliatesIndexRoute
   '/employees': typeof AuthenticatedEmployeesIndexRoute
 }
 export interface FileRoutesById {
@@ -179,7 +197,9 @@ export interface FileRoutesById {
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/_authenticated/employees/$id': typeof AuthenticatedEmployeesIdRoute
+  '/_authenticated/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/_authenticated/employees/': typeof AuthenticatedEmployeesIndexRoute
 }
 export interface FileRouteTypes {
@@ -200,7 +220,9 @@ export interface FileRouteTypes {
     | '/sources'
     | '/users'
     | '/withdrawals'
+    | '/affiliates/$id'
     | '/employees/$id'
+    | '/affiliates/'
     | '/employees/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -219,7 +241,9 @@ export interface FileRouteTypes {
     | '/users'
     | '/withdrawals'
     | '/'
+    | '/affiliates/$id'
     | '/employees/$id'
+    | '/affiliates'
     | '/employees'
   id:
     | '__root__'
@@ -239,7 +263,9 @@ export interface FileRouteTypes {
     | '/_authenticated/users'
     | '/_authenticated/withdrawals'
     | '/_authenticated/'
+    | '/_authenticated/affiliates/$id'
     | '/_authenticated/employees/$id'
+    | '/_authenticated/affiliates/'
     | '/_authenticated/employees/'
   fileRoutesById: FileRoutesById
 }
@@ -370,11 +396,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEmployeesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/affiliates/': {
+      id: '/_authenticated/affiliates/'
+      path: '/affiliates'
+      fullPath: '/affiliates/'
+      preLoaderRoute: typeof AuthenticatedAffiliatesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/employees/$id': {
       id: '/_authenticated/employees/$id'
       path: '/employees/$id'
       fullPath: '/employees/$id'
       preLoaderRoute: typeof AuthenticatedEmployeesIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/affiliates/$id': {
+      id: '/_authenticated/affiliates/$id'
+      path: '/affiliates/$id'
+      fullPath: '/affiliates/$id'
+      preLoaderRoute: typeof AuthenticatedAffiliatesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
   }
@@ -394,7 +434,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedWithdrawalsRoute: typeof AuthenticatedWithdrawalsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAffiliatesIdRoute: typeof AuthenticatedAffiliatesIdRoute
   AuthenticatedEmployeesIdRoute: typeof AuthenticatedEmployeesIdRoute
+  AuthenticatedAffiliatesIndexRoute: typeof AuthenticatedAffiliatesIndexRoute
   AuthenticatedEmployeesIndexRoute: typeof AuthenticatedEmployeesIndexRoute
 }
 
@@ -412,7 +454,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedWithdrawalsRoute: AuthenticatedWithdrawalsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAffiliatesIdRoute: AuthenticatedAffiliatesIdRoute,
   AuthenticatedEmployeesIdRoute: AuthenticatedEmployeesIdRoute,
+  AuthenticatedAffiliatesIndexRoute: AuthenticatedAffiliatesIndexRoute,
   AuthenticatedEmployeesIndexRoute: AuthenticatedEmployeesIndexRoute,
 }
 
@@ -427,13 +471,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

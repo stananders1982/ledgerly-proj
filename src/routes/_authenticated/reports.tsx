@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileDown, FileSpreadsheet, FileText, Printer, ArrowUpDown } from "lucide-react";
@@ -764,7 +764,9 @@ function ReportsPage() {
               <h3 className="font-display font-semibold mb-2">Totals by Affiliate</h3>
               <SortableTable
                 columns={[
-                  { key: "name", label: "Affiliate" },
+                  { key: "name", label: "Affiliate", render: (v, row) => row.id ? (
+                    <Link to="/affiliates/$id" params={{ id: row.id }} className="text-primary hover:underline">{v}</Link>
+                  ) : v },
                   { key: "received", label: "Leads", numeric: true },
                   { key: "activated", label: "Activated", numeric: true },
                   { key: "reported", label: "Reported", numeric: true },
@@ -783,7 +785,9 @@ function ReportsPage() {
               <SortableTable
                 columns={[
                   { key: "month", label: "Month" },
-                  { key: "affiliateName", label: "Affiliate" },
+                  { key: "affiliateName", label: "Affiliate", render: (v, row) => row.affiliateId ? (
+                    <Link to="/affiliates/$id" params={{ id: row.affiliateId }} className="text-primary hover:underline">{v}</Link>
+                  ) : v },
                   { key: "received", label: "Leads", numeric: true },
                   { key: "activated", label: "Activated", numeric: true },
                   { key: "reported", label: "Reported", numeric: true },

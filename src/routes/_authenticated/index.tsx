@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
@@ -298,6 +298,7 @@ function Dashboard() {
           sub={`ROI ${m.roi.toFixed(1)}%`}
           data={m.series.map((s) => ({ v: s.profit }))}
           primary
+          to="/reports"
         />
         <HeroCard
           label="Revenue"
@@ -306,6 +307,7 @@ function Dashboard() {
           icon={DollarSign}
           sub={rangeLabel}
           data={m.series.map((s) => ({ v: s.revenue }))}
+          to="/revenue"
         />
         <HeroCard
           label="Expenses"
@@ -314,6 +316,7 @@ function Dashboard() {
           icon={TrendingDown}
           sub={`Lead cost ${fmtMoney(m.leadCost)}`}
           data={m.series.map((s) => ({ v: s.expenses }))}
+          to="/expenses"
         />
         <HeroCard
           label="Activation rate"
@@ -322,6 +325,7 @@ function Dashboard() {
           icon={Target}
           sub={`Target ${m.expectedRate.toFixed(1)}%`}
           data={m.series.map((s) => ({ v: s.received ? (s.activated / s.received) * 100 : 0 }))}
+          to="/leads"
         />
       </section>
 
@@ -330,34 +334,35 @@ function Dashboard() {
         <SectionTitle eyebrow="Business engine" title="Three pillars driving the month" />
         <div className="grid gap-4 lg:grid-cols-3">
           <EngineBlock title="Acquisition" accent="blue" icon={Users}>
-            <Mini label="Leads received" value={String(m.received)} data={m.series.map((s) => ({ v: s.received }))} tone="blue" />
+            <Mini label="Leads received" value={String(m.received)} data={m.series.map((s) => ({ v: s.received }))} tone="blue" to="/leads" />
             <Mini label="Conversion rate" value={fmtPct(m.rate)} tone="blue"
-                  data={m.series.map((s) => ({ v: s.received ? (s.activated / s.received) * 100 : 0 }))} />
+                  data={m.series.map((s) => ({ v: s.received ? (s.activated / s.received) * 100 : 0 }))} to="/leads" />
             <Mini
               label={m.activationSurplus >= 0 ? "Activation surplus" : "Activation deficit"}
               value={`${m.activationSurplus >= 0 ? "+" : ""}${Math.round(m.activationSurplus)}`}
               tone={m.activationSurplus >= 0 ? "green" : "red"}
               data={m.series.map((s) => ({ v: s.activated }))}
+              to="/leads"
             />
           </EngineBlock>
 
           <EngineBlock title="Profitability" accent="green" icon={TrendingUp}>
             <Mini label="Net profit" value={fmtMoney(m.profit)} tone={m.profit >= 0 ? "green" : "red"}
-                  data={m.series.map((s) => ({ v: s.profit }))} />
+                  data={m.series.map((s) => ({ v: s.profit }))} to="/reports" />
             <Mini label="CPA savings" value={fmtMoney(m.cpaSavings)} tone="purple"
-                  data={m.series.map((s) => ({ v: s.activated - (s.received ? 0 : 0) }))} />
+                  data={m.series.map((s) => ({ v: s.activated - (s.received ? 0 : 0) }))} to="/sources" />
             <Mini label="ROI" value={`${m.roi.toFixed(1)}%`} tone={m.roi >= 0 ? "green" : "red"}
-                  data={m.series.map((s) => ({ v: s.revenue - s.expenses }))} />
+                  data={m.series.map((s) => ({ v: s.revenue - s.expenses }))} to="/reports" />
           </EngineBlock>
 
           <EngineBlock title="Operations" accent="amber" icon={Wallet}>
             <Mini label="Fixed monthly" value={fmtMoney(m.fixedMonthly)} tone="amber"
-                  data={Array.from({ length: 12 }, (_, i) => ({ v: m.fixedMonthly * (0.92 + (i % 4) * 0.03) }))} />
+                  data={Array.from({ length: 12 }, (_, i) => ({ v: m.fixedMonthly * (0.92 + (i % 4) * 0.03) }))} to="/recurring" />
             <Mini label="Recurring monthly" value={fmtMoney(m.recurringMonthly)} tone="amber"
-                  data={Array.from({ length: 12 }, (_, i) => ({ v: m.recurringMonthly * (0.95 + (i % 3) * 0.03) }))} />
+                  data={Array.from({ length: 12 }, (_, i) => ({ v: m.recurringMonthly * (0.95 + (i % 3) * 0.03) }))} to="/recurring" />
             <Mini label="Break-even revenue" value={fmtMoney(m.breakEven)}
                   tone={m.income >= m.breakEven ? "green" : "red"}
-                  data={m.series.map((s) => ({ v: s.revenue }))} />
+                  data={m.series.map((s) => ({ v: s.revenue }))} to="/reports" />
           </EngineBlock>
         </div>
       </section>
@@ -462,14 +467,14 @@ function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
 }
 
 function HeroCard({
-  label, value, sub, tone, icon: Icon, data, primary,
+  label, value, sub, tone, icon: Icon, data, primary, to,
 }: {
   label: string; value: string; sub?: string; tone: Tone;
-  icon: typeof DollarSign; data: { v: number }[]; primary?: boolean;
+  icon: typeof DollarSign; data: { v: number }[]; primary?: boolean; to?: string;
 }) {
   const t = toneStyles[tone];
-  return (
-    <div className={cn("glass-surface glass-hover p-5 flex flex-col gap-3 overflow-hidden relative", t.glow, primary && "md:col-span-2 xl:col-span-1")}>
+  const content = (
+    <>
       <div className="flex items-start justify-between">
         <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
         <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", t.ring)}>
@@ -481,7 +486,13 @@ function HeroCard({
         <Sparkline data={data} tone={tone} />
       </div>
       {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
-    </div>
+    </>
+  );
+  const className = cn("glass-surface glass-hover p-5 flex flex-col gap-3 overflow-hidden relative", t.glow, primary && "md:col-span-2 xl:col-span-1");
+  return to ? (
+    <Link to={to} className={cn(className, "block cursor-pointer")}>{content}</Link>
+  ) : (
+    <div className={className}>{content}</div>
   );
 }
 
@@ -500,10 +511,10 @@ function EngineBlock({ title, accent, icon: Icon, children }: { title: string; a
   );
 }
 
-function Mini({ label, value, tone, data }: { label: string; value: string; tone: Tone; data: { v: number }[] }) {
+function Mini({ label, value, tone, data, to }: { label: string; value: string; tone: Tone; data: { v: number }[]; to?: string }) {
   const t = toneStyles[tone];
-  return (
-    <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 flex items-center gap-3 transition hover:bg-white/[0.04]">
+  const content = (
+    <>
       <div className="flex-1 min-w-0">
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">{label}</div>
         <div className={cn("font-display text-lg font-semibold mt-0.5", t.text)}>{value}</div>
@@ -511,7 +522,13 @@ function Mini({ label, value, tone, data }: { label: string; value: string; tone
       <div className="h-10 w-20 shrink-0">
         <Sparkline data={data} tone={tone} thin />
       </div>
-    </div>
+    </>
+  );
+  const className = "rounded-lg border border-white/5 bg-white/[0.02] p-3 flex items-center gap-3 transition hover:bg-white/[0.04]";
+  return to ? (
+    <Link to={to} className={cn(className, "block cursor-pointer")}>{content}</Link>
+  ) : (
+    <div className={className}>{content}</div>
   );
 }
 
