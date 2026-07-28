@@ -1,7 +1,7 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Building2, Calendar, TrendingUp } from "lucide-react";
+import { ArrowLeft, Building2, Calendar, TrendingUp, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,24 +68,44 @@ function AffiliateStatementPage() {
     },
   });
 
+  const expQ = useQuery({
+    queryKey: ["affiliate-expenses", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("id,date,amount,notes,created_at")
+        .eq("affiliate_id", id)
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as { id: string; date: string; amount: number; notes: string | null; created_at: string }[];
+    },
+  });
+
   const monthly = useMemo(() => {
-    const map = new Map<string, { revenue: number; withdrawals: number }>();
+    const blank = () => ({ revenue: 0, withdrawals: 0, paid: 0 });
+    const map = new Map<string, { revenue: number; withdrawals: number; paid: number }>();
     for (const r of revQ.data ?? []) {
       const k = monthKey(r.date);
-      const m = map.get(k) ?? { revenue: 0, withdrawals: 0 };
+      const m = map.get(k) ?? blank();
       m.revenue += Number(r.amount || 0);
       map.set(k, m);
     }
     for (const w of withQ.data ?? []) {
       const k = monthKey(w.date);
-      const m = map.get(k) ?? { revenue: 0, withdrawals: 0 };
+      const m = map.get(k) ?? blank();
       m.withdrawals += Number(w.amount || 0);
       map.set(k, m);
     }
+    for (const e of expQ.data ?? []) {
+      const k = monthKey(e.date);
+      const m = map.get(k) ?? blank();
+      m.paid += Number(e.amount || 0);
+      map.set(k, m);
+    }
     return [...map.entries()]
-      .map(([month, v]) => ({ month, ...v, net: v.revenue - v.withdrawals }))
+      .map(([month, v]) => ({ month, ...v, net: v.revenue - v.withdrawals - v.paid }))
       .sort((a, b) => b.month.localeCompare(a.month));
-  }, [revQ.data, withQ.data]);
+  }, [revQ.data, withQ.data, expQ.data]);
 
   const filteredMonth = monthly.find((m) => m.month === month);
 
@@ -93,6 +113,7 @@ function AffiliateStatementPage() {
     () => ({
       revenue: monthly.reduce((s, m) => s + m.revenue, 0),
       withdrawals: monthly.reduce((s, m) => s + m.withdrawals, 0),
+      paid: monthly.reduce((s, m) => s + m.paid, 0),
       net: monthly.reduce((s, m) => s + m.net, 0),
     }),
     [monthly]
@@ -102,14 +123,16 @@ function AffiliateStatementPage() {
     month: (r) => r.month,
     revenue: (r) => r.revenue,
     withdrawals: (r) => r.withdrawals,
+    paid: (r) => r.paid,
     net: (r) => r.net,
   });
 
   const transactions = useMemo(() => {
     const rev = (revQ.data ?? []).map((r) => ({ type: "Revenue" as const, date: r.date, amount: Number(r.amount || 0), label: r.customer_name || "Revenue", id: r.id }));
     const withs = (withQ.data ?? []).map((w) => ({ type: "Withdrawal" as const, date: w.date, amount: -Number(w.amount || 0), label: w.notes || "Withdrawal", id: w.id }));
-    return [...rev, ...withs].sort((a, b) => b.date.localeCompare(a.date));
-  }, [revQ.data, withQ.data]);
+    const exps = (expQ.data ?? []).map((e) => ({ type: "Paid to affiliate" as const, date: e.date, amount: -Number(e.amount || 0), label: e.notes || "Affiliate payout", id: e.id }));
+    return [...rev, ...withs, ...exps].sort((a, b) => b.date.localeCompare(a.date));
+  }, [revQ.data, withQ.data, expQ.data]);
 
   return (
     <div>
@@ -129,7 +152,7 @@ function AffiliateStatementPage() {
         }
       />
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Total revenue</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold">{fmtMoney(totals.revenue)}</CardContent>
@@ -139,13 +162,17 @@ function AffiliateStatementPage() {
           <CardContent className="text-2xl font-semibold text-rose-500">{fmtMoney(totals.withdrawals)}</CardContent>
         </Card>
         <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Wallet className="h-4 w-4" /> Paid to affiliate</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold text-amber-500">{fmtMoney(totals.paid)}</CardContent>
+        </Card>
+        <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Building2 className="h-4 w-4" /> Net balance</CardTitle></CardHeader>
           <CardContent className={cn("text-2xl font-semibold", totals.net >= 0 ? "text-emerald-500" : "text-rose-500")}>{fmtMoney(totals.net)}</CardContent>
         </Card>
       </section>
 
       {filteredMonth && (
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Calendar className="h-4 w-4" /> {month} revenue</CardTitle></CardHeader>
             <CardContent className="text-2xl font-semibold">{fmtMoney(filteredMonth.revenue)}</CardContent>
@@ -153,6 +180,10 @@ function AffiliateStatementPage() {
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{month} withdrawals</CardTitle></CardHeader>
             <CardContent className="text-2xl font-semibold text-rose-500">{fmtMoney(filteredMonth.withdrawals)}</CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{month} paid to affiliate</CardTitle></CardHeader>
+            <CardContent className="text-2xl font-semibold text-amber-500">{fmtMoney(filteredMonth.paid)}</CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{month} net</CardTitle></CardHeader>
@@ -176,6 +207,7 @@ function AffiliateStatementPage() {
                     <SortTh label="Month" k="month" sort={sort} toggle={toggle} />
                     <SortTh label="Revenue" k="revenue" sort={sort} toggle={toggle} />
                     <SortTh label="Withdrawals" k="withdrawals" sort={sort} toggle={toggle} />
+                    <SortTh label="Paid" k="paid" sort={sort} toggle={toggle} />
                     <SortTh label="Net" k="net" sort={sort} toggle={toggle} />
                   </tr>
                 </thead>
@@ -185,6 +217,7 @@ function AffiliateStatementPage() {
                       <td className="py-3 px-4 font-medium">{r.month}</td>
                       <td className="py-3 px-4">{fmtMoney(r.revenue)}</td>
                       <td className="py-3 px-4 text-rose-500">−{fmtMoney(r.withdrawals)}</td>
+                      <td className="py-3 px-4 text-amber-500">−{fmtMoney(r.paid)}</td>
                       <td className={cn("py-3 px-4 font-medium", r.net >= 0 ? "text-emerald-500" : "text-rose-500")}>{fmtMoney(r.net)}</td>
                     </tr>
                   ))}
@@ -216,7 +249,7 @@ function AffiliateStatementPage() {
                     <tr key={`${t.type}-${t.id}`} className="border-b border-border/50 hover:bg-accent/30">
                       <td className="py-3 px-4">{t.date}</td>
                       <td className="py-3 px-4">
-                        <span className={cn("rounded border px-1.5 py-0.5 text-xs font-medium", t.type === "Revenue" ? "border-emerald-500/30 text-emerald-500" : "border-rose-500/30 text-rose-500")}>{t.type}</span>
+                        <span className={cn("rounded border px-1.5 py-0.5 text-xs font-medium", t.type === "Revenue" ? "border-emerald-500/30 text-emerald-500" : t.type === "Paid to affiliate" ? "border-amber-500/30 text-amber-500" : "border-rose-500/30 text-rose-500")}>{t.type}</span>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{t.label}</td>
                       <td className={cn("py-3 px-4 font-medium", t.amount >= 0 ? "text-emerald-500" : "text-rose-500")}>{t.amount >= 0 ? "" : "−"}{fmtMoney(Math.abs(t.amount))}</td>
