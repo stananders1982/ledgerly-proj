@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Repeat, RefreshCw } from "lucide-react";
+import { StatusBadge } from "@/components/status-badge";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -171,7 +172,7 @@ function RecurringPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Name" k="name" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Category" k="category" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -183,7 +184,7 @@ function RecurringPage() {
               </thead>
               <tbody>
                 {sorted.map((r: any) => (
-                  <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(r); setOpen(true); }}>
                     <td className="py-3 px-4 font-medium">{r.name}</td>
                     <td className="py-3 px-4"><Badge variant="outline">{r.expense_categories?.name ?? "—"}</Badge></td>
@@ -191,7 +192,7 @@ function RecurringPage() {
                     <td className="py-3 px-4 capitalize text-muted-foreground">{r.frequency}</td>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.next_due_date)}</td>
                     <td className="py-3 px-4">
-                      <Badge variant={r.active ? "default" : "outline"}>{r.active ? "Active" : "Paused"}</Badge>
+                      <StatusBadge tone={r.active ? "success" : "muted"}>{r.active ? "Active" : "Paused"}</StatusBadge>
                     </td>
                     <td className="py-3 px-4 text-right" onClick={(ev) => ev.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete recurring expense?" />

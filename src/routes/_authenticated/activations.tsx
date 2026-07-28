@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AnsweredBadge, PotentialBadge as SharedPotentialBadge } from "@/components/status-badge";
+import { DataCard, DataCardList } from "@/components/data-card-list";
+import { TableSkeleton } from "@/components/table-skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchInput } from "@/components/search-input";
 import { PageHeader } from "@/components/page-header";
@@ -51,8 +54,7 @@ const POTENTIALS = ["low", "mid", "high"] as const;
 
 function PotentialBadge({ value }: { value: Row["potential"] }) {
   if (!value) return <span className="text-muted-foreground">—</span>;
-  const variant = value === "high" ? "default" : value === "mid" ? "secondary" : "outline";
-  return <Badge variant={variant} className="capitalize">{value}</Badge>;
+  return <SharedPotentialBadge potential={value} />;
 }
 
 function ActivationsPage() {
@@ -269,12 +271,32 @@ function ActivationsPage() {
       </div>
 
 
-      <div className="rounded-lg border border-border overflow-x-auto">
-        {rows.length === 0 ? (
+      <div className="rounded-lg border border-border overflow-hidden">
+        {q.isLoading ? (
+          <TableSkeleton cols={8} />
+        ) : rows.length === 0 ? (
           <EmptyState icon={CheckCircle2} title="No clients" description="Activated leads logged on the Leads page appear here." />
         ) : (
+          <>
+          <DataCardList>
+            {sorted.map((r: any) => (
+              <DataCard
+                key={r.id}
+                title={r.lead_name || "—"}
+                subtitle={r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : undefined}
+                onClick={() => setEditing(r)}
+                fields={[
+                  { label: "Balance", value: <span className="num">{fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}</span> },
+                  { label: "Potential", value: <PotentialBadge value={r.potential} /> },
+                  { label: "Source", value: r.daily_lead_entries?.lead_sources?.name ?? "—" },
+                  { label: "Answered", value: <AnsweredBadge answered={!!r.answered} /> },
+                ]}
+              />
+            ))}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+            <thead className="table-head bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>
                 <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -290,7 +312,7 @@ function ActivationsPage() {
               {sorted.map((r: any) => (
                 <tr
                   key={r.id}
-                  className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                  className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                   onClick={() => setEditing(r)}
                 >
                   <td className="py-3 px-4">{r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : "—"}</td>
@@ -318,6 +340,8 @@ function ActivationsPage() {
               ))}
             </tbody>
           </table>
+          </div>
+          </>
         )}
       </div>
 

@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { DataCard, DataCardList } from "@/components/data-card-list";
+import { TableSkeleton } from "@/components/table-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { SearchInput } from "@/components/search-input";
@@ -182,15 +184,33 @@ function WithdrawalsPage() {
       )}
 
       <div className="card-surface overflow-hidden">
-        {wQ.isLoading ? <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+        {wQ.isLoading ? <TableSkeleton cols={7} />
         : rows.length === 0 ? (
           <EmptyState icon={Banknote} title="No withdrawals yet" description="Record your first withdrawal to track payouts and agent penalties."
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New withdrawal</Button>} />
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <DataCardList>
+            {sorted.map((r: any) => (
+              <DataCard
+                key={r.id}
+                title={r.customer_name}
+                subtitle={fmtDate(r.date)}
+                onClick={() => { setEditing(r); setOpen(true); }}
+                actions={<ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete withdrawal?" />}
+                fields={[
+                  { label: "Amount", value: <span className="num text-destructive font-medium">−{fmtMoney(r.amount)}</span> },
+                  { label: "Agent", value: getEmpName(r) },
+                  { label: "Penalty", value: <span className="num text-destructive">−{fmtMoney(r.employee_penalty)}</span> },
+                  { label: "Source", value: r.affiliates?.name ?? "—" },
+                ]}
+              />
+            ))}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Customer" k="customer" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -203,7 +223,7 @@ function WithdrawalsPage() {
               </thead>
               <tbody>
                 {sorted.map((r: any) => (
-                  <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(r); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
@@ -237,6 +257,7 @@ function WithdrawalsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

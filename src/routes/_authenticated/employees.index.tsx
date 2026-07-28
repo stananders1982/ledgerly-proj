@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, UserCog } from "lucide-react";
+import { ActiveBadge, StatusBadge } from "@/components/status-badge";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,8 @@ import {
 import { toast } from "sonner";
 import { fmtMoney } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { DataCard, DataCardList } from "@/components/data-card-list";
+import { TableSkeleton } from "@/components/table-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -137,7 +140,7 @@ function EmployeesPage() {
 
       <div className="card-surface overflow-hidden">
         {q.isLoading ? (
-          <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+          <TableSkeleton cols={6} />
         ) : rows.length === 0 ? (
           <EmptyState
             icon={UserCog}
@@ -146,10 +149,28 @@ function EmployeesPage() {
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add employee</Button>}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <DataCardList>
+            {sorted.map((e: any) => (
+              <DataCard
+                key={e.id}
+                title={e.name}
+                subtitle={e.role || undefined}
+                onClick={() => { setEditing(e); setOpen(true); }}
+                actions={<Link to="/employees/$id" params={{ id: e.id }} className="text-primary hover:underline text-xs">View</Link>}
+                fields={[
+                  { label: "Team", value: <StatusBadge tone="info">{e.team ?? "C"}</StatusBadge> },
+                  { label: "Salary", value: <span className="num">{fmtMoney(e.salary)}</span> },
+                  { label: "Email", value: e.email || "—" },
+                  { label: "Status", value: <ActiveBadge active={!!e.active} /> },
+                ]}
+              />
+            ))}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Name" k="name" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Role" k="role" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Team" k="team" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -162,12 +183,12 @@ function EmployeesPage() {
               </thead>
               <tbody>
                 {sorted.map((e: any) => (
-                  <tr key={e.id} className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                  <tr key={e.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 font-medium">{e.name}</td>
                     <td className="py-3 px-4">{e.role || "—"}</td>
                     <td className="py-3 px-4">
-                      <span className="rounded border border-border px-1.5 py-0.5 text-xs font-medium">{e.team ?? "C"}</span>
+                      <StatusBadge tone="info">{e.team ?? "C"}</StatusBadge>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{e.email || "—"}</td>
                     <td className="py-3 px-4">{fmtMoney(e.salary)}</td>
@@ -178,7 +199,7 @@ function EmployeesPage() {
                       {" · "}
                       &gt;{fmtMoney(e.commission_tier2_max)}: <span className="text-foreground font-medium">{Number(e.commission_tier3_pct)}%</span>
                     </td>
-                    <td className="py-3 px-4">{e.active ? "Yes" : "No"}</td>
+                    <td className="py-3 px-4"><ActiveBadge active={!!e.active} /></td>
                     <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
                       <button type="button" className="text-primary hover:underline text-xs mr-3"
                         onClick={() => { setEditing(e); setOpen(true); }}>Edit</button>
@@ -190,6 +211,7 @@ function EmployeesPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

@@ -291,7 +291,7 @@ function EmployeeDetailPage() {
           <div className="overflow-x-auto max-h-[360px]">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-card">
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <th className="py-2 px-4">Date</th>
                   <th className="py-2 px-4">Lead</th>
                   <th className="py-2 px-4">Potential</th>
@@ -339,7 +339,7 @@ function EmployeeDetailPage() {
             <div className="overflow-x-auto max-h-[400px]">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card">
-                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                     <th className="py-2 px-4">Date</th>
                     <th className="py-2 px-4">Customer</th>
                     <th className="py-2 px-4">Affiliate</th>
@@ -376,7 +376,7 @@ function EmployeeDetailPage() {
             <div className="overflow-x-auto max-h-[400px]">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card">
-                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                     <th className="py-2 px-4">Date</th>
                     <th className="py-2 px-4">Customer</th>
                     <th className="py-2 px-4 text-right">Amount</th>

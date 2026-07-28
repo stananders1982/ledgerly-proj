@@ -1,57 +1,56 @@
-# Improvement Ideas for Ledgerly
+# Design overhaul plan
 
-I explored the current codebase (dashboard, leads, sources, revenue, expenses, recurring, withdrawals, employees, performance, attendance, reports, users, auth/2FA). Below are concrete improvement opportunities grouped by impact. Pick the ones you want and we’ll implement them next.
+Four workstreams, implemented in order. No backend changes; existing dark glassmorphism theme and color tokens are kept.
 
-## 1. Data Quality & Validation
-- **Duplicate prevention**: add unique constraints/indexes on `daily_lead_entries (entry_date, source_id, campaign)` and `revenue (date, customer_name, amount)` to avoid accidental double-entry.
-- **Required fields enforcement**: make `source_id` required on lead entries and `employee_id`/`team` required on employees at the DB level.
-- **Soft deletes**: replace hard `DELETE` on employees/lead sources with `deleted_at` flags so historical reports stay intact.
+## 1. Grouped sidebar navigation
 
-## 2. Employee & Payroll Experience
-- **Bulk attendance**: a single “Mark attendance for today” page with checkboxes for all employees instead of one-by-one entry.
-- **Payslip export**: generate PDF payslips per employee per month from the Performance / Employee Detail page.
-- **Commission statement**: a per-employee breakdown showing every revenue line that contributed to that month’s commission.
-- **Working-days calendar**: let admins define holidays/non-working days so attendance/salary deductions are accurate.
+Replace the flat 14-item list with collapsible groups:
 
-## 3. Lead & Source Intelligence
-- **Lead source health score**: a single score per source combining reporting rate, activation rate vs. expected, CPA savings, and ROI.
-- **Source-level cohort retention**: track how many activated leads from each source deposit again in week 2, 4, 8.
-- **Auto-archive inactive sources**: hide sources with no entries in the last 90 days from dropdowns unless toggled.
-- **Lead import (CSV/Excel)**: bulk upload daily lead entries instead of manual daily rows.
+```text
+Overview     Dashboard
+Operations   Leads · Clients · Sources · Income · Withdrawals · Expenses · Recurring
+People       Employees · Performance · Attendance
+Analytics    Reports · Affiliates
+Admin        Users
+```
 
-## 4. Revenue & Affiliates
-- **Revenue reconciliation**: flag revenue entries whose `customer_name` does not match any activated lead.
-- **Affiliate statement page**: a dedicated `/affiliates/:id` view with lifetime revenue, withdrawals, net, and player value.
-- **Chargeback/return tracking**: add a `revenue_returns` table so net revenue is revenue minus returns.
-- **Invoice generation**: create simple affiliate/income invoices from revenue entries.
+- Add a `group` field to each entry in `src/lib/nav-items.ts`.
+- Render each group as a collapsible `SidebarGroup` with a chevron; the group containing the active route stays open.
+- Preserve existing permission filtering — a group renders only if the user can see at least one of its items.
+- Persist open/closed state in localStorage.
+- In icon-collapsed mode, keep flat icons with tooltips (no nested dropdowns).
 
-## 5. Reporting & Analytics
-- **Scheduled reports**: email or export a P&L / Marketing report automatically every Monday / 1st of month.
-- **Saved report presets**: remember commonly used date ranges + filters per user.
-- **Comparative period charts**: show current month vs. previous month / same month last year on the dashboard.
-- **Drill-down**: click any dashboard KPI to jump to the filtered source page / report behind it.
+## 2. Unified page header + command palette
 
-## 6. Operations & UX
-- **Global search**: a command palette (Cmd+K) to jump to any employee, lead, source, or revenue entry.
-- **Recent activity feed**: a sidebar or page showing who created/edited what in the last 24 hours.
-- **Role-based home pages**: Conversion agents land on `/activations`, Retention on `/performance`, Admin on dashboard.
-- **Mobile polish**: many wide tables overflow horizontally; add card-based mobile views for Leads, Performance, Reports.
+**PageHeader** — extend the existing component so every page uses one layout:
 
-## 7. Automation
-- **Recurring expense generation scheduler**: replace the client-side `useEffect` trigger with a backend cron so the dashboard never misses a due expense.
-- **Auto-mark answered**: if a revenue deposit is recorded for a lead, automatically set `answered = true` on the activation.
-- **Low-balance alerts**: notify when an affiliate’s net balance turns negative or an employee’s attendance deduction exceeds a threshold.
+```text
+[eyebrow + title + description]      [search] [date range] [primary action]
+```
 
-## 8. Security & Compliance
-- **Audit log table**: track every insert/update/delete with `user_id`, `table`, `record_id`, `old_value`, `new_value`, `timestamp`.
-- **Session timeout**: enforce idle timeout and concurrent session limits for sensitive admin actions.
-- **Backup/export all data**: one-click full database export for the admin.
+Applied to Leads, Clients, Sources, Income, Withdrawals, Expenses, Recurring, Employees, Performance, Attendance, Reports, Affiliates, Users. Mobile: title stacks above controls using the grid pattern.
 
-## Suggested First Priority (quick wins + high value)
-1. Bulk attendance entry.
-2. Auto-mark activation as `answered` when revenue is recorded.
-3. Drill-down links from dashboard KPIs.
-4. Duplicate-prevention unique indexes.
-5. Affiliate detail statement page.
+**Command palette** — `Cmd/Ctrl + K`, plus a search button in the sidebar header.
+- Sections: Pages (all nav items the user can access), Quick actions (Add income, Add expense, Record withdrawal, Mark attendance).
+- Built with the existing shadcn `CommandDialog`.
 
-Which direction interests you most? We can turn any of these into a detailed build plan.
+## 3. Table polish + badges
+
+- Sticky, subtly tinted table headers with the existing sort affordance.
+- Row hover state; action buttons (Edit/Delete/View) fade in on hover, always visible on touch.
+- Right-align numeric columns and use tabular figures so amounts line up.
+- Consistent `StatusBadge` component for: Active/Inactive, Answered/Unanswered, Low/Mid/High potential, CPL/CPA pricing model, Paid/Pending.
+- All badge colors from existing `success` / `warning` / `destructive` / `muted` tokens.
+
+## 4. Mobile cards + loading and empty states
+
+- Below `md`, wide tables (Income, Expenses, Withdrawals, Clients, Employees, Affiliates, Performance) render as stacked cards: primary label on top, key figures as label/value pairs, actions in a row.
+- Skeleton loaders matching final layout for KPI cards, tables, and charts instead of blank space.
+- Standardized `EmptyState` usage everywhere: icon, one-line explanation, primary CTA.
+
+## Technical notes
+
+- Only existing shadcn primitives are used: `Sidebar`, `Collapsible`, `CommandDialog`, `Badge`, `Skeleton`, `Card`, `Tooltip`.
+- New shared components: `nav-groups` config, `command-palette.tsx`, `status-badge.tsx`, `table-card-list.tsx`, `table-skeleton.tsx`.
+- Sidebar width classes use explicit `var(--sidebar-width)` syntax per Tailwind v4.
+- No changes to queries, RLS, or calculation logic.

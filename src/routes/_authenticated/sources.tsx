@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Tag } from "lucide-react";
+import { PricingModelBadge } from "@/components/status-badge";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -34,11 +35,7 @@ type Source = {
 };
 
 export function PricingBadge({ model }: { model: "CPL" | "CPA" }) {
-  return (
-    <Badge variant={model === "CPL" ? "secondary" : "default"} className="uppercase tracking-wider">
-      {model}
-    </Badge>
-  );
+  return <PricingModelBadge model={model} />;
 }
 
 export function TargetBadge({ actual, expected }: { actual: number; expected: number }) {
@@ -286,7 +283,7 @@ function SourcesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Source" k="name" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Model" k="model" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Price" k="price" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -302,7 +299,7 @@ function SourcesPage() {
               <tbody>
                 {sorted.map((a: any) => (
                   <tr key={a.source.id}
-                      className="border-b border-border/50 hover:bg-accent/30 cursor-pointer"
+                      className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(a.source); setOpen(true); }}>
                     <td className="py-3 px-4 font-medium">{a.source.name}{!a.source.active && <span className="ml-2 text-xs text-muted-foreground">(inactive)</span>}</td>
                     <td className="py-3 px-4"><PricingBadge model={a.source.pricing_model} /></td>

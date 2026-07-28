@@ -9,6 +9,7 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DataCard, DataCardList } from "@/components/data-card-list";
 import { EmptyState } from "@/components/empty-state";
 
 export const Route = createFileRoute("/_authenticated/affiliates/")({
@@ -148,10 +149,27 @@ function AffiliatesPage() {
             {search ? "No affiliates match." : <EmptyState icon={Building2} title="No affiliates yet" description="Add affiliates through Lead Sources or the admin panel." />}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <DataCardList>
+            {sorted.map((r) => (
+              <DataCard
+                key={r.id}
+                title={r.name}
+                subtitle={r.active ? undefined : "Inactive"}
+                fields={[
+                  { label: "Revenue", value: <span className="num">{fmtMoney(r.revenue)}</span> },
+                  { label: "Withdrawals", value: <span className="num text-destructive">−{fmtMoney(r.withdrawn)}</span> },
+                  { label: "Paid", value: <span className="num text-warning">−{fmtMoney(r.paid)}</span> },
+                  { label: "Net", value: <span className={cn("num font-medium", r.net >= 0 ? "text-success" : "text-destructive")}>{fmtMoney(r.net)}</span> },
+                ]}
+                actions={<Link to="/affiliates/$id" params={{ id: r.id }} className="text-primary hover:underline text-xs">Statement</Link>}
+              />
+            ))}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Affiliate" k="name" sort={sort} toggle={toggle} />
                   <SortTh label="Revenue" k="revenue" sort={sort} toggle={toggle} />
                   <SortTh label="Withdrawals" k="withdrawn" sort={sort} toggle={toggle} />
@@ -162,7 +180,7 @@ function AffiliatesPage() {
               </thead>
               <tbody>
                 {sorted.map((r) => (
-                  <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30">
+                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                     <td className="py-3 px-4 font-medium">
                       {r.name}
                       {!r.active && <span className="ml-2 text-xs text-muted-foreground">inactive</span>}
@@ -181,6 +199,7 @@ function AffiliatesPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

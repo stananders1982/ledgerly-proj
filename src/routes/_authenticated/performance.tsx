@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { DataCard, DataCardList } from "@/components/data-card-list";
+import { TableSkeleton } from "@/components/table-skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -240,14 +242,30 @@ function PerformancePage() {
 
       <div className="card-surface overflow-hidden">
         {loading ? (
-          <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+          <TableSkeleton cols={8} />
         ) : sorted.length === 0 ? (
           <div className="p-8 text-sm text-muted-foreground">No employees match.</div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <DataCardList>
+            {sorted.map((r: any) => (
+              <DataCard
+                key={r.id}
+                title={r.name}
+                subtitle={`Team ${r.team ?? "C"}`}
+                fields={[
+                  { label: "FTDs", value: <span className="num">{r.ftds}</span> },
+                  { label: "Clients", value: <span className="num">{r.clients}</span> },
+                  { label: "Revenue", value: <span className="num">{fmtMoney(r.attributed)}</span> },
+                  { label: "Net payout", value: <span className="num font-medium">{fmtMoney(r.payout)}</span> },
+                ]}
+              />
+            ))}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Agent" k="name" sort={sort} toggle={toggle} />
                   <SortTh label="Dept" k="team" sort={sort} toggle={toggle} />
                   <SortTh label="FTDs" k="ftds" sort={sort} toggle={toggle} />
@@ -263,7 +281,7 @@ function PerformancePage() {
               </thead>
               <tbody>
                 {sorted.map((r: any) => (
-                  <tr key={r.id} className="border-b border-border/50 hover:bg-accent/30">
+                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                     <td className="py-3 px-4 font-medium">
                       {r.name}
                       {!r.active && <span className="ml-2 text-xs text-muted-foreground">inactive</span>}
@@ -309,6 +327,7 @@ function PerformancePage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>
