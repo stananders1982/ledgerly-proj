@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, ExternalLink, TrendingUp } from "lucide-react";
+import { Building2, ExternalLink, TrendingUp, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { SearchInput } from "@/components/search-input";
@@ -55,6 +55,15 @@ function AffiliatesPage() {
     },
   });
 
+  const expQ = useQuery({
+    queryKey: ["affiliates-expenses-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("expenses").select("affiliate_id,amount").not("affiliate_id", "is", null);
+      if (error) throw error;
+      return (data ?? []) as { affiliate_id: string; amount: number }[];
+    },
+  });
+
   const rows = useMemo(() => {
     const revenueByAff = new Map<string, number>();
     for (const r of revQ.data ?? []) {
@@ -65,26 +74,34 @@ function AffiliatesPage() {
       withByAff.set(w.affiliate_id, (withByAff.get(w.affiliate_id) ?? 0) + Number(w.amount || 0));
     }
 
+    const paidByAff = new Map<string, number>();
+    for (const e of expQ.data ?? []) {
+      paidByAff.set(e.affiliate_id, (paidByAff.get(e.affiliate_id) ?? 0) + Number(e.amount || 0));
+    }
+
     return (affQ.data ?? [])
       .map((a) => {
         const revenue = revenueByAff.get(a.id) ?? 0;
         const withdrawn = withByAff.get(a.id) ?? 0;
+        const paid = paidByAff.get(a.id) ?? 0;
         return {
           id: a.id,
           name: a.name,
           active: a.active,
           revenue,
           withdrawn,
-          net: revenue - withdrawn,
+          paid,
+          net: revenue - withdrawn - paid,
         };
       })
       .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()));
-  }, [affQ.data, revQ.data, withQ.data, search]);
+  }, [affQ.data, revQ.data, withQ.data, expQ.data, search]);
 
   const { sorted, sort, toggle } = useSort(rows, {
     name: (r) => r.name,
     revenue: (r) => r.revenue,
     withdrawn: (r) => r.withdrawn,
+    paid: (r) => r.paid,
     net: (r) => r.net,
   });
 
@@ -92,6 +109,7 @@ function AffiliatesPage() {
     () => ({
       revenue: rows.reduce((s, r) => s + r.revenue, 0),
       withdrawn: rows.reduce((s, r) => s + r.withdrawn, 0),
+      paid: rows.reduce((s, r) => s + r.paid, 0),
       net: rows.reduce((s, r) => s + r.net, 0),
     }),
     [rows]
@@ -105,7 +123,7 @@ function AffiliatesPage() {
         actions={<SearchInput value={search} onChange={setSearch} placeholder="Search affiliates…" className="w-56" />}
       />
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Total revenue</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold">{fmtMoney(totals.revenue)}</CardContent>
@@ -113,6 +131,10 @@ function AffiliatesPage() {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total withdrawals</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold text-rose-500">{fmtMoney(totals.withdrawn)}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Wallet className="h-4 w-4" /> Paid to affiliates</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold text-amber-500">{fmtMoney(totals.paid)}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Building2 className="h-4 w-4" /> Net balance</CardTitle></CardHeader>
@@ -133,6 +155,7 @@ function AffiliatesPage() {
                   <SortTh label="Affiliate" k="name" sort={sort} toggle={toggle} />
                   <SortTh label="Revenue" k="revenue" sort={sort} toggle={toggle} />
                   <SortTh label="Withdrawals" k="withdrawn" sort={sort} toggle={toggle} />
+                  <SortTh label="Paid" k="paid" sort={sort} toggle={toggle} />
                   <SortTh label="Net" k="net" sort={sort} toggle={toggle} />
                   <th className="py-3 px-4"></th>
                 </tr>
@@ -146,6 +169,7 @@ function AffiliatesPage() {
                     </td>
                     <td className="py-3 px-4">{fmtMoney(r.revenue)}</td>
                     <td className="py-3 px-4 text-rose-500">−{fmtMoney(r.withdrawn)}</td>
+                    <td className="py-3 px-4 text-amber-500">−{fmtMoney(r.paid)}</td>
                     <td className={cn("py-3 px-4 font-medium", r.net >= 0 ? "text-emerald-500" : "text-rose-500")}>{fmtMoney(r.net)}</td>
                     <td className="py-3 px-4 text-right">
                       <Link to="/affiliates/$id" params={{ id: r.id }} className="inline-flex items-center gap-1 text-primary hover:underline text-xs">
