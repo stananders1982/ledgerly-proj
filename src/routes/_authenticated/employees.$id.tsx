@@ -403,6 +403,7 @@ function EmployeeDetailPage() {
           <Row label="Base salary" value={fmtMoney(emp.salary)} />
           <Row label={`Absence deduction (${totals.absent} × ${fmtMoney(totals.perDay)})`} value={`−${fmtMoney(totals.deduction)}`} negative />
           <Row label={`Commission (${totals.rate}% on ${fmtMoney(totals.attributed)})`} value={`+${fmtMoney(totals.commission)}`} positive />
+          <Row label={`FTD commission (${totals.ftdCount} × ${fmtMoney(FTD_COMMISSION)})`} value={`+${fmtMoney(totals.ftdCommission)}`} positive />
           <Row label="Withdrawal penalty (10%)" value={`−${fmtMoney(totals.penalty)}`} negative />
           <div className="flex justify-between py-3 mt-2 border-t border-border font-display text-lg font-semibold">
             <span>Net payout</span>
