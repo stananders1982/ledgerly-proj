@@ -274,6 +274,7 @@ function EmployeeDetailPage() {
       </section>
 
 
+      {isConversion && (
       <div className="card-surface overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
           <div>
