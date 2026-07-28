@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { DataCard, DataCardList } from "@/components/data-card-list";
+import { TableSkeleton } from "@/components/table-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -226,12 +228,29 @@ function RevenuePage() {
       </div>
 
       <div className="card-surface overflow-hidden">
-        {revQ.isLoading ? <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+        {revQ.isLoading ? <TableSkeleton cols={6} />
         : filtered.length === 0 ? (
           <EmptyState icon={TrendingUp} title="No revenue in this range" description="Try a different time frame or record a new sale."
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New revenue</Button>} />
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <DataCardList>
+            {sorted.map((r: any) => (
+              <DataCard
+                key={r.id}
+                title={r.customer_name}
+                subtitle={fmtDate(r.date)}
+                onClick={() => { setEditing(r); setOpen(true); }}
+                actions={<ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete revenue?" />}
+                fields={[
+                  { label: "Amount", value: <span className="num text-primary font-medium">{fmtMoney(r.amount)}</span> },
+                  { label: "Employee", value: getEmployeeName(r.employee_id, r.employees) || "—" },
+                  { label: "Affiliate", value: getAffiliateName(r.affiliate_id, r.affiliates) || "—" },
+                ]}
+              />
+            ))}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
@@ -259,6 +278,7 @@ function RevenuePage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>
