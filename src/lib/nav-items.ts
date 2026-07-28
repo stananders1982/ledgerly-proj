@@ -1,29 +1,37 @@
 import { LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, Banknote, Gauge, Building2 } from "lucide-react";
 
+export type NavGroup = "Overview" | "Operations" | "People" | "Analytics" | "Admin";
+
 export type NavItem = {
   key: string;
   title: string;
   url: string;
   icon: typeof LayoutDashboard;
+  group: NavGroup;
   adminOnly?: boolean;
 };
 
-export const NAV_ITEMS: NavItem[] = [
-  { key: "dashboard", title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { key: "leads", title: "Leads", url: "/leads", icon: Users },
-  { key: "activations", title: "Clients", url: "/activations", icon: UserCheck },
+export const NAV_GROUPS: NavGroup[] = ["Overview", "Operations", "People", "Analytics", "Admin"];
 
-  { key: "sources", title: "Sources", url: "/sources", icon: Tag },
-  { key: "revenue", title: "Income", url: "/revenue", icon: TrendingUp },
-  { key: "withdrawals", title: "Withdrawals", url: "/withdrawals", icon: Banknote },
-  { key: "expenses", title: "Expenses", url: "/expenses", icon: Receipt },
-  { key: "recurring", title: "Recurring", url: "/recurring", icon: Repeat },
-  { key: "employees", title: "Employees", url: "/employees", icon: UserCog },
-  { key: "performance", title: "Performance", url: "/performance", icon: Gauge },
-  { key: "attendance", title: "Attendance", url: "/attendance", icon: CalendarCheck },
-  { key: "reports", title: "Reports", url: "/reports", icon: FileBarChart },
-  { key: "affiliates", title: "Affiliates", url: "/affiliates", icon: Building2 },
-  { key: "users", title: "Users", url: "/users", icon: ShieldCheck, adminOnly: true },
+export const NAV_ITEMS: NavItem[] = [
+  { key: "dashboard", title: "Dashboard", url: "/", icon: LayoutDashboard, group: "Overview" },
+
+  { key: "leads", title: "Leads", url: "/leads", icon: Users, group: "Operations" },
+  { key: "activations", title: "Clients", url: "/activations", icon: UserCheck, group: "Operations" },
+  { key: "sources", title: "Sources", url: "/sources", icon: Tag, group: "Operations" },
+  { key: "revenue", title: "Income", url: "/revenue", icon: TrendingUp, group: "Operations" },
+  { key: "withdrawals", title: "Withdrawals", url: "/withdrawals", icon: Banknote, group: "Operations" },
+  { key: "expenses", title: "Expenses", url: "/expenses", icon: Receipt, group: "Operations" },
+  { key: "recurring", title: "Recurring", url: "/recurring", icon: Repeat, group: "Operations" },
+
+  { key: "employees", title: "Employees", url: "/employees", icon: UserCog, group: "People" },
+  { key: "performance", title: "Performance", url: "/performance", icon: Gauge, group: "People" },
+  { key: "attendance", title: "Attendance", url: "/attendance", icon: CalendarCheck, group: "People" },
+
+  { key: "reports", title: "Reports", url: "/reports", icon: FileBarChart, group: "Analytics" },
+  { key: "affiliates", title: "Affiliates", url: "/affiliates", icon: Building2, group: "Analytics" },
+
+  { key: "users", title: "Users", url: "/users", icon: ShieldCheck, group: "Admin", adminOnly: true },
 ];
 
 export const MANAGEABLE_NAV_KEYS = NAV_ITEMS.filter((i) => !i.adminOnly).map((i) => i.key);
