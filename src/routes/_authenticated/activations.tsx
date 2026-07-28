@@ -348,7 +348,7 @@ function EditDialog({
 
   return (
     <DialogContent className="max-w-md">
-      <DialogHeader><DialogTitle>Activated lead</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle>Client</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
         <div className="grid gap-1.5">
           <label className="text-xs text-muted-foreground">Lead name</label>
