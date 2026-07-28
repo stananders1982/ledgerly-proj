@@ -199,16 +199,16 @@ function EmployeeDetailPage() {
     const deduction = absent * perDay;
     const salary = Math.max(0, Number(emp?.salary ?? 0) - deduction);
 
-    const ftdCount = conversions.counted.length;
+    const ftdCount = isConversion ? conversions.counted.length : 0;
     const ftdCommission = ftdCount * FTD_COMMISSION;
 
-    const payout = salary + commission + ftdCommission - penalty;
+    const payout = salary + (isRetention ? commission - penalty : 0) + ftdCommission;
 
     const clients = (clientsQ.data ?? []).reduce((s: number, r: any) => s + Number(r.activated_count || 0), 0);
     const revenuePerClient = clients > 0 ? attributed / clients : 0;
 
     return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission };
-  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end]);
+  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention]);
 
   if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
   if (!emp) return (
