@@ -229,6 +229,7 @@ function EmployeeDetailPage() {
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label="FTDs (activations)" value={String(conversions.counted.length)} tone="positive" />
+        <StatCard label={`FTD commission ($${FTD_COMMISSION}/FTD)`} value={fmtMoney(totals.ftdCommission)} tone="positive" />
         <StatCard label="Pending FTDs" value={String(conversions.pending.length)} />
 
         <StatCard label="Clients received (retention)" value={String(totals.clients)} tone="positive" />
