@@ -28,6 +28,7 @@ import { Route as AuthenticatedActivationsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedEmployeesIndexRouteImport } from './routes/_authenticated/employees.index'
 import { Route as AuthenticatedAffiliatesIndexRouteImport } from './routes/_authenticated/affiliates.index'
 import { Route as AuthenticatedEmployeesIdRouteImport } from './routes/_authenticated/employees.$id'
+import { Route as AuthenticatedAffiliatesIdRouteImport } from './routes/_authenticated/affiliates.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -129,6 +130,12 @@ const AuthenticatedEmployeesIdRoute =
     path: '/employees/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAffiliatesIdRoute =
+  AuthenticatedAffiliatesIdRouteImport.update({
+    id: '/affiliates/$id',
+    path: '/affiliates/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/sources': typeof AuthenticatedSourcesRoute
   '/users': typeof AuthenticatedUsersRoute
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
+  '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/employees/': typeof AuthenticatedEmployeesIndexRoute
@@ -166,6 +174,7 @@ export interface FileRoutesByTo {
   '/users': typeof AuthenticatedUsersRoute
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/': typeof AuthenticatedIndexRoute
+  '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/affiliates': typeof AuthenticatedAffiliatesIndexRoute
   '/employees': typeof AuthenticatedEmployeesIndexRoute
@@ -188,6 +197,7 @@ export interface FileRoutesById {
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/_authenticated/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/_authenticated/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/_authenticated/employees/': typeof AuthenticatedEmployeesIndexRoute
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/sources'
     | '/users'
     | '/withdrawals'
+    | '/affiliates/$id'
     | '/employees/$id'
     | '/affiliates/'
     | '/employees/'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/withdrawals'
     | '/'
+    | '/affiliates/$id'
     | '/employees/$id'
     | '/affiliates'
     | '/employees'
@@ -251,6 +263,7 @@ export interface FileRouteTypes {
     | '/_authenticated/users'
     | '/_authenticated/withdrawals'
     | '/_authenticated/'
+    | '/_authenticated/affiliates/$id'
     | '/_authenticated/employees/$id'
     | '/_authenticated/affiliates/'
     | '/_authenticated/employees/'
@@ -397,6 +410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEmployeesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/affiliates/$id': {
+      id: '/_authenticated/affiliates/$id'
+      path: '/affiliates/$id'
+      fullPath: '/affiliates/$id'
+      preLoaderRoute: typeof AuthenticatedAffiliatesIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -414,6 +434,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedWithdrawalsRoute: typeof AuthenticatedWithdrawalsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAffiliatesIdRoute: typeof AuthenticatedAffiliatesIdRoute
   AuthenticatedEmployeesIdRoute: typeof AuthenticatedEmployeesIdRoute
   AuthenticatedAffiliatesIndexRoute: typeof AuthenticatedAffiliatesIndexRoute
   AuthenticatedEmployeesIndexRoute: typeof AuthenticatedEmployeesIndexRoute
@@ -433,6 +454,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedWithdrawalsRoute: AuthenticatedWithdrawalsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAffiliatesIdRoute: AuthenticatedAffiliatesIdRoute,
   AuthenticatedEmployeesIdRoute: AuthenticatedEmployeesIdRoute,
   AuthenticatedAffiliatesIndexRoute: AuthenticatedAffiliatesIndexRoute,
   AuthenticatedEmployeesIndexRoute: AuthenticatedEmployeesIndexRoute,
