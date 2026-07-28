@@ -56,7 +56,14 @@ function EmployeeDetailPage() {
     },
   });
 
+  const team = String((empQ.data as any)?.team ?? "R").toUpperCase();
+  const isConversion = team === "C";
+  const isRetention = team === "R";
+  const isMarketing = team === "M";
+  const teamLabel = isConversion ? "Conversion" : isRetention ? "Retention" : isMarketing ? "Marketing" : "Team";
+
   const revQ = useQuery({
+    enabled: isRetention,
     queryKey: ["employee-revenue", id, start, end],
     queryFn: async () =>
       (await supabase
@@ -68,6 +75,7 @@ function EmployeeDetailPage() {
   });
 
   const withQ = useQuery({
+    enabled: isRetention,
     queryKey: ["employee-withdrawals", id, start, end],
     queryFn: async () =>
       (await sb
@@ -89,6 +97,7 @@ function EmployeeDetailPage() {
   });
 
   const clientsQ = useQuery({
+    enabled: isRetention || isConversion,
     queryKey: ["employee-clients", id, start, end],
     queryFn: async () => {
       const { data, error } = await sb
@@ -105,6 +114,7 @@ function EmployeeDetailPage() {
   // FTDs — leads this employee activated (as conversion agent).
   // Counted when answered AND (mid/high potential OR effective balance >= 251).
   const conversionsQ = useQuery({
+    enabled: isConversion,
     queryKey: ["employee-conversions", id, start, end],
     queryFn: async () => {
       const { data, error } = await sb
@@ -120,6 +130,7 @@ function EmployeeDetailPage() {
 
   // Deposits matched by customer name (same rule as the Activated Leads page).
   const depositsQ = useQuery({
+    enabled: isConversion,
     queryKey: ["revenue-by-name"],
     queryFn: async () => {
       const { data, error } = await sb.from("revenue").select("customer_name, amount");
@@ -127,6 +138,7 @@ function EmployeeDetailPage() {
       return (data ?? []) as { customer_name: string | null; amount: number }[];
     },
   });
+
 
   const conversions = useMemo(() => {
     const deposits = new Map<string, number>();
