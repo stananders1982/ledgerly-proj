@@ -785,7 +785,9 @@ function ReportsPage() {
               <SortableTable
                 columns={[
                   { key: "month", label: "Month" },
-                  { key: "affiliateName", label: "Affiliate" },
+                  { key: "affiliateName", label: "Affiliate", render: (v, row) => row.affiliateId ? (
+                    <Link to="/affiliates/$id" params={{ id: row.affiliateId }} className="text-primary hover:underline">{v}</Link>
+                  ) : v },
                   { key: "received", label: "Leads", numeric: true },
                   { key: "activated", label: "Activated", numeric: true },
                   { key: "reported", label: "Reported", numeric: true },
