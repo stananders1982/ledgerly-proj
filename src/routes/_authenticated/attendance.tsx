@@ -178,8 +178,26 @@ function AttendancePage() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Employees · {format(date, "EEEE, MMM d")}</CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => bulkStatus.mutate({ present: true, ids: employees.map((e) => e.id) })}
+              disabled={bulkStatus.isPending}
+            >
+              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5 text-emerald-500" /> Mark all present
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => bulkStatus.mutate({ present: false, ids: employees.map((e) => e.id) })}
+              disabled={bulkStatus.isPending}
+            >
+              <XCircle className="mr-1.5 h-3.5 w-3.5 text-rose-500" /> Mark all absent
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {employees.length === 0 ? (
