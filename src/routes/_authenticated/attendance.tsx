@@ -99,6 +99,20 @@ function AttendancePage() {
     onError: (e: any) => toast.error(e.message ?? "Failed to update"),
   });
 
+  const bulkStatus = useMutation({
+    mutationFn: async ({ present, ids }: { present: boolean; ids: string[] }) => {
+      const rows = ids.map((employee_id) => ({ employee_id, date: isoDate, present }));
+      const { error } = await supabase.from("attendance").upsert(rows, { onConflict: "employee_id,date" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["attendance", isoDate] });
+      qc.invalidateQueries({ queryKey: ["attendance", "month", monthStart] });
+      toast.success("Attendance saved for everyone");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to save"),
+  });
+
   const employees = employeesQ.data ?? [];
   const dayMap = useMemo(() => {
     const m = new Map<string, boolean>();
