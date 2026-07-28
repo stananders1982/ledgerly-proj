@@ -19,18 +19,19 @@ export function PageHeader({
 }) {
   return (
     <div className={cn("mb-8 space-y-4", className)}>
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 sm:flex sm:flex-wrap sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="min-w-0">
           {eyebrow && (
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               {eyebrow}
             </div>
           )}
-          <h1 className="truncate font-display text-2xl sm:text-3xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight">{title}</h1>
           {description && <p className="mt-1 max-w-xl text-sm text-muted-foreground">{description}</p>}
         </div>
         {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
       </div>
+
       {toolbar && <div className="flex flex-wrap items-center gap-2">{toolbar}</div>}
     </div>
   );
