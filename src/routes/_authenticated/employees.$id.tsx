@@ -430,15 +430,22 @@ function EmployeeDetailPage() {
           )}
         </div>
       </div>
+      )}
 
       <div className="card-surface p-5">
         <h3 className="font-display text-base font-semibold mb-3">Payout breakdown</h3>
         <div className="text-sm divide-y divide-border/50">
           <Row label="Base salary" value={fmtMoney(emp.salary)} />
           <Row label={`Absence deduction (${totals.absent} × ${fmtMoney(totals.perDay)})`} value={`−${fmtMoney(totals.deduction)}`} negative />
-          <Row label={`Commission (${totals.rate}% on ${fmtMoney(totals.attributed)})`} value={`+${fmtMoney(totals.commission)}`} positive />
-          <Row label={`FTD commission (${totals.ftdCount} × ${fmtMoney(FTD_COMMISSION)})`} value={`+${fmtMoney(totals.ftdCommission)}`} positive />
-          <Row label="Withdrawal penalty (10%)" value={`−${fmtMoney(totals.penalty)}`} negative />
+          {isRetention && (
+            <>
+              <Row label={`Commission (${totals.rate}% on ${fmtMoney(totals.attributed)})`} value={`+${fmtMoney(totals.commission)}`} positive />
+              <Row label="Withdrawal penalty (10%)" value={`−${fmtMoney(totals.penalty)}`} negative />
+            </>
+          )}
+          {isConversion && (
+            <Row label={`FTD commission (${totals.ftdCount} × ${fmtMoney(FTD_COMMISSION)})`} value={`+${fmtMoney(totals.ftdCommission)}`} positive />
+          )}
           <div className="flex justify-between py-3 mt-2 border-t border-border font-display text-lg font-semibold">
             <span>Net payout</span>
             <span className="text-primary">{fmtMoney(totals.payout)}</span>
