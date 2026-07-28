@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { PotentialBadge as SharedPotentialBadge } from "@/components/status-badge";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchInput } from "@/components/search-input";
 import { PageHeader } from "@/components/page-header";
@@ -51,8 +52,7 @@ const POTENTIALS = ["low", "mid", "high"] as const;
 
 function PotentialBadge({ value }: { value: Row["potential"] }) {
   if (!value) return <span className="text-muted-foreground">—</span>;
-  const variant = value === "high" ? "default" : value === "mid" ? "secondary" : "outline";
-  return <Badge variant={variant} className="capitalize">{value}</Badge>;
+  return <SharedPotentialBadge potential={value} />;
 }
 
 function ActivationsPage() {

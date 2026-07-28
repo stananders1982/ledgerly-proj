@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Tag } from "lucide-react";
+import { PricingModelBadge } from "@/components/status-badge";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -34,11 +35,7 @@ type Source = {
 };
 
 export function PricingBadge({ model }: { model: "CPL" | "CPA" }) {
-  return (
-    <Badge variant={model === "CPL" ? "secondary" : "default"} className="uppercase tracking-wider">
-      {model}
-    </Badge>
-  );
+  return <PricingModelBadge model={model} />;
 }
 
 export function TargetBadge({ actual, expected }: { actual: number; expected: number }) {

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, UserCog } from "lucide-react";
+import { ActiveBadge, StatusBadge } from "@/components/status-badge";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -167,7 +168,7 @@ function EmployeesPage() {
                     <td className="py-3 px-4 font-medium">{e.name}</td>
                     <td className="py-3 px-4">{e.role || "—"}</td>
                     <td className="py-3 px-4">
-                      <span className="rounded border border-border px-1.5 py-0.5 text-xs font-medium">{e.team ?? "C"}</span>
+                      <StatusBadge tone="info">{e.team ?? "C"}</StatusBadge>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{e.email || "—"}</td>
                     <td className="py-3 px-4">{fmtMoney(e.salary)}</td>
@@ -178,7 +179,7 @@ function EmployeesPage() {
                       {" · "}
                       &gt;{fmtMoney(e.commission_tier2_max)}: <span className="text-foreground font-medium">{Number(e.commission_tier3_pct)}%</span>
                     </td>
-                    <td className="py-3 px-4">{e.active ? "Yes" : "No"}</td>
+                    <td className="py-3 px-4"><ActiveBadge active={!!e.active} /></td>
                     <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
                       <button type="button" className="text-primary hover:underline text-xs mr-3"
                         onClick={() => { setEditing(e); setOpen(true); }}>Edit</button>

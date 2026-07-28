@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Repeat, RefreshCw } from "lucide-react";
+import { StatusBadge } from "@/components/status-badge";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -191,7 +192,7 @@ function RecurringPage() {
                     <td className="py-3 px-4 capitalize text-muted-foreground">{r.frequency}</td>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.next_due_date)}</td>
                     <td className="py-3 px-4">
-                      <Badge variant={r.active ? "default" : "outline"}>{r.active ? "Active" : "Paused"}</Badge>
+                      <StatusBadge tone={r.active ? "success" : "muted"}>{r.active ? "Active" : "Paused"}</StatusBadge>
                     </td>
                     <td className="py-3 px-4 text-right" onClick={(ev) => ev.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete recurring expense?" />
