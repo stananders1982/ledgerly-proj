@@ -323,8 +323,9 @@ function EmployeeDetailPage() {
           </div>
         )}
       </div>
+      )}
 
-
+      {(isConversion || isRetention) && (
       <div className="card-surface overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
           <h3 className="font-display text-base font-semibold">Activated leads ({(clientsQ.data ?? []).length})</h3>
