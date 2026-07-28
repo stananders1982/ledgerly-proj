@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { fmtMoney } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 
@@ -161,5 +162,3 @@ function AffiliatesPage() {
     </div>
   );
 }
-
-import { cn } from "@/lib/utils";
