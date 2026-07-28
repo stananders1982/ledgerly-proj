@@ -334,34 +334,35 @@ function Dashboard() {
         <SectionTitle eyebrow="Business engine" title="Three pillars driving the month" />
         <div className="grid gap-4 lg:grid-cols-3">
           <EngineBlock title="Acquisition" accent="blue" icon={Users}>
-            <Mini label="Leads received" value={String(m.received)} data={m.series.map((s) => ({ v: s.received }))} tone="blue" />
+            <Mini label="Leads received" value={String(m.received)} data={m.series.map((s) => ({ v: s.received }))} tone="blue" to="/leads" />
             <Mini label="Conversion rate" value={fmtPct(m.rate)} tone="blue"
-                  data={m.series.map((s) => ({ v: s.received ? (s.activated / s.received) * 100 : 0 }))} />
+                  data={m.series.map((s) => ({ v: s.received ? (s.activated / s.received) * 100 : 0 }))} to="/leads" />
             <Mini
               label={m.activationSurplus >= 0 ? "Activation surplus" : "Activation deficit"}
               value={`${m.activationSurplus >= 0 ? "+" : ""}${Math.round(m.activationSurplus)}`}
               tone={m.activationSurplus >= 0 ? "green" : "red"}
               data={m.series.map((s) => ({ v: s.activated }))}
+              to="/leads"
             />
           </EngineBlock>
 
           <EngineBlock title="Profitability" accent="green" icon={TrendingUp}>
             <Mini label="Net profit" value={fmtMoney(m.profit)} tone={m.profit >= 0 ? "green" : "red"}
-                  data={m.series.map((s) => ({ v: s.profit }))} />
+                  data={m.series.map((s) => ({ v: s.profit }))} to="/reports" />
             <Mini label="CPA savings" value={fmtMoney(m.cpaSavings)} tone="purple"
-                  data={m.series.map((s) => ({ v: s.activated - (s.received ? 0 : 0) }))} />
+                  data={m.series.map((s) => ({ v: s.activated - (s.received ? 0 : 0) }))} to="/sources" />
             <Mini label="ROI" value={`${m.roi.toFixed(1)}%`} tone={m.roi >= 0 ? "green" : "red"}
-                  data={m.series.map((s) => ({ v: s.revenue - s.expenses }))} />
+                  data={m.series.map((s) => ({ v: s.revenue - s.expenses }))} to="/reports" />
           </EngineBlock>
 
           <EngineBlock title="Operations" accent="amber" icon={Wallet}>
             <Mini label="Fixed monthly" value={fmtMoney(m.fixedMonthly)} tone="amber"
-                  data={Array.from({ length: 12 }, (_, i) => ({ v: m.fixedMonthly * (0.92 + (i % 4) * 0.03) }))} />
+                  data={Array.from({ length: 12 }, (_, i) => ({ v: m.fixedMonthly * (0.92 + (i % 4) * 0.03) }))} to="/recurring" />
             <Mini label="Recurring monthly" value={fmtMoney(m.recurringMonthly)} tone="amber"
-                  data={Array.from({ length: 12 }, (_, i) => ({ v: m.recurringMonthly * (0.95 + (i % 3) * 0.03) }))} />
+                  data={Array.from({ length: 12 }, (_, i) => ({ v: m.recurringMonthly * (0.95 + (i % 3) * 0.03) }))} to="/recurring" />
             <Mini label="Break-even revenue" value={fmtMoney(m.breakEven)}
                   tone={m.income >= m.breakEven ? "green" : "red"}
-                  data={m.series.map((s) => ({ v: s.revenue }))} />
+                  data={m.series.map((s) => ({ v: s.revenue }))} to="/reports" />
           </EngineBlock>
         </div>
       </section>
