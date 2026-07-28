@@ -1,24 +1,33 @@
 ## Goal
-On the employee detail page (`/employees/$id`), give conversion agents a clear, auto-updating **FTDs (activations)** metric with the correct qualification rules.
+Make `/employees/$id` show only what's relevant to the employee's department (`team` = C, R, or M), instead of one identical layout for everyone.
 
-## Counting rules (a lead counts as an FTD for the conversion agent when)
-1. The activation's **conversion agent** is this employee, and
-2. The lead is marked **answered**, and
-3. **Potential is mid or high** — OR potential is low but the lead's **balance is $251 or more**.
+## Team C — Conversion
+Focus: activations and FTDs.
+- Stat cards: FTDs (activations), FTD commission ($100/FTD), Pending FTDs, Working days, Absences, Salary after absences, Net payout.
+- Tables: FTDs table (counted + pending, with reason) and the Activated leads table.
+- Hidden: Attributed revenue, tiered commission, revenue/client, withdrawals, revenue and withdrawals tables.
+- Payout breakdown: base salary − absence deduction + FTD commission.
 
-Balance = the activation's base balance (default $250) plus any recorded deposits matched by customer name (same rule already used on the Activated Leads page). So a low-potential lead automatically qualifies the moment a deposit pushes it past $250, and any lead qualifies the moment it's marked answered — no manual recalculation.
+## Team R — Retention
+Focus: the clients they hold and money they generate.
+- Stat cards: Clients received (retention), Revenue / client, Attributed revenue, Commission (tiered %), Withdrawals, Withdrawal penalty (10%), Working days, Absences, Salary after absences, Net payout.
+- Tables: Revenue table, Withdrawals table, and the Activated leads (clients received) table.
+- Hidden: FTDs cards and FTD table (conversion-only).
+- Payout breakdown: base salary − absence deduction + tiered commission − withdrawal penalty.
 
-## Page changes
-- Rename the card "Leads activated (conversion)" to **"FTDs (activations)"**, showing the qualified count for the selected month.
-- Keep a second card **"Pending"** for activations that don't yet qualify, with a short hint of why (unanswered vs. low potential under $251).
-- Add an **FTDs table** listing qualifying activations: date, lead name, potential, balance (base + deposits), answered.
-- Optionally list the pending ones underneath in a muted section so agents can see what's close to qualifying.
+## Team M — Marketing
+Focus: attendance and pay only.
+- Stat cards: Working days, Absences, Salary after absences, Net payout.
+- Hidden: FTDs, activated leads, attributed revenue, commission, revenue/client, withdrawals sections.
+- Payout breakdown: base salary − absence deduction.
+
+## Shared
+- Header gets a small team badge (Conversion / Retention / Marketing) so it's obvious which view is in play.
+- Employees with no team set fall back to the Retention layout (current default is `C`, so this is rare).
+- Attendance/working-days block and the month picker stay on all three views.
 
 ## Technical notes
-- Extend the existing conversion query in `src/routes/_authenticated/employees.$id.tsx` to also select `balance` and the entry date.
-- Add a revenue-by-customer-name lookup (same aggregation as `/activations`) to compute effective balance.
-- Qualification helper: `answered && (potential === 'mid' || potential === 'high' || effectiveBalance >= 251)`.
-- No schema or business-logic changes in the database; this is display/aggregation only.
-
-## Open follow-up (not in this plan unless you want it)
-The same FTD rule could be mirrored on the Activated Leads page's "Conversions by agent" table so the two screens always agree.
+- All changes are in `src/routes/_authenticated/employees.$id.tsx`; no schema or query-logic changes to the FTD rules.
+- Read `emp.team` into a `view` variable and gate each `<section>` / card / table with it.
+- Skip firing the queries a view doesn't use (e.g. conversions query only when team C) via the `enabled` option, so the page stays fast.
+- `totals.payout` becomes team-aware: FTD commission only for C, tiered commission and penalty only for R.
