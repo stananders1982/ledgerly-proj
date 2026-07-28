@@ -13,6 +13,9 @@ import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/co
 
 const sb = supabase as any;
 
+/** Flat commission paid to the conversion agent per qualifying FTD. */
+const FTD_COMMISSION = 100;
+
 export const Route = createFileRoute("/_authenticated/employees/$id")({
   head: () => ({ meta: [{ title: "Employee — Ledgerly" }] }),
   component: EmployeeDetailPage,
@@ -184,13 +187,16 @@ function EmployeeDetailPage() {
     const deduction = absent * perDay;
     const salary = Math.max(0, Number(emp?.salary ?? 0) - deduction);
 
-    const payout = salary + commission - penalty;
+    const ftdCount = conversions.counted.length;
+    const ftdCommission = ftdCount * FTD_COMMISSION;
+
+    const payout = salary + commission + ftdCommission - penalty;
 
     const clients = (clientsQ.data ?? []).reduce((s: number, r: any) => s + Number(r.activated_count || 0), 0);
     const revenuePerClient = clients > 0 ? attributed / clients : 0;
 
-    return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient };
-  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, emp, id, start, end]);
+    return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission };
+  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end]);
 
   if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
   if (!emp) return (
