@@ -215,6 +215,7 @@ export type Database = {
           entry_id: string
           id: string
           lead_name: string | null
+          low_potential_alerted: boolean
           potential: string | null
           updated_at: string
         }
@@ -228,6 +229,7 @@ export type Database = {
           entry_id: string
           id?: string
           lead_name?: string | null
+          low_potential_alerted?: boolean
           potential?: string | null
           updated_at?: string
         }
@@ -241,6 +243,7 @@ export type Database = {
           entry_id?: string
           id?: string
           lead_name?: string | null
+          low_potential_alerted?: boolean
           potential?: string | null
           updated_at?: string
         }
@@ -617,6 +620,42 @@ export type Database = {
           id?: string
           nav_key?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          amount: number
+          body: string | null
+          created_at: string
+          id: string
+          lead_activation_id: string | null
+          lead_name: string | null
+          read_at: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          amount?: number
+          body?: string | null
+          created_at?: string
+          id?: string
+          lead_activation_id?: string | null
+          lead_name?: string | null
+          read_at?: string | null
+          title: string
+          type?: string
+        }
+        Update: {
+          amount?: number
+          body?: string | null
+          created_at?: string
+          id?: string
+          lead_activation_id?: string | null
+          lead_name?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
         }
         Relationships: []
       }
