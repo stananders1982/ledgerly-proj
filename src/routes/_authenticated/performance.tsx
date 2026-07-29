@@ -262,7 +262,7 @@ function PerformancePage() {
               />
             ))}
           </DataCardList>
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">

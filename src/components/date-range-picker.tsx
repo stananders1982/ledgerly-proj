@@ -64,7 +64,7 @@ export function DateRangePicker({
 }) {
   return (
     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-      <Tabs value={value} onValueChange={(v) => onChange(v as RangeKey)} className="max-w-full overflow-x-auto">
+      <Tabs value={value} onValueChange={(v) => onChange(v as RangeKey)} className="max-w-full overflow-x-auto scroll-slim">
         <TabsList className="w-max">
           <TabsTrigger value="today">Today</TabsTrigger>
           <TabsTrigger value="week">Week</TabsTrigger>

@@ -649,7 +649,7 @@ function ReportsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="overflow-x-auto print:hidden">
+        <div className="overflow-x-auto scroll-slim print:hidden">
           <TabsList className="h-auto flex-wrap">
             <TabsTrigger value="summary">Executive</TabsTrigger>
             <TabsTrigger value="pl">P&amp;L</TabsTrigger>
@@ -1085,7 +1085,7 @@ function SortableTable({ columns, rows, searchable }: { columns: Col[]; rows: an
       {searchable && (
         <Input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs print:hidden" />
       )}
-      <div className="card-surface overflow-x-auto">
+      <div className="card-surface overflow-x-auto scroll-slim">
         <Table>
           <TableHeader>
             <TableRow>

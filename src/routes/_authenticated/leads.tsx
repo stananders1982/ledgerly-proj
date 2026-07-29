@@ -359,7 +359,7 @@ function LeadsPage() {
             No employee attributions yet. Open an entry and assign activated leads to employees.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
@@ -397,7 +397,7 @@ function LeadsPage() {
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add entry</Button>}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
@@ -511,7 +511,7 @@ function EntryDialog({
 
 
   return (
-    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto scroll-slim">
       <DialogHeader><DialogTitle>{entry?.id ? "Edit entry" : "New daily entry"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
         <div className="grid grid-cols-2 gap-3">

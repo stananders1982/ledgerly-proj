@@ -169,7 +169,7 @@ function RecurringPage() {
           <EmptyState icon={Repeat} title="No recurring expenses" description="Add rent, subscriptions, internet, utilities…"
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New recurring</Button>} />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
