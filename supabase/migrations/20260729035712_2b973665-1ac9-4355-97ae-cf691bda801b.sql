@@ -1,0 +1,1 @@
+UPDATE public.lead_sources SET name = 'KK-Leads' WHERE id = 'ae253793-ce31-46d4-b790-d9a30ed5dd90';
