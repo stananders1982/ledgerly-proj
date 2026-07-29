@@ -155,19 +155,31 @@ function ActivationsPage() {
   const answeredCount = rows.filter((r) => r.answered).length;
   const highCount = rows.filter((r) => r.potential === "high").length;
 
-  // Conversions per conversion agent — only answered leads count
+  // Conversions per conversion agent — only answered leads count as converted
   const conversionsByAgent = useMemo(() => {
-    const m = new Map<string, number>();
+    const m = new Map<string, { count: number; pending: number }>();
     for (const r of rows) {
-      if (!r.answered) continue;
       const id = r.conversion_employee_id;
       if (!id) continue;
-      m.set(id, (m.get(id) ?? 0) + 1);
+      const e = m.get(id) ?? { count: 0, pending: 0 };
+      if (r.answered) e.count += 1;
+      else e.pending += 1;
+      m.set(id, e);
     }
     return [...m.entries()]
-      .map(([id, count]) => ({ id, name: employeeName(id), count }))
+      .map(([id, v]) => ({ id, name: employeeName(id), ...v, total: v.count + v.pending }))
       .sort((a, b) => b.count - a.count);
   }, [rows, employeesQ.data]);
+
+  const conversionTotals = useMemo(
+    () => ({
+      count: conversionsByAgent.reduce((s, a) => s + a.count, 0),
+      pending: conversionsByAgent.reduce((s, a) => s + a.pending, 0),
+      total: conversionsByAgent.reduce((s, a) => s + a.total, 0),
+    }),
+    [conversionsByAgent],
+  );
+
 
   const save = useMutation({
     mutationFn: async (v: Row) => {
@@ -246,26 +258,38 @@ function ActivationsPage() {
       <div className="mb-6 rounded-lg border border-border">
         <div className="border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">Conversions by agent</h2>
-          <p className="text-xs text-muted-foreground">Only answered leads are counted.</p>
+          <p className="text-xs text-muted-foreground">Conversions count answered leads only; pending are not answered yet.</p>
         </div>
         {conversionsByAgent.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-muted-foreground">No answered conversions in this range.</p>
+          <p className="px-4 py-6 text-sm text-muted-foreground">No conversions in this range.</p>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="py-2 px-4 font-medium">Conversion agent</th>
                 <th className="py-2 px-4 font-medium">Conversions</th>
+                <th className="py-2 px-4 font-medium">Pending</th>
+                <th className="py-2 px-4 font-medium">Total</th>
               </tr>
             </thead>
             <tbody>
               {conversionsByAgent.map((a) => (
                 <tr key={a.id} className="border-t border-border/50">
                   <td className="py-2 px-4">{a.name}</td>
-                  <td className="py-2 px-4 font-medium">{a.count}</td>
+                  <td className="py-2 px-4 font-medium num">{a.count}</td>
+                  <td className="py-2 px-4 num text-muted-foreground">{a.pending}</td>
+                  <td className="py-2 px-4 num">{a.total}</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t border-border bg-muted/30 font-semibold">
+                <td className="py-2 px-4">Total</td>
+                <td className="py-2 px-4 num">{conversionTotals.count}</td>
+                <td className="py-2 px-4 num text-muted-foreground">{conversionTotals.pending}</td>
+                <td className="py-2 px-4 num">{conversionTotals.total}</td>
+              </tr>
+            </tfoot>
           </table>
         )}
       </div>
