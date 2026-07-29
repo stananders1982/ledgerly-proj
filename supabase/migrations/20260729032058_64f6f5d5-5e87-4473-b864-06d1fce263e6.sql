@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.trg_low_potential_deposit_alert() FROM PUBLIC, anon, authenticated;
