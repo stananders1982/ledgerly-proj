@@ -409,6 +409,117 @@ function ActivationsPage() {
         )}
       </div>
 
+      <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null); }}>
+        {viewing && (() => {
+          const cur = (q.data ?? []).find((r) => r.id === viewing.id) ?? viewing;
+          const deposits = depositRowsFor(cur.lead_name);
+          const wds = withdrawalRowsFor(cur.lead_name);
+          const depositTotal = deposits.reduce((a, d) => a + Number(d.amount || 0), 0);
+          const wdTotal = wds.reduce((a, d) => a + Number(d.amount || 0), 0);
+          const effective = Number(cur.balance || 0) + depositTotal;
+          const qualifies =
+            !!cur.answered &&
+            (cur.potential === "mid" || cur.potential === "high" || effective >= 251);
+          return (
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto scroll-slim">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {cur.lead_name || "Unnamed client"}
+                  <PotentialBadge value={cur.potential} />
+                  <AnsweredBadge answered={!!cur.answered} />
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="grid gap-4 py-2">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <Stat label="Effective balance" value={fmtMoney(effective)} />
+                  <Stat label="Base balance" value={fmtMoney(Number(cur.balance || 0))} />
+                  <Stat label="Deposits" value={fmtMoney(depositTotal)} />
+                  <Stat label="Withdrawals" value={fmtMoney(wdTotal)} />
+                </div>
+
+                <div className="grid gap-2 rounded-lg border border-border p-3 text-sm sm:grid-cols-2">
+                  <Info label="Source" value={cur.daily_lead_entries?.lead_sources?.name ?? "—"} />
+                  <Info label="Activation date" value={cur.daily_lead_entries?.entry_date ? fmtDate(cur.daily_lead_entries.entry_date) : "—"} />
+                  <Info label="Conversion agent" value={employeeName(cur.conversion_employee_id)} />
+                  <Info label="Retention agent" value={employeeName(cur.employee_id)} />
+                  <Info label="Deposit count" value={String(deposits.length)} />
+                  <Info label="FTD status" value={<Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified" : "Pending"}</Badge>} />
+                </div>
+
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold">Deposits</h3>
+                  {deposits.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No deposits recorded yet.</p>
+                  ) : (
+                    <div className="overflow-x-auto scroll-slim rounded-lg border border-border">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                          <tr>
+                            <th className="py-2 px-3 font-medium">Date</th>
+                            <th className="py-2 px-3 font-medium">Amount</th>
+                            <th className="py-2 px-3 font-medium">Agent</th>
+                            <th className="py-2 px-3 font-medium">Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {deposits.map((d) => (
+                            <tr key={d.id} className="border-t border-border/50">
+                              <td className="py-2 px-3">{fmtDate(d.date)}</td>
+                              <td className="py-2 px-3 num font-medium">{fmtMoney(d.amount)}</td>
+                              <td className="py-2 px-3">{employeeName(d.employee_id)}</td>
+                              <td className="py-2 px-3 text-muted-foreground">{d.notes || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t border-border bg-muted/30 font-semibold">
+                            <td className="py-2 px-3">Total</td>
+                            <td className="py-2 px-3 num">{fmtMoney(depositTotal)}</td>
+                            <td colSpan={2} />
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {wds.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold">Withdrawals</h3>
+                    <div className="overflow-x-auto scroll-slim rounded-lg border border-border">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                          <tr>
+                            <th className="py-2 px-3 font-medium">Date</th>
+                            <th className="py-2 px-3 font-medium">Amount</th>
+                            <th className="py-2 px-3 font-medium">Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {wds.map((w) => (
+                            <tr key={w.id} className="border-t border-border/50">
+                              <td className="py-2 px-3">{fmtDate(w.date)}</td>
+                              <td className="py-2 px-3 num font-medium">{fmtMoney(w.amount)}</td>
+                              <td className="py-2 px-3 text-muted-foreground">{w.notes || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setViewing(null)}>Close</Button>
+                <Button onClick={() => { setViewing(null); setEditing(cur); }}>Edit client</Button>
+              </DialogFooter>
+            </DialogContent>
+          );
+        })()}
+      </Dialog>
+
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         {editing && (
           <EditDialog
