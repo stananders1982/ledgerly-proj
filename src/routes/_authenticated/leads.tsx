@@ -44,7 +44,7 @@ type Entry = {
 };
 
 type Activation = { id: string; entry_id: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null };
-type Split = { employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null };
+type Split = { id?: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null };
 
 function LeadsPage() {
   const qc = useQueryClient();
@@ -209,12 +209,35 @@ function LeadsPage() {
       const splits: Split[] = (v.splits ?? []).filter(
         (s: Split) => s.employee_id && Number(s.activated_count) > 0,
       );
-      const { error: delErr } = await supabase
-        .from("daily_lead_activations").delete().eq("entry_id", entryId!);
-      if (delErr) throw delErr;
-      if (splits.length > 0) {
+
+      // Diff against existing rows so untouched leads keep balance/answered/alert state.
+      const { data: existing, error: exErr } = await supabase
+        .from("daily_lead_activations").select("id").eq("entry_id", entryId!);
+      if (exErr) throw exErr;
+      const keptIds = new Set(splits.map((s) => s.id).filter(Boolean) as string[]);
+      const toDelete = (existing ?? []).map((r) => r.id).filter((id) => !keptIds.has(id));
+
+      if (toDelete.length > 0) {
+        const { error: delErr } = await supabase
+          .from("daily_lead_activations").delete().in("id", toDelete);
+        if (delErr) throw delErr;
+      }
+
+      for (const s of splits.filter((s) => s.id)) {
+        const { error } = await supabase.from("daily_lead_activations").update({
+          employee_id: s.employee_id,
+          conversion_employee_id: s.conversion_employee_id || null,
+          activated_count: Number(s.activated_count) || 0,
+          lead_name: s.lead_name?.trim() || null,
+          potential: s.potential || null,
+        }).eq("id", s.id!);
+        if (error) throw error;
+      }
+
+      const toInsert = splits.filter((s) => !s.id);
+      if (toInsert.length > 0) {
         const { error: insErr } = await supabase.from("daily_lead_activations").insert(
-          splits.map((s) => ({
+          toInsert.map((s) => ({
             entry_id: entryId!,
             employee_id: s.employee_id,
             conversion_employee_id: s.conversion_employee_id || null,
@@ -261,7 +284,8 @@ function LeadsPage() {
               employees={employeesQ.data ?? []}
               existingSplits={
                 editing ? (activationsByEntry.get(editing.id) ?? []).flatMap((a) =>
-                  Array.from({ length: Math.max(1, a.activated_count) }, () => ({
+                  Array.from({ length: Math.max(1, a.activated_count) }, (_, i) => ({
+                    id: i === 0 ? a.id : undefined,
                     employee_id: a.employee_id,
                     conversion_employee_id: a.conversion_employee_id ?? "",
                     activated_count: 1,
