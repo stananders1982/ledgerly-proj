@@ -348,7 +348,7 @@ function ActivationsPage() {
                 key={r.id}
                 title={r.lead_name || "—"}
                 subtitle={r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : undefined}
-                onClick={() => setEditing(r)}
+                onClick={() => setViewing(r)}
                 fields={[
                   { label: "Balance", value: <span className="num">{fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}</span> },
                   { label: "Potential", value: <PotentialBadge value={r.potential} /> },
@@ -377,7 +377,7 @@ function ActivationsPage() {
                 <tr
                   key={r.id}
                   className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
-                  onClick={() => setEditing(r)}
+                  onClick={() => setViewing(r)}
                 >
                   <td className="py-3 px-4">{r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : "—"}</td>
                   <td className="py-3 px-4 font-medium">{r.lead_name || "—"}</td>
