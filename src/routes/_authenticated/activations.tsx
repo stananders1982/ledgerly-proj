@@ -63,6 +63,7 @@ function ActivationsPage() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
+  const [viewing, setViewing] = useState<Row | null>(null);
   const [answeredFilter, setAnsweredFilter] = useState<"all" | "yes" | "no">("all");
   const [potentialFilter, setPotentialFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
