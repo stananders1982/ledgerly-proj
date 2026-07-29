@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnsweredBadge, PotentialBadge as SharedPotentialBadge } from "@/components/status-badge";
 import { DataCard, DataCardList } from "@/components/data-card-list";
@@ -610,5 +610,23 @@ function EditDialog({
         </Button>
       </DialogFooter>
     </DialogContent>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="text-[11px] uppercase text-muted-foreground">{label}</p>
+      <p className="mt-1 text-base font-semibold num">{value}</p>
+    </div>
+  );
+}
+
+function Info({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium">{value}</span>
+    </div>
   );
 }
