@@ -96,9 +96,34 @@ function ActivationsPage() {
   const revenueQ = useQuery({
     queryKey: ["revenue-for-activations"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("revenue").select("customer_name, amount");
+      const { data, error } = await supabase
+        .from("revenue")
+        .select("id, customer_name, amount, date, notes, employee_id, affiliate_id")
+        .order("date", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as { customer_name: string | null; amount: number }[];
+      return (data ?? []) as {
+        id: string;
+        customer_name: string | null;
+        amount: number;
+        date: string;
+        notes: string | null;
+        employee_id: string | null;
+        affiliate_id: string | null;
+      }[];
+    },
+  });
+
+  const withdrawalsQ = useQuery({
+    queryKey: ["withdrawals-for-activations"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("withdrawals")
+        .select("id, customer_name, amount, date, notes")
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as {
+        id: string; customer_name: string | null; amount: number; date: string; notes: string | null;
+      }[];
     },
   });
 
