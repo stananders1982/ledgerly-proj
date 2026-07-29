@@ -155,19 +155,31 @@ function ActivationsPage() {
   const answeredCount = rows.filter((r) => r.answered).length;
   const highCount = rows.filter((r) => r.potential === "high").length;
 
-  // Conversions per conversion agent — only answered leads count
+  // Conversions per conversion agent — only answered leads count as converted
   const conversionsByAgent = useMemo(() => {
-    const m = new Map<string, number>();
+    const m = new Map<string, { count: number; pending: number }>();
     for (const r of rows) {
-      if (!r.answered) continue;
       const id = r.conversion_employee_id;
       if (!id) continue;
-      m.set(id, (m.get(id) ?? 0) + 1);
+      const e = m.get(id) ?? { count: 0, pending: 0 };
+      if (r.answered) e.count += 1;
+      else e.pending += 1;
+      m.set(id, e);
     }
     return [...m.entries()]
-      .map(([id, count]) => ({ id, name: employeeName(id), count }))
+      .map(([id, v]) => ({ id, name: employeeName(id), ...v, total: v.count + v.pending }))
       .sort((a, b) => b.count - a.count);
   }, [rows, employeesQ.data]);
+
+  const conversionTotals = useMemo(
+    () => ({
+      count: conversionsByAgent.reduce((s, a) => s + a.count, 0),
+      pending: conversionsByAgent.reduce((s, a) => s + a.pending, 0),
+      total: conversionsByAgent.reduce((s, a) => s + a.total, 0),
+    }),
+    [conversionsByAgent],
+  );
+
 
   const save = useMutation({
     mutationFn: async (v: Row) => {
