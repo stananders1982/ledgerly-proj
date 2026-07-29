@@ -155,14 +155,19 @@ function ActivationsPage() {
   const answeredCount = rows.filter((r) => r.answered).length;
   const highCount = rows.filter((r) => r.potential === "high").length;
 
-  // Conversions per conversion agent — only answered leads count as converted
+  // Conversions per conversion agent — same FTD rule as the employee page:
+  // answered AND (mid/high potential OR effective balance >= 251)
   const conversionsByAgent = useMemo(() => {
     const m = new Map<string, { count: number; pending: number }>();
     for (const r of rows) {
       const id = r.conversion_employee_id;
       if (!id) continue;
       const e = m.get(id) ?? { count: 0, pending: 0 };
-      if (r.answered) e.count += 1;
+      const effectiveBalance = Number(r.balance || 0) + depositsFor(r.lead_name);
+      const qualifies =
+        !!r.answered &&
+        (r.potential === "mid" || r.potential === "high" || effectiveBalance >= 251);
+      if (qualifies) e.count += 1;
       else e.pending += 1;
       m.set(id, e);
     }
@@ -258,7 +263,7 @@ function ActivationsPage() {
       <div className="mb-6 rounded-lg border border-border">
         <div className="border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">Conversions by agent</h2>
-          <p className="text-xs text-muted-foreground">Conversions count answered leads only; pending are not answered yet.</p>
+          <p className="text-xs text-muted-foreground">Counts qualified FTDs: answered and (mid/high potential or balance over $250). Everything else is pending.</p>
         </div>
         {conversionsByAgent.length === 0 ? (
           <p className="px-4 py-6 text-sm text-muted-foreground">No conversions in this range.</p>
