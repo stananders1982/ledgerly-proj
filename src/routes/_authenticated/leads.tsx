@@ -398,23 +398,23 @@ function LeadsPage() {
           />
         ) : (
           <div className="overflow-x-auto scroll-slim">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Model" k="model" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Received" k="received" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Activated" k="activated" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Reported" k="reported" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Expected %" k="expected" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Reported %" k="reportedPct" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Activated %" k="activatedPct" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Cost" k="cost" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Savings" k="savings" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <th className="py-3 px-4">Attribution</th>
-                  <SortTh label="Notes" k="notes" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <th className="py-3 px-4"></th>
+                  <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <SortTh label="Model" k="model" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <SortTh label="Received" k="received" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <SortTh label="Activated" k="activated" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <SortTh label="Reported" k="reported" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <SortTh label="Expected %" k="expected" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <SortTh label="Reported %" k="reportedPct" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <SortTh label="Activated %" k="activatedPct" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <SortTh label="Cost" k="cost" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <SortTh label="Savings" k="savings" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <th className="py-2.5 px-2">Attribution</th>
+                  <SortTh label="Notes" k="notes" sort={sort} toggle={toggle} className="py-2.5 px-2" />
+                  <th className="py-2.5 px-2"></th>
                 </tr>
               </thead>
               <tbody>
@@ -433,25 +433,25 @@ function LeadsPage() {
                   return (
                     <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                         onClick={() => { setEditing(r); setOpen(true); }}>
-                      <td className="py-3 px-4 font-medium">{fmtDate(r.entry_date)}</td>
-                      <td className="py-3 px-4">{s?.name ?? "—"}</td>
-                      <td className="py-3 px-4">{s ? <PricingBadge model={s.pricing_model} /> : "—"}</td>
-                      <td className="py-3 px-4">{r.received}</td>
-                      <td className="py-3 px-4">{r.activated}</td>
-                      <td className="py-3 px-4">{r.reported}</td>
-                      <td className="py-3 px-4">{s?.expected_conversion_rate ? fmtPct(Number(s.expected_conversion_rate)) : "—"}</td>
-                      <td className="py-3 px-4">{r.received ? fmtPct((r.reported / r.received) * 100) : "—"}</td>
-                      <td className="py-3 px-4">{r.received ? fmtPct((r.activated / r.received) * 100) : "—"}</td>
-                      <td className="py-3 px-4">{fmtMoney(cost)}</td>
-                      <td className="py-3 px-4 text-emerald-500">{s?.pricing_model === "CPA" ? fmtMoney(savings) : "—"}</td>
-                      <td className="py-3 px-4 text-xs text-muted-foreground max-w-[16rem] truncate">
+                      <td className="py-2.5 px-2 font-medium">{fmtDate(r.entry_date)}</td>
+                      <td className="py-2.5 px-2">{s?.name ?? "—"}</td>
+                      <td className="py-2.5 px-2">{s ? <PricingBadge model={s.pricing_model} /> : "—"}</td>
+                      <td className="py-2.5 px-2">{r.received}</td>
+                      <td className="py-2.5 px-2">{r.activated}</td>
+                      <td className="py-2.5 px-2">{r.reported}</td>
+                      <td className="py-2.5 px-2">{s?.expected_conversion_rate ? fmtPct(Number(s.expected_conversion_rate)) : "—"}</td>
+                      <td className="py-2.5 px-2">{r.received ? fmtPct((r.reported / r.received) * 100) : "—"}</td>
+                      <td className="py-2.5 px-2">{r.received ? fmtPct((r.activated / r.received) * 100) : "—"}</td>
+                      <td className="py-2.5 px-2">{fmtMoney(cost)}</td>
+                      <td className="py-2.5 px-2 text-emerald-500">{s?.pricing_model === "CPA" ? fmtMoney(savings) : "—"}</td>
+                      <td className="py-2.5 px-2 text-xs text-muted-foreground max-w-[11rem] truncate">
                         {attrLabel}
                         {splits.length > 0 && attrSum !== r.activated && (
                           <span className="ml-1 text-amber-500">({attrSum}/{r.activated})</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-muted-foreground truncate max-w-[14rem]">{r.notes || "—"}</td>
-                      <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td className="py-2.5 px-2 text-muted-foreground truncate max-w-[9rem]">{r.notes || "—"}</td>
+                      <td className="py-2.5 px-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete entry?" />
                       </td>
                     </tr>
