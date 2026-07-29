@@ -141,6 +141,15 @@ function ActivationsPage() {
   const depositsFor = (name?: string | null) =>
     depositsByName.get((name ?? "").trim().toLowerCase()) ?? 0;
 
+  const matchName = (a?: string | null, b?: string | null) =>
+    !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+
+  const depositRowsFor = (name?: string | null) =>
+    (revenueQ.data ?? []).filter((r) => matchName(r.customer_name, name));
+
+  const withdrawalRowsFor = (name?: string | null) =>
+    (withdrawalsQ.data ?? []).filter((w) => matchName(w.customer_name, name));
+
   const employeeName = (id?: string | null) =>
     (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
 
