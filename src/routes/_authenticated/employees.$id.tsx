@@ -288,7 +288,7 @@ function EmployeeDetailPage() {
         {conversions.all.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground">No activations as conversion agent this month.</div>
         ) : (
-          <div className="overflow-x-auto max-h-[360px]">
+          <div className="overflow-x-auto scroll-slim max-h-[360px]">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-card">
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
@@ -336,7 +336,7 @@ function EmployeeDetailPage() {
           {(revQ.data ?? []).length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">No revenue this month.</div>
           ) : (
-            <div className="overflow-x-auto max-h-[400px]">
+            <div className="overflow-x-auto scroll-slim max-h-[400px]">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card">
                   <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
@@ -373,7 +373,7 @@ function EmployeeDetailPage() {
           {(withQ.data ?? []).length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">No withdrawals this month.</div>
           ) : (
-            <div className="overflow-x-auto max-h-[400px]">
+            <div className="overflow-x-auto scroll-slim max-h-[400px]">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card">
                   <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">

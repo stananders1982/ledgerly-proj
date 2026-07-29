@@ -323,7 +323,7 @@ function ActivationsPage() {
               />
             ))}
           </DataCardList>
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto scroll-slim">
           <table className="w-full text-sm">
             <thead className="table-head bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>

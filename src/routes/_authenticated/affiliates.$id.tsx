@@ -190,7 +190,7 @@ function AffiliateStatementPage() {
           {sorted.length === 0 ? (
             <div className="p-8 text-sm text-muted-foreground">No transactions yet.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scroll-slim">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
@@ -224,7 +224,7 @@ function AffiliateStatementPage() {
           {transactions.length === 0 ? (
             <div className="p-8 text-sm text-muted-foreground">No transactions yet.</div>
           ) : (
-            <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
+            <div className="overflow-auto scroll-slim max-h-[420px]">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
