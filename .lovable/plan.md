@@ -1,56 +1,20 @@
-# Design overhaul plan
+## Goal
 
-Four workstreams, implemented in order. No backend changes; existing dark glassmorphism theme and color tokens are kept.
+Whenever a client marked **Low potential** receives a deposit that pushes their balance above $250, admins get an in-app alert: a bell in the top bar with an unread count, plus a toast while they're using the app.
 
-## 1. Grouped sidebar navigation
+## How it works
 
-Replace the flat 14-item list with collapsible groups:
+1. **Notifications table** (`notifications`): message, type, link to the client, related client/lead name, amount, created date, and a read/unread flag. Admin-only read access; rows are created by the database itself.
+2. **Automatic trigger on deposits**: when a revenue entry is saved, the database checks whether the customer matches a client whose potential is `low`. It sums the client's base balance ($250) plus all recorded deposits, and if the total has just crossed $250 for the first time, it writes one notification row. A "already notified" marker on the client prevents repeat alerts for the same client on later deposits.
+3. **Bell in the top bar** (in the app header next to the search/profile controls): shows the unread count, opens a dropdown listing recent alerts with lead name, amount and date. Clicking an alert opens the Clients page filtered to that client and marks it read. A "Mark all read" action clears the badge.
+4. **Live toast**: the app subscribes to new notification rows in real time, so a toast appears immediately for admins who are online when a qualifying deposit is recorded.
 
-```text
-Overview     Dashboard
-Operations   Leads · Clients · Sources · Income · Withdrawals · Expenses · Recurring
-People       Employees · Performance · Attendance
-Analytics    Reports · Affiliates
-Admin        Users
-```
-
-- Add a `group` field to each entry in `src/lib/nav-items.ts`.
-- Render each group as a collapsible `SidebarGroup` with a chevron; the group containing the active route stays open.
-- Preserve existing permission filtering — a group renders only if the user can see at least one of its items.
-- Persist open/closed state in localStorage.
-- In icon-collapsed mode, keep flat icons with tooltips (no nested dropdowns).
-
-## 2. Unified page header + command palette
-
-**PageHeader** — extend the existing component so every page uses one layout:
-
-```text
-[eyebrow + title + description]      [search] [date range] [primary action]
-```
-
-Applied to Leads, Clients, Sources, Income, Withdrawals, Expenses, Recurring, Employees, Performance, Attendance, Reports, Affiliates, Users. Mobile: title stacks above controls using the grid pattern.
-
-**Command palette** — `Cmd/Ctrl + K`, plus a search button in the sidebar header.
-- Sections: Pages (all nav items the user can access), Quick actions (Add income, Add expense, Record withdrawal, Mark attendance).
-- Built with the existing shadcn `CommandDialog`.
-
-## 3. Table polish + badges
-
-- Sticky, subtly tinted table headers with the existing sort affordance.
-- Row hover state; action buttons (Edit/Delete/View) fade in on hover, always visible on touch.
-- Right-align numeric columns and use tabular figures so amounts line up.
-- Consistent `StatusBadge` component for: Active/Inactive, Answered/Unanswered, Low/Mid/High potential, CPL/CPA pricing model, Paid/Pending.
-- All badge colors from existing `success` / `warning` / `destructive` / `muted` tokens.
-
-## 4. Mobile cards + loading and empty states
-
-- Below `md`, wide tables (Income, Expenses, Withdrawals, Clients, Employees, Affiliates, Performance) render as stacked cards: primary label on top, key figures as label/value pairs, actions in a row.
-- Skeleton loaders matching final layout for KPI cards, tables, and charts instead of blank space.
-- Standardized `EmptyState` usage everywhere: icon, one-line explanation, primary CTA.
+Notifications stay visible in the bell list (read/unread) so nothing is lost if you were offline.
 
 ## Technical notes
 
-- Only existing shadcn primitives are used: `Sidebar`, `Collapsible`, `CommandDialog`, `Badge`, `Skeleton`, `Card`, `Tooltip`.
-- New shared components: `nav-groups` config, `command-palette.tsx`, `status-badge.tsx`, `table-card-list.tsx`, `table-skeleton.tsx`.
-- Sidebar width classes use explicit `var(--sidebar-width)` syntax per Tailwind v4.
-- No changes to queries, RLS, or calculation logic.
+- Migration: create `public.notifications` (id, type, title, body, lead_activation_id, amount, created_at, read_at) with GRANTs, RLS enabled, admin-only SELECT/UPDATE via `has_role(auth.uid(),'admin')`, inserts done by a `SECURITY DEFINER` trigger function.
+- Add `low_potential_alerted boolean not null default false` to `daily_lead_activations` as the idempotency flag.
+- Trigger `AFTER INSERT ON public.revenue`: matches `lower(trim(customer_name))` against `daily_lead_activations.lead_name` (same matching rule the Clients page uses), computes effective balance = `balance` + sum of all revenue for that name, and inserts a notification when potential = 'low', effective balance > 250, and the flag is false; then sets the flag.
+- Frontend: `src/components/notification-bell.tsx` (TanStack Query for the list + unread count, `supabase.channel` postgres_changes INSERT subscription → `toast()` from sonner and query invalidation), mounted in the header in `src/routes/_authenticated/route.tsx`, hidden for non-admins.
+- Enable realtime on the notifications table (`REPLICA IDENTITY FULL` + add to `supabase_realtime` publication).
