@@ -258,26 +258,38 @@ function ActivationsPage() {
       <div className="mb-6 rounded-lg border border-border">
         <div className="border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">Conversions by agent</h2>
-          <p className="text-xs text-muted-foreground">Only answered leads are counted.</p>
+          <p className="text-xs text-muted-foreground">Conversions count answered leads only; pending are not answered yet.</p>
         </div>
         {conversionsByAgent.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-muted-foreground">No answered conversions in this range.</p>
+          <p className="px-4 py-6 text-sm text-muted-foreground">No conversions in this range.</p>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="py-2 px-4 font-medium">Conversion agent</th>
                 <th className="py-2 px-4 font-medium">Conversions</th>
+                <th className="py-2 px-4 font-medium">Pending</th>
+                <th className="py-2 px-4 font-medium">Total</th>
               </tr>
             </thead>
             <tbody>
               {conversionsByAgent.map((a) => (
                 <tr key={a.id} className="border-t border-border/50">
                   <td className="py-2 px-4">{a.name}</td>
-                  <td className="py-2 px-4 font-medium">{a.count}</td>
+                  <td className="py-2 px-4 font-medium num">{a.count}</td>
+                  <td className="py-2 px-4 num text-muted-foreground">{a.pending}</td>
+                  <td className="py-2 px-4 num">{a.total}</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t border-border bg-muted/30 font-semibold">
+                <td className="py-2 px-4">Total</td>
+                <td className="py-2 px-4 num">{conversionTotals.count}</td>
+                <td className="py-2 px-4 num text-muted-foreground">{conversionTotals.pending}</td>
+                <td className="py-2 px-4 num">{conversionTotals.total}</td>
+              </tr>
+            </tfoot>
           </table>
         )}
       </div>
