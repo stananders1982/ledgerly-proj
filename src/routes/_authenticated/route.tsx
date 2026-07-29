@@ -69,6 +69,7 @@ function ProtectedLayout() {
                 <span className="hidden sm:inline">Search</span>
                 <kbd className="hidden md:inline rounded border border-border px-1 py-0.5 text-[10px]">⌘K</kbd>
               </Button>
+              <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
