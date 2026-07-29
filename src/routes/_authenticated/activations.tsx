@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnsweredBadge, PotentialBadge as SharedPotentialBadge } from "@/components/status-badge";
 import { DataCard, DataCardList } from "@/components/data-card-list";
@@ -63,6 +63,7 @@ function ActivationsPage() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
+  const [viewing, setViewing] = useState<Row | null>(null);
   const [answeredFilter, setAnsweredFilter] = useState<"all" | "yes" | "no">("all");
   const [potentialFilter, setPotentialFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -96,9 +97,34 @@ function ActivationsPage() {
   const revenueQ = useQuery({
     queryKey: ["revenue-for-activations"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("revenue").select("customer_name, amount");
+      const { data, error } = await supabase
+        .from("revenue")
+        .select("id, customer_name, amount, date, notes, employee_id, affiliate_id")
+        .order("date", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as { customer_name: string | null; amount: number }[];
+      return (data ?? []) as {
+        id: string;
+        customer_name: string | null;
+        amount: number;
+        date: string;
+        notes: string | null;
+        employee_id: string | null;
+        affiliate_id: string | null;
+      }[];
+    },
+  });
+
+  const withdrawalsQ = useQuery({
+    queryKey: ["withdrawals-for-activations"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("withdrawals")
+        .select("id, customer_name, amount, date, notes")
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as {
+        id: string; customer_name: string | null; amount: number; date: string; notes: string | null;
+      }[];
     },
   });
 
@@ -114,6 +140,15 @@ function ActivationsPage() {
 
   const depositsFor = (name?: string | null) =>
     depositsByName.get((name ?? "").trim().toLowerCase()) ?? 0;
+
+  const matchName = (a?: string | null, b?: string | null) =>
+    !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+
+  const depositRowsFor = (name?: string | null) =>
+    (revenueQ.data ?? []).filter((r) => matchName(r.customer_name, name));
+
+  const withdrawalRowsFor = (name?: string | null) =>
+    (withdrawalsQ.data ?? []).filter((w) => matchName(w.customer_name, name));
 
   const employeeName = (id?: string | null) =>
     (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
@@ -313,7 +348,7 @@ function ActivationsPage() {
                 key={r.id}
                 title={r.lead_name || "—"}
                 subtitle={r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : undefined}
-                onClick={() => setEditing(r)}
+                onClick={() => setViewing(r)}
                 fields={[
                   { label: "Balance", value: <span className="num">{fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}</span> },
                   { label: "Potential", value: <PotentialBadge value={r.potential} /> },
@@ -342,7 +377,7 @@ function ActivationsPage() {
                 <tr
                   key={r.id}
                   className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
-                  onClick={() => setEditing(r)}
+                  onClick={() => setViewing(r)}
                 >
                   <td className="py-3 px-4">{r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : "—"}</td>
                   <td className="py-3 px-4 font-medium">{r.lead_name || "—"}</td>
@@ -373,6 +408,117 @@ function ActivationsPage() {
           </>
         )}
       </div>
+
+      <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null); }}>
+        {viewing && (() => {
+          const cur = (q.data ?? []).find((r) => r.id === viewing.id) ?? viewing;
+          const deposits = depositRowsFor(cur.lead_name);
+          const wds = withdrawalRowsFor(cur.lead_name);
+          const depositTotal = deposits.reduce((a, d) => a + Number(d.amount || 0), 0);
+          const wdTotal = wds.reduce((a, d) => a + Number(d.amount || 0), 0);
+          const effective = Number(cur.balance || 0) + depositTotal;
+          const qualifies =
+            !!cur.answered &&
+            (cur.potential === "mid" || cur.potential === "high" || effective >= 251);
+          return (
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto scroll-slim">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {cur.lead_name || "Unnamed client"}
+                  <PotentialBadge value={cur.potential} />
+                  <AnsweredBadge answered={!!cur.answered} />
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="grid gap-4 py-2">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <Stat label="Effective balance" value={fmtMoney(effective)} />
+                  <Stat label="Base balance" value={fmtMoney(Number(cur.balance || 0))} />
+                  <Stat label="Deposits" value={fmtMoney(depositTotal)} />
+                  <Stat label="Withdrawals" value={fmtMoney(wdTotal)} />
+                </div>
+
+                <div className="grid gap-2 rounded-lg border border-border p-3 text-sm sm:grid-cols-2">
+                  <Info label="Source" value={cur.daily_lead_entries?.lead_sources?.name ?? "—"} />
+                  <Info label="Activation date" value={cur.daily_lead_entries?.entry_date ? fmtDate(cur.daily_lead_entries.entry_date) : "—"} />
+                  <Info label="Conversion agent" value={employeeName(cur.conversion_employee_id)} />
+                  <Info label="Retention agent" value={employeeName(cur.employee_id)} />
+                  <Info label="Deposit count" value={String(deposits.length)} />
+                  <Info label="FTD status" value={<Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified" : "Pending"}</Badge>} />
+                </div>
+
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold">Deposits</h3>
+                  {deposits.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No deposits recorded yet.</p>
+                  ) : (
+                    <div className="overflow-x-auto scroll-slim rounded-lg border border-border">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                          <tr>
+                            <th className="py-2 px-3 font-medium">Date</th>
+                            <th className="py-2 px-3 font-medium">Amount</th>
+                            <th className="py-2 px-3 font-medium">Agent</th>
+                            <th className="py-2 px-3 font-medium">Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {deposits.map((d) => (
+                            <tr key={d.id} className="border-t border-border/50">
+                              <td className="py-2 px-3">{fmtDate(d.date)}</td>
+                              <td className="py-2 px-3 num font-medium">{fmtMoney(d.amount)}</td>
+                              <td className="py-2 px-3">{employeeName(d.employee_id)}</td>
+                              <td className="py-2 px-3 text-muted-foreground">{d.notes || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t border-border bg-muted/30 font-semibold">
+                            <td className="py-2 px-3">Total</td>
+                            <td className="py-2 px-3 num">{fmtMoney(depositTotal)}</td>
+                            <td colSpan={2} />
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {wds.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold">Withdrawals</h3>
+                    <div className="overflow-x-auto scroll-slim rounded-lg border border-border">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                          <tr>
+                            <th className="py-2 px-3 font-medium">Date</th>
+                            <th className="py-2 px-3 font-medium">Amount</th>
+                            <th className="py-2 px-3 font-medium">Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {wds.map((w) => (
+                            <tr key={w.id} className="border-t border-border/50">
+                              <td className="py-2 px-3">{fmtDate(w.date)}</td>
+                              <td className="py-2 px-3 num font-medium">{fmtMoney(w.amount)}</td>
+                              <td className="py-2 px-3 text-muted-foreground">{w.notes || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setViewing(null)}>Close</Button>
+                <Button onClick={() => { setViewing(null); setEditing(cur); }}>Edit client</Button>
+              </DialogFooter>
+            </DialogContent>
+          );
+        })()}
+      </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         {editing && (
@@ -464,5 +610,23 @@ function EditDialog({
         </Button>
       </DialogFooter>
     </DialogContent>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="text-[11px] uppercase text-muted-foreground">{label}</p>
+      <p className="mt-1 text-base font-semibold num">{value}</p>
+    </div>
+  );
+}
+
+function Info({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium">{value}</span>
+    </div>
   );
 }
