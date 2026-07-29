@@ -261,7 +261,8 @@ function LeadsPage() {
               employees={employeesQ.data ?? []}
               existingSplits={
                 editing ? (activationsByEntry.get(editing.id) ?? []).flatMap((a) =>
-                  Array.from({ length: Math.max(1, a.activated_count) }, () => ({
+                  Array.from({ length: Math.max(1, a.activated_count) }, (_, i) => ({
+                    id: i === 0 ? a.id : undefined,
                     employee_id: a.employee_id,
                     conversion_employee_id: a.conversion_employee_id ?? "",
                     activated_count: 1,
