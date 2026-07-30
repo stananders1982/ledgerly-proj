@@ -210,6 +210,7 @@ function PerformancePage() {
     salary: (r) => r.salary,
     payout: (r) => r.payout,
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const totals = useMemo(() => ({
     ftds: rows.reduce((s, r) => s + r.ftds, 0),
