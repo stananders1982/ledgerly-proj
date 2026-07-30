@@ -180,7 +180,7 @@ function ExpensesPage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((e: any) => (
+            {pageItems.map((e: any) => (
               <DataCard
                 key={e.id}
                 title={e.expense_categories?.name ?? "Expense"}
@@ -208,7 +208,7 @@ function ExpensesPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((e: any) => (
+                {pageItems.map((e: any) => (
                   <tr key={e.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>
@@ -224,6 +224,7 @@ function ExpensesPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>
