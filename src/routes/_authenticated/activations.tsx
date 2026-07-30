@@ -108,7 +108,7 @@ function ActivationsPage() {
     handledDeepLink.current = key;
     if (match) {
       setViewing(match);
-      setRange("all" as RangeKey);
+      setRange("year");
       setSearch(match.lead_name ?? "");
     }
     navigate({ search: {}, replace: true });
