@@ -96,6 +96,16 @@ function LeadsPage() {
     },
   });
 
+  const revenueQ = useQuery({
+    queryKey: ["revenue-names-for-leads"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("revenue").select("customer_name");
+      if (error) throw error;
+      return (data ?? []) as { customer_name: string | null }[];
+    },
+  });
+
+
   const allRows = q.data ?? [];
   const rows = useMemo(() => {
     const s = activeRange.start.getTime();
