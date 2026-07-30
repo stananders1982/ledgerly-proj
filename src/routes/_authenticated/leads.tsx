@@ -159,6 +159,22 @@ function LeadsPage() {
 
   const allocated = useMemo(() => byEmployee.reduce((s, e) => s + e.count, 0), [byEmployee]);
 
+  // STD: FTDs in the selected range whose client deposited again (any revenue record)
+  const stdCount = useMemo(() => {
+    const depositors = new Set(
+      (revenueQ.data ?? []).map((r) => (r.customer_name ?? "").trim().toLowerCase()).filter(Boolean),
+    );
+    const visibleIds = new Set(rows.map((r) => r.id));
+    const names = new Set<string>();
+    for (const a of activationsQ.data ?? []) {
+      if (!visibleIds.has(a.entry_id)) continue;
+      const n = (a.lead_name ?? "").trim().toLowerCase();
+      if (n && depositors.has(n)) names.add(n);
+    }
+    return names.size;
+  }, [rows, activationsQ.data, revenueQ.data]);
+
+
 
   const stats = useMemo(() => {
     let received = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
