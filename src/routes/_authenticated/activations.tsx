@@ -461,6 +461,7 @@ function ActivationsPage() {
                 <tr>
                   <th className="py-2 px-3 font-medium">Client</th>
                   <th className="py-2 px-3 font-medium">Agent</th>
+                  <th className="py-2 px-3 font-medium">Activation date</th>
                   <th className="py-2 px-3 font-medium">Balance</th>
                   <th className="py-2 px-3 font-medium">Potential</th>
                   <th className="py-2 px-3 font-medium">Answered</th>
@@ -476,6 +477,7 @@ function ActivationsPage() {
                   >
                     <td className="py-2 px-3">{p.row.lead_name || "—"}</td>
                     <td className="py-2 px-3 text-muted-foreground">{p.agent}</td>
+                    <td className="py-2 px-3">{p.row.daily_lead_entries?.entry_date ? fmtDate(p.row.daily_lead_entries.entry_date) : "—"}</td>
                     <td className="py-2 px-3 num">{fmtMoney(p.balance)}</td>
                     <td className="py-2 px-3"><PotentialBadge value={p.row.potential} /></td>
                     <td className="py-2 px-3"><AnsweredBadge answered={p.row.answered} /></td>
