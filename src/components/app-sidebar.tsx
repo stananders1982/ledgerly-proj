@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/lib/auth-context";
+import { CompanySwitcher } from "@/components/company-switcher";
 import { Button } from "@/components/ui/button";
 import { NAV_GROUPS, NAV_ITEMS, type NavGroup } from "@/lib/nav-items";
 import { cn } from "@/lib/utils";
@@ -25,7 +26,7 @@ function loadOpenState(): Record<string, boolean> {
 
 export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { signOut, isAdmin, navKeys, permsLoaded } = useAuth();
+  const { signOut, isAdmin, isSuperAdmin, navKeys, permsLoaded } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
@@ -47,6 +48,7 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
   };
 
   const items = NAV_ITEMS.filter((item) => {
+    if (item.superAdminOnly) return isSuperAdmin;
     if (isAdmin) return true;
     if (item.adminOnly) return false;
     if (!permsLoaded) return false;
@@ -84,6 +86,7 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
             </div>
           )}
         </div>
+        {!collapsed && <CompanySwitcher />}
         {onSearchClick && !collapsed && (
           <button
             type="button"

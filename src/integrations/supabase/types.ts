@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           affiliate_id: string
           amount: number
+          company_id: string
           created_at: string
           event_type: string
           id: string
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           affiliate_id: string
           amount?: number
+          company_id?: string
           created_at?: string
           event_type?: string
           id?: string
@@ -36,6 +38,7 @@ export type Database = {
         Update: {
           affiliate_id?: string
           amount?: number
+          company_id?: string
           created_at?: string
           event_type?: string
           id?: string
@@ -58,6 +61,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "affiliate_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "affiliate_events_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
@@ -70,6 +80,7 @@ export type Database = {
         Row: {
           actual_cpa_cost: number
           affiliate_id: string
+          company_id: string
           created_at: string
           guaranteed_amount: number
           id: string
@@ -82,6 +93,7 @@ export type Database = {
         Insert: {
           actual_cpa_cost?: number
           affiliate_id: string
+          company_id?: string
           created_at?: string
           guaranteed_amount?: number
           id?: string
@@ -94,6 +106,7 @@ export type Database = {
         Update: {
           actual_cpa_cost?: number
           affiliate_id?: string
+          company_id?: string
           created_at?: string
           guaranteed_amount?: number
           id?: string
@@ -118,11 +131,19 @@ export type Database = {
             referencedRelation: "affiliates_directory"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "affiliate_guarantee_periods_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       affiliates: {
         Row: {
           active: boolean
+          company_id: string
           cpa_rate: number
           created_at: string
           email: string | null
@@ -135,6 +156,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          company_id?: string
           cpa_rate?: number
           created_at?: string
           email?: string | null
@@ -147,6 +169,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          company_id?: string
           cpa_rate?: number
           created_at?: string
           email?: string | null
@@ -157,10 +180,19 @@ export type Database = {
           name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "affiliates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       attendance: {
         Row: {
+          company_id: string
           created_at: string
           date: string
           employee_id: string
@@ -170,6 +202,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id?: string
           created_at?: string
           date: string
           employee_id: string
@@ -179,6 +212,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string
           created_at?: string
           date?: string
           employee_id?: string
@@ -188,6 +222,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "attendance_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "attendance_employee_id_fkey"
             columns: ["employee_id"]
@@ -204,11 +245,68 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      company_users: {
+        Row: {
+          company_id: string
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_users_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_lead_activations: {
         Row: {
           activated_count: number
           answered: boolean
           balance: number
+          company_id: string
           conversion_employee_id: string | null
           created_at: string
           employee_id: string
@@ -223,6 +321,7 @@ export type Database = {
           activated_count?: number
           answered?: boolean
           balance?: number
+          company_id?: string
           conversion_employee_id?: string | null
           created_at?: string
           employee_id: string
@@ -237,6 +336,7 @@ export type Database = {
           activated_count?: number
           answered?: boolean
           balance?: number
+          company_id?: string
           conversion_employee_id?: string | null
           created_at?: string
           employee_id?: string
@@ -248,6 +348,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "daily_lead_activations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "daily_lead_activations_conversion_employee_id_fkey"
             columns: ["conversion_employee_id"]
@@ -289,6 +396,7 @@ export type Database = {
         Row: {
           activated: number
           campaign: string | null
+          company_id: string
           converted: number
           cost: number
           created_at: string
@@ -305,6 +413,7 @@ export type Database = {
         Insert: {
           activated?: number
           campaign?: string | null
+          company_id?: string
           converted?: number
           cost?: number
           created_at?: string
@@ -321,6 +430,7 @@ export type Database = {
         Update: {
           activated?: number
           campaign?: string | null
+          company_id?: string
           converted?: number
           cost?: number
           created_at?: string
@@ -335,6 +445,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "daily_lead_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "daily_lead_entries_source_id_fkey"
             columns: ["source_id"]
@@ -353,6 +470,7 @@ export type Database = {
           commission_tier2_max: number
           commission_tier2_pct: number
           commission_tier3_pct: number
+          company_id: string
           created_at: string
           email: string | null
           id: string
@@ -371,6 +489,7 @@ export type Database = {
           commission_tier2_max?: number
           commission_tier2_pct?: number
           commission_tier3_pct?: number
+          company_id?: string
           created_at?: string
           email?: string | null
           id?: string
@@ -389,6 +508,7 @@ export type Database = {
           commission_tier2_max?: number
           commission_tier2_pct?: number
           commission_tier3_pct?: number
+          company_id?: string
           created_at?: string
           email?: string | null
           id?: string
@@ -401,6 +521,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "employees_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
@@ -412,29 +539,41 @@ export type Database = {
       expense_categories: {
         Row: {
           active: boolean
+          company_id: string
           created_at: string
           id: string
           name: string
         }
         Insert: {
           active?: boolean
+          company_id?: string
           created_at?: string
           id?: string
           name: string
         }
         Update: {
           active?: boolean
+          company_id?: string
           created_at?: string
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expenses: {
         Row: {
           affiliate_id: string | null
           amount: number
           category_id: string | null
+          company_id: string
           created_at: string
           date: string
           id: string
@@ -445,6 +584,7 @@ export type Database = {
           affiliate_id?: string | null
           amount?: number
           category_id?: string | null
+          company_id?: string
           created_at?: string
           date?: string
           id?: string
@@ -455,6 +595,7 @@ export type Database = {
           affiliate_id?: string | null
           amount?: number
           category_id?: string | null
+          company_id?: string
           created_at?: string
           date?: string
           id?: string
@@ -483,11 +624,19 @@ export type Database = {
             referencedRelation: "expense_categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "expenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lead_sources: {
         Row: {
           active: boolean
+          company_id: string
           created_at: string
           expected_conversion_rate: number
           id: string
@@ -497,6 +646,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          company_id?: string
           created_at?: string
           expected_conversion_rate?: number
           id?: string
@@ -506,6 +656,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          company_id?: string
           created_at?: string
           expected_conversion_rate?: number
           id?: string
@@ -513,12 +664,21 @@ export type Database = {
           price?: number
           pricing_model?: Database["public"]["Enums"]["pricing_model"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lead_sources_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leads: {
         Row: {
           activated: boolean
           affiliate_id: string | null
+          company_id: string
           cost: number
           created_at: string
           email: string | null
@@ -535,6 +695,7 @@ export type Database = {
         Insert: {
           activated?: boolean
           affiliate_id?: string | null
+          company_id?: string
           cost?: number
           created_at?: string
           email?: string | null
@@ -551,6 +712,7 @@ export type Database = {
         Update: {
           activated?: boolean
           affiliate_id?: string | null
+          company_id?: string
           cost?: number
           created_at?: string
           email?: string | null
@@ -580,6 +742,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "leads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
@@ -604,29 +773,41 @@ export type Database = {
       }
       nav_permissions: {
         Row: {
+          company_id: string
           created_at: string
           id: string
           nav_key: string
           user_id: string
         }
         Insert: {
+          company_id?: string
           created_at?: string
           id?: string
           nav_key: string
           user_id: string
         }
         Update: {
+          company_id?: string
           created_at?: string
           id?: string
           nav_key?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nav_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
           amount: number
           body: string | null
+          company_id: string
           created_at: string
           id: string
           lead_activation_id: string | null
@@ -638,6 +819,7 @@ export type Database = {
         Insert: {
           amount?: number
           body?: string | null
+          company_id?: string
           created_at?: string
           id?: string
           lead_activation_id?: string | null
@@ -649,6 +831,7 @@ export type Database = {
         Update: {
           amount?: number
           body?: string | null
+          company_id?: string
           created_at?: string
           id?: string
           lead_activation_id?: string | null
@@ -657,7 +840,15 @@ export type Database = {
           title?: string
           type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -688,6 +879,7 @@ export type Database = {
           active: boolean
           amount: number
           category_id: string | null
+          company_id: string
           created_at: string
           end_date: string | null
           frequency: Database["public"]["Enums"]["recurrence_frequency"]
@@ -702,6 +894,7 @@ export type Database = {
           active?: boolean
           amount?: number
           category_id?: string | null
+          company_id?: string
           created_at?: string
           end_date?: string | null
           frequency?: Database["public"]["Enums"]["recurrence_frequency"]
@@ -716,6 +909,7 @@ export type Database = {
           active?: boolean
           amount?: number
           category_id?: string | null
+          company_id?: string
           created_at?: string
           end_date?: string | null
           frequency?: Database["public"]["Enums"]["recurrence_frequency"]
@@ -734,12 +928,20 @@ export type Database = {
             referencedRelation: "expense_categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "recurring_expenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       revenue: {
         Row: {
           affiliate_id: string | null
           amount: number
+          company_id: string
           created_at: string
           created_by: string | null
           customer_name: string
@@ -755,6 +957,7 @@ export type Database = {
         Insert: {
           affiliate_id?: string | null
           amount?: number
+          company_id?: string
           created_at?: string
           created_by?: string | null
           customer_name: string
@@ -770,6 +973,7 @@ export type Database = {
         Update: {
           affiliate_id?: string | null
           amount?: number
+          company_id?: string
           created_at?: string
           created_by?: string | null
           customer_name?: string
@@ -795,6 +999,13 @@ export type Database = {
             columns: ["affiliate_id"]
             isOneToOne: false
             referencedRelation: "affiliates_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -834,6 +1045,21 @@ export type Database = {
           },
         ]
       }
+      super_admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -859,6 +1085,7 @@ export type Database = {
         Row: {
           affiliate_id: string | null
           amount: number
+          company_id: string
           created_at: string
           customer_name: string
           date: string
@@ -874,6 +1101,7 @@ export type Database = {
         Insert: {
           affiliate_id?: string | null
           amount?: number
+          company_id?: string
           created_at?: string
           customer_name: string
           date?: string
@@ -889,6 +1117,7 @@ export type Database = {
         Update: {
           affiliate_id?: string | null
           amount?: number
+          company_id?: string
           created_at?: string
           customer_name?: string
           date?: string
@@ -914,6 +1143,13 @@ export type Database = {
             columns: ["affiliate_id"]
             isOneToOne: false
             referencedRelation: "affiliates_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -1007,6 +1243,7 @@ export type Database = {
           period_start: string
         }[]
       }
+      current_company_id: { Args: never; Returns: string }
       generate_due_recurring_expenses: { Args: never; Returns: number }
       has_role: {
         Args: {
@@ -1015,6 +1252,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: never; Returns: boolean }
       list_affiliates_directory: {
         Args: never
         Returns: {

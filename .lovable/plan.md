@@ -1,20 +1,57 @@
 ## Goal
 
-Whenever a client marked **Low potential** receives a deposit that pushes their balance above $250, admins get an in-app alert: a bell in the top bar with an unread count, plus a toast while they're using the app.
+Let several companies use this app, each seeing only its own data, without losing anything that exists today.
 
-## How it works
+## About "separate database"
 
-1. **Notifications table** (`notifications`): message, type, link to the client, related client/lead name, amount, created date, and a read/unread flag. Admin-only read access; rows are created by the database itself.
-2. **Automatic trigger on deposits**: when a revenue entry is saved, the database checks whether the customer matches a client whose potential is `low`. It sums the client's base balance ($250) plus all recorded deposits, and if the total has just crossed $250 for the first time, it writes one notification row. A "already notified" marker on the client prevents repeat alerts for the same client on later deposits.
-3. **Bell in the top bar** (in the app header next to the search/profile controls): shows the unread count, opens a dropdown listing recent alerts with lead name, amount and date. Clicking an alert opens the Clients page filtered to that client and marks it read. A "Mark all read" action clears the badge.
-4. **Live toast**: the app subscribes to new notification rows in real time, so a toast appears immediately for admins who are online when a qualifying deposit is recorded.
+A literal separate database per company isn't something this backend can provision per customer — it would mean a separate deployment, separate login, and separate maintenance for every company, and every future change would have to be applied N times.
 
-Notifications stay visible in the bell list (read/unread) so nothing is lost if you were offline.
+The standard way to get the same guarantee is **one database, a `company_id` stamped on every row, and database-level access rules (RLS) that make it physically impossible for a query to return another company's rows** — even a bug in the app code can't leak across companies, because the database refuses. This is what banks and most SaaS products use, and it keeps one codebase.
+
+I'll build it that way. If you later want a company on truly isolated infrastructure, the same code can be deployed to a second instance for that one customer.
+
+## How it will work
+
+- A new **Companies** table. All existing data is assigned to one company (your current business) — nothing is deleted or moved.
+- Every user belongs to exactly one company, set when you invite them.
+- **Super admin** (you) is not tied to a company: you get a company switcher in the header and an admin panel to create companies, invite their first admin, and see any company's data.
+- New companies are **invite only** — no public signup.
+- Login stays the same (email + password). No need to type a company name: the company is derived from the user's account. Only the super admin sees the switcher.
+
+```text
+Super admin ──> Company switcher ──> any company's data
+Company admin ──> their company only (manages their own users)
+Regular user ──> their company only, limited nav items (as today)
+```
+
+## Plan
+
+**1. Database foundation**
+- `companies` table (name, slug, active, created_at).
+- `company_users` table linking each auth user to a company + their role in it.
+- Add `company_id` to every business table: affiliates, affiliate_events, affiliate_guarantee_periods, employees, attendance, leads, lead_sources, daily_lead_entries, daily_lead_activations, revenue, withdrawals, expenses, expense_categories, recurring_expenses, notifications, nav_permissions.
+- Backfill all existing rows with the default company, then make `company_id` required.
+
+**2. Isolation rules**
+- Helper functions `current_company_id()` and `is_super_admin()` (security definer, no recursion).
+- Rewrite every table's RLS policy to add `company_id = current_company_id() OR is_super_admin()`, keeping today's admin/non-admin distinctions intact so Jack and the admin behave exactly as now.
+- Existing triggers and reporting functions (commission, affiliate recompute, recurring expense generation, deposit alerts, directories) updated to be company-scoped.
+
+**3. App changes**
+- Company context in the app: current company id available everywhere; every insert stamps it automatically.
+- Header company switcher, visible to super admin only.
+- Super Admin panel: list/create companies, invite the first admin per company, deactivate a company, impersonate/view a company.
+- Existing Users page becomes per-company: a company admin manages only their own users and nav permissions.
+
+**4. Safety**
+- Migration is additive and reversible in stages; no data is deleted.
+- After migration I'll verify row counts per table match before/after, and check that a non-super-admin user cannot read another company's rows.
 
 ## Technical notes
 
-- Migration: create `public.notifications` (id, type, title, body, lead_activation_id, amount, created_at, read_at) with GRANTs, RLS enabled, admin-only SELECT/UPDATE via `has_role(auth.uid(),'admin')`, inserts done by a `SECURITY DEFINER` trigger function.
-- Add `low_potential_alerted boolean not null default false` to `daily_lead_activations` as the idempotency flag.
-- Trigger `AFTER INSERT ON public.revenue`: matches `lower(trim(customer_name))` against `daily_lead_activations.lead_name` (same matching rule the Clients page uses), computes effective balance = `balance` + sum of all revenue for that name, and inserts a notification when potential = 'low', effective balance > 250, and the flag is false; then sets the flag.
-- Frontend: `src/components/notification-bell.tsx` (TanStack Query for the list + unread count, `supabase.channel` postgres_changes INSERT subscription → `toast()` from sonner and query invalidation), mounted in the header in `src/routes/_authenticated/route.tsx`, hidden for non-admins.
-- Enable realtime on the notifications table (`REPLICA IDENTITY FULL` + add to `supabase_realtime` publication).
+- Isolation is enforced in Postgres RLS, not in app code, so server functions and any future endpoint inherit it.
+- `current_company_id()` reads from `company_users` for `auth.uid()`; for a super admin it reads a selected-company claim/setting so the switcher works without weakening policies.
+- Views `employees_directory` / `affiliates_directory` get company filtering too.
+- Report/dashboard queries need no rewrite — RLS filters them automatically — but explicit `company_id` filters will be added where queries aggregate across joins.
+
+This is a large change touching every table and most pages; I'd do it in the order above so the app stays working throughout.

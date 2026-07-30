@@ -8,23 +8,46 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: admin only");
 }
 
+/** The company the caller is currently working in. All user management is scoped to it. */
+async function currentCompanyId(supabase: any, userId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("company_users")
+    .select("company_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data?.company_id) throw new Error("No company assigned to this account");
+  return data.company_id as string;
+}
+
 export const listAppUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: usersData, error: usersErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 200 });
+    const { data: memberships, error: mErr } = await supabaseAdmin
+      .from("company_users")
+      .select("user_id")
+      .eq("company_id", companyId);
+    if (mErr) throw mErr;
+    const memberIds = new Set((memberships ?? []).map((m) => m.user_id));
+
+    const { data: usersData, error: usersErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
     if (usersErr) throw usersErr;
 
-    const ids = usersData.users.map((u) => u.id);
+    const users = usersData.users.filter((u) => memberIds.has(u.id));
+    const ids = users.map((u) => u.id);
+    if (!ids.length) return [];
+
     const [{ data: profiles }, { data: roles }, { data: perms }] = await Promise.all([
       supabaseAdmin.from("profiles").select("id, full_name").in("id", ids),
       supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", ids),
-      supabaseAdmin.from("nav_permissions").select("user_id, nav_key").in("user_id", ids),
+      supabaseAdmin.from("nav_permissions").select("user_id, nav_key").in("user_id", ids).eq("company_id", companyId),
     ]);
 
-    return usersData.users.map((u) => ({
+    return users.map((u) => ({
       id: u.id,
       email: u.email ?? "",
       created_at: u.created_at,
@@ -33,6 +56,7 @@ export const listAppUsers = createServerFn({ method: "GET" })
       nav_keys: (perms ?? []).filter((p) => p.user_id === u.id).map((p) => p.nav_key),
     }));
   });
+
 
 export const createAppUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -49,6 +73,7 @@ export const createAppUser = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
@@ -60,6 +85,10 @@ export const createAppUser = createServerFn({ method: "POST" })
     if (error) throw error;
     const newId = created.user!.id;
 
+    await supabaseAdmin
+      .from("company_users")
+      .upsert({ user_id: newId, company_id: companyId }, { onConflict: "user_id" });
+
     // handle_new_user trigger may auto-grant 'user' role and 'admin' for first user.
     if (data.is_admin) {
       await supabaseAdmin.from("user_roles").upsert({ user_id: newId, role: "admin" }, { onConflict: "user_id,role" });
@@ -67,10 +96,20 @@ export const createAppUser = createServerFn({ method: "POST" })
     if (data.nav_keys.length) {
       await supabaseAdmin
         .from("nav_permissions")
-        .insert(data.nav_keys.map((k) => ({ user_id: newId, nav_key: k })));
+        .insert(data.nav_keys.map((k) => ({ user_id: newId, nav_key: k, company_id: companyId })));
     }
     return { id: newId };
   });
+
+/** Guards that the target user belongs to the caller's company. */
+async function assertSameCompany(supabaseAdmin: any, companyId: string, userId: string) {
+  const { data } = await supabaseAdmin
+    .from("company_users")
+    .select("company_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data || data.company_id !== companyId) throw new Error("Forbidden: user is not in your company");
+}
 
 export const updateUserPermissions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -85,7 +124,9 @@ export const updateUserPermissions = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await assertSameCompany(supabaseAdmin, companyId, data.user_id);
 
     if (data.is_admin) {
       await supabaseAdmin.from("user_roles").upsert({ user_id: data.user_id, role: "admin" }, { onConflict: "user_id,role" });
@@ -93,14 +134,15 @@ export const updateUserPermissions = createServerFn({ method: "POST" })
       await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id).eq("role", "admin");
     }
 
-    await supabaseAdmin.from("nav_permissions").delete().eq("user_id", data.user_id);
+    await supabaseAdmin.from("nav_permissions").delete().eq("user_id", data.user_id).eq("company_id", companyId);
     if (data.nav_keys.length) {
       await supabaseAdmin
         .from("nav_permissions")
-        .insert(data.nav_keys.map((k) => ({ user_id: data.user_id, nav_key: k })));
+        .insert(data.nav_keys.map((k) => ({ user_id: data.user_id, nav_key: k, company_id: companyId })));
     }
     return { ok: true };
   });
+
 
 export const resetUserPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -109,7 +151,9 @@ export const resetUserPassword = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await assertSameCompany(supabaseAdmin, companyId, data.user_id);
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, { password: data.password });
     if (error) throw error;
     return { ok: true };
@@ -121,7 +165,10 @@ export const deleteAppUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     if (data.user_id === context.userId) throw new Error("You cannot delete your own account");
+    const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await assertSameCompany(supabaseAdmin, companyId, data.user_id);
+    await supabaseAdmin.from("company_users").delete().eq("user_id", data.user_id);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
     if (error) throw error;
     return { ok: true };
