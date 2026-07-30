@@ -299,7 +299,7 @@ function SourcesPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((a: any) => (
+                {pageItems.map((a: any) => (
                   <tr key={a.source.id}
                       className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(a.source); setOpen(true); }}>
@@ -320,6 +320,7 @@ function SourcesPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
         )}
       </div>
     </div>
