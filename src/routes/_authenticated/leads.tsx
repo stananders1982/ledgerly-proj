@@ -398,7 +398,6 @@ function LeadsPage() {
         <StatCard label="Unreported" value={String(stats.unreported)} />
         <StatCard label="Conv. rate" value={fmtPct(stats.rate)} />
         <StatCard label="Total cost" value={fmtMoney(stats.totalCost)} />
-        <StatCard label="CPA payable" value={fmtMoney(stats.cpaCost)} />
         <StatCard label="Saved (CPA)" value={fmtMoney(stats.cpaSavings)} tone="positive" />
       </section>
 
