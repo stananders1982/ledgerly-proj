@@ -190,6 +190,53 @@ export type Database = {
           },
         ]
       }
+      app_logs: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          level: string
+          message: string
+          path: string | null
+          source: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          level?: string
+          message: string
+          path?: string | null
+          source?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          level?: string
+          message?: string
+          path?: string | null
+          source?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           company_id: string
