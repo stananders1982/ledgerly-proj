@@ -160,6 +160,11 @@ function EmployeeDetailPage() {
     return { all, counted: all.filter((r) => r.qualifies), pending: all.filter((r) => !r.qualifies) };
   }, [conversionsQ.data, depositsQ.data]);
 
+  const conversionRows = useMemo(() => [...conversions.counted, ...conversions.pending], [conversions]);
+  const { pageItems: convPage, ...pgConv } = usePagination(conversionRows, 30);
+  const { pageItems: revPage, ...pgRev } = usePagination(revQ.data ?? [], 30);
+  const { pageItems: withPage, ...pgWith } = usePagination(withQ.data ?? [], 30);
+
 
 
 
