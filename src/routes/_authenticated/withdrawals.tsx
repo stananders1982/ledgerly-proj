@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 const sb = supabase as any;
 const PENALTY_RATE = 0.1;
