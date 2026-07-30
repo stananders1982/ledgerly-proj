@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Banknote } from "lucide-react";
+import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -231,10 +232,10 @@ function WithdrawalsPage() {
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     <td className="py-3 px-4 text-destructive font-medium">−{fmtMoney(r.amount)}</td>
                     <td className="py-3 px-4">
-                      {getEmpName(r)}
+                      <EmployeeLink id={r.employee_id} name={getEmpName(r)} />
                       {r.employee_id_2 && (
                         <span className="text-xs text-muted-foreground">
-                          {" "}({Number(r.split_pct)}%) + {r.employee2?.name ?? empNameById.get(r.employee_id_2) ?? "—"} ({100 - Number(r.split_pct)}%)
+                          {" "}({Number(r.split_pct)}%) + <EmployeeLink id={r.employee_id_2} name={r.employee2?.name ?? empNameById.get(r.employee_id_2) ?? "—"} /> ({100 - Number(r.split_pct)}%)
                         </span>
                       )}
                     </td>

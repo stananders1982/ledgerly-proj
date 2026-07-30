@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, Banknote, Gauge, Building2, Landmark } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, Banknote, Gauge, Building2, Landmark, ScrollText } from "lucide-react";
 
 export type NavGroup = "Overview" | "Operations" | "People" | "Analytics" | "Admin";
 
@@ -34,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "affiliates", title: "Affiliates", url: "/affiliates", icon: Building2, group: "Analytics" },
 
   { key: "users", title: "Users", url: "/users", icon: ShieldCheck, group: "Admin", adminOnly: true },
+  { key: "logs", title: "Logs", url: "/logs", icon: ScrollText, group: "Admin", adminOnly: true },
   { key: "companies", title: "Companies", url: "/companies", icon: Landmark, group: "Admin", adminOnly: true, superAdminOnly: true },
 ];
 

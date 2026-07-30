@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { CommandPalette, useCommandPalette } from "@/components/command-palette";
 import { NotificationBell } from "@/components/notification-bell";
+import { LiveClock } from "@/components/live-clock";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,9 +57,8 @@ function ProtectedLayout() {
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 flex items-center gap-3 border-b border-border px-4 sticky top-0 z-10 bg-background/80 backdrop-blur">
             <SidebarTrigger />
-            <div className="text-xs text-muted-foreground hidden sm:block">
-              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-            </div>
+            <LiveClock className="flex items-center gap-1 text-xs" />
+
             <div className="ml-auto flex items-center gap-2">
               <Button
                 variant="ghost"

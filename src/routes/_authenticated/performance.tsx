@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
+import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -285,7 +286,7 @@ function PerformancePage() {
                 {pageItems.map((r: any) => (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                     <td className="py-3 px-4 font-medium">
-                      {r.name}
+                      <EmployeeLink id={r.id} name={r.name} />
                       {!r.active && <span className="ml-2 text-xs text-muted-foreground">inactive</span>}
                     </td>
                     <td className="py-3 px-4">

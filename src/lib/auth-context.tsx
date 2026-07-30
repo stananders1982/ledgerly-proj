@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { Loader2, ShieldCheck } from "lucide-react";
+import { logEvent } from "@/lib/app-log";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAalChecked(false);
         checkAAL();
       }
+      if (event === "SIGNED_IN") logEvent({ level: "security", source: "auth", message: "User signed in" });
+      if (event === "USER_UPDATED") logEvent({ level: "security", source: "auth", message: "User account updated" });
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         router.invalidate();
         if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
