@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { logEvent } from "@/lib/app-log";
 import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -38,6 +39,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    logEvent({
+      level: "error",
+      source: "error_boundary",
+      message: error?.message || "Unknown error",
+      details: { name: error?.name },
+    });
   }, [error]);
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
