@@ -25,7 +25,7 @@ function loadOpenState(): Record<string, boolean> {
 
 export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { signOut, isAdmin, navKeys, permsLoaded } = useAuth();
+  const { signOut, isAdmin, isSuperAdmin, navKeys, permsLoaded } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
