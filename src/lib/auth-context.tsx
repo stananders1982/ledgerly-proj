@@ -76,18 +76,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAdmin(false);
       setNavKeys(new Set());
       setPermsLoaded(false);
+      setIsSuperAdmin(false);
+      setCompanyId(null);
+      setCompanies([]);
       return;
     }
     const uid = session.user.id;
     Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", uid),
       supabase.from("nav_permissions").select("nav_key").eq("user_id", uid),
-    ]).then(([rolesRes, permsRes]) => {
+      supabase.from("company_users").select("company_id").eq("user_id", uid).maybeSingle(),
+      supabase.from("super_admins").select("user_id").eq("user_id", uid).maybeSingle(),
+      supabase.from("companies").select("id, name, slug, active").order("name"),
+    ]).then(([rolesRes, permsRes, memberRes, superRes, companiesRes]) => {
       setIsAdmin(!!rolesRes.data?.some((r) => r.role === "admin"));
       setNavKeys(new Set((permsRes.data ?? []).map((p: any) => p.nav_key as string)));
       setPermsLoaded(true);
+      setCompanyId(memberRes.data?.company_id ?? null);
+      setIsSuperAdmin(!!superRes.data);
+      setCompanies((companiesRes.data ?? []) as CompanyOption[]);
     });
-  }, [session?.user?.id, mfaRequired]);
+  }, [session?.user?.id, mfaRequired, companyVersion]);
+
+  const switchCompany = useCallback(
+    async (id: string) => {
+      await switchCompanyFn({ data: { company_id: id } });
+      setCompanyId(id);
+      setCompanyVersion((v) => v + 1);
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      await queryClient.invalidateQueries();
+      router.invalidate();
+    },
+    [queryClient, router],
+  );
 
   const signOut = async () => {
     await queryClient.cancelQueries();
@@ -96,11 +118,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const showChallenge = !!session && aalChecked && mfaRequired;
+  const company = companies.find((c) => c.id === companyId) ?? null;
 
   return (
     <Ctx.Provider
-      value={{ user: session?.user ?? null, session, isAdmin, navKeys, permsLoaded, loading, signOut }}
+      value={{
+        user: session?.user ?? null,
+        session,
+        isAdmin,
+        isSuperAdmin,
+        companyId,
+        company,
+        companies,
+        switchCompany,
+        navKeys,
+        permsLoaded,
+        loading,
+        signOut,
+      }}
     >
+
       {children}
       {showChallenge && <MfaChallengeScreen onVerified={checkAAL} onCancel={signOut} />}
     </Ctx.Provider>
