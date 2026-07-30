@@ -93,6 +93,29 @@ function ActivationsPage() {
     },
   });
 
+  const routeSearch = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const handledDeepLink = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    const key = routeSearch.client ?? routeSearch.name;
+    if (!key || !q.data || handledDeepLink.current === key) return;
+    const match =
+      q.data.find((r) => r.id === key) ??
+      q.data.find(
+        (r) => (r.lead_name ?? "").trim().toLowerCase() === key.trim().toLowerCase(),
+      );
+    handledDeepLink.current = key;
+    if (match) {
+      setViewing(match);
+      setRange("all" as RangeKey);
+      setSearch(match.lead_name ?? "");
+    }
+    navigate({ search: {}, replace: true });
+  }, [routeSearch.client, routeSearch.name, q.data, navigate]);
+
+
+
   const employeesQ = useQuery({
     queryKey: ["employees-directory"],
     queryFn: async () => {
