@@ -306,28 +306,20 @@ function EmployeeDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {conversions.counted.map((c: any, i: number) => (
-                  <tr key={`ftd-${i}`} className="border-b border-border/50">
+                {convPage.map((c: any, i: number) => (
+                  <tr key={`ftd-${i}`} className={cn("border-b border-border/50", c.qualifies ? "" : "text-muted-foreground")}>
                     <td className="py-2 px-4 text-muted-foreground">{fmtDate(c.daily_lead_entries?.entry_date)}</td>
                     <td className="py-2 px-4">{c.lead_name || "—"}</td>
                     <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
                     <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
-                    <td className="py-2 px-4 text-primary">Counted</td>
-                  </tr>
-                ))}
-                {conversions.pending.map((c: any, i: number) => (
-                  <tr key={`pend-${i}`} className="border-b border-border/50 text-muted-foreground">
-                    <td className="py-2 px-4">{fmtDate(c.daily_lead_entries?.entry_date)}</td>
-                    <td className="py-2 px-4">{c.lead_name || "—"}</td>
-                    <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
-                    <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
-                    <td className="py-2 px-4">{c.reason}</td>
+                    <td className={cn("py-2 px-4", c.qualifies ? "text-primary" : "")}>{c.qualifies ? "Counted" : c.reason}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+        <TablePagination {...pgConv} />
       </div>
       )}
 
