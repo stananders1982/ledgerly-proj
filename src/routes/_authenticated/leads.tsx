@@ -385,7 +385,7 @@ function LeadsPage() {
         </div>
       </div>
 
-      <section className="grid grid-cols-2 lg:grid-cols-8 gap-3 mb-6">
+      <section className="grid grid-cols-2 lg:grid-cols-9 gap-3 mb-6">
         <StatCard label="Received" value={String(stats.received)} />
         <StatCard label="Activated" value={String(stats.activated)} tone="positive" />
         <StatCard
