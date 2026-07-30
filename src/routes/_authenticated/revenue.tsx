@@ -119,6 +119,7 @@ function RevenuePage() {
     employee: (r) => getEmployeeName(r.employee_id, r.employees) ?? "",
     affiliate: (r) => getAffiliateName(r.affiliate_id, r.affiliates) ?? "",
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
 
   const stats = useMemo(() => {
