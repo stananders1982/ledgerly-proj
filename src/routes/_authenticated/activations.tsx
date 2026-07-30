@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnsweredBadge, PotentialBadge as SharedPotentialBadge } from "@/components/status-badge";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
+import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchInput } from "@/components/search-input";
 import { PageHeader } from "@/components/page-header";
@@ -361,7 +362,7 @@ function ActivationsPage() {
             <tbody>
               {conversionsByAgent.map((a) => (
                 <tr key={a.id} className="border-t border-border/50">
-                  <td className="py-2 px-4">{a.name}</td>
+                  <td className="py-2 px-4"><EmployeeLink id={a.id} name={a.name} /></td>
                   <td className="py-2 px-4 font-medium num">{a.count}</td>
                   <td className="py-2 px-4 num text-muted-foreground">
                     {a.pending > 0 ? (
@@ -462,8 +463,8 @@ function ActivationsPage() {
                   </td>
 
                   <td className="py-3 px-4"><PotentialBadge value={r.potential} /></td>
-                  <td className="py-3 px-4">{employeeName(r.conversion_employee_id)}</td>
-                  <td className="py-3 px-4">{employeeName(r.employee_id)}</td>
+                  <td className="py-3 px-4"><EmployeeLink id={r.conversion_employee_id} name={employeeName(r.conversion_employee_id)} /></td>
+                  <td className="py-3 px-4"><EmployeeLink id={r.employee_id} name={employeeName(r.employee_id)} /></td>
                   <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={r.answered}
@@ -553,8 +554,8 @@ function ActivationsPage() {
                 <div className="grid gap-2 rounded-lg border border-border p-3 text-sm sm:grid-cols-2">
                   <Info label="Source" value={cur.daily_lead_entries?.lead_sources?.name ?? "—"} />
                   <Info label="Activation date" value={cur.daily_lead_entries?.entry_date ? fmtDate(cur.daily_lead_entries.entry_date) : "—"} />
-                  <Info label="Conversion agent" value={employeeName(cur.conversion_employee_id)} />
-                  <Info label="Retention agent" value={employeeName(cur.employee_id)} />
+                  <Info label="Conversion agent" value={<EmployeeLink id={cur.conversion_employee_id} name={employeeName(cur.conversion_employee_id)} />} />
+                  <Info label="Retention agent" value={<EmployeeLink id={cur.employee_id} name={employeeName(cur.employee_id)} />} />
                   <Info label="Deposit count" value={String(deposits.length)} />
                   <Info label="FTD status" value={<Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified" : "Pending"}</Badge>} />
                 </div>
@@ -579,7 +580,7 @@ function ActivationsPage() {
                             <tr key={d.id} className="border-t border-border/50">
                               <td className="py-2 px-3">{fmtDate(d.date)}</td>
                               <td className="py-2 px-3 num font-medium">{fmtMoney(d.amount)}</td>
-                              <td className="py-2 px-3">{employeeName(d.employee_id)}</td>
+                              <td className="py-2 px-3"><EmployeeLink id={d.employee_id} name={employeeName(d.employee_id)} /></td>
                               <td className="py-2 px-3 text-muted-foreground">{d.notes || "—"}</td>
                             </tr>
                           ))}

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Download, TrendingUp } from "lucide-react";
+import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -312,10 +313,10 @@ function RevenueRow({
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     <td className="py-3 px-4 text-primary font-medium">{fmtMoney(r.amount)}</td>
                     <td className="py-3 px-4">
-                      {employeeName || "—"}
+                      <EmployeeLink id={r.employee_id} name={employeeName} />
                       {r.employee_id_2 && (
                         <span className="text-muted-foreground">
-                          {" "}({Number(r.split_pct)}%) + {employee2Name || "—"} ({100 - Number(r.split_pct)}%)
+                          {" "}({Number(r.split_pct)}%) + <EmployeeLink id={r.employee_id_2} name={employee2Name} /> ({100 - Number(r.split_pct)}%)
                         </span>
                       )}
                     </td>
