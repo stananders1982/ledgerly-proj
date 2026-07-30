@@ -25,6 +25,10 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/activations")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    client: typeof search.client === "string" ? search.client : undefined,
+    name: typeof search.name === "string" ? search.name : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Clients — Ledgerly" },
@@ -88,6 +92,29 @@ function ActivationsPage() {
       return (data ?? []) as unknown as Row[];
     },
   });
+
+  const routeSearch = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const handledDeepLink = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    const key = routeSearch.client ?? routeSearch.name;
+    if (!key || !q.data || handledDeepLink.current === key) return;
+    const match =
+      q.data.find((r) => r.id === key) ??
+      q.data.find(
+        (r) => (r.lead_name ?? "").trim().toLowerCase() === key.trim().toLowerCase(),
+      );
+    handledDeepLink.current = key;
+    if (match) {
+      setViewing(match);
+      setRange("year");
+      setSearch(match.lead_name ?? "");
+    }
+    navigate({ search: {}, replace: true });
+  }, [routeSearch.client, routeSearch.name, q.data, navigate]);
+
+
 
   const employeesQ = useQuery({
     queryKey: ["employees-directory"],
