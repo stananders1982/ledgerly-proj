@@ -193,7 +193,7 @@ function WithdrawalsPage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((r: any) => (
+            {pageItems.map((r: any) => (
               <DataCard
                 key={r.id}
                 title={r.customer_name}
@@ -224,7 +224,7 @@ function WithdrawalsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((r: any) => (
+                {pageItems.map((r: any) => (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(r); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
@@ -259,6 +259,7 @@ function WithdrawalsPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>
