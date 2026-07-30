@@ -141,7 +141,7 @@ export const updateCompany = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
+    const patch: { name?: string; active?: boolean } = {};
     if (data.name !== undefined) patch.name = data.name;
     if (data.active !== undefined) patch.active = data.active;
     if (!Object.keys(patch).length) return { ok: true };
