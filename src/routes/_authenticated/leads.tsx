@@ -423,6 +423,7 @@ function LeadsPage() {
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add entry</Button>}
           />
         ) : (
+          <>
           <div className="overflow-x-auto scroll-slim">
             <table className="w-full text-xs">
               <thead>
