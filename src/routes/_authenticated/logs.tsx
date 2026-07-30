@@ -85,12 +85,13 @@ function LogsPage() {
     };
   }, [q.data]);
 
-  const pg = usePagination(rows.length);
-  const pageItems = rows.slice(pg.from, pg.to);
+  const pg = usePagination(rows);
+  const pageItems = pg.pageItems;
 
   if (!isAdmin && !isSuperAdmin) {
     return (
       <EmptyState
+        icon={ShieldAlert}
         title="Admins only"
         description="You don't have permission to view system logs."
       />
@@ -138,7 +139,7 @@ function LogsPage() {
         {q.isLoading ? (
           <TableSkeleton />
         ) : rows.length === 0 ? (
-          <EmptyState title="No logs yet" description="Events will appear here as they are recorded." />
+          <EmptyState icon={Info} title="No logs yet" description="Events will appear here as they are recorded." />
         ) : (
           <>
             <DataCardList>
