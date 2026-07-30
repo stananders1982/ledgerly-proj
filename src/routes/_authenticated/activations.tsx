@@ -22,6 +22,7 @@ import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { CheckCircle2, PhoneCall, Wallet } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   head: () => ({
