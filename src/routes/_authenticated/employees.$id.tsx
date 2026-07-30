@@ -346,7 +346,7 @@ function EmployeeDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(revQ.data ?? []).map((r: any) => {
+                  {revPage.map((r: any) => {
                     const pct = Number(r.split_pct ?? 100);
                     const share = r.employee_id === id ? Number(r.amount) * (pct / 100) : Number(r.amount) * ((100 - pct) / 100);
                     return (
@@ -362,6 +362,7 @@ function EmployeeDetailPage() {
               </table>
             </div>
           )}
+          <TablePagination {...pgRev} />
         </div>
 
         <div className="card-surface overflow-hidden">
