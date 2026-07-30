@@ -22,6 +22,7 @@ import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { CheckCircle2, PhoneCall, Wallet } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   head: () => ({
@@ -184,6 +185,7 @@ function ActivationsPage() {
     retention: (r) => r.employee_id ?? "",
     answered: (r) => !!r.answered,
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const totalBalance = rows.reduce(
     (a, r) => a + Number(r.balance || 0) + depositsFor(r.lead_name),
@@ -384,7 +386,7 @@ function ActivationsPage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((r: any) => (
+            {pageItems.map((r: any) => (
               <DataCard
                 key={r.id}
                 title={r.lead_name || "—"}
@@ -414,7 +416,7 @@ function ActivationsPage() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((r: any) => (
+              {pageItems.map((r: any) => (
                 <tr
                   key={r.id}
                   className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
@@ -446,6 +448,7 @@ function ActivationsPage() {
             </tbody>
           </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>

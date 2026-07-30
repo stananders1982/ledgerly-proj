@@ -24,6 +24,7 @@ import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 
 export const Route = createFileRoute("/_authenticated/revenue")({
@@ -118,6 +119,7 @@ function RevenuePage() {
     employee: (r) => getEmployeeName(r.employee_id, r.employees) ?? "",
     affiliate: (r) => getAffiliateName(r.affiliate_id, r.affiliates) ?? "",
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
 
   const stats = useMemo(() => {
@@ -235,7 +237,7 @@ function RevenuePage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((r: any) => (
+            {pageItems.map((r: any) => (
               <DataCard
                 key={r.id}
                 title={r.customer_name}
@@ -263,7 +265,7 @@ function RevenuePage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((r: any) => (
+                {pageItems.map((r: any) => (
                   <RevenueRow
                     key={r.id}
                     revenue={r}
@@ -278,6 +280,7 @@ function RevenuePage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>

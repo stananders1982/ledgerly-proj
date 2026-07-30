@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { usePagination, TablePagination } from "@/components/pagination";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
@@ -159,6 +161,11 @@ function EmployeeDetailPage() {
     return { all, counted: all.filter((r) => r.qualifies), pending: all.filter((r) => !r.qualifies) };
   }, [conversionsQ.data, depositsQ.data]);
 
+  const conversionRows = useMemo(() => [...conversions.counted, ...conversions.pending], [conversions]);
+  const { pageItems: convPage, ...pgConv } = usePagination(conversionRows, 30);
+  const { pageItems: revPage, ...pgRev } = usePagination(revQ.data ?? [], 30);
+  const { pageItems: withPage, ...pgWith } = usePagination(withQ.data ?? [], 30);
+
 
 
 
@@ -300,28 +307,20 @@ function EmployeeDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {conversions.counted.map((c: any, i: number) => (
-                  <tr key={`ftd-${i}`} className="border-b border-border/50">
+                {convPage.map((c: any, i: number) => (
+                  <tr key={`ftd-${i}`} className={cn("border-b border-border/50", c.qualifies ? "" : "text-muted-foreground")}>
                     <td className="py-2 px-4 text-muted-foreground">{fmtDate(c.daily_lead_entries?.entry_date)}</td>
                     <td className="py-2 px-4">{c.lead_name || "—"}</td>
                     <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
                     <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
-                    <td className="py-2 px-4 text-primary">Counted</td>
-                  </tr>
-                ))}
-                {conversions.pending.map((c: any, i: number) => (
-                  <tr key={`pend-${i}`} className="border-b border-border/50 text-muted-foreground">
-                    <td className="py-2 px-4">{fmtDate(c.daily_lead_entries?.entry_date)}</td>
-                    <td className="py-2 px-4">{c.lead_name || "—"}</td>
-                    <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
-                    <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
-                    <td className="py-2 px-4">{c.reason}</td>
+                    <td className={cn("py-2 px-4", c.qualifies ? "text-primary" : "")}>{c.qualifies ? "Counted" : c.reason}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+        <TablePagination {...pgConv} />
       </div>
       )}
 
@@ -347,7 +346,7 @@ function EmployeeDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(revQ.data ?? []).map((r: any) => {
+                  {revPage.map((r: any) => {
                     const pct = Number(r.split_pct ?? 100);
                     const share = r.employee_id === id ? Number(r.amount) * (pct / 100) : Number(r.amount) * ((100 - pct) / 100);
                     return (
@@ -363,6 +362,7 @@ function EmployeeDetailPage() {
               </table>
             </div>
           )}
+          <TablePagination {...pgRev} />
         </div>
 
         <div className="card-surface overflow-hidden">
@@ -384,7 +384,7 @@ function EmployeeDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(withQ.data ?? []).map((w: any) => (
+                  {withPage.map((w: any) => (
                     <tr key={w.id} className="border-b border-border/50">
                       <td className="py-2 px-4 text-muted-foreground">{fmtDate(w.date)}</td>
                       <td className="py-2 px-4">{w.customer_name}</td>
@@ -396,6 +396,7 @@ function EmployeeDetailPage() {
               </table>
             </div>
           )}
+          <TablePagination {...pgWith} />
         </div>
       </div>
       )}

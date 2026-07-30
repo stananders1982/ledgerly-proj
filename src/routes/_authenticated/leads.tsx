@@ -23,6 +23,7 @@ import { StatCard } from "@/components/stat-card";
 import { PricingBadge } from "./sources";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 
 
@@ -129,6 +130,7 @@ function LeadsPage() {
         : 0,
     notes: (r) => r.notes ?? "",
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const activationsByEntry = useMemo(() => {
     const m = new Map<string, Activation[]>();
@@ -421,6 +423,7 @@ function LeadsPage() {
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add entry</Button>}
           />
         ) : (
+          <>
           <div className="overflow-x-auto scroll-slim">
             <table className="w-full text-xs">
               <thead>
@@ -442,7 +445,7 @@ function LeadsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((r: any) => {
+                {pageItems.map((r: any) => {
                   const s = r.lead_sources;
                   const p = s ? Number(s.price) : 0;
                   const cost = !s ? 0
@@ -484,6 +487,8 @@ function LeadsPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
+          </>
         )}
       </div>
     </div>

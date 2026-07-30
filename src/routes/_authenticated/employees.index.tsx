@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/employees/")({
   head: () => ({ meta: [{ title: "Employees — Ledgerly" }] }),
@@ -78,6 +79,7 @@ function EmployeesPage() {
     salary: (e) => Number(e.salary ?? 0),
     active: (e) => !!e.active,
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
@@ -151,7 +153,7 @@ function EmployeesPage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((e: any) => (
+            {pageItems.map((e: any) => (
               <DataCard
                 key={e.id}
                 title={e.name}
@@ -182,7 +184,7 @@ function EmployeesPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((e: any) => (
+                {pageItems.map((e: any) => (
                   <tr key={e.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 font-medium">{e.name}</td>
@@ -211,6 +213,7 @@ function EmployeesPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>

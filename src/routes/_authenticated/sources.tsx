@@ -19,6 +19,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/sources")({
   head: () => ({ meta: [{ title: "Lead Sources — Ledgerly" }] }),
@@ -160,6 +161,7 @@ function SourcesPage() {
     actual: (a) => Number(a.actualRate ?? 0),
     cost: (a) => Number(a.cost ?? 0),
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const totals = useMemo(() => analytics.reduce(
     (a, x) => ({
@@ -280,6 +282,7 @@ function SourcesPage() {
             action={analytics.length === 0 ? <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add source</Button> : undefined}
           />
         ) : (
+          <>
           <div className="overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>
@@ -297,7 +300,7 @@ function SourcesPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((a: any) => (
+                {pageItems.map((a: any) => (
                   <tr key={a.source.id}
                       className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(a.source); setOpen(true); }}>
@@ -318,6 +321,8 @@ function SourcesPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
+          </>
         )}
       </div>
     </div>

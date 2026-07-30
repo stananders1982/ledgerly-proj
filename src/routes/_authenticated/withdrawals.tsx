@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 const sb = supabase as any;
 const PENALTY_RATE = 0.1;
@@ -86,6 +87,7 @@ function WithdrawalsPage() {
     source: (r) => r.affiliates?.name ?? "",
     sale: (r) => r.revenue?.customer_name ?? "",
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const stats = useMemo(() => {
     const list = wQ.data ?? [];
@@ -191,7 +193,7 @@ function WithdrawalsPage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((r: any) => (
+            {pageItems.map((r: any) => (
               <DataCard
                 key={r.id}
                 title={r.customer_name}
@@ -222,7 +224,7 @@ function WithdrawalsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((r: any) => (
+                {pageItems.map((r: any) => (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(r); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
@@ -257,6 +259,7 @@ function WithdrawalsPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 import { fmtMoney } from "@/lib/format";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
 
@@ -209,6 +210,7 @@ function PerformancePage() {
     salary: (r) => r.salary,
     payout: (r) => r.payout,
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const totals = useMemo(() => ({
     ftds: rows.reduce((s, r) => s + r.ftds, 0),
@@ -248,7 +250,7 @@ function PerformancePage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((r: any) => (
+            {pageItems.map((r: any) => (
               <DataCard
                 key={r.id}
                 title={r.name}
@@ -280,7 +282,7 @@ function PerformancePage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((r: any) => (
+                {pageItems.map((r: any) => (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                     <td className="py-3 px-4 font-medium">
                       {r.name}
@@ -327,6 +329,7 @@ function PerformancePage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>

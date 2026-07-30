@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { useSort } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 import { ArrowUpDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -109,6 +110,7 @@ function UsersPage() {
     role: (u: any) => (u.roles.includes("admin") ? "admin" : "user"),
     pages: (u: any) => (u.nav_permissions?.length ?? 0),
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
   const th = (label: string, k: string) => (
     <button type="button" onClick={() => toggle(k)} className="inline-flex items-center gap-1 hover:text-foreground">
       {label} <ArrowUpDown className={`h-3 w-3 ${sort?.key === k ? "opacity-100" : "opacity-40"}`} />
@@ -148,7 +150,7 @@ function UsersPage() {
             {!q.isLoading && rows.length === 0 && (
               <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No users yet.</TableCell></TableRow>
             )}
-            {sorted.map((u) => {
+            {pageItems.map((u) => {
               const adm = u.roles.includes("admin");
               return (
                 <TableRow key={u.id}>
@@ -188,6 +190,7 @@ function UsersPage() {
             })}
           </TableBody>
         </Table>
+        <TablePagination {...pg} />
       </div>
 
       {editing && (

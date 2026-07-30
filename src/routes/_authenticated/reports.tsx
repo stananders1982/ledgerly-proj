@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { usePagination, TablePagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { TargetBadge } from "@/routes/_authenticated/sources";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
@@ -1080,41 +1081,45 @@ function SortableTable({ columns, rows, searchable }: { columns: Col[]; rows: an
     }
     return r;
   }, [rows, sortKey, sortDir, search, columns, searchable]);
+  const { pageItems, ...pg } = usePagination(filtered, 30);
   return (
     <div className="space-y-3">
       {searchable && (
         <Input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs print:hidden" />
       )}
-      <div className="card-surface overflow-x-auto scroll-slim">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {columns.map((c) => (
-                <TableHead key={c.key} className={c.numeric ? "text-right" : ""}>
-                  <button
-                    className="inline-flex items-center gap-1 hover:text-foreground"
-                    onClick={() => { setSortKey(c.key); setSortDir(sortKey === c.key && sortDir === "desc" ? "asc" : "desc"); }}
-                  >
-                    {c.label} <ArrowUpDown className="h-3 w-3 opacity-50" />
-                  </button>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={columns.length} className="text-center text-muted-foreground py-6">No data</TableCell></TableRow>
-            ) : filtered.map((row, i) => (
-              <TableRow key={i}>
+      <div className="card-surface overflow-hidden">
+        <div className="overflow-x-auto scroll-slim">
+          <Table>
+            <TableHeader>
+              <TableRow>
                 {columns.map((c) => (
-                  <TableCell key={c.key} className={c.numeric ? "text-right tabular-nums" : ""}>
-                    {c.render ? c.render(row[c.key], row) : String(row[c.key] ?? "—")}
-                  </TableCell>
+                  <TableHead key={c.key} className={c.numeric ? "text-right" : ""}>
+                    <button
+                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      onClick={() => { setSortKey(c.key); setSortDir(sortKey === c.key && sortDir === "desc" ? "asc" : "desc"); }}
+                    >
+                      {c.label} <ArrowUpDown className="h-3 w-3 opacity-50" />
+                    </button>
+                  </TableHead>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {pageItems.length === 0 ? (
+                <TableRow><TableCell colSpan={columns.length} className="text-center text-muted-foreground py-6">No data</TableCell></TableRow>
+              ) : pageItems.map((row, i) => (
+                <TableRow key={i}>
+                  {columns.map((c) => (
+                    <TableCell key={c.key} className={c.numeric ? "text-right tabular-nums" : ""}>
+                      {c.render ? c.render(row[c.key], row) : String(row[c.key] ?? "—")}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <TablePagination {...pg} />
       </div>
     </div>
   );

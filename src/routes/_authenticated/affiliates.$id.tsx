@@ -9,6 +9,7 @@ import { fmtMoney } from "@/lib/format";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/affiliates/$id")({
   head: () => ({
@@ -133,6 +134,7 @@ function AffiliateStatementPage() {
     paid: (r) => r.paid,
     net: (r) => r.net,
   });
+  const { pageItems: monthlyPage, ...pgMonthly } = usePagination(sorted, 30);
 
   const transactions = useMemo(() => {
     const rev = (revQ.data ?? []).filter((x) => inRange(x.date)).map((r) => ({ type: "Revenue" as const, date: r.date, amount: Number(r.amount || 0), label: r.customer_name || "Revenue", id: r.id }));
@@ -140,6 +142,7 @@ function AffiliateStatementPage() {
     const exps = (expQ.data ?? []).filter((x) => inRange(x.date)).map((e) => ({ type: "Paid to affiliate" as const, date: e.date, amount: -Number(e.amount || 0), label: e.notes || "Affiliate payout", id: e.id }));
     return [...rev, ...withs, ...exps].sort((a, b) => b.date.localeCompare(a.date));
   }, [revQ.data, withQ.data, expQ.data, activeRange]);
+  const { pageItems: txPage, ...pgTx } = usePagination(transactions, 30);
 
   return (
     <div>
@@ -202,7 +205,7 @@ function AffiliateStatementPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map((r) => (
+                  {monthlyPage.map((r) => (
                     <tr key={r.month} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                       <td className="py-3 px-4 font-medium">{r.month}</td>
                       <td className="py-3 px-4">{fmtMoney(r.revenue)}</td>
@@ -215,6 +218,7 @@ function AffiliateStatementPage() {
               </table>
             </div>
           )}
+          <TablePagination {...pgMonthly} />
         </div>
 
         <div className="card-surface overflow-hidden">
@@ -235,7 +239,7 @@ function AffiliateStatementPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.slice(0, 50).map((t) => (
+                  {txPage.map((t) => (
                     <tr key={`${t.type}-${t.id}`} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                       <td className="py-3 px-4">{t.date}</td>
                       <td className="py-3 px-4">
@@ -249,6 +253,7 @@ function AffiliateStatementPage() {
               </table>
             </div>
           )}
+          <TablePagination {...pgTx} />
         </div>
       </div>
     </div>

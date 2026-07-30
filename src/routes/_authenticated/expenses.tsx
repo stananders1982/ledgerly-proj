@@ -24,6 +24,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/expenses")({
   head: () => ({ meta: [{ title: "Expenses — Ledgerly" }] }),
@@ -79,6 +80,7 @@ function ExpensesPage() {
     amount: (e) => Number(e.amount ?? 0),
     notes: (e) => e.notes ?? "",
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const stats = useMemo(() => {
     const total = filtered.reduce((s: number, e: any) => s + Number(e.amount), 0);
@@ -178,7 +180,7 @@ function ExpensesPage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((e: any) => (
+            {pageItems.map((e: any) => (
               <DataCard
                 key={e.id}
                 title={e.expense_categories?.name ?? "Expense"}
@@ -206,7 +208,7 @@ function ExpensesPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((e: any) => (
+                {pageItems.map((e: any) => (
                   <tr key={e.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>
@@ -222,6 +224,7 @@ function ExpensesPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>

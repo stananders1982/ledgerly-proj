@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,6 +106,7 @@ function AffiliatesPage() {
     paid: (r) => r.paid,
     net: (r) => r.net,
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const totals = useMemo(
     () => ({
@@ -151,7 +153,7 @@ function AffiliatesPage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((r) => (
+            {pageItems.map((r) => (
               <DataCard
                 key={r.id}
                 title={r.name}
@@ -179,7 +181,7 @@ function AffiliatesPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((r) => (
+                {pageItems.map((r) => (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                     <td className="py-3 px-4 font-medium">
                       {r.name}
@@ -199,6 +201,7 @@ function AffiliatesPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>
