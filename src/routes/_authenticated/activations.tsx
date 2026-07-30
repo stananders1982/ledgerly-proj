@@ -334,7 +334,19 @@ function ActivationsPage() {
                 <tr key={a.id} className="border-t border-border/50">
                   <td className="py-2 px-4">{a.name}</td>
                   <td className="py-2 px-4 font-medium num">{a.count}</td>
-                  <td className="py-2 px-4 num text-muted-foreground">{a.pending}</td>
+                  <td className="py-2 px-4 num text-muted-foreground">
+                    {a.pending > 0 ? (
+                      <button
+                        type="button"
+                        className="underline underline-offset-2 hover:text-foreground"
+                        onClick={() => setPendingView({ title: `Pending FTDs — ${a.name}`, rows: a.pendingRows })}
+                      >
+                        {a.pending}
+                      </button>
+                    ) : (
+                      a.pending
+                    )}
+                  </td>
                   <td className="py-2 px-4 num">{a.total}</td>
                 </tr>
               ))}
@@ -343,7 +355,19 @@ function ActivationsPage() {
               <tr className="border-t border-border bg-muted/30 font-semibold">
                 <td className="py-2 px-4">Total</td>
                 <td className="py-2 px-4 num">{conversionTotals.count}</td>
-                <td className="py-2 px-4 num text-muted-foreground">{conversionTotals.pending}</td>
+                <td className="py-2 px-4 num text-muted-foreground">
+                  {conversionTotals.pending > 0 ? (
+                    <button
+                      type="button"
+                      className="underline underline-offset-2 hover:text-foreground"
+                      onClick={() => setPendingView({ title: "All pending FTDs", rows: conversionTotals.pendingRows })}
+                    >
+                      {conversionTotals.pending}
+                    </button>
+                  ) : (
+                    conversionTotals.pending
+                  )}
+                </td>
                 <td className="py-2 px-4 num">{conversionTotals.total}</td>
               </tr>
             </tfoot>
