@@ -19,6 +19,7 @@ type Notification = {
   type: string;
   title: string;
   body: string | null;
+  lead_activation_id: string | null;
   lead_name: string | null;
   amount: number;
   read_at: string | null;
