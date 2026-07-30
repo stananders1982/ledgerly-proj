@@ -239,7 +239,7 @@ function AffiliateStatementPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.slice(0, 50).map((t) => (
+                  {txPage.map((t) => (
                     <tr key={`${t.type}-${t.id}`} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                       <td className="py-3 px-4">{t.date}</td>
                       <td className="py-3 px-4">
@@ -253,6 +253,7 @@ function AffiliateStatementPage() {
               </table>
             </div>
           )}
+          <TablePagination {...pgTx} />
         </div>
       </div>
     </div>
