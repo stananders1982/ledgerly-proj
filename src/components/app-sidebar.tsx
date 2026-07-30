@@ -47,6 +47,7 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
   };
 
   const items = NAV_ITEMS.filter((item) => {
+    if (item.superAdminOnly) return isSuperAdmin;
     if (isAdmin) return true;
     if (item.adminOnly) return false;
     if (!permsLoaded) return false;
