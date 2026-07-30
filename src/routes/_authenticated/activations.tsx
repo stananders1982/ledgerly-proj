@@ -185,6 +185,7 @@ function ActivationsPage() {
     retention: (r) => r.employee_id ?? "",
     answered: (r) => !!r.answered,
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const totalBalance = rows.reduce(
     (a, r) => a + Number(r.balance || 0) + depositsFor(r.lead_name),
