@@ -134,6 +134,8 @@ function AffiliateStatementPage() {
     paid: (r) => r.paid,
     net: (r) => r.net,
   });
+  const { pageItems: monthlyPage, ...pgMonthly } = usePagination(sorted, 30);
+  const { pageItems: txPage, ...pgTx } = usePagination(transactions, 30);
 
   const transactions = useMemo(() => {
     const rev = (revQ.data ?? []).filter((x) => inRange(x.date)).map((r) => ({ type: "Revenue" as const, date: r.date, amount: Number(r.amount || 0), label: r.customer_name || "Revenue", id: r.id }));
