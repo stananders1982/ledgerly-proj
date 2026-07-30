@@ -190,6 +190,7 @@ function UsersPage() {
             })}
           </TableBody>
         </Table>
+        <TablePagination {...pg} />
       </div>
 
       {editing && (
