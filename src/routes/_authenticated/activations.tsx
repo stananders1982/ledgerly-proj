@@ -386,7 +386,7 @@ function ActivationsPage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((r: any) => (
+            {pageItems.map((r: any) => (
               <DataCard
                 key={r.id}
                 title={r.lead_name || "—"}
