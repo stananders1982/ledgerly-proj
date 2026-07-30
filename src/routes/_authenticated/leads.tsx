@@ -444,7 +444,7 @@ function LeadsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((r: any) => {
+                {pageItems.map((r: any) => {
                   const s = r.lead_sources;
                   const p = s ? Number(s.price) : 0;
                   const cost = !s ? 0
@@ -486,6 +486,7 @@ function LeadsPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
         )}
       </div>
     </div>
