@@ -25,6 +25,10 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/activations")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    client: typeof search.client === "string" ? search.client : undefined,
+    name: typeof search.name === "string" ? search.name : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Clients — Ledgerly" },
