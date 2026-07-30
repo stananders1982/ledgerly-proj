@@ -142,6 +142,7 @@ function AffiliateStatementPage() {
     const exps = (expQ.data ?? []).filter((x) => inRange(x.date)).map((e) => ({ type: "Paid to affiliate" as const, date: e.date, amount: -Number(e.amount || 0), label: e.notes || "Affiliate payout", id: e.id }));
     return [...rev, ...withs, ...exps].sort((a, b) => b.date.localeCompare(a.date));
   }, [revQ.data, withQ.data, expQ.data, activeRange]);
+  const { pageItems: txPage, ...pgTx } = usePagination(transactions, 30);
 
   return (
     <div>
