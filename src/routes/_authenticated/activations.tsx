@@ -416,7 +416,7 @@ function ActivationsPage() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((r: any) => (
+              {pageItems.map((r: any) => (
                 <tr
                   key={r.id}
                   className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
@@ -448,6 +448,7 @@ function ActivationsPage() {
             </tbody>
           </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>
