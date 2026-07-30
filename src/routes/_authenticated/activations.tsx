@@ -50,6 +50,8 @@ type Row = {
   daily_lead_entries?: { entry_date: string; source_id: string | null; lead_sources?: { name: string } | null } | null;
 };
 
+type PendingRow = { row: Row; balance: number; reasons: string[]; agent: string };
+
 const POTENTIALS = ["low", "mid", "high"] as const;
 
 function PotentialBadge({ value }: { value: Row["potential"] }) {
@@ -64,6 +66,7 @@ function ActivationsPage() {
   const [customEnd, setCustomEnd] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
   const [viewing, setViewing] = useState<Row | null>(null);
+  const [pendingView, setPendingView] = useState<{ title: string; rows: PendingRow[] } | null>(null);
   const [answeredFilter, setAnsweredFilter] = useState<"all" | "yes" | "no">("all");
   const [potentialFilter, setPotentialFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -193,17 +196,29 @@ function ActivationsPage() {
   // Conversions per conversion agent — same FTD rule as the employee page:
   // answered AND (mid/high potential OR effective balance >= 251)
   const conversionsByAgent = useMemo(() => {
-    const m = new Map<string, { count: number; pending: number }>();
+    const m = new Map<string, { count: number; pending: number; pendingRows: PendingRow[] }>();
     for (const r of rows) {
       const id = r.conversion_employee_id;
       if (!id) continue;
-      const e = m.get(id) ?? { count: 0, pending: 0 };
+      const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
       const effectiveBalance = Number(r.balance || 0) + depositsFor(r.lead_name);
       const qualifies =
         !!r.answered &&
         (r.potential === "mid" || r.potential === "high" || effectiveBalance >= 251);
       if (qualifies) e.count += 1;
-      else e.pending += 1;
+      else {
+        e.pending += 1;
+        const reasons: string[] = [];
+        if (!r.answered) reasons.push("Not answered yet");
+        if (r.potential !== "mid" && r.potential !== "high" && effectiveBalance < 251) {
+          reasons.push(
+            r.potential === "low"
+              ? "Low potential and balance under $251"
+              : "No potential set and balance under $251",
+          );
+        }
+        e.pendingRows.push({ row: r, balance: effectiveBalance, reasons, agent: employeeName(id) });
+      }
       m.set(id, e);
     }
     return [...m.entries()]
@@ -216,9 +231,11 @@ function ActivationsPage() {
       count: conversionsByAgent.reduce((s, a) => s + a.count, 0),
       pending: conversionsByAgent.reduce((s, a) => s + a.pending, 0),
       total: conversionsByAgent.reduce((s, a) => s + a.total, 0),
+      pendingRows: conversionsByAgent.flatMap((a) => a.pendingRows),
     }),
     [conversionsByAgent],
   );
+
 
 
   const save = useMutation({
@@ -317,7 +334,19 @@ function ActivationsPage() {
                 <tr key={a.id} className="border-t border-border/50">
                   <td className="py-2 px-4">{a.name}</td>
                   <td className="py-2 px-4 font-medium num">{a.count}</td>
-                  <td className="py-2 px-4 num text-muted-foreground">{a.pending}</td>
+                  <td className="py-2 px-4 num text-muted-foreground">
+                    {a.pending > 0 ? (
+                      <button
+                        type="button"
+                        className="underline underline-offset-2 hover:text-foreground"
+                        onClick={() => setPendingView({ title: `Pending FTDs — ${a.name}`, rows: a.pendingRows })}
+                      >
+                        {a.pending}
+                      </button>
+                    ) : (
+                      a.pending
+                    )}
+                  </td>
                   <td className="py-2 px-4 num">{a.total}</td>
                 </tr>
               ))}
@@ -326,7 +355,19 @@ function ActivationsPage() {
               <tr className="border-t border-border bg-muted/30 font-semibold">
                 <td className="py-2 px-4">Total</td>
                 <td className="py-2 px-4 num">{conversionTotals.count}</td>
-                <td className="py-2 px-4 num text-muted-foreground">{conversionTotals.pending}</td>
+                <td className="py-2 px-4 num text-muted-foreground">
+                  {conversionTotals.pending > 0 ? (
+                    <button
+                      type="button"
+                      className="underline underline-offset-2 hover:text-foreground"
+                      onClick={() => setPendingView({ title: "All pending FTDs", rows: conversionTotals.pendingRows })}
+                    >
+                      {conversionTotals.pending}
+                    </button>
+                  ) : (
+                    conversionTotals.pending
+                  )}
+                </td>
                 <td className="py-2 px-4 num">{conversionTotals.total}</td>
               </tr>
             </tfoot>
@@ -408,6 +449,45 @@ function ActivationsPage() {
           </>
         )}
       </div>
+
+      <Dialog open={!!pendingView} onOpenChange={(o) => { if (!o) setPendingView(null); }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{pendingView?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto scroll-slim">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="py-2 px-3 font-medium">Client</th>
+                  <th className="py-2 px-3 font-medium">Agent</th>
+                  <th className="py-2 px-3 font-medium">Balance</th>
+                  <th className="py-2 px-3 font-medium">Potential</th>
+                  <th className="py-2 px-3 font-medium">Answered</th>
+                  <th className="py-2 px-3 font-medium">Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(pendingView?.rows ?? []).map((p) => (
+                  <tr
+                    key={p.row.id}
+                    className="border-t border-border/50 cursor-pointer hover:bg-muted/30"
+                    onClick={() => { setPendingView(null); setViewing(p.row); }}
+                  >
+                    <td className="py-2 px-3">{p.row.lead_name || "—"}</td>
+                    <td className="py-2 px-3 text-muted-foreground">{p.agent}</td>
+                    <td className="py-2 px-3 num">{fmtMoney(p.balance)}</td>
+                    <td className="py-2 px-3"><PotentialBadge value={p.row.potential} /></td>
+                    <td className="py-2 px-3"><AnsweredBadge answered={p.row.answered} /></td>
+                    <td className="py-2 px-3 text-xs text-muted-foreground">{p.reasons.join(" · ")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null); }}>
         {viewing && (() => {
