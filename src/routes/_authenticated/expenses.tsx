@@ -80,6 +80,7 @@ function ExpensesPage() {
     amount: (e) => Number(e.amount ?? 0),
     notes: (e) => e.notes ?? "",
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const stats = useMemo(() => {
     const total = filtered.reduce((s: number, e: any) => s + Number(e.amount), 0);
