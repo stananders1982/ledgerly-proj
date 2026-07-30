@@ -384,7 +384,7 @@ function EmployeeDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(withQ.data ?? []).map((w: any) => (
+                  {withPage.map((w: any) => (
                     <tr key={w.id} className="border-b border-border/50">
                       <td className="py-2 px-4 text-muted-foreground">{fmtDate(w.date)}</td>
                       <td className="py-2 px-4">{w.customer_name}</td>
@@ -396,6 +396,7 @@ function EmployeeDetailPage() {
               </table>
             </div>
           )}
+          <TablePagination {...pgWith} />
         </div>
       </div>
       )}
