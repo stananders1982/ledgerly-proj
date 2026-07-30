@@ -488,6 +488,7 @@ function LeadsPage() {
             </table>
           </div>
           <TablePagination {...pg} />
+          </>
         )}
       </div>
     </div>
