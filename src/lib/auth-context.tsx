@@ -32,6 +32,10 @@ const Ctx = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companies, setCompanies] = useState<CompanyOption[]>([]);
+  const [companyVersion, setCompanyVersion] = useState(0);
   const [navKeys, setNavKeys] = useState<Set<string>>(new Set());
   const [permsLoaded, setPermsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
