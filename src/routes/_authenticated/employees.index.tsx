@@ -79,6 +79,7 @@ function EmployeesPage() {
     salary: (e) => Number(e.salary ?? 0),
     active: (e) => !!e.active,
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
