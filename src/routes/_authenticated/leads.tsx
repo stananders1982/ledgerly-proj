@@ -96,6 +96,16 @@ function LeadsPage() {
     },
   });
 
+  const revenueQ = useQuery({
+    queryKey: ["revenue-names-for-leads"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("revenue").select("customer_name");
+      if (error) throw error;
+      return (data ?? []) as { customer_name: string | null }[];
+    },
+  });
+
+
   const allRows = q.data ?? [];
   const rows = useMemo(() => {
     const s = activeRange.start.getTime();
@@ -158,6 +168,22 @@ function LeadsPage() {
   }, [rows, activationsQ.data, employeesQ.data]);
 
   const allocated = useMemo(() => byEmployee.reduce((s, e) => s + e.count, 0), [byEmployee]);
+
+  // STD: FTDs in the selected range whose client deposited again (any revenue record)
+  const stdCount = useMemo(() => {
+    const depositors = new Set(
+      (revenueQ.data ?? []).map((r) => (r.customer_name ?? "").trim().toLowerCase()).filter(Boolean),
+    );
+    const visibleIds = new Set(rows.map((r) => r.id));
+    const names = new Set<string>();
+    for (const a of activationsQ.data ?? []) {
+      if (!visibleIds.has(a.entry_id)) continue;
+      const n = (a.lead_name ?? "").trim().toLowerCase();
+      if (n && depositors.has(n)) names.add(n);
+    }
+    return names.size;
+  }, [rows, activationsQ.data, revenueQ.data]);
+
 
 
   const stats = useMemo(() => {
@@ -359,9 +385,11 @@ function LeadsPage() {
         </div>
       </div>
 
-      <section className="grid grid-cols-2 lg:grid-cols-8 gap-3 mb-6">
+      <section className="grid grid-cols-2 lg:grid-cols-9 gap-3 mb-6">
         <StatCard label="Received" value={String(stats.received)} />
-        <StatCard label="Activated" value={String(stats.activated)} tone="positive" />
+        <StatCard label="Activated (FTD)" value={String(stats.activated)} tone="positive" />
+        <StatCard label="STD" value={`${stdCount} / ${stats.activated}`} tone="positive" />
+
         <StatCard
           label="Allocated"
           value={`${allocated} / ${stats.activated}`}
