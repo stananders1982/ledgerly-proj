@@ -50,6 +50,8 @@ type Row = {
   daily_lead_entries?: { entry_date: string; source_id: string | null; lead_sources?: { name: string } | null } | null;
 };
 
+type PendingRow = { row: Row; balance: number; reasons: string[]; agent: string };
+
 const POTENTIALS = ["low", "mid", "high"] as const;
 
 function PotentialBadge({ value }: { value: Row["potential"] }) {
