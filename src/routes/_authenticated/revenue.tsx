@@ -237,7 +237,7 @@ function RevenuePage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((r: any) => (
+            {pageItems.map((r: any) => (
               <DataCard
                 key={r.id}
                 title={r.customer_name}
@@ -265,7 +265,7 @@ function RevenuePage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((r: any) => (
+                {pageItems.map((r: any) => (
                   <RevenueRow
                     key={r.id}
                     revenue={r}
@@ -280,6 +280,7 @@ function RevenuePage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>
