@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, Banknote, Gauge, Building2 } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, Banknote, Gauge, Building2, Landmark } from "lucide-react";
 
 export type NavGroup = "Overview" | "Operations" | "People" | "Analytics" | "Admin";
 
@@ -9,7 +9,9 @@ export type NavItem = {
   icon: typeof LayoutDashboard;
   group: NavGroup;
   adminOnly?: boolean;
+  superAdminOnly?: boolean;
 };
+
 
 export const NAV_GROUPS: NavGroup[] = ["Overview", "Operations", "People", "Analytics", "Admin"];
 
