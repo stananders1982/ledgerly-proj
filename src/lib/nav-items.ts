@@ -34,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "affiliates", title: "Affiliates", url: "/affiliates", icon: Building2, group: "Analytics" },
 
   { key: "users", title: "Users", url: "/users", icon: ShieldCheck, group: "Admin", adminOnly: true },
+  { key: "companies", title: "Companies", url: "/companies", icon: Landmark, group: "Admin", adminOnly: true, superAdminOnly: true },
 ];
 
 export const MANAGEABLE_NAV_KEYS = NAV_ITEMS.filter((i) => !i.adminOnly).map((i) => i.key);
