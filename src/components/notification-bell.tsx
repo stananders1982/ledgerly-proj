@@ -51,7 +51,21 @@ export function NotificationBell() {
         { event: "INSERT", schema: "public", table: "notifications" },
         (payload) => {
           const n = payload.new as Notification;
-          toast.warning(n.title, { description: n.body ?? undefined });
+          const go = () =>
+            navigate({
+              to: "/activations",
+              search: n.lead_activation_id
+                ? { client: n.lead_activation_id }
+                : n.lead_name
+                  ? { name: n.lead_name }
+                  : {},
+            });
+          const opts = {
+            description: n.body ?? undefined,
+            action: { label: "View client", onClick: go },
+          };
+          if (n.type === "revenue") toast.success(n.title, opts);
+          else toast.warning(n.title, opts);
           qc.invalidateQueries({ queryKey: ["notifications"] });
         },
       )
@@ -59,7 +73,8 @@ export function NotificationBell() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [qc]);
+  }, [qc, navigate]);
+
 
   const items = q.data ?? [];
   const unread = items.filter((n) => !n.read_at).length;
