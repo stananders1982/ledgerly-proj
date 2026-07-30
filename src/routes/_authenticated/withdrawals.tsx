@@ -87,6 +87,7 @@ function WithdrawalsPage() {
     source: (r) => r.affiliates?.name ?? "",
     sale: (r) => r.revenue?.customer_name ?? "",
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const stats = useMemo(() => {
     const list = wQ.data ?? [];
