@@ -205,7 +205,7 @@ function AffiliateStatementPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map((r) => (
+                  {monthlyPage.map((r) => (
                     <tr key={r.month} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                       <td className="py-3 px-4 font-medium">{r.month}</td>
                       <td className="py-3 px-4">{fmtMoney(r.revenue)}</td>
@@ -218,6 +218,7 @@ function AffiliateStatementPage() {
               </table>
             </div>
           )}
+          <TablePagination {...pgMonthly} />
         </div>
 
         <div className="card-surface overflow-hidden">
