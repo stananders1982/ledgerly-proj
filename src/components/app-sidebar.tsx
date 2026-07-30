@@ -85,6 +85,7 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
             </div>
           )}
         </div>
+        {!collapsed && <CompanySwitcher />}
         {onSearchClick && !collapsed && (
           <button
             type="button"
