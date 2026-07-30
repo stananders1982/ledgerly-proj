@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/employees/")({
   head: () => ({ meta: [{ title: "Employees — Ledgerly" }] }),
