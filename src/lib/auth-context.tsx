@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { switchCompany as switchCompanyFn } from "@/lib/company.functions";
 
 export type CompanyOption = { id: string; name: string; slug: string; active: boolean };
 
