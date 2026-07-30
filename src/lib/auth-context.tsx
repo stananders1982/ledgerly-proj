@@ -9,10 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
+export type CompanyOption = { id: string; name: string; slug: string; active: boolean };
+
 interface AuthState {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
+  companyId: string | null;
+  company: CompanyOption | null;
+  companies: CompanyOption[];
+  switchCompany: (companyId: string) => Promise<void>;
   navKeys: Set<string>;
   permsLoaded: boolean;
   loading: boolean;
@@ -20,6 +27,7 @@ interface AuthState {
 }
 
 const Ctx = createContext<AuthState | null>(null);
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
