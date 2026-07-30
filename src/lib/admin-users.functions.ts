@@ -73,6 +73,7 @@ export const createAppUser = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
@@ -84,6 +85,10 @@ export const createAppUser = createServerFn({ method: "POST" })
     if (error) throw error;
     const newId = created.user!.id;
 
+    await supabaseAdmin
+      .from("company_users")
+      .upsert({ user_id: newId, company_id: companyId }, { onConflict: "user_id" });
+
     // handle_new_user trigger may auto-grant 'user' role and 'admin' for first user.
     if (data.is_admin) {
       await supabaseAdmin.from("user_roles").upsert({ user_id: newId, role: "admin" }, { onConflict: "user_id,role" });
@@ -91,10 +96,20 @@ export const createAppUser = createServerFn({ method: "POST" })
     if (data.nav_keys.length) {
       await supabaseAdmin
         .from("nav_permissions")
-        .insert(data.nav_keys.map((k) => ({ user_id: newId, nav_key: k })));
+        .insert(data.nav_keys.map((k) => ({ user_id: newId, nav_key: k, company_id: companyId })));
     }
     return { id: newId };
   });
+
+/** Guards that the target user belongs to the caller's company. */
+async function assertSameCompany(supabaseAdmin: any, companyId: string, userId: string) {
+  const { data } = await supabaseAdmin
+    .from("company_users")
+    .select("company_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data || data.company_id !== companyId) throw new Error("Forbidden: user is not in your company");
+}
 
 export const updateUserPermissions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -109,7 +124,9 @@ export const updateUserPermissions = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await assertSameCompany(supabaseAdmin, companyId, data.user_id);
 
     if (data.is_admin) {
       await supabaseAdmin.from("user_roles").upsert({ user_id: data.user_id, role: "admin" }, { onConflict: "user_id,role" });
@@ -117,14 +134,15 @@ export const updateUserPermissions = createServerFn({ method: "POST" })
       await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id).eq("role", "admin");
     }
 
-    await supabaseAdmin.from("nav_permissions").delete().eq("user_id", data.user_id);
+    await supabaseAdmin.from("nav_permissions").delete().eq("user_id", data.user_id).eq("company_id", companyId);
     if (data.nav_keys.length) {
       await supabaseAdmin
         .from("nav_permissions")
-        .insert(data.nav_keys.map((k) => ({ user_id: data.user_id, nav_key: k })));
+        .insert(data.nav_keys.map((k) => ({ user_id: data.user_id, nav_key: k, company_id: companyId })));
     }
     return { ok: true };
   });
+
 
 export const resetUserPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
