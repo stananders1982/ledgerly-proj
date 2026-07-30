@@ -151,7 +151,9 @@ export const resetUserPassword = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await assertSameCompany(supabaseAdmin, companyId, data.user_id);
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, { password: data.password });
     if (error) throw error;
     return { ok: true };
@@ -163,7 +165,10 @@ export const deleteAppUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     if (data.user_id === context.userId) throw new Error("You cannot delete your own account");
+    const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await assertSameCompany(supabaseAdmin, companyId, data.user_id);
+    await supabaseAdmin.from("company_users").delete().eq("user_id", data.user_id);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
     if (error) throw error;
     return { ok: true };
