@@ -450,6 +450,45 @@ function ActivationsPage() {
         )}
       </div>
 
+      <Dialog open={!!pendingView} onOpenChange={(o) => { if (!o) setPendingView(null); }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{pendingView?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto scroll-slim">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="py-2 px-3 font-medium">Client</th>
+                  <th className="py-2 px-3 font-medium">Agent</th>
+                  <th className="py-2 px-3 font-medium">Balance</th>
+                  <th className="py-2 px-3 font-medium">Potential</th>
+                  <th className="py-2 px-3 font-medium">Answered</th>
+                  <th className="py-2 px-3 font-medium">Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(pendingView?.rows ?? []).map((p) => (
+                  <tr
+                    key={p.row.id}
+                    className="border-t border-border/50 cursor-pointer hover:bg-muted/30"
+                    onClick={() => { setPendingView(null); setViewing(p.row); }}
+                  >
+                    <td className="py-2 px-3">{p.row.lead_name || "—"}</td>
+                    <td className="py-2 px-3 text-muted-foreground">{p.agent}</td>
+                    <td className="py-2 px-3 num">{fmtMoney(p.balance)}</td>
+                    <td className="py-2 px-3"><PotentialBadge value={p.row.potential} /></td>
+                    <td className="py-2 px-3"><AnsweredBadge answered={p.row.answered} /></td>
+                    <td className="py-2 px-3 text-xs text-muted-foreground">{p.reasons.join(" · ")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
       <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null); }}>
         {viewing && (() => {
           const cur = (q.data ?? []).find((r) => r.id === viewing.id) ?? viewing;
