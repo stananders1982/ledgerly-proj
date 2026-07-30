@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/lib/auth-context";
+import { CompanySwitcher } from "@/components/company-switcher";
 import { Button } from "@/components/ui/button";
 import { NAV_GROUPS, NAV_ITEMS, type NavGroup } from "@/lib/nav-items";
 import { cn } from "@/lib/utils";
