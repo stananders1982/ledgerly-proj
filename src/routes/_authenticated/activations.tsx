@@ -193,17 +193,29 @@ function ActivationsPage() {
   // Conversions per conversion agent — same FTD rule as the employee page:
   // answered AND (mid/high potential OR effective balance >= 251)
   const conversionsByAgent = useMemo(() => {
-    const m = new Map<string, { count: number; pending: number }>();
+    const m = new Map<string, { count: number; pending: number; pendingRows: PendingRow[] }>();
     for (const r of rows) {
       const id = r.conversion_employee_id;
       if (!id) continue;
-      const e = m.get(id) ?? { count: 0, pending: 0 };
+      const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
       const effectiveBalance = Number(r.balance || 0) + depositsFor(r.lead_name);
       const qualifies =
         !!r.answered &&
         (r.potential === "mid" || r.potential === "high" || effectiveBalance >= 251);
       if (qualifies) e.count += 1;
-      else e.pending += 1;
+      else {
+        e.pending += 1;
+        const reasons: string[] = [];
+        if (!r.answered) reasons.push("Not answered yet");
+        if (r.potential !== "mid" && r.potential !== "high" && effectiveBalance < 251) {
+          reasons.push(
+            r.potential === "low"
+              ? "Low potential and balance under $251"
+              : "No potential set and balance under $251",
+          );
+        }
+        e.pendingRows.push({ row: r, balance: effectiveBalance, reasons, agent: employeeName(id) });
+      }
       m.set(id, e);
     }
     return [...m.entries()]
@@ -216,9 +228,11 @@ function ActivationsPage() {
       count: conversionsByAgent.reduce((s, a) => s + a.count, 0),
       pending: conversionsByAgent.reduce((s, a) => s + a.pending, 0),
       total: conversionsByAgent.reduce((s, a) => s + a.total, 0),
+      pendingRows: conversionsByAgent.flatMap((a) => a.pendingRows),
     }),
     [conversionsByAgent],
   );
+
 
 
   const save = useMutation({
