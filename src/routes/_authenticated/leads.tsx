@@ -130,6 +130,7 @@ function LeadsPage() {
         : 0,
     notes: (r) => r.notes ?? "",
   });
+  const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const activationsByEntry = useMemo(() => {
     const m = new Map<string, Activation[]>();
