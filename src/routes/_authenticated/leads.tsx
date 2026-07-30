@@ -387,7 +387,9 @@ function LeadsPage() {
 
       <section className="grid grid-cols-2 lg:grid-cols-9 gap-3 mb-6">
         <StatCard label="Received" value={String(stats.received)} />
-        <StatCard label="Activated" value={String(stats.activated)} tone="positive" />
+        <StatCard label="Activated (FTD)" value={String(stats.activated)} tone="positive" />
+        <StatCard label="STD" value={`${stdCount} / ${stats.activated}`} tone="positive" />
+
         <StatCard
           label="Allocated"
           value={`${allocated} / ${stats.activated}`}
