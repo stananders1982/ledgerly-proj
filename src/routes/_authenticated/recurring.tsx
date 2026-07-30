@@ -21,6 +21,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/recurring")({
   head: () => ({ meta: [{ title: "Recurring Expenses — Ledgerly" }] }),
