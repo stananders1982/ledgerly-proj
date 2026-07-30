@@ -13,12 +13,13 @@ export async function logEvent(opts: {
     const { data } = await supabase.auth.getUser();
     const user = data.user;
     if (!user) return;
-    let companyId: string | null = null;
-    try {
-      companyId = typeof window !== "undefined" ? window.localStorage.getItem("active_company_id") : null;
-    } catch {
-      /* ignore */
-    }
+
+    const { data: member } = await supabase
+      .from("company_users")
+      .select("company_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
     await supabase.from("app_logs").insert({
       level: opts.level ?? "info",
       source: opts.source ?? "app",
@@ -27,7 +28,7 @@ export async function logEvent(opts: {
       path: typeof window !== "undefined" ? window.location.pathname : null,
       user_id: user.id,
       user_email: user.email ?? null,
-      company_id: companyId,
+      company_id: member?.company_id ?? null,
     });
   } catch {
     /* logging must never break the app */
