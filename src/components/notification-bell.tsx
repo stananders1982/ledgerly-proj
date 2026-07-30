@@ -115,7 +115,14 @@ export function NotificationBell() {
                 }`}
                 onClick={async () => {
                   await markRead([n.id]);
-                  navigate({ to: "/activations" });
+                  navigate({
+                    to: "/activations",
+                    search: n.lead_activation_id
+                      ? { client: n.lead_activation_id }
+                      : n.lead_name
+                        ? { name: n.lead_name }
+                        : {},
+                  });
                 }}
               >
                 <div className="flex items-start gap-2">
