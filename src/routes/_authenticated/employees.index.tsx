@@ -153,7 +153,7 @@ function EmployeesPage() {
         ) : (
           <>
           <DataCardList>
-            {sorted.map((e: any) => (
+            {pageItems.map((e: any) => (
               <DataCard
                 key={e.id}
                 title={e.name}
@@ -184,7 +184,7 @@ function EmployeesPage() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((e: any) => (
+                {pageItems.map((e: any) => (
                   <tr key={e.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
                     <td className="py-3 px-4 font-medium">{e.name}</td>
@@ -213,6 +213,7 @@ function EmployeesPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...pg} />
           </>
         )}
       </div>
