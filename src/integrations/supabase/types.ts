@@ -389,6 +389,7 @@ export type Database = {
       daily_lead_activations: {
         Row: {
           activated_count: number
+          activation_date: string
           answered: boolean
           balance: number
           company_id: string
@@ -404,6 +405,7 @@ export type Database = {
         }
         Insert: {
           activated_count?: number
+          activation_date?: string
           answered?: boolean
           balance?: number
           company_id?: string
@@ -419,6 +421,7 @@ export type Database = {
         }
         Update: {
           activated_count?: number
+          activation_date?: string
           answered?: boolean
           balance?: number
           company_id?: string

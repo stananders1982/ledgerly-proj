@@ -56,10 +56,14 @@ type Row = {
   balance: number;
   potential: "low" | "mid" | "high" | null;
   answered: boolean;
+  activation_date: string | null;
   daily_lead_entries?: { entry_date: string; source_id: string | null; lead_sources?: { name: string } | null } | null;
 };
 
 type PendingRow = { row: Row; balance: number; reasons: string[]; agent: string };
+
+/** Date the lead was actually activated (falls back to the lead entry date). */
+const actDate = (r: Row) => r.activation_date ?? r.daily_lead_entries?.entry_date ?? null;
 
 const POTENTIALS = ["low", "mid", "high"] as const;
 
@@ -193,7 +197,7 @@ function ActivationsPage() {
     const s = activeRange.start.getTime();
     const e = activeRange.end.getTime();
     return (q.data ?? []).filter((r) => {
-      const d = r.daily_lead_entries?.entry_date;
+      const d = actDate(r);
       if (d) {
         const t = new Date(d + "T00:00:00").getTime();
         if (t < s || t > e) return false;
@@ -208,7 +212,7 @@ function ActivationsPage() {
   }, [q.data, activeRange, answeredFilter, potentialFilter, search]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
-    date: (r) => r.daily_lead_entries?.entry_date ?? "",
+    date: (r) => actDate(r) ?? "",
     lead: (r) => r.lead_name ?? "",
     source: (r) => r.daily_lead_entries?.lead_sources?.name ?? "",
     balance: (r) => Number(r.balance || 0) + depositsFor(r.lead_name),
@@ -457,7 +461,7 @@ function ActivationsPage() {
               <DataCard
                 key={r.id}
                 title={r.lead_name || "—"}
-                subtitle={r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : undefined}
+                subtitle={actDate(r) ? fmtDate(actDate(r)!) : undefined}
                 onClick={() => setViewing(r)}
                 fields={[
                   { label: "Balance", value: <span className="num">{fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}</span> },
@@ -505,7 +509,7 @@ function ActivationsPage() {
                   <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                     <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleSelected(r.id)} aria-label="Select client" />
                   </td>
-                  <td className="py-3 px-4">{r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : "—"}</td>
+                  <td className="py-3 px-4">{actDate(r) ? fmtDate(actDate(r)!) : "—"}</td>
                   <td className="py-3 px-4 font-medium">{r.lead_name || "—"}</td>
                   <td className="py-3 px-4">{r.daily_lead_entries?.lead_sources?.name ?? "—"}</td>
                   <td className="py-3 px-4">
@@ -563,7 +567,7 @@ function ActivationsPage() {
                   >
                     <td className="py-2 px-3">{p.row.lead_name || "—"}</td>
                     <td className="py-2 px-3 text-muted-foreground">{p.agent}</td>
-                    <td className="py-2 px-3">{p.row.daily_lead_entries?.entry_date ? fmtDate(p.row.daily_lead_entries.entry_date) : "—"}</td>
+                    <td className="py-2 px-3">{actDate(p.row) ? fmtDate(actDate(p.row)!) : "—"}</td>
                     <td className="py-2 px-3 num">{fmtMoney(p.balance)}</td>
                     <td className="py-2 px-3"><PotentialBadge value={p.row.potential} /></td>
                     <td className="py-2 px-3"><AnsweredBadge answered={p.row.answered} /></td>
@@ -606,7 +610,8 @@ function ActivationsPage() {
 
                 <div className="grid gap-2 rounded-lg border border-border p-3 text-sm sm:grid-cols-2">
                   <Info label="Source" value={cur.daily_lead_entries?.lead_sources?.name ?? "—"} />
-                  <Info label="Activation date" value={cur.daily_lead_entries?.entry_date ? fmtDate(cur.daily_lead_entries.entry_date) : "—"} />
+                  <Info label="Activation date" value={actDate(cur) ? fmtDate(actDate(cur)!) : "—"} />
+                  <Info label="Lead received" value={cur.daily_lead_entries?.entry_date ? fmtDate(cur.daily_lead_entries.entry_date) : "—"} />
                   <Info label="Conversion agent" value={<EmployeeLink id={cur.conversion_employee_id} name={employeeName(cur.conversion_employee_id)} />} />
                   <Info label="Retention agent" value={<EmployeeLink id={cur.employee_id} name={employeeName(cur.employee_id)} />} />
                   <Info label="Deposit count" value={String(deposits.length)} />

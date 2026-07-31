@@ -103,9 +103,9 @@ function PerformancePage() {
     queryFn: async () => {
       const data = await fetchAll(() => sb
         .from("daily_lead_activations")
-        .select("employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,daily_lead_entries!inner(entry_date)")
-        .gte("daily_lead_entries.entry_date", start)
-        .lte("daily_lead_entries.entry_date", end));
+        .select("employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,activation_date")
+        .gte("activation_date", start)
+        .lte("activation_date", end));
       return data ?? [];
     },
   });

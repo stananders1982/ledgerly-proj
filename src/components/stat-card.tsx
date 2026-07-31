@@ -7,9 +7,10 @@ interface Props {
   delta?: number;
   icon?: LucideIcon;
   tone?: "default" | "positive" | "negative";
+  hint?: string;
 }
 
-export function StatCard({ label, value, delta, icon: Icon, tone = "default" }: Props) {
+export function StatCard({ label, value, delta, icon: Icon, tone = "default", hint }: Props) {
   const trendUp = (delta ?? 0) >= 0;
   return (
     <div className="card-surface p-5 flex flex-col gap-3 relative overflow-hidden">
@@ -30,6 +31,7 @@ export function StatCard({ label, value, delta, icon: Icon, tone = "default" }: 
       >
         {value}
       </div>
+      {hint && <div className="text-xs text-muted-foreground -mt-1">{hint}</div>}
       {delta !== undefined && (
         <div
           className={cn(

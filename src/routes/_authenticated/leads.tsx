@@ -45,8 +45,8 @@ type Entry = {
   lead_sources?: { id: string; name: string; pricing_model: "CPL" | "CPA"; price: number; expected_conversion_rate?: number } | null;
 };
 
-type Activation = { id: string; entry_id: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null };
-type Split = { id?: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null };
+type Activation = { id: string; entry_id: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null; activation_date: string };
+type Split = { id?: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null; activation_date: string };
 
 function LeadsPage() {
   const qc = useQueryClient();
@@ -150,20 +150,41 @@ function LeadsPage() {
     return m;
   }, [activationsQ.data]);
 
+  // Activations are dated independently of the lead entry: an April lead
+  // activated today belongs to today's period for FTD/commission purposes.
+  const activationsInRange = useMemo(() => {
+    const s0 = activeRange.start.getTime();
+    const e0 = activeRange.end.getTime();
+    const allowedEntries = sourceFilter.length
+      ? new Set(allRows.filter((r) => sourceFilter.includes(r.source_id ?? "")).map((r) => r.id))
+      : null;
+    return (activationsQ.data ?? []).filter((a) => {
+      if (!a.activation_date) return false;
+      const t = new Date(a.activation_date + "T00:00:00").getTime();
+      if (t < s0 || t > e0) return false;
+      if (allowedEntries && !allowedEntries.has(a.entry_id)) return false;
+      return true;
+    });
+  }, [activationsQ.data, activeRange, allRows, sourceFilter]);
+
   const employeeName = (id: string) =>
     (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
 
   const byEmployee = useMemo(() => {
-    const visibleIds = new Set(rows.map((r) => r.id));
     const totals = new Map<string, number>();
-    for (const a of activationsQ.data ?? []) {
-      if (!visibleIds.has(a.entry_id)) continue;
+    for (const a of activationsInRange) {
       totals.set(a.employee_id, (totals.get(a.employee_id) ?? 0) + a.activated_count);
     }
     return Array.from(totals.entries())
       .map(([id, count]) => ({ id, name: employeeName(id), count }))
       .sort((a, b) => b.count - a.count);
-  }, [rows, activationsQ.data, employeesQ.data]);
+  }, [activationsInRange, employeesQ.data]);
+
+  // FTDs credited to this period, by activation date (not by lead date).
+  const activatedInRange = useMemo(
+    () => activationsInRange.reduce((n, a) => n + (a.activated_count ?? 0), 0),
+    [activationsInRange],
+  );
 
   const allocated = useMemo(() => byEmployee.reduce((s, e) => s + e.count, 0), [byEmployee]);
 
@@ -172,15 +193,13 @@ function LeadsPage() {
     const depositors = new Set(
       (revenueQ.data ?? []).map((r) => (r.customer_name ?? "").trim().toLowerCase()).filter(Boolean),
     );
-    const visibleIds = new Set(rows.map((r) => r.id));
     const names = new Set<string>();
-    for (const a of activationsQ.data ?? []) {
-      if (!visibleIds.has(a.entry_id)) continue;
+    for (const a of activationsInRange) {
       const n = (a.lead_name ?? "").trim().toLowerCase();
       if (n && depositors.has(n)) names.add(n);
     }
     return names.size;
-  }, [rows, activationsQ.data, revenueQ.data]);
+  }, [activationsInRange, revenueQ.data]);
 
 
 
@@ -256,6 +275,7 @@ function LeadsPage() {
           activated_count: Number(s.activated_count) || 0,
           lead_name: s.lead_name?.trim() || null,
           potential: s.potential || null,
+          activation_date: s.activation_date || todayISO(),
         }).eq("id", s.id!);
         if (error) throw error;
       }
@@ -270,6 +290,7 @@ function LeadsPage() {
             activated_count: Number(s.activated_count) || 0,
             lead_name: s.lead_name?.trim() || null,
             potential: s.potential || null,
+            activation_date: s.activation_date || todayISO(),
           })),
         );
         if (insErr) throw insErr;
@@ -317,6 +338,7 @@ function LeadsPage() {
                     activated_count: 1,
                     lead_name: a.lead_name ?? "",
                     potential: a.potential ?? "",
+                    activation_date: a.activation_date ?? todayISO(),
                   })),
                 ) : []
               }
@@ -385,12 +407,12 @@ function LeadsPage() {
 
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Received" value={String(stats.received)} />
-        <StatCard label="Activated (FTD)" value={String(stats.activated)} tone="positive" />
-        <StatCard label="STD" value={`${stdCount} / ${stats.activated}`} tone="positive" />
+        <StatCard label="Activated (FTD)" value={String(activatedInRange)} tone="positive" hint="Counted by activation date" />
+        <StatCard label="STD" value={`${stdCount} / ${activatedInRange}`} tone="positive" />
         <StatCard
           label="Allocated"
-          value={`${allocated} / ${stats.activated}`}
-          tone={allocated < stats.activated ? "negative" : "positive"}
+          value={`${allocated} / ${activatedInRange}`}
+          tone={allocated < activatedInRange ? "negative" : "positive"}
         />
         <StatCard label="Reported" value={String(stats.reported)} />
         <StatCard label="Unreported" value={String(stats.unreported)} />
@@ -548,6 +570,7 @@ function EntryDialog({
       setSplits(
         Array.from({ length: form.activated }, () => ({
           employee_id: "", conversion_employee_id: "", activated_count: 1, lead_name: "", potential: "",
+          activation_date: todayISO(),
         })),
       );
     }
@@ -613,7 +636,7 @@ function EntryDialog({
         {form.activated > 0 && (
           <div className="rounded-md border border-border p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs">Activated leads — retention (R), conversion (C), lead name and potential</Label>
+              <Label className="text-xs">Activated leads — retention (R), conversion (C), lead name, potential and activation date</Label>
               <span className={`text-xs ${validSplits ? "text-muted-foreground" : "text-amber-500"}`}>
                 {splitSum} / {form.activated}
                 {remainder !== 0 && ` (${remainder > 0 ? "+" : ""}${remainder})`}
@@ -683,6 +706,17 @@ function EntryDialog({
                     <SelectItem value="high">High</SelectItem>
                   </SelectContent>
                 </Select>
+                <Input
+                  type="date"
+                  className="w-[140px]"
+                  title="Activation date"
+                  value={sp.activation_date ?? todayISO()}
+                  onChange={(e) => {
+                    const copy = [...splits];
+                    copy[i] = { ...copy[i], activation_date: e.target.value };
+                    setSplits(copy);
+                  }}
+                />
                 <Button type="button" variant="ghost" size="icon"
                   onClick={() => setSplits(splits.filter((_, idx) => idx !== i))}>
                   <X className="h-4 w-4" />
@@ -691,7 +725,7 @@ function EntryDialog({
             ))}
             <div className="flex items-center justify-between">
               <Button type="button" variant="outline" size="sm"
-                onClick={() => setSplits([...splits, { employee_id: "", conversion_employee_id: "", activated_count: 1, lead_name: "", potential: "" }])}>
+                onClick={() => setSplits([...splits, { employee_id: "", conversion_employee_id: "", activated_count: 1, lead_name: "", potential: "", activation_date: todayISO() }])}>
                 <Plus className="h-3 w-3" /> Add lead
               </Button>
               {dupEmployees && <span className="text-xs text-amber-500">Duplicate employee + lead name</span>}
