@@ -17,6 +17,7 @@ import { usePagination, TablePagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { TargetBadge } from "@/routes/_authenticated/sources";
 import { isStd } from "@/lib/rules";
+import { commissionAmount, type CommissionTiers } from "@/lib/commission";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/reports")({
@@ -139,7 +140,7 @@ function ReportsPage() {
   });
   const empQ = useQuery({
     queryKey: ["rpt-emp"],
-    queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,name,team,salary,commission_pct,active,role,updated_at,created_at")),
+    queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,name,team,salary,commission_pct,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active,role,updated_at,created_at")),
   });
   const recQ = useQuery({
     queryKey: ["rpt-recurring"],
@@ -370,8 +371,21 @@ function ReportsPage() {
       if (id && retentionIds.has(id)) stdByEmp.set(id, (stdByEmp.get(id) ?? 0) + 1);
     }
 
-    const byEmp = new Map<string, { name: string; revenue: number; leads: number; activated: number; std: number; salary: number; commissionPct: number }>();
-    for (const e of data.employees) byEmp.set(e.id, { name: e.name, revenue: 0, leads: 0, activated: 0, std: stdByEmp.get(e.id) ?? 0, salary: Number(e.salary), commissionPct: Number(e.commission_pct) });
+    const byEmp = new Map<string, { name: string; team: string; revenue: number; leads: number; activated: number; std: number; salary: number; tiers: CommissionTiers }>();
+    for (const e of data.employees as any[]) byEmp.set(e.id, {
+      name: e.name,
+      team: String(e.team ?? "R").toUpperCase(),
+      revenue: 0, leads: 0, activated: 0,
+      std: stdByEmp.get(e.id) ?? 0,
+      salary: Number(e.salary),
+      tiers: {
+        commission_tier1_max: Number(e.commission_tier1_max),
+        commission_tier1_pct: Number(e.commission_tier1_pct),
+        commission_tier2_max: Number(e.commission_tier2_max),
+        commission_tier2_pct: Number(e.commission_tier2_pct),
+        commission_tier3_pct: Number(e.commission_tier3_pct),
+      },
+    });
     for (const r of rev) {
       const amt = Number(r.amount);
       const pct = Number(r.split_pct ?? 100);
@@ -384,7 +398,8 @@ function ReportsPage() {
     }
     // No employee_id on daily_lead_entries; leave leads/activated as 0
     return Array.from(byEmp.values()).map((e) => {
-      const commission = (e.revenue * e.commissionPct) / 100;
+      // Tiered revenue commission applies to retention agents only.
+      const commission = e.team === "R" ? commissionAmount(e.revenue, e.tiers) : 0;
       return { ...e, commission, profit: e.revenue - commission - e.salary, rate: e.leads ? (e.activated / e.leads) * 100 : 0 };
     }).sort((a, b) => b.revenue - a.revenue);
   }, [data.revenue, data.employees, stdActQ.data, stdRevQ.data, start, end]);
