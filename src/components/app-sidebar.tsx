@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useAuth } from "@/lib/auth-context";
 import { CompanySwitcher } from "@/components/company-switcher";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { NAV_GROUPS, NAV_ITEMS, type NavGroup } from "@/lib/nav-items";
 import { cn } from "@/lib/utils";
 
