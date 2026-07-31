@@ -26,7 +26,7 @@ import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { usePagination, TablePagination } from "@/components/pagination";
 
 
@@ -173,18 +173,6 @@ function RevenuePage() {
     mutationFn: async (id: string) => { const { error } = await supabase.from("revenue").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["revenue-list"] }); toast.success("Deleted"); },
   });
-  const reconcile = useMutation({
-    mutationFn: async ({ id, on }: { id: string; on: boolean }) => {
-      const { data: u } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("revenue")
-        .update({ reconciled_at: on ? new Date().toISOString() : null, reconciled_by: on ? u.user?.id ?? null : null } as any)
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["revenue-list"] }); },
-    onError: (e: any) => toast.error(e.message),
-  });
 
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
     const rows = filtered.map((r: any) => ({
@@ -277,7 +265,6 @@ function RevenuePage() {
                   <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Employee" k="employee" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <th className="py-3 px-4">Reconciled</th>
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
