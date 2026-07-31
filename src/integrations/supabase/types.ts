@@ -326,6 +326,9 @@ export type Database = {
           default_activation_balance: number
           ftd_balance_threshold: number
           ftd_commission: number
+          method_fee_card_pct: number
+          method_fee_crypto_pct: number
+          method_fee_wire_pct: number
           updated_at: string
           withdrawal_penalty_pct: number
         }
@@ -335,6 +338,9 @@ export type Database = {
           default_activation_balance?: number
           ftd_balance_threshold?: number
           ftd_commission?: number
+          method_fee_card_pct?: number
+          method_fee_crypto_pct?: number
+          method_fee_wire_pct?: number
           updated_at?: string
           withdrawal_penalty_pct?: number
         }
@@ -344,6 +350,9 @@ export type Database = {
           default_activation_balance?: number
           ftd_balance_threshold?: number
           ftd_commission?: number
+          method_fee_card_pct?: number
+          method_fee_crypto_pct?: number
+          method_fee_wire_pct?: number
           updated_at?: string
           withdrawal_penalty_pct?: number
         }
