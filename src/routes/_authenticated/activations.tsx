@@ -691,7 +691,37 @@ function ActivationsPage() {
                   <Info label="Deposit count" value={String(deposits.length)} />
                   <Info label="STD" value={<StdBadge count={stdDepositsForRow(cur).length} />} />
                   <Info label="FTD status" value={<Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified" : "Pending"}</Badge>} />
+                  <Info label="Tags" value={<TagBadges tags={cur.tags} />} />
                 </div>
+
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold">Lifecycle</h3>
+                  <ClientTimeline
+                    events={[
+                      ...(cur.daily_lead_entries?.entry_date
+                        ? [{ date: cur.daily_lead_entries.entry_date, kind: "lead" as const, label: "Lead received" }]
+                        : []),
+                      ...(actDate(cur)
+                        ? [{ date: actDate(cur)!, kind: "activation" as const, label: "Activated" }]
+                        : []),
+                      ...deposits.map((d) => ({
+                        date: d.date,
+                        kind: "deposit" as const,
+                        label: d.notes ? `Deposit — ${d.notes}` : "Deposit",
+                        amount: Number(d.amount || 0),
+                      })),
+                      ...wds.map((w) => ({
+                        date: w.date,
+                        kind: "withdrawal" as const,
+                        label: w.notes ? `Withdrawal — ${w.notes}` : "Withdrawal",
+                        amount: Number(w.amount || 0),
+                      })),
+                    ] satisfies TimelineEvent[]}
+                  />
+                </div>
+
+                <ClientCommunications activationId={cur.id} clientName={cur.lead_name} />
+
 
                 <div>
                   <h3 className="mb-2 text-sm font-semibold">Deposits</h3>
