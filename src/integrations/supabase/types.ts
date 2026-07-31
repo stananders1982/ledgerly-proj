@@ -1042,6 +1042,8 @@ export type Database = {
           employee_id_2: string | null
           id: string
           lead_id: string | null
+          method: string | null
+          method_provider: string | null
           notes: string | null
           split_pct: number
           updated_at: string
@@ -1059,6 +1061,8 @@ export type Database = {
           employee_id_2?: string | null
           id?: string
           lead_id?: string | null
+          method?: string | null
+          method_provider?: string | null
           notes?: string | null
           split_pct?: number
           updated_at?: string
@@ -1076,6 +1080,8 @@ export type Database = {
           employee_id_2?: string | null
           id?: string
           lead_id?: string | null
+          method?: string | null
+          method_provider?: string | null
           notes?: string | null
           split_pct?: number
           updated_at?: string
