@@ -482,6 +482,27 @@ function RevenueDialog({
           </Field>
         )}
 
+        <Field label="Method">
+          <Select
+            value={form.method || "_none"}
+            onValueChange={(v) => setForm({ ...form, method: v === "_none" ? "" : v })}
+          >
+            <SelectTrigger><SelectValue placeholder="Pick method" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">None</SelectItem>
+              <SelectItem value="card">Card</SelectItem>
+              <SelectItem value="wire">Wire</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Method solution name">
+          <Input
+            value={form.method_provider}
+            placeholder="e.g. Stripe, Bank of Cyprus"
+            onChange={(e) => setForm({ ...form, method_provider: e.target.value })}
+          />
+        </Field>
+
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
       </div>
       <DialogFooter><Button onClick={() => onSubmit(form)} disabled={loading || !form.customer_name || !form.amount}>Save</Button></DialogFooter>
