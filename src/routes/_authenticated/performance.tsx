@@ -188,11 +188,11 @@ function PerformancePage() {
       const ftdRate = Number(emp.ftd_commission ?? settings.ftdCommission);
       const ftdCommission = team === "C" ? ftds * ftdRate : 0;
 
-      // STD: clients attributed to this agent whose *second* deposit landed in range.
-      const myClients = allActs.filter((a) =>
-        team === "C" ? a.conversion_employee_id === emp.id : a.employee_id === emp.id,
-      );
+      // STD is a retention metric only: clients this retention agent handles
+      // whose *second* deposit landed in range.
+      const myClients = team === "R" ? allActs.filter((a) => a.employee_id === emp.id) : [];
       const stds = myClients.filter((a) => isStd(a, allDeposits, { start, end })).length;
+
 
       const payout = salary + (team === "R" ? commission - penalty : 0) + ftdCommission;
 
@@ -204,7 +204,7 @@ function PerformancePage() {
         active: !!emp.active,
         ftds: team === "C" ? ftds : 0,
         pendingFtds: team === "C" ? pendingFtds : 0,
-        stds: team === "M" ? 0 : stds,
+        stds: team === "R" ? stds : 0,
         clients,
         attributed: team === "R" ? attributed : 0,
         commission,
@@ -333,7 +333,7 @@ function PerformancePage() {
                         </>
                       ) : "—"}
                     </td>
-                    <td className="py-3 px-4">{r.team === "M" ? "—" : r.stds}</td>
+                    <td className="py-3 px-4">{r.team === "R" ? r.stds : "—"}</td>
                     <td className="py-3 px-4">{r.team === "M" ? "—" : r.clients}</td>
                     <td className="py-3 px-4">{r.team === "R" ? fmtMoney(r.attributed) : "—"}</td>
                     <td className="py-3 px-4 text-primary">
