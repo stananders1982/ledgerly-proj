@@ -313,6 +313,7 @@ function RevenueRow({
   affiliateId,
   onEdit,
   onDelete,
+  onToggleReconcile,
 }: {
   revenue: any;
   employeeName?: string;
@@ -321,6 +322,7 @@ function RevenueRow({
   affiliateId?: string | null;
   onEdit: () => void;
   onDelete: () => void;
+  onToggleReconcile: (on: boolean) => void;
 }) {
   return (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
