@@ -91,6 +91,7 @@ function ActivationsPage() {
   const [potentialFilter, setPotentialFilter] = useState<string>("all");
   const [stdFilter, setStdFilter] = useState<"all" | "yes" | "no">("all");
   const [search, setSearch] = useState("");
+  const [dupOnly, setDupOnly] = useState(false);
 
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
@@ -204,6 +205,18 @@ function ActivationsPage() {
   const employeeName = (id?: string | null) =>
     (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
 
+  // Duplicate detection: same client name recorded more than once.
+  const dupNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of q.data ?? []) {
+      const k = (r.lead_name ?? "").trim().toLowerCase();
+      if (!k) continue;
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
+    return new Set(Array.from(counts.entries()).filter(([, n]) => n > 1).map(([k]) => k));
+  }, [q.data]);
+  const isDup = (r: any) => dupNames.has((r.lead_name ?? "").trim().toLowerCase());
+
   const rows = useMemo(() => {
     const s = activeRange.start.getTime();
     const e = activeRange.end.getTime();
@@ -221,11 +234,12 @@ function ActivationsPage() {
         if (stdFilter === "yes" && !isStdRow) return false;
         if (stdFilter === "no" && isStdRow) return false;
       }
+      if (dupOnly && !dupNames.has((r.lead_name ?? "").trim().toLowerCase())) return false;
       const term = search.trim().toLowerCase();
       if (term && !(r.lead_name ?? "").toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data]);
+  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => actDate(r) ?? "",
@@ -371,6 +385,13 @@ function ActivationsPage() {
             <SelectItem value="no">No STD</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          variant={dupOnly ? "default" : "outline"}
+          className="h-9"
+          onClick={() => setDupOnly((v) => !v)}
+        >
+          <Copy className="h-4 w-4" /> Duplicates{dupNames.size > 0 ? ` (${dupNames.size})` : ""}
+        </Button>
         <Select value={potentialFilter} onValueChange={setPotentialFilter}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -537,7 +558,14 @@ function ActivationsPage() {
                     <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleSelected(r.id)} aria-label="Select client" />
                   </td>
                   <td className="py-3 px-4">{actDate(r) ? fmtDate(actDate(r)!) : "—"}</td>
-                  <td className="py-3 px-4 font-medium">{r.lead_name || "—"}</td>
+                  <td className="py-3 px-4 font-medium">
+                    {r.lead_name || "—"}
+                    {isDup(r) && (
+                      <Badge variant="outline" className="ml-2 border-amber-500/50 text-amber-600 dark:text-amber-400">
+                        Duplicate
+                      </Badge>
+                    )}
+                  </td>
                   <td className="py-3 px-4">{r.daily_lead_entries?.lead_sources?.name ?? "—"}</td>
                   <td className="py-3 px-4">
                     {fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}
