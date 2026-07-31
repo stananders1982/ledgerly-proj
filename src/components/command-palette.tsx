@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Banknote, CalendarCheck, Receipt, TrendingUp } from "lucide-react";
+import { Banknote, CalendarCheck, Receipt, TrendingUp, Users, UserCog, Building2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import {
   CommandDialog,
   CommandEmpty,
@@ -12,6 +13,8 @@ import {
 } from "@/components/ui/command";
 import { NAV_GROUPS, NAV_ITEMS } from "@/lib/nav-items";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetch-all";
 
 const QUICK_ACTIONS = [
   { label: "Add income", to: "/revenue", icon: TrendingUp, key: "revenue" },
@@ -35,9 +38,51 @@ export function useCommandPalette() {
   return { open, setOpen };
 }
 
+function useEntitySearch(enabled: boolean) {
+  const clientsQ = useQuery({
+    enabled,
+    queryKey: ["cmd-clients"],
+    queryFn: async () => {
+      const data = await fetchAll(() =>
+        supabase
+          .from("daily_lead_activations")
+          .select("id,lead_name")
+          .not("lead_name", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(100),
+      );
+      return (data ?? []) as { id: string; lead_name: string }[];
+    },
+  });
+
+  const employeesQ = useQuery({
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("list_employees_directory");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string; active: boolean }[];
+    },
+    queryKey: ["cmd-employees"],
+  });
+
+  const affiliatesQ = useQuery({
+    enabled,
+    queryFn: async () => {
+      const data = await fetchAll(() =>
+        supabase.from("affiliates").select("id,name").eq("active", true).order("name").limit(100),
+      );
+      return (data ?? []) as { id: string; name: string }[];
+    },
+    queryKey: ["cmd-affiliates"],
+  });
+
+  return { clientsQ, employeesQ, affiliatesQ };
+}
+
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const navigate = useNavigate();
   const { isAdmin, navKeys, permsLoaded } = useAuth();
+  const { clientsQ, employeesQ, affiliatesQ } = useEntitySearch(open);
 
   const allowed = NAV_ITEMS.filter((item) => {
     if (isAdmin) return true;
@@ -45,6 +90,21 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     if (!permsLoaded) return false;
     return navKeys.has(item.key);
   });
+
+  const clients = useMemo(() => {
+    const seen = new Set<string>();
+    const rows: { id: string; name: string }[] = [];
+    for (const c of clientsQ.data ?? []) {
+      const name = (c.lead_name ?? "").trim();
+      if (!name || seen.has(name.toLowerCase())) continue;
+      seen.add(name.toLowerCase());
+      rows.push({ id: c.id, name });
+    }
+    return rows.slice(0, 20);
+  }, [clientsQ.data]);
+
+  const employees = useMemo(() => (employeesQ.data ?? []).slice(0, 20), [employeesQ.data]);
+  const affiliates = useMemo(() => (affiliatesQ.data ?? []).slice(0, 20), [affiliatesQ.data]);
 
   const go = (to: string) => {
     onOpenChange(false);
@@ -55,7 +115,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Search pages and actions..." />
+      <CommandInput placeholder="Search pages, clients, employees, affiliates..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         {NAV_GROUPS.map((group) => {
@@ -80,6 +140,66 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 <CommandItem key={a.label} value={a.label} onSelect={() => go(a.to)}>
                   <a.icon className="mr-2 h-4 w-4" />
                   {a.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+        {clients.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Clients">
+              {clients.map((c) => (
+                <CommandItem
+                  key={c.id}
+                  value={`client ${c.name}`}
+                  onSelect={() => {
+                    onOpenChange(false);
+                    navigate({ to: "/activations", search: { client: c.id, name: c.name } });
+                  }}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  {c.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+        {employees.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Employees">
+              {employees.map((e) => (
+                <CommandItem
+                  key={e.id}
+                  value={`employee ${e.name}`}
+                  onSelect={() => {
+                    onOpenChange(false);
+                    navigate({ to: "/employees/$id", params: { id: e.id } });
+                  }}
+                >
+                  <UserCog className="mr-2 h-4 w-4" />
+                  {e.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+        {affiliates.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Affiliates">
+              {affiliates.map((a) => (
+                <CommandItem
+                  key={a.id}
+                  value={`affiliate ${a.name}`}
+                  onSelect={() => {
+                    onOpenChange(false);
+                    navigate({ to: "/affiliates/$id", params: { id: a.id } });
+                  }}
+                >
+                  <Building2 className="mr-2 h-4 w-4" />
+                  {a.name}
                 </CommandItem>
               ))}
             </CommandGroup>
