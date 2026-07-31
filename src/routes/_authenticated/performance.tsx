@@ -16,6 +16,7 @@ import { usePagination, TablePagination } from "@/components/pagination";
 import { depositsByName, effectiveBalance, qualifiesAsFtd, isStd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
+import { GoalBar } from "@/components/goal-bar";
 import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
