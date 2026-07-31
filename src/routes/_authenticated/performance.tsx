@@ -377,6 +377,18 @@ function PerformancePage() {
                     <td className="py-3 px-4">{r.absent}</td>
                     <td className="py-3 px-4">{fmtMoney(r.salary)}</td>
                     <td className="py-3 px-4 font-medium">{fmtMoney(r.payout)}</td>
+                    <td className="py-3 px-4">
+                      {r.team === "C" ? (
+                        <GoalBar label="FTDs" value={r.ftds} target={r.targetFtds} />
+                      ) : r.team === "R" ? (
+                        <div className="grid gap-1.5">
+                          <GoalBar label="STDs" value={r.stds} target={r.targetStds} />
+                          <GoalBar label="Revenue" value={r.attributed} target={r.targetRevenue} format={(n) => fmtMoney(n)} />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-right">
                       <Link to="/employees/$id" params={{ id: r.id }} className="text-primary hover:underline text-xs">View</Link>
                     </td>
