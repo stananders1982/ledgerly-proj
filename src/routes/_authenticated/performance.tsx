@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DataCard, DataCardList } from "@/components/data-card-list";
@@ -56,6 +56,7 @@ const TEAM_RANK: Record<string, number> = { C: 0, R: 1, M: 2 };
 const TEAM_LABEL: Record<string, string> = { C: "Conversion", R: "Retention", M: "Marketing" };
 
 function PerformancePage() {
+  const navigate = useNavigate();
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [search, setSearch] = useState("");
   const { start, end } = monthRange(month);
@@ -284,7 +285,11 @@ function PerformancePage() {
               </thead>
               <tbody>
                 {pageItems.map((r: any) => (
-                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
+                  <tr
+                    key={r.id}
+                    className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
+                    onClick={() => navigate({ to: "/employees/$id", params: { id: r.id } })}
+                  >
                     <td className="py-3 px-4 font-medium">
                       <EmployeeLink id={r.id} name={r.name} />
                       {!r.active && <span className="ml-2 text-xs text-muted-foreground">inactive</span>}
