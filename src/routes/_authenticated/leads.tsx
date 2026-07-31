@@ -98,8 +98,8 @@ function LeadsPage() {
   const revenueQ = useQuery({
     queryKey: ["revenue-names-for-leads"],
     queryFn: async () => {
-      const data = await fetchAll(() => supabase.from("revenue").select("customer_name"));
-      return (data ?? []) as { customer_name: string | null }[];
+      const data = await fetchAll(() => supabase.from("revenue").select("customer_name, date"));
+      return (data ?? []) as { customer_name: string | null; date: string | null }[];
     },
   });
 
