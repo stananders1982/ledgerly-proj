@@ -108,10 +108,10 @@ function EmployeeDetailPage() {
     queryFn: async () => {
       const data = await fetchAll(() => sb
         .from("daily_lead_activations")
-        .select("activated_count, lead_name, daily_lead_entries!inner(entry_date)")
+        .select("activated_count, lead_name, activation_date, daily_lead_entries(entry_date)")
         .eq("employee_id", id)
-        .gte("daily_lead_entries.entry_date", start)
-        .lte("daily_lead_entries.entry_date", end));
+        .gte("activation_date", start)
+        .lte("activation_date", end));
       return data ?? [];
     },
   });
@@ -124,10 +124,10 @@ function EmployeeDetailPage() {
     queryFn: async () => {
       const data = await fetchAll(() => sb
         .from("daily_lead_activations")
-        .select("lead_name, potential, answered, balance, daily_lead_entries!inner(entry_date)")
+        .select("lead_name, potential, answered, balance, activation_date, daily_lead_entries(entry_date)")
         .eq("conversion_employee_id", id)
-        .gte("daily_lead_entries.entry_date", start)
-        .lte("daily_lead_entries.entry_date", end));
+        .gte("activation_date", start)
+        .lte("activation_date", end));
       return data ?? [];
     },
   });
@@ -301,7 +301,7 @@ function EmployeeDetailPage() {
               <tbody>
                 {convPage.map((c: any, i: number) => (
                   <tr key={`ftd-${i}`} className={cn("border-b border-border/50", c.qualifies ? "" : "text-muted-foreground")}>
-                    <td className="py-2 px-4 text-muted-foreground">{fmtDate(c.daily_lead_entries?.entry_date)}</td>
+                    <td className="py-2 px-4 text-muted-foreground">{fmtDate(c.activation_date ?? c.daily_lead_entries?.entry_date)}</td>
                     <td className="py-2 px-4">{c.lead_name || "—"}</td>
                     <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
                     <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
