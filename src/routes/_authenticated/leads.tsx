@@ -180,6 +180,12 @@ function LeadsPage() {
       .sort((a, b) => b.count - a.count);
   }, [activationsInRange, employeesQ.data]);
 
+  // FTDs credited to this period, by activation date (not by lead date).
+  const activatedInRange = useMemo(
+    () => activationsInRange.reduce((n, a) => n + (a.activated_count ?? 0), 0),
+    [activationsInRange],
+  );
+
   const allocated = useMemo(() => byEmployee.reduce((s, e) => s + e.count, 0), [byEmployee]);
 
   // STD: FTDs in the selected range whose client deposited again (any revenue record)
@@ -401,12 +407,12 @@ function LeadsPage() {
 
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Received" value={String(stats.received)} />
-        <StatCard label="Activated (FTD)" value={String(stats.activated)} tone="positive" />
-        <StatCard label="STD" value={`${stdCount} / ${stats.activated}`} tone="positive" />
+        <StatCard label="Activated (FTD)" value={String(activatedInRange)} tone="positive" hint="Counted by activation date" />
+        <StatCard label="STD" value={`${stdCount} / ${activatedInRange}`} tone="positive" />
         <StatCard
           label="Allocated"
-          value={`${allocated} / ${stats.activated}`}
-          tone={allocated < stats.activated ? "negative" : "positive"}
+          value={`${allocated} / ${activatedInRange}`}
+          tone={allocated < activatedInRange ? "negative" : "positive"}
         />
         <StatCard label="Reported" value={String(stats.reported)} />
         <StatCard label="Unreported" value={String(stats.unreported)} />
