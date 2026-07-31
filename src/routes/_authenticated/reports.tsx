@@ -17,7 +17,7 @@ import { usePagination, TablePagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { TargetBadge } from "@/routes/_authenticated/sources";
 import { isStd } from "@/lib/rules";
-import { commissionAmount, type CommissionTiers } from "@/lib/commission";
+import { commissionAmount, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/reports")({
@@ -387,7 +387,7 @@ function ReportsPage() {
       },
     });
     for (const r of rev) {
-      const amt = Number(r.amount);
+      const amt = commissionableAmount(r.amount, r.method);
       const pct = Number(r.split_pct ?? 100);
       if (r.employee_id) {
         const x = byEmp.get(r.employee_id); if (x) x.revenue += amt * (pct / 100);

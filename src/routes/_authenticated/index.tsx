@@ -33,7 +33,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { commissionAmount } from "@/lib/commission";
+import { commissionAmount, commissionableAmount } from "@/lib/commission";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — Ledgerly" }] }),
@@ -191,7 +191,7 @@ function Dashboard() {
     // Per-employee commission using tiered rate on their attributed revenue in range
     const perEmp = new Map<string, number>();
     for (const r of rangeRev as any[]) {
-      const amt = Number(r.amount) || 0;
+      const amt = commissionableAmount(r.amount, r.method);
       if (r.employee_id_2 && r.split_pct != null) {
         const pct = Number(r.split_pct) / 100;
         if (r.employee_id) perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt * pct);

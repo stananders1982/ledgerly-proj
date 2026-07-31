@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { depositsByName, effectiveBalance, qualifiesAsFtd, ftdPendingReason } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
-import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
+import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
 
@@ -169,7 +169,7 @@ function EmployeeDetailPage() {
     const att = attQ.data ?? [];
 
     const attributed = rev.reduce((s: number, r: any) => {
-      const amt = Number(r.amount);
+      const amt = commissionableAmount(r.amount, r.method);
       const pct = Number(r.split_pct ?? 100);
       if (r.employee_id === id) return s + amt * (pct / 100);
       if (r.employee_id_2 === id) return s + amt * ((100 - pct) / 100);

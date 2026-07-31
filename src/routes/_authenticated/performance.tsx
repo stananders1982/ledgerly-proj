@@ -16,7 +16,7 @@ import { usePagination, TablePagination } from "@/components/pagination";
 import { depositsByName, effectiveBalance, qualifiesAsFtd, isStd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
-import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
+import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
 
@@ -143,7 +143,7 @@ function PerformancePage() {
       const team = String(emp.team ?? "R").toUpperCase();
 
       const attributed = (revQ.data ?? []).reduce((s: number, r: any) => {
-        const amt = Number(r.amount || 0);
+        const amt = commissionableAmount(r.amount, r.method);
         const pct = Number(r.split_pct ?? 100);
         if (r.employee_id === emp.id) return s + amt * (pct / 100);
         if (r.employee_id_2 === emp.id) return s + amt * ((100 - pct) / 100);
