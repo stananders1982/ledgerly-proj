@@ -53,6 +53,27 @@ const FIELDS: {
     hint: "Share of every withdrawal deducted from the responsible agent.",
     suffix: "%",
   },
+  {
+    key: "methodFeeWirePct",
+    column: "method_fee_wire_pct",
+    label: "Wire method fee",
+    hint: "Percentage deducted from wire deposits before commission is calculated.",
+    suffix: "%",
+  },
+  {
+    key: "methodFeeCardPct",
+    column: "method_fee_card_pct",
+    label: "Card method fee",
+    hint: "Percentage deducted from card deposits before commission is calculated.",
+    suffix: "%",
+  },
+  {
+    key: "methodFeeCryptoPct",
+    column: "method_fee_crypto_pct",
+    label: "Crypto method fee",
+    hint: "Percentage deducted from crypto deposits before commission is calculated.",
+    suffix: "%",
+  },
 ];
 
 function SettingsPage() {
@@ -63,6 +84,9 @@ function SettingsPage() {
     defaultActivationBalance: String(DEFAULT_SETTINGS.defaultActivationBalance),
     ftdCommission: String(DEFAULT_SETTINGS.ftdCommission),
     withdrawalPenaltyPct: String(DEFAULT_SETTINGS.withdrawalPenaltyPct),
+    methodFeeWirePct: String(DEFAULT_SETTINGS.methodFeeWirePct),
+    methodFeeCardPct: String(DEFAULT_SETTINGS.methodFeeCardPct),
+    methodFeeCryptoPct: String(DEFAULT_SETTINGS.methodFeeCryptoPct),
   });
 
   const q = useQuery({
@@ -70,7 +94,7 @@ function SettingsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("company_id,ftd_balance_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct")
+        .select("company_id,ftd_balance_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct")
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -85,6 +109,9 @@ function SettingsPage() {
       defaultActivationBalance: String(s.defaultActivationBalance),
       ftdCommission: String(s.ftdCommission),
       withdrawalPenaltyPct: String(s.withdrawalPenaltyPct),
+      methodFeeWirePct: String(s.methodFeeWirePct),
+      methodFeeCardPct: String(s.methodFeeCardPct),
+      methodFeeCryptoPct: String(s.methodFeeCryptoPct),
     });
   }, [q.data]);
 
@@ -119,6 +146,9 @@ function SettingsPage() {
       defaultActivationBalance: String(DEFAULT_SETTINGS.defaultActivationBalance),
       ftdCommission: String(DEFAULT_SETTINGS.ftdCommission),
       withdrawalPenaltyPct: String(DEFAULT_SETTINGS.withdrawalPenaltyPct),
+      methodFeeWirePct: String(DEFAULT_SETTINGS.methodFeeWirePct),
+      methodFeeCardPct: String(DEFAULT_SETTINGS.methodFeeCardPct),
+      methodFeeCryptoPct: String(DEFAULT_SETTINGS.methodFeeCryptoPct),
     });
 
   return (
