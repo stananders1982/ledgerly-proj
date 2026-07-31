@@ -17,7 +17,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, UserCircle, Search as SearchIcon } from "lucide-react";
+import { LogOut, UserCircle, Search as SearchIcon, Keyboard } from "lucide-react";
+import { KeyboardShortcutsPanel, useKeyboardShortcutsPanel } from "@/components/keyboard-shortcuts";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
