@@ -78,7 +78,7 @@ function PerformancePage() {
     queryKey: ["perf-revenue", start, end],
     queryFn: async () =>
       await fetchAll(() => sb.from("revenue")
-        .select("id,date,amount,employee_id,employee_id_2,split_pct")
+        .select("id,date,amount,method,employee_id,employee_id_2,split_pct")
         .gte("date", start).lte("date", end)),
   });
 

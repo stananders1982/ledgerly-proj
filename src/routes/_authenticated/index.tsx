@@ -94,7 +94,7 @@ function Dashboard() {
 
   const revQ = useQuery({
     queryKey: ["dash-rev", startIso, endIso],
-    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("amount,date,employee_id,employee_id_2,split_pct").gte("date", startIso).lte("date", endIso)),
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("amount,date,method,employee_id,employee_id_2,split_pct").gte("date", startIso).lte("date", endIso)),
   });
   const expQ = useQuery({
     queryKey: ["dash-exp", startIso, endIso],

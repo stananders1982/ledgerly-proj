@@ -74,7 +74,7 @@ function EmployeeDetailPage() {
     queryFn: async () =>
       (await supabase
         .from("revenue")
-        .select("id,date,customer_name,amount,employee_id,employee_id_2,split_pct,affiliates(name)")
+        .select("id,date,customer_name,amount,method,employee_id,employee_id_2,split_pct,affiliates(name)")
         .or(`employee_id.eq.${id},employee_id_2.eq.${id}`)
         .gte("date", start).lte("date", end)
         .order("date", { ascending: false })).data ?? [],
