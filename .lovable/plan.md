@@ -1,27 +1,39 @@
-## The problem
+## Goal
 
-Activations have no date of their own. Each activation row hangs off a lead entry and inherits that entry's date, so an April lead activated today is counted as an April activation everywhere — including the conversion agent's FTD count and $100 commission.
+Make STD (Second Time Deposit) mean one thing everywhere: the client's $250 activation balance is the FTD, so **any recorded deposit after the activation date is an STD**, and it belongs to the period in which that deposit was made.
 
-## The fix
+## The rule (single source of truth)
 
-Add an **Activation date** to every activation, defaulting to today, and split reporting into two clocks:
+Add STD helpers to `src/lib/rules.ts` so no page re-implements it:
 
-- **Lead clock (entry date)** — Leads received, CPL costs, CPA costs payable, CPA savings, source conversion/target stats. Unchanged.
-- **Activation clock (activation date)** — Activated / FTD / STD / Allocated counts, conversion agent FTDs and commissions, Clients page, Employee Performance, employee detail pages.
+- Match a deposit to a client by `activation_id` first, falling back to name match (same precedence the Clients page already uses).
+- A deposit qualifies as an STD event when its date is on or after the client's activation date (activation date falls back to the lead entry date when missing).
+- `stdDepositsFor(client, revenueRows)` returns the qualifying deposits; `isStd(client, revenueRows)` is true when there is at least one.
+- No FTD qualification requirement — any activated client is eligible.
+- Period scoping is done by the **deposit date**, not the activation date.
 
-So an April lead activated in July: April keeps the lead and the affiliate billing; July gets the FTD and the agent's commission.
+## Leads page (`/leads`)
 
-## What changes for you
+- Replace the current STD calculation with the shared helper.
+- Count distinct clients who have at least one qualifying deposit **dated inside the selected range** (the activation itself can be from any earlier period — an April client depositing again in July counts in July).
+- Change the card from `STD 1 / 2` to a single number, since the denominator (activations in range) no longer describes the same population. Add the hint "Clients who deposited again in this period".
 
-1. **Leads page** — each activation row in the lead dialog gets an "Activated on" date field, prefilled with today. The Activated / FTD / STD / Allocated cards count activations dated inside the selected period, even when the lead itself is older. The lead table columns (Received, Reported, Costs, Savings, Conversion %) keep working off the lead's date.
-2. **Clients page** — a new sortable "Activated" column and the date filter both use activation date; the client detail dialog shows both the lead date and the activation date.
-3. **Employee Performance and employee detail pages** — FTDs, pending FTDs, conversions and FTD commission are filtered by activation date.
-4. **Backfill** — every existing activation gets its activation date set to the date the row was created. Some past-month figures will shift to match when the work actually happened.
+## Clients page (`/activations`)
 
-## Technical details
+- New **STD** column: a badge showing Yes/No, plus the number of qualifying deposits when there is more than one (e.g. "STD ×2"), so it's visible per client.
+- Make the column sortable, consistent with the other headers.
+- New filter next to the existing Answered / Potential filters: All / STD only / No STD.
+- STD status here reflects deposits made on or after activation, regardless of the page's date range (the range still filters which clients are listed, by activation date, as it does today).
+- The existing client detail dialog already lists deposits with dates; mark the deposits that count as STD there for clarity.
 
-- Migration: add `activation_date date not null default current_date` to `daily_lead_activations`; backfill `activation_date = created_at::date`; index on `(company_id, activation_date)`.
-- `src/routes/_authenticated/leads.tsx`: add `activation_date` to the `Split` type, the dialog row UI, and both the insert and update paths of `upsert`; new rows default to today rather than the entry date. Recompute `byEmployee`, `allocated` and `stdCount` from activations filtered by `activation_date` within `activeRange` instead of by visible entry ids. `stats` (received/reported/CPL/CPA/savings) stays entry-based; the Activated KPI card switches to the activation-dated count while the per-row "Activated" column stays as-is.
-- `src/routes/_authenticated/activations.tsx`: query and filter on `activation_date`, add it to the sort map and the table/cards, keep the entry date visible as "Lead date".
-- `src/routes/_authenticated/performance.tsx` and `employees.$id.tsx`: replace the `daily_lead_entries!inner(entry_date)` range filters with `gte/lte` on `activation_date` (dropping the inner join where it was only used for dating).
-- Existing FTD qualification rules in `src/lib/rules.ts` are unchanged — only the set of rows fed into them moves.
+## Not changing
+
+- FTD rules, commissions, and pending logic stay exactly as they are.
+- No database changes — this is derived from existing `daily_lead_activations` and `revenue` rows.
+
+## Technical notes
+
+- `src/lib/rules.ts`: add `stdDepositsFor`, `isStd`, and an activation-date helper reused by both pages.
+- `src/routes/_authenticated/leads.tsx`: swap the local `stdCount` memo for the shared helper, filtered by deposit date in range.
+- `src/routes/_authenticated/activations.tsx`: add the column, sort key, filter state, and dialog highlighting.
+- Verify with `tsgo` after the edits.

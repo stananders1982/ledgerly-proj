@@ -25,6 +25,7 @@ import { PricingBadge } from "./sources";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { isStd, isoDay } from "@/lib/rules";
 
 
 
@@ -98,8 +99,8 @@ function LeadsPage() {
   const revenueQ = useQuery({
     queryKey: ["revenue-names-for-leads"],
     queryFn: async () => {
-      const data = await fetchAll(() => supabase.from("revenue").select("customer_name, date"));
-      return (data ?? []) as { customer_name: string | null; date: string | null }[];
+      const data = await fetchAll(() => supabase.from("revenue").select("activation_id, customer_name, date"));
+      return (data ?? []) as { activation_id: string | null; customer_name: string | null; date: string | null }[];
     },
   });
 
@@ -188,33 +189,21 @@ function LeadsPage() {
 
   const allocated = useMemo(() => byEmployee.reduce((s, e) => s + e.count, 0), [byEmployee]);
 
-  // STD: FTDs credited to this period (by activation date) whose client made a
-  // further deposit inside the same selected date range (and on/after activation).
+  // STD: any deposit recorded on/after the client's activation date. Counted in
+  // the period the deposit was made (the activation itself may be older).
   const stdCount = useMemo(() => {
-    const fmt = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const rs = fmt(activeRange.start);
-    const re = fmt(activeRange.end);
-    const depositsInRange = new Map<string, string[]>();
-    for (const r of revenueQ.data ?? []) {
-      const n = (r.customer_name ?? "").trim().toLowerCase();
-      if (!n || !r.date) continue;
-      if (r.date < rs || r.date > re) continue;
-      const arr = depositsInRange.get(n);
-      if (arr) arr.push(r.date);
-      else depositsInRange.set(n, [r.date]);
+    const win = { start: isoDay(activeRange.start), end: isoDay(activeRange.end) };
+    const allowedEntries = sourceFilter.length
+      ? new Set(allRows.filter((r) => sourceFilter.includes(r.source_id ?? "")).map((r) => r.id))
+      : null;
+    const deposits = revenueQ.data ?? [];
+    let n = 0;
+    for (const a of activationsQ.data ?? []) {
+      if (allowedEntries && !allowedEntries.has(a.entry_id)) continue;
+      if (isStd(a as any, deposits, win)) n += 1;
     }
-    const names = new Set<string>();
-    for (const a of activationsInRange) {
-      const n = (a.lead_name ?? "").trim().toLowerCase();
-      if (!n || !a.activation_date) continue;
-      const dates = depositsInRange.get(n);
-      if (dates?.some((d) => d >= a.activation_date!)) names.add(n);
-    }
-    return names.size;
-  }, [activationsInRange, revenueQ.data, activeRange]);
-
-
+    return n;
+  }, [activationsQ.data, revenueQ.data, activeRange, allRows, sourceFilter]);
 
   const stats = useMemo(() => {
     let received = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
@@ -421,7 +410,7 @@ function LeadsPage() {
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Received" value={String(stats.received)} />
         <StatCard label="Activated (FTD)" value={String(activatedInRange)} tone="positive" hint="Counted by activation date" />
-        <StatCard label="STD" value={`${stdCount} / ${activatedInRange}`} tone="positive" />
+        <StatCard label="STD" value={String(stdCount)} tone="positive" hint="Clients who deposited again in this period" />
         <StatCard
           label="Allocated"
           value={`${allocated} / ${activatedInRange}`}

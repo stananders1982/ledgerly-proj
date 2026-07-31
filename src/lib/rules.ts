@@ -114,3 +114,69 @@ export function evaluateActivation<T extends ActivationLike>(
     reasons: qualifies ? [] : ftdPendingReasons(row, balance, settings),
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* STD (Second Time Deposit)                                           */
+/* ------------------------------------------------------------------ */
+
+export type ActivationDatedLike = {
+  id?: string | null;
+  lead_name?: string | null;
+  activation_date?: string | null;
+  daily_lead_entries?: { entry_date?: string | null } | null;
+  entry_date?: string | null;
+};
+
+export type DepositLike = {
+  id?: string | null;
+  activation_id?: string | null;
+  customer_name?: string | null;
+  amount?: number | string | null;
+  date?: string | null;
+};
+
+/** Date the lead was actually activated (falls back to the lead entry date). */
+export function activationDate(row: ActivationDatedLike): string | null {
+  return row.activation_date ?? row.daily_lead_entries?.entry_date ?? row.entry_date ?? null;
+}
+
+/** True when this revenue row belongs to the given activation. */
+export function depositMatchesActivation(dep: DepositLike, row: ActivationDatedLike): boolean {
+  if (dep.activation_id) return !!row.id && dep.activation_id === row.id;
+  const k = nameKey(row.lead_name);
+  return !!k && nameKey(dep.customer_name) === k;
+}
+
+/**
+ * STD rule: the activation balance is the FTD, so every recorded deposit made
+ * on or after the activation date counts as a second-time deposit.
+ * Optionally restrict to deposits inside a date window (YYYY-MM-DD strings).
+ */
+export function stdDepositsFor<T extends DepositLike>(
+  row: ActivationDatedLike,
+  deposits: T[],
+  window?: { start?: string; end?: string },
+): T[] {
+  const act = activationDate(row);
+  return deposits.filter((d) => {
+    if (!d.date) return false;
+    if (act && d.date < act) return false;
+    if (window?.start && d.date < window.start) return false;
+    if (window?.end && d.date > window.end) return false;
+    return depositMatchesActivation(d, row);
+  });
+}
+
+/** True when the client has at least one qualifying second deposit. */
+export function isStd(
+  row: ActivationDatedLike,
+  deposits: DepositLike[],
+  window?: { start?: string; end?: string },
+): boolean {
+  return stdDepositsFor(row, deposits, window).length > 0;
+}
+
+/** YYYY-MM-DD in local time, for comparing against date columns. */
+export function isoDay(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
