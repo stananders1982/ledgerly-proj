@@ -103,18 +103,30 @@ function PerformancePage() {
     queryFn: async () => {
       const data = await fetchAll(() => sb
         .from("daily_lead_activations")
-        .select("employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,activation_date")
+        .select("id,employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,activation_date")
         .gte("activation_date", start)
         .lte("activation_date", end));
       return data ?? [];
     },
   });
 
+  // Every client this agent handles (any activation date) — used for STD, which is
+  // scoped by the *deposit* date, not the activation date.
+  const allActQ = useQuery({
+    queryKey: ["perf-activations-all"],
+    queryFn: async () => {
+      const data = await fetchAll(() => sb
+        .from("daily_lead_activations")
+        .select("id,employee_id,conversion_employee_id,lead_name,activation_date"));
+      return (data ?? []) as any[];
+    },
+  });
+
   const depositsQ = useQuery({
     queryKey: ["revenue-by-name"],
     queryFn: async () => {
-      const data = await fetchAll(() => sb.from("revenue").select("customer_name, amount"));
-      return (data ?? []) as { customer_name: string | null; amount: number }[];
+      const data = await fetchAll(() => sb.from("revenue").select("id,customer_name,amount,date,activation_id"));
+      return (data ?? []) as { id: string; customer_name: string | null; amount: number; date: string; activation_id: string | null }[];
     },
   });
 
