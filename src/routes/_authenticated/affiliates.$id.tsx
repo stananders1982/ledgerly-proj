@@ -152,6 +152,36 @@ function AffiliateStatementPage() {
       <PageHeader
         title={affQ.data?.name ?? "Affiliate"}
         description={affQ.data?.active ? "Monthly statement and transaction history." : "Inactive affiliate"}
+        actions={
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (!monthly.length) return toast.error("Nothing to export");
+              exportPDF(
+                `Payout statement — ${affQ.data?.name ?? "Affiliate"}`,
+                [
+                  ...monthly.map((r) => ({
+                    Month: r.month,
+                    Revenue: fmtMoney(r.revenue),
+                    Withdrawals: fmtMoney(r.withdrawals),
+                    Paid: fmtMoney(r.paid),
+                    Net: fmtMoney(r.net),
+                  })),
+                  {
+                    Month: "TOTAL",
+                    Revenue: fmtMoney(totals.revenue),
+                    Withdrawals: fmtMoney(totals.withdrawals),
+                    Paid: fmtMoney(totals.paid),
+                    Net: fmtMoney(totals.net),
+                  },
+                ],
+                "affiliate-statement",
+              );
+            }}
+          >
+            <Download className="h-4 w-4" /> Statement PDF
+          </Button>
+        }
       />
 
       <div className="mb-4">
