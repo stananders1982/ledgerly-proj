@@ -284,7 +284,7 @@ function EmployeeDetailPage() {
               Answered leads with mid/high potential, or low potential with balance $251+.
             </p>
           </div>
-          <Link to="/activations" className="text-xs text-primary hover:underline">Manage</Link>
+          <Link to="/activations" search={{ client: undefined, name: undefined }} className="text-xs text-primary hover:underline">Manage</Link>
         </div>
         {conversions.all.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground">No activations as conversion agent this month.</div>

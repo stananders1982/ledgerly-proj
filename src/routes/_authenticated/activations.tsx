@@ -126,7 +126,7 @@ function ActivationsPage() {
       setRange("year");
       setSearch(match.lead_name ?? "");
     }
-    navigate({ search: {}, replace: true });
+    navigate({ search: { client: undefined, name: undefined }, replace: true });
   }, [routeSearch.client, routeSearch.name, q.data, navigate]);
 
 
