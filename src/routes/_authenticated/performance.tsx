@@ -121,7 +121,7 @@ function PerformancePage() {
     const emps = empQ.data ?? [];
     const wd = workingDays(start, end);
 
-    const deposits = depositsByName(revAll);
+    const deposits = depositsByName(depositsQ.data ?? []);
 
     return emps.map((emp: any) => {
       const team = String(emp.team ?? "R").toUpperCase();
