@@ -26,6 +26,7 @@ import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { usePagination, TablePagination } from "@/components/pagination";
 
 
