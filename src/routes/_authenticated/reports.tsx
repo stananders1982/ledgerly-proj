@@ -444,6 +444,7 @@ function ReportsPage() {
 
   // Activity feed (audit-lite) from created_at
   const activityQ = useQuery({
+    enabled: tab === "audit",
     queryKey: ["rpt-activity", start, end],
     queryFn: async () => {
       const sd = new Date(start + "T00:00:00").toISOString();
