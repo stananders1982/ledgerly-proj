@@ -292,6 +292,73 @@ export type Database = {
           },
         ]
       }
+      client_communications: {
+        Row: {
+          activation_id: string | null
+          channel: string
+          client_name: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          direction: string
+          employee_id: string | null
+          id: string
+          occurred_at: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          activation_id?: string | null
+          channel?: string
+          client_name?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          employee_id?: string | null
+          id?: string
+          occurred_at?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activation_id?: string | null
+          channel?: string
+          client_name?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          employee_id?: string | null
+          id?: string
+          occurred_at?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_communications_activation_id_fkey"
+            columns: ["activation_id"]
+            isOneToOne: false
+            referencedRelation: "daily_lead_activations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_communications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_communications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           active: boolean
@@ -410,6 +477,7 @@ export type Database = {
           lead_name: string | null
           low_potential_alerted: boolean
           potential: string | null
+          tags: string[]
           updated_at: string
         }
         Insert: {
@@ -426,6 +494,7 @@ export type Database = {
           lead_name?: string | null
           low_potential_alerted?: boolean
           potential?: string | null
+          tags?: string[]
           updated_at?: string
         }
         Update: {
@@ -442,6 +511,7 @@ export type Database = {
           lead_name?: string | null
           low_potential_alerted?: boolean
           potential?: string | null
+          tags?: string[]
           updated_at?: string
         }
         Relationships: [
@@ -576,6 +646,9 @@ export type Database = {
           profile_id: string | null
           role: string | null
           salary: number
+          target_ftds: number | null
+          target_revenue: number | null
+          target_stds: number | null
           team: string
           updated_at: string
         }
@@ -596,6 +669,9 @@ export type Database = {
           profile_id?: string | null
           role?: string | null
           salary?: number
+          target_ftds?: number | null
+          target_revenue?: number | null
+          target_stds?: number | null
           team?: string
           updated_at?: string
         }
@@ -616,6 +692,9 @@ export type Database = {
           profile_id?: string | null
           role?: string | null
           salary?: number
+          target_ftds?: number | null
+          target_revenue?: number | null
+          target_stds?: number | null
           team?: string
           updated_at?: string
         }
@@ -1054,6 +1133,8 @@ export type Database = {
           method: string | null
           method_provider: string | null
           notes: string | null
+          reconciled_at: string | null
+          reconciled_by: string | null
           split_pct: number
           updated_at: string
         }
@@ -1073,6 +1154,8 @@ export type Database = {
           method?: string | null
           method_provider?: string | null
           notes?: string | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
           split_pct?: number
           updated_at?: string
         }
@@ -1092,6 +1175,8 @@ export type Database = {
           method?: string | null
           method_provider?: string | null
           notes?: string | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
           split_pct?: number
           updated_at?: string
         }
@@ -1175,6 +1260,79 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      tasks: {
+        Row: {
+          activation_id: string | null
+          client_name: string | null
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          employee_id: string | null
+          id: string
+          notes: string | null
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activation_id?: string | null
+          client_name?: string | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          employee_id?: string | null
+          id?: string
+          notes?: string | null
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activation_id?: string | null
+          client_name?: string | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          employee_id?: string | null
+          id?: string
+          notes?: string | null
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_activation_id_fkey"
+            columns: ["activation_id"]
+            isOneToOne: false
+            referencedRelation: "daily_lead_activations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_directory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

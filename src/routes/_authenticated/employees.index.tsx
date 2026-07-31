@@ -42,6 +42,9 @@ type Emp = {
   commission_tier2_pct: number;
   commission_tier3_pct: number;
   ftd_commission: number;
+  target_ftds: number | null;
+  target_stds: number | null;
+  target_revenue: number | null;
 };
 
 const TEAMS = [
@@ -98,6 +101,9 @@ function EmployeesPage() {
         commission_tier2_pct: Number(v.commission_tier2_pct) || 0,
         commission_tier3_pct: Number(v.commission_tier3_pct) || 0,
         ftd_commission: Number(v.ftd_commission) || 0,
+        target_ftds: v.target_ftds === "" || v.target_ftds == null ? null : Number(v.target_ftds),
+        target_stds: v.target_stds === "" || v.target_stds == null ? null : Number(v.target_stds),
+        target_revenue: v.target_revenue === "" || v.target_revenue == null ? null : Number(v.target_revenue),
       };
       if (v.id) {
         const { error } = await supabase.from("employees").update(payload).eq("id", v.id);
@@ -241,6 +247,9 @@ function EmpDialog({
     commission_tier2_pct: emp?.commission_tier2_pct ?? 10,
     commission_tier3_pct: emp?.commission_tier3_pct ?? 12,
     ftd_commission: emp?.ftd_commission ?? 100,
+    target_ftds: emp?.target_ftds ?? "",
+    target_stds: emp?.target_stds ?? "",
+    target_revenue: emp?.target_revenue ?? "",
   }));
   return (
     <DialogContent className="max-w-lg">
