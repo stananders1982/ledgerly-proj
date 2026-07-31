@@ -527,6 +527,7 @@ function ActivationsPage() {
                 fields={[
                   { label: "Balance", value: <span className="num">{fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}</span> },
                   { label: "Potential", value: <PotentialBadge value={r.potential} /> },
+                  { label: "Tags", value: <TagBadges tags={r.tags} /> },
                   { label: "Source", value: r.daily_lead_entries?.lead_sources?.name ?? "—" },
                   { label: "STD", value: <StdBadge count={stdCountFor(r)} /> },
                   { label: "Answered", value: <AnsweredBadge answered={!!r.answered} /> },
