@@ -204,7 +204,7 @@ function PerformancePage() {
         active: !!emp.active,
         ftds: team === "C" ? ftds : 0,
         pendingFtds: team === "C" ? pendingFtds : 0,
-        stds: team === "M" ? 0 : stds,
+        stds: team === "R" ? stds : 0,
         clients,
         attributed: team === "R" ? attributed : 0,
         commission,
@@ -333,7 +333,7 @@ function PerformancePage() {
                         </>
                       ) : "—"}
                     </td>
-                    <td className="py-3 px-4">{r.team === "M" ? "—" : r.stds}</td>
+                    <td className="py-3 px-4">{r.team === "R" ? r.stds : "—"}</td>
                     <td className="py-3 px-4">{r.team === "M" ? "—" : r.clients}</td>
                     <td className="py-3 px-4">{r.team === "R" ? fmtMoney(r.attributed) : "—"}</td>
                     <td className="py-3 px-4 text-primary">
