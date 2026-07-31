@@ -205,6 +205,8 @@ function PerformancePage() {
         ftds: team === "C" ? ftds : 0,
         pendingFtds: team === "C" ? pendingFtds : 0,
         stds: team === "R" ? stds : 0,
+        // Share of this agent's clients (in range) that made a second deposit.
+        stdPct: team === "R" && clients > 0 ? (stds / clients) * 100 : 0,
         clients,
         attributed: team === "R" ? attributed : 0,
         commission,
@@ -236,13 +238,18 @@ function PerformancePage() {
   });
   const { pageItems, ...pg } = usePagination(sorted, 30);
 
-  const totals = useMemo(() => ({
-    ftds: rows.reduce((s, r) => s + r.ftds, 0),
-    stds: rows.reduce((s, r) => s + r.stds, 0),
-    revenue: rows.reduce((s, r) => s + r.attributed, 0),
-    commission: rows.reduce((s, r) => s + r.commission + r.ftdCommission, 0),
-    payout: rows.reduce((s, r) => s + r.payout, 0),
-  }), [rows]);
+  const totals = useMemo(() => {
+    const retClients = rows.filter((r) => r.team === "R").reduce((s, r) => s + r.clients, 0);
+    const stds = rows.reduce((s, r) => s + r.stds, 0);
+    return {
+      ftds: rows.reduce((s, r) => s + r.ftds, 0),
+      stds,
+      stdPct: retClients > 0 ? (stds / retClients) * 100 : 0,
+      revenue: rows.reduce((s, r) => s + r.attributed, 0),
+      commission: rows.reduce((s, r) => s + r.commission + r.ftdCommission, 0),
+      payout: rows.reduce((s, r) => s + r.payout, 0),
+    };
+  }, [rows]);
 
   const loading = empQ.isLoading || revQ.isLoading || actQ.isLoading;
 
@@ -262,7 +269,7 @@ function PerformancePage() {
 
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Total FTDs" value={String(totals.ftds)} tone="positive" />
-        <StatCard label="STDs" value={String(totals.stds)} />
+        <StatCard label="STDs" value={`${totals.stds} · ${totals.stdPct.toFixed(1)}%`} />
         <StatCard label="Attributed revenue" value={fmtMoney(totals.revenue)} tone="positive" />
         <StatCard label="Total commission" value={fmtMoney(totals.commission)} />
         <StatCard label="Total payout" value={fmtMoney(totals.payout)} tone="negative" />
@@ -283,7 +290,7 @@ function PerformancePage() {
                 subtitle={`Team ${r.team ?? "C"}`}
                 fields={[
                   { label: "FTDs", value: <span className="num">{r.ftds}</span> },
-                  { label: "STDs", value: <span className="num">{r.stds}</span> },
+                  { label: "STDs", value: <span className="num">{r.team === "R" ? `${r.stds}${r.clients > 0 ? ` (${r.stdPct.toFixed(1)}%)` : ""}` : "—"}</span> },
                   { label: "Clients", value: <span className="num">{r.clients}</span> },
                   { label: "Revenue", value: <span className="num">{fmtMoney(r.attributed)}</span> },
                   { label: "Net payout", value: <span className="num font-medium">{fmtMoney(r.payout)}</span> },
@@ -298,7 +305,7 @@ function PerformancePage() {
                   <SortTh label="Agent" k="name" sort={sort} toggle={toggle} />
                   <SortTh label="Dept" k="team" sort={sort} toggle={toggle} />
                   <SortTh label="FTDs" k="ftds" sort={sort} toggle={toggle} />
-                  <SortTh label="STDs" k="stds" sort={sort} toggle={toggle} />
+                  <SortTh label="STDs (% clients)" k="stds" sort={sort} toggle={toggle} />
                   <SortTh label="Clients" k="clients" sort={sort} toggle={toggle} />
                   <SortTh label="Revenue" k="attributed" sort={sort} toggle={toggle} />
                   <SortTh label="Commission" k="commission" sort={sort} toggle={toggle} />
@@ -333,7 +340,16 @@ function PerformancePage() {
                         </>
                       ) : "—"}
                     </td>
-                    <td className="py-3 px-4">{r.team === "R" ? r.stds : "—"}</td>
+                    <td className="py-3 px-4">
+                      {r.team === "R" ? (
+                        <>
+                          {r.stds}
+                          {r.clients > 0 && (
+                            <span className="ml-1 text-xs text-muted-foreground">({r.stdPct.toFixed(1)}%)</span>
+                          )}
+                        </>
+                      ) : "—"}
+                    </td>
                     <td className="py-3 px-4">{r.team === "M" ? "—" : r.clients}</td>
                     <td className="py-3 px-4">{r.team === "R" ? fmtMoney(r.attributed) : "—"}</td>
                     <td className="py-3 px-4 text-primary">

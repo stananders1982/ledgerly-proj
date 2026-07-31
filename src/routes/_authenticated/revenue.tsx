@@ -155,6 +155,8 @@ function RevenuePage() {
         employee_id_2: v.employee_id_2 || null,
         split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
         notes: v.notes || null,
+        method: v.method || null,
+        method_provider: v.method_provider || null,
         // Direct link to the client record, so renaming a client keeps history intact.
         activation_id: v.activation_id || null,
       };
@@ -371,6 +373,8 @@ function RevenueDialog({
     split_pct: rev?.split_pct ?? 50,
     notes: rev?.notes ?? "",
     activation_id: rev?.activation_id ?? "",
+    method: rev?.method ?? "",
+    method_provider: rev?.method_provider ?? "",
   }));
   const hasSplit = !!form.employee_id_2;
   const [activationId, setActivationId] = useState(rev?.activation_id ?? "");
@@ -477,6 +481,27 @@ function RevenueDialog({
             </Select>
           </Field>
         )}
+
+        <Field label="Method">
+          <Select
+            value={form.method || "_none"}
+            onValueChange={(v) => setForm({ ...form, method: v === "_none" ? "" : v })}
+          >
+            <SelectTrigger><SelectValue placeholder="Pick method" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">None</SelectItem>
+              <SelectItem value="card">Card</SelectItem>
+              <SelectItem value="wire">Wire</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Method solution name">
+          <Input
+            value={form.method_provider}
+            placeholder="e.g. Stripe, Bank of Cyprus"
+            onChange={(e) => setForm({ ...form, method_provider: e.target.value })}
+          />
+        </Field>
 
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
       </div>
