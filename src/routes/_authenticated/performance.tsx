@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { depositsByName, effectiveBalance, qualifiesAsFtd } from "@/lib/rules";
+import { depositsByName, effectiveBalance, qualifiesAsFtd, isStd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
@@ -103,18 +103,30 @@ function PerformancePage() {
     queryFn: async () => {
       const data = await fetchAll(() => sb
         .from("daily_lead_activations")
-        .select("employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,activation_date")
+        .select("id,employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,activation_date")
         .gte("activation_date", start)
         .lte("activation_date", end));
       return data ?? [];
     },
   });
 
+  // Every client this agent handles (any activation date) — used for STD, which is
+  // scoped by the *deposit* date, not the activation date.
+  const allActQ = useQuery({
+    queryKey: ["perf-activations-all"],
+    queryFn: async () => {
+      const data = await fetchAll(() => sb
+        .from("daily_lead_activations")
+        .select("id,employee_id,conversion_employee_id,lead_name,activation_date"));
+      return (data ?? []) as any[];
+    },
+  });
+
   const depositsQ = useQuery({
     queryKey: ["revenue-by-name"],
     queryFn: async () => {
-      const data = await fetchAll(() => sb.from("revenue").select("customer_name, amount"));
-      return (data ?? []) as { customer_name: string | null; amount: number }[];
+      const data = await fetchAll(() => sb.from("revenue").select("id,customer_name,amount,date,activation_id"));
+      return (data ?? []) as { id: string; customer_name: string | null; amount: number; date: string; activation_id: string | null }[];
     },
   });
 
@@ -123,6 +135,9 @@ function PerformancePage() {
     const wd = workingDays(start, end);
 
     const deposits = depositsByName(depositsQ.data ?? []);
+    const allDeposits = (depositsQ.data ?? []) as any[];
+    const allActs = (allActQ.data ?? []) as any[];
+
 
     return emps.map((emp: any) => {
       const team = String(emp.team ?? "R").toUpperCase();
@@ -173,6 +188,12 @@ function PerformancePage() {
       const ftdRate = Number(emp.ftd_commission ?? settings.ftdCommission);
       const ftdCommission = team === "C" ? ftds * ftdRate : 0;
 
+      // STD: clients attributed to this agent whose *second* deposit landed in range.
+      const myClients = allActs.filter((a) =>
+        team === "C" ? a.conversion_employee_id === emp.id : a.employee_id === emp.id,
+      );
+      const stds = myClients.filter((a) => isStd(a, allDeposits, { start, end })).length;
+
       const payout = salary + (team === "R" ? commission - penalty : 0) + ftdCommission;
 
       return {
@@ -183,6 +204,7 @@ function PerformancePage() {
         active: !!emp.active,
         ftds: team === "C" ? ftds : 0,
         pendingFtds: team === "C" ? pendingFtds : 0,
+        stds: team === "M" ? 0 : stds,
         clients,
         attributed: team === "R" ? attributed : 0,
         commission,
@@ -197,12 +219,13 @@ function PerformancePage() {
     })
     .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()))
     .sort((a, b) => (TEAM_RANK[a.team] ?? 3) - (TEAM_RANK[b.team] ?? 3) || a.name.localeCompare(b.name));
-  }, [empQ.data, revQ.data, withQ.data, attQ.data, actQ.data, depositsQ.data, start, end, search, settings]);
+  }, [empQ.data, revQ.data, withQ.data, attQ.data, actQ.data, allActQ.data, depositsQ.data, start, end, search, settings]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     name: (r) => r.name,
     team: (r) => TEAM_RANK[r.team] ?? 3,
     ftds: (r) => r.ftds,
+    stds: (r) => r.stds,
     clients: (r) => r.clients,
     attributed: (r) => r.attributed,
     commission: (r) => r.commission + r.ftdCommission,
@@ -215,6 +238,7 @@ function PerformancePage() {
 
   const totals = useMemo(() => ({
     ftds: rows.reduce((s, r) => s + r.ftds, 0),
+    stds: rows.reduce((s, r) => s + r.stds, 0),
     revenue: rows.reduce((s, r) => s + r.attributed, 0),
     commission: rows.reduce((s, r) => s + r.commission + r.ftdCommission, 0),
     payout: rows.reduce((s, r) => s + r.payout, 0),
@@ -236,8 +260,9 @@ function PerformancePage() {
         }
       />
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Total FTDs" value={String(totals.ftds)} tone="positive" />
+        <StatCard label="STDs" value={String(totals.stds)} />
         <StatCard label="Attributed revenue" value={fmtMoney(totals.revenue)} tone="positive" />
         <StatCard label="Total commission" value={fmtMoney(totals.commission)} />
         <StatCard label="Total payout" value={fmtMoney(totals.payout)} tone="negative" />
@@ -245,7 +270,7 @@ function PerformancePage() {
 
       <div className="card-surface overflow-hidden">
         {loading ? (
-          <TableSkeleton cols={8} />
+          <TableSkeleton cols={9} />
         ) : sorted.length === 0 ? (
           <div className="p-8 text-sm text-muted-foreground">No employees match.</div>
         ) : (
@@ -258,6 +283,7 @@ function PerformancePage() {
                 subtitle={`Team ${r.team ?? "C"}`}
                 fields={[
                   { label: "FTDs", value: <span className="num">{r.ftds}</span> },
+                  { label: "STDs", value: <span className="num">{r.stds}</span> },
                   { label: "Clients", value: <span className="num">{r.clients}</span> },
                   { label: "Revenue", value: <span className="num">{fmtMoney(r.attributed)}</span> },
                   { label: "Net payout", value: <span className="num font-medium">{fmtMoney(r.payout)}</span> },
@@ -272,6 +298,7 @@ function PerformancePage() {
                   <SortTh label="Agent" k="name" sort={sort} toggle={toggle} />
                   <SortTh label="Dept" k="team" sort={sort} toggle={toggle} />
                   <SortTh label="FTDs" k="ftds" sort={sort} toggle={toggle} />
+                  <SortTh label="STDs" k="stds" sort={sort} toggle={toggle} />
                   <SortTh label="Clients" k="clients" sort={sort} toggle={toggle} />
                   <SortTh label="Revenue" k="attributed" sort={sort} toggle={toggle} />
                   <SortTh label="Commission" k="commission" sort={sort} toggle={toggle} />
@@ -306,6 +333,7 @@ function PerformancePage() {
                         </>
                       ) : "—"}
                     </td>
+                    <td className="py-3 px-4">{r.team === "M" ? "—" : r.stds}</td>
                     <td className="py-3 px-4">{r.team === "M" ? "—" : r.clients}</td>
                     <td className="py-3 px-4">{r.team === "R" ? fmtMoney(r.attributed) : "—"}</td>
                     <td className="py-3 px-4 text-primary">

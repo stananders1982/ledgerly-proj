@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePagination, TablePagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { TargetBadge } from "@/routes/_authenticated/sources";
+import { isStd } from "@/lib/rules";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/reports")({
@@ -125,6 +126,16 @@ function ReportsPage() {
     enabled: tab === "payouts",
     queryKey: ["rpt-rev-cust-aff"],
     queryFn: async () => await fetchAll(() => supabase.from("revenue").select("customer_name,affiliate_id,leads(affiliate_id)")),
+  });
+  const stdActQ = useQuery({
+    enabled: tab === "employees",
+    queryKey: ["rpt-std-acts"],
+    queryFn: async () => await fetchAll(() => supabase.from("daily_lead_activations").select("id,lead_name,activation_date,employee_id,conversion_employee_id")),
+  });
+  const stdRevQ = useQuery({
+    enabled: tab === "employees",
+    queryKey: ["rpt-std-rev"],
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("id,customer_name,amount,date,activation_id")),
   });
   const empQ = useQuery({
     queryKey: ["rpt-emp"],
@@ -346,8 +357,17 @@ function ReportsPage() {
 
   const employeesRpt = useMemo(() => {
     const rev = data.revenue;
-    const byEmp = new Map<string, { name: string; revenue: number; leads: number; activated: number; salary: number; commissionPct: number }>();
-    for (const e of data.employees) byEmp.set(e.id, { name: e.name, revenue: 0, leads: 0, activated: 0, salary: Number(e.salary), commissionPct: Number(e.commission_pct) });
+    const acts = (stdActQ.data ?? []) as any[];
+    const deps = (stdRevQ.data ?? []) as any[];
+    const stdByEmp = new Map<string, number>();
+    for (const a of acts) {
+      if (!isStd(a, deps, { start, end })) continue;
+      for (const id of [a.employee_id, a.conversion_employee_id]) {
+        if (id) stdByEmp.set(id, (stdByEmp.get(id) ?? 0) + 1);
+      }
+    }
+    const byEmp = new Map<string, { name: string; revenue: number; leads: number; activated: number; std: number; salary: number; commissionPct: number }>();
+    for (const e of data.employees) byEmp.set(e.id, { name: e.name, revenue: 0, leads: 0, activated: 0, std: stdByEmp.get(e.id) ?? 0, salary: Number(e.salary), commissionPct: Number(e.commission_pct) });
     for (const r of rev) {
       const amt = Number(r.amount);
       const pct = Number(r.split_pct ?? 100);
@@ -363,7 +383,7 @@ function ReportsPage() {
       const commission = (e.revenue * e.commissionPct) / 100;
       return { ...e, commission, profit: e.revenue - commission - e.salary, rate: e.leads ? (e.activated / e.leads) * 100 : 0 };
     }).sort((a, b) => b.revenue - a.revenue);
-  }, [data.revenue, data.employees]);
+  }, [data.revenue, data.employees, stdActQ.data, stdRevQ.data, start, end]);
 
   const playerValue = useMemo(() => {
     const entries = (pvLeadsQ.data ?? []) as any[];
@@ -579,7 +599,7 @@ function ReportsPage() {
         { Line: "Profit Margin %", Amount: data.margin.toFixed(1) },
       ];
     } else if (tab === "sources") rows = sources.map((s) => ({ Source: s.name, Model: s.model, Leads: s.leads, Activated: s.activated, Reported: s.reported, Rate: s.rate.toFixed(1), Revenue: s.revenue, Cost: s.totalCost, Savings: s.savings, ROI: s.roi.toFixed(1) }));
-    else if (tab === "employees") rows = employeesRpt.map((e) => ({ Employee: e.name, Revenue: e.revenue, Commission: e.commission, Salary: e.salary, Profit: e.profit }));
+    else if (tab === "employees") rows = employeesRpt.map((e) => ({ Employee: e.name, STDs: e.std, Revenue: e.revenue, Commission: e.commission, Salary: e.salary, Profit: e.profit }));
     else if (tab === "savings") rows = sources.filter((s) => s.model === "CPA").map((s) => ({ Source: s.name, Activated: s.activated, Reported: s.reported, Unreported: s.activated - s.reported, Price: s.price, Savings: s.savings }));
     else if (tab === "marketing") rows = sources.map((s) => ({ Source: s.name, Spend: s.totalCost, Leads: s.leads, CPL: s.cpl.toFixed(2), Activated: s.activated, CPA: s.cpaEff.toFixed(2), Revenue: s.revenue, ROI: s.roi.toFixed(1) }));
     else if (tab === "expenses") rows = expByCategory.map((c) => ({ Category: c.name, Amount: c.amount, Percent: data.otherExp ? ((c.amount / data.otherExp) * 100).toFixed(1) : "0" }));
@@ -792,6 +812,7 @@ function ReportsPage() {
             columns={[
               { key: "rank", label: "#" },
               { key: "name", label: "Employee" },
+              { key: "std", label: "STDs", numeric: true },
               { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
               { key: "commission", label: "Commission", numeric: true, render: (v) => fmtMoney(v) },
               { key: "salary", label: "Salary", numeric: true, render: (v) => fmtMoney(v) },
