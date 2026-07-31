@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileDown, FileSpreadsheet, FileText, Printer, ArrowUpDown } from "lucide-react";
+import { FileDown, FileSpreadsheet, FileText, Printer, ArrowUpDown, Bookmark, X } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
@@ -54,6 +55,30 @@ function ReportsPage() {
   const [customEnd, setCustomEnd] = useState("");
   const [tab, setTab] = useState("summary");
   const [pvPeriod, setPvPeriod] = useState<"week" | "month" | "all">("month");
+
+  // Saved presets: a named snapshot of tab + date range, kept in this browser.
+  type Preset = { name: string; tab: string; range: RangeKey; customStart: string; customEnd: string };
+  const PRESET_KEY = "ledgerly.report-presets";
+  const [presets, setPresets] = useState<Preset[]>(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(window.localStorage.getItem(PRESET_KEY) ?? "[]") as Preset[]; } catch { return []; }
+  });
+  const persistPresets = (next: Preset[]) => {
+    setPresets(next);
+    try { window.localStorage.setItem(PRESET_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
+  };
+  const savePreset = () => {
+    const name = window.prompt("Name this report preset")?.trim();
+    if (!name) return;
+    persistPresets([...presets.filter((p) => p.name !== name), { name, tab, range, customStart, customEnd }]);
+    toast.success(`Saved preset "${name}"`);
+  };
+  const applyPreset = (p: Preset) => {
+    setTab(p.tab);
+    setCustomStart(p.customStart);
+    setCustomEnd(p.customEnd);
+    setRange(p.range);
+  };
   const { start, end } = useMemo(() => {
     const r = computeRange(range, customStart, customEnd);
     // Ensure start <= end so Supabase range filters return data even if user inverts dates
@@ -587,6 +612,7 @@ function ReportsPage() {
         description={`Period: ${start} → ${end}`}
         actions={
           <div className="flex gap-2 print:hidden">
+            <Button variant="outline" size="sm" onClick={savePreset}><Bookmark className="h-4 w-4 mr-1" /> Save preset</Button>
             <Button variant="outline" size="sm" onClick={() => exportCurrent("pdf")}><FileText className="h-4 w-4 mr-1" /> PDF</Button>
             <Button variant="outline" size="sm" onClick={() => exportCurrent("xlsx")}><FileSpreadsheet className="h-4 w-4 mr-1" /> Excel</Button>
             <Button variant="outline" size="sm" onClick={() => exportCurrent("csv")}><FileDown className="h-4 w-4 mr-1" /> CSV</Button>
@@ -653,6 +679,25 @@ function ReportsPage() {
           />
         </div>
       </div>
+
+      {presets.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-6 print:hidden">
+          <span className="text-xs text-muted-foreground">Presets:</span>
+          {presets.map((p) => (
+            <span key={p.name} className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 pl-3 pr-1 py-1 text-xs">
+              <button type="button" className="hover:text-foreground" onClick={() => applyPreset(p)}>{p.name}</button>
+              <button
+                type="button"
+                aria-label={`Remove preset ${p.name}`}
+                className="rounded-full p-0.5 text-muted-foreground hover:text-destructive"
+                onClick={() => persistPresets(presets.filter((x) => x.name !== p.name))}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       <Tabs value={tab} onValueChange={setTab}>
         <div className="overflow-x-auto scroll-slim print:hidden">
