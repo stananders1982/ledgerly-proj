@@ -65,18 +65,14 @@ export function NotificationBell() {
         { event: "INSERT", schema: "public", table: "notifications" },
         (payload) => {
           const n = payload.new as Notification;
-          const go = () =>
-            navigate({
-              to: "/activations",
-              search: n.lead_activation_id
-                ? { client: n.lead_activation_id }
-                : n.lead_name
-                  ? { name: n.lead_name }
-                  : {},
-            });
           const opts = {
             description: n.body ?? undefined,
-            action: { label: "View client", onClick: go },
+            action: {
+              label: n.lead_activation_id || n.lead_name ? "View client" : "View",
+              onClick: () => openNotification(n),
+            },
+            onClick: () => openNotification(n),
+            className: "cursor-pointer",
           };
           if (n.type === "revenue") toast.success(n.title, opts);
           else toast.warning(n.title, opts);
