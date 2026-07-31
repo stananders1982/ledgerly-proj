@@ -30,6 +30,7 @@ function ProtectedLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const palette = useCommandPalette();
+  const shortcuts = useKeyboardShortcutsPanel();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: pathname }, replace: true });
