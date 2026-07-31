@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
@@ -93,19 +94,19 @@ function Dashboard() {
 
   const revQ = useQuery({
     queryKey: ["dash-rev", startIso, endIso],
-    queryFn: async () => (await supabase.from("revenue").select("amount,date,employee_id,employee_id_2,split_pct").gte("date", startIso).lte("date", endIso)).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("amount,date,employee_id,employee_id_2,split_pct").gte("date", startIso).lte("date", endIso)),
   });
   const expQ = useQuery({
     queryKey: ["dash-exp", startIso, endIso],
-    queryFn: async () => (await supabase.from("expenses").select("amount,date").gte("date", startIso).lte("date", endIso)).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("amount,date").gte("date", startIso).lte("date", endIso)),
   });
   const empQ = useQuery({
     queryKey: ["dash-emp"],
-    queryFn: async () => (await supabase.from("employees").select("id,salary,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active,created_at").eq("active", true)).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,salary,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active,created_at").eq("active", true)),
   });
   const recQ = useQuery({
     queryKey: ["dash-recurring"],
-    queryFn: async () => (await supabase.from("recurring_expenses").select("amount,frequency,next_due_date,active,end_date").eq("active", true)).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("recurring_expenses").select("amount,frequency,next_due_date,active,end_date").eq("active", true)),
   });
 
 

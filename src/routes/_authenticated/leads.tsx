@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Users, X } from "lucide-react";
@@ -64,18 +65,17 @@ function LeadsPage() {
   const q = useQuery({
     queryKey: ["daily-leads-v2"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("daily_lead_entries")
         .select("*, lead_sources(id,name,pricing_model,price,expected_conversion_rate)")
-        .order("entry_date", { ascending: false });
-      if (error) throw error;
+        .order("entry_date", { ascending: false }));
       return (data ?? []) as Entry[];
     },
   });
 
   const sourcesQ = useQuery({
     queryKey: ["sources-min"],
-    queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price").eq("active", true).order("name")).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("lead_sources").select("id,name,pricing_model,price").eq("active", true).order("name")),
   });
 
   const employeesQ = useQuery({
@@ -90,8 +90,7 @@ function LeadsPage() {
   const activationsQ = useQuery({
     queryKey: ["daily-lead-activations"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("daily_lead_activations").select("*");
-      if (error) throw error;
+      const data = await fetchAll(() => supabase.from("daily_lead_activations").select("*"));
       return (data ?? []) as Activation[];
     },
   });
@@ -99,8 +98,7 @@ function LeadsPage() {
   const revenueQ = useQuery({
     queryKey: ["revenue-names-for-leads"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("revenue").select("customer_name");
-      if (error) throw error;
+      const data = await fetchAll(() => supabase.from("revenue").select("customer_name"));
       return (data ?? []) as { customer_name: string | null }[];
     },
   });

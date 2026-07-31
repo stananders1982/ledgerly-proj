@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, CheckCircle2, XCircle, Users } from "lucide-react";
@@ -67,9 +68,8 @@ function AttendancePage() {
   const dayQ = useQuery({
     queryKey: ["attendance", isoDate],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("attendance").select("*").eq("date", isoDate);
-      if (error) throw error;
+      const data = await fetchAll(() => supabase
+        .from("attendance").select("*").eq("date", isoDate));
       return (data ?? []) as Att[];
     },
   });
@@ -77,10 +77,9 @@ function AttendancePage() {
   const monthQ = useQuery({
     queryKey: ["attendance", "month", monthStart],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("attendance").select("employee_id,present,date")
-        .gte("date", monthStart).lte("date", monthEnd);
-      if (error) throw error;
+        .gte("date", monthStart).lte("date", monthEnd));
       return (data ?? []) as Att[];
     },
   });

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Download, Receipt } from "lucide-react";
@@ -46,21 +47,20 @@ function ExpensesPage() {
   const expQ = useQuery({
     queryKey: ["expenses-list"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("expenses")
         .select("*, expense_categories(name), affiliates(id,name)")
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return data ?? [];
     },
   });
   const catQ = useQuery({
     queryKey: ["categories"],
-    queryFn: async () => (await supabase.from("expense_categories").select("*").order("name")).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("expense_categories").select("*").order("name")),
   });
   const affQ = useQuery({
     queryKey: ["affiliates-min"],
-    queryFn: async () => (await supabase.from("affiliates").select("id,name").order("name")).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("affiliates").select("id,name").order("name")),
   });
 
   const filtered = useMemo(() => {

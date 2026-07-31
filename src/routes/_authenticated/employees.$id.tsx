@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
@@ -11,12 +12,13 @@ import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { FTD_COMMISSION, FTD_BALANCE_THRESHOLD, depositsByName, effectiveBalance, qualifiesAsFtd, ftdPendingReason } from "@/lib/rules";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
 
 /** Flat commission paid to the conversion agent per qualifying FTD. */
-const FTD_COMMISSION = 100;
+
 
 export const Route = createFileRoute("/_authenticated/employees/$id")({
   head: () => ({ meta: [{ title: "Employee — Ledgerly" }] }),
@@ -102,13 +104,12 @@ function EmployeeDetailPage() {
     enabled: isRetention || isConversion,
     queryKey: ["employee-clients", id, start, end],
     queryFn: async () => {
-      const { data, error } = await sb
+      const data = await fetchAll(() => sb
         .from("daily_lead_activations")
         .select("activated_count, lead_name, daily_lead_entries!inner(entry_date)")
         .eq("employee_id", id)
         .gte("daily_lead_entries.entry_date", start)
-        .lte("daily_lead_entries.entry_date", end);
-      if (error) throw error;
+        .lte("daily_lead_entries.entry_date", end));
       return data ?? [];
     },
   });
@@ -119,13 +120,12 @@ function EmployeeDetailPage() {
     enabled: isConversion,
     queryKey: ["employee-conversions", id, start, end],
     queryFn: async () => {
-      const { data, error } = await sb
+      const data = await fetchAll(() => sb
         .from("daily_lead_activations")
         .select("lead_name, potential, answered, balance, daily_lead_entries!inner(entry_date)")
         .eq("conversion_employee_id", id)
         .gte("daily_lead_entries.entry_date", start)
-        .lte("daily_lead_entries.entry_date", end);
-      if (error) throw error;
+        .lte("daily_lead_entries.entry_date", end));
       return data ?? [];
     },
   });
@@ -135,28 +135,18 @@ function EmployeeDetailPage() {
     enabled: isConversion,
     queryKey: ["revenue-by-name"],
     queryFn: async () => {
-      const { data, error } = await sb.from("revenue").select("customer_name, amount");
-      if (error) throw error;
+      const data = await fetchAll(() => sb.from("revenue").select("customer_name, amount"));
       return (data ?? []) as { customer_name: string | null; amount: number }[];
     },
   });
 
 
   const conversions = useMemo(() => {
-    const deposits = new Map<string, number>();
-    for (const r of depositsQ.data ?? []) {
-      const k = (r.customer_name ?? "").trim().toLowerCase();
-      if (!k) continue;
-      deposits.set(k, (deposits.get(k) ?? 0) + Number(r.amount || 0));
-    }
+    const deposits = depositsByName(depositsQ.data ?? []);
     const all = ((conversionsQ.data ?? []) as any[]).map((r) => {
-      const effectiveBalance =
-        Number(r.balance || 0) + (deposits.get((r.lead_name ?? "").trim().toLowerCase()) ?? 0);
-      const qualifies =
-        !!r.answered &&
-        (r.potential === "mid" || r.potential === "high" || effectiveBalance >= 251);
-      const reason = !r.answered ? "Not answered yet" : "Low potential under $251";
-      return { ...r, effectiveBalance, qualifies, reason };
+      const bal = effectiveBalance(r, deposits);
+      const qualifies = qualifiesAsFtd(r, bal);
+      return { ...r, effectiveBalance: bal, qualifies, reason: ftdPendingReason(r, bal) };
     });
     return { all, counted: all.filter((r) => r.qualifies), pending: all.filter((r) => !r.qualifies) };
   }, [conversionsQ.data, depositsQ.data]);

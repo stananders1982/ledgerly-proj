@@ -1,4 +1,5 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Building2, TrendingUp, Wallet } from "lucide-react";
@@ -55,12 +56,11 @@ function AffiliateStatementPage() {
   const revQ = useQuery({
     queryKey: ["affiliate-revenue", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("revenue")
         .select("id,date,amount,customer_name,created_at")
         .eq("affiliate_id", id)
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return (data ?? []) as { id: string; date: string; amount: number; customer_name: string | null; created_at: string }[];
     },
   });
@@ -68,12 +68,11 @@ function AffiliateStatementPage() {
   const withQ = useQuery({
     queryKey: ["affiliate-withdrawals", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("withdrawals")
         .select("id,date,amount,notes,created_at")
         .eq("affiliate_id", id)
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return (data ?? []) as { id: string; date: string; amount: number; notes: string | null; created_at: string }[];
     },
   });
@@ -81,12 +80,11 @@ function AffiliateStatementPage() {
   const expQ = useQuery({
     queryKey: ["affiliate-expenses", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("expenses")
         .select("id,date,amount,notes,created_at")
         .eq("affiliate_id", id)
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return (data ?? []) as { id: string; date: string; amount: number; notes: string | null; created_at: string }[];
     },
   });

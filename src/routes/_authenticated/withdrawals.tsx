@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Banknote } from "lucide-react";
@@ -23,9 +24,10 @@ import { StatCard } from "@/components/stat-card";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { withdrawalPenalty } from "@/lib/rules";
 
 const sb = supabase as any;
-const PENALTY_RATE = 0.1;
+
 
 export const Route = createFileRoute("/_authenticated/withdrawals")({
   head: () => ({ meta: [{ title: "Withdrawals — Ledgerly" }] }),
@@ -41,11 +43,10 @@ function WithdrawalsPage() {
   const wQ = useQuery({
     queryKey: ["withdrawals-list"],
     queryFn: async () => {
-      const { data, error } = await sb
+      const data = await fetchAll(() => sb
         .from("withdrawals")
         .select("*, employees:employee_id(name), employee2:employee_id_2(name), affiliates:affiliate_id(name), revenue:revenue_id(customer_name, amount, date)")
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return data ?? [];
     },
   });
@@ -63,7 +64,7 @@ function WithdrawalsPage() {
   }});
   const revQ = useQuery({
     queryKey: ["revenue-min"],
-    queryFn: async () => (await supabase.from("revenue").select("id,customer_name,amount,date,employee_id,affiliate_id").order("date", { ascending: false })).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("id,customer_name,amount,date,employee_id,affiliate_id").order("date", { ascending: false })),
   });
 
   const empNameById = useMemo(
@@ -124,7 +125,7 @@ function WithdrawalsPage() {
         split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
         affiliate_id: v.affiliate_id || null,
         amount,
-        employee_penalty: +(amount * PENALTY_RATE).toFixed(2),
+        employee_penalty: +withdrawalPenalty(amount).toFixed(2),
         date: v.date,
         notes: v.notes || null,
       };
@@ -284,7 +285,7 @@ function WithdrawalDialog({
     notes: row?.notes ?? "",
   }));
 
-  const penaltyPreview = (Number(form.amount) || 0) * PENALTY_RATE;
+  const penaltyPreview = withdrawalPenalty(form.amount);
   const hasSplit = !!form.employee_id_2;
 
   const onPickRevenue = (id: string) => {

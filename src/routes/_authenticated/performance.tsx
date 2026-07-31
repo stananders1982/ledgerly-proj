@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DataCard, DataCardList } from "@/components/data-card-list";
@@ -12,11 +13,12 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { FTD_COMMISSION, depositsByName, effectiveBalance, qualifiesAsFtd } from "@/lib/rules";
 import { fmtMoney } from "@/lib/format";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
-const FTD_COMMISSION = 100;
+
 
 export const Route = createFileRoute("/_authenticated/performance")({
   head: () => ({
@@ -73,36 +75,35 @@ function PerformancePage() {
   const revQ = useQuery({
     queryKey: ["perf-revenue", start, end],
     queryFn: async () =>
-      (await sb.from("revenue")
+      await fetchAll(() => sb.from("revenue")
         .select("id,date,amount,employee_id,employee_id_2,split_pct")
-        .gte("date", start).lte("date", end)).data ?? [],
+        .gte("date", start).lte("date", end)),
   });
 
   const withQ = useQuery({
     queryKey: ["perf-withdrawals", start, end],
     queryFn: async () =>
-      (await sb.from("withdrawals")
+      await fetchAll(() => sb.from("withdrawals")
         .select("id,date,amount,employee_penalty,employee_id")
-        .gte("date", start).lte("date", end)).data ?? [],
+        .gte("date", start).lte("date", end)),
   });
 
   const attQ = useQuery({
     queryKey: ["perf-attendance", start, end],
     queryFn: async () =>
-      (await sb.from("attendance")
+      await fetchAll(() => sb.from("attendance")
         .select("employee_id,date,present")
-        .gte("date", start).lte("date", end)).data ?? [],
+        .gte("date", start).lte("date", end)),
   });
 
   const actQ = useQuery({
     queryKey: ["perf-activations", start, end],
     queryFn: async () => {
-      const { data, error } = await sb
+      const data = await fetchAll(() => sb
         .from("daily_lead_activations")
         .select("employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,daily_lead_entries!inner(entry_date)")
         .gte("daily_lead_entries.entry_date", start)
-        .lte("daily_lead_entries.entry_date", end);
-      if (error) throw error;
+        .lte("daily_lead_entries.entry_date", end));
       return data ?? [];
     },
   });
@@ -110,8 +111,7 @@ function PerformancePage() {
   const depositsQ = useQuery({
     queryKey: ["revenue-by-name"],
     queryFn: async () => {
-      const { data, error } = await sb.from("revenue").select("customer_name, amount");
-      if (error) throw error;
+      const data = await fetchAll(() => sb.from("revenue").select("customer_name, amount"));
       return (data ?? []) as { customer_name: string | null; amount: number }[];
     },
   });
@@ -120,12 +120,7 @@ function PerformancePage() {
     const emps = empQ.data ?? [];
     const wd = workingDays(start, end);
 
-    const deposits = new Map<string, number>();
-    for (const r of depositsQ.data ?? []) {
-      const k = (r.customer_name ?? "").trim().toLowerCase();
-      if (!k) continue;
-      deposits.set(k, (deposits.get(k) ?? 0) + Number(r.amount || 0));
-    }
+    const deposits = depositsByName(depositsQ.data ?? []);
 
     return emps.map((emp: any) => {
       const team = String(emp.team ?? "R").toUpperCase();
@@ -167,8 +162,8 @@ function PerformancePage() {
       let ftds = 0;
       let pendingFtds = 0;
       for (const a of mine) {
-        const eff = Number(a.balance || 0) + (deposits.get((a.lead_name ?? "").trim().toLowerCase()) ?? 0);
-        const ok = !!a.answered && (a.potential === "mid" || a.potential === "high" || eff >= 251);
+        const eff = effectiveBalance(a, deposits);
+        const ok = qualifiesAsFtd(a, eff);
         if (ok) ftds++;
         else pendingFtds++;
       }

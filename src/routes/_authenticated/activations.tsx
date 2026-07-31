@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnsweredBadge, PotentialBadge as SharedPotentialBadge } from "@/components/status-badge";
@@ -24,6 +25,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { CheckCircle2, PhoneCall, Wallet } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { qualifiesAsFtd, ftdPendingReasons } from "@/lib/rules";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -85,11 +87,10 @@ function ActivationsPage() {
   const q = useQuery({
     queryKey: ["activated-leads"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("daily_lead_activations")
         .select("*, daily_lead_entries(entry_date, source_id, lead_sources(name))")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+        .order("created_at", { ascending: false }));
       return (data ?? []) as unknown as Row[];
     },
   });
@@ -129,11 +130,10 @@ function ActivationsPage() {
   const revenueQ = useQuery({
     queryKey: ["revenue-for-activations"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("revenue")
         .select("id, customer_name, amount, date, notes, employee_id, affiliate_id")
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return (data ?? []) as {
         id: string;
         customer_name: string | null;
@@ -149,11 +149,10 @@ function ActivationsPage() {
   const withdrawalsQ = useQuery({
     queryKey: ["withdrawals-for-activations"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("withdrawals")
         .select("id, customer_name, amount, date, notes")
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return (data ?? []) as {
         id: string; customer_name: string | null; amount: number; date: string; notes: string | null;
       }[];
@@ -223,31 +222,19 @@ function ActivationsPage() {
   const answeredCount = rows.filter((r) => r.answered).length;
   const highCount = rows.filter((r) => r.potential === "high").length;
 
-  // Conversions per conversion agent — same FTD rule as the employee page:
-  // answered AND (mid/high potential OR effective balance >= 251)
+  // Conversions per conversion agent — shared FTD rule from @/lib/rules.
   const conversionsByAgent = useMemo(() => {
     const m = new Map<string, { count: number; pending: number; pendingRows: PendingRow[] }>();
     for (const r of rows) {
       const id = r.conversion_employee_id;
       if (!id) continue;
       const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
-      const effectiveBalance = Number(r.balance || 0) + depositsFor(r.lead_name);
-      const qualifies =
-        !!r.answered &&
-        (r.potential === "mid" || r.potential === "high" || effectiveBalance >= 251);
+      const bal = Number(r.balance || 0) + depositsFor(r.lead_name);
+      const qualifies = qualifiesAsFtd(r, bal);
       if (qualifies) e.count += 1;
       else {
         e.pending += 1;
-        const reasons: string[] = [];
-        if (!r.answered) reasons.push("Not answered yet");
-        if (r.potential !== "mid" && r.potential !== "high" && effectiveBalance < 251) {
-          reasons.push(
-            r.potential === "low"
-              ? "Low potential and balance under $251"
-              : "No potential set and balance under $251",
-          );
-        }
-        e.pendingRows.push({ row: r, balance: effectiveBalance, reasons, agent: employeeName(id) });
+        e.pendingRows.push({ row: r, balance: bal, reasons: ftdPendingReasons(r, bal), agent: employeeName(id) });
       }
       m.set(id, e);
     }
@@ -530,9 +517,7 @@ function ActivationsPage() {
           const depositTotal = deposits.reduce((a, d) => a + Number(d.amount || 0), 0);
           const wdTotal = wds.reduce((a, d) => a + Number(d.amount || 0), 0);
           const effective = Number(cur.balance || 0) + depositTotal;
-          const qualifies =
-            !!cur.answered &&
-            (cur.potential === "mid" || cur.potential === "high" || effective >= 251);
+          const qualifies = qualifiesAsFtd(cur, effective);
           return (
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto scroll-slim">
               <DialogHeader>
