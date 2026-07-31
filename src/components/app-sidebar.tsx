@@ -139,7 +139,8 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
         )}
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="space-y-1">
+        <ThemeToggle collapsed={collapsed} />
         <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={() => signOut()}>
           <LogOut className="h-4 w-4" /> {!collapsed && "Sign out"}
         </Button>
