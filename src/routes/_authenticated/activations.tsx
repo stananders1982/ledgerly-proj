@@ -24,6 +24,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { CheckCircle2, PhoneCall, Wallet } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { qualifiesAsFtd, ftdPendingReasons } from "@/lib/rules";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   validateSearch: (search: Record<string, unknown>) => ({
