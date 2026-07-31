@@ -1,0 +1,15 @@
+CREATE INDEX IF NOT EXISTS idx_revenue_company_date ON public.revenue (company_id, date);
+CREATE INDEX IF NOT EXISTS idx_revenue_customer_name ON public.revenue (company_id, lower(btrim(customer_name)));
+CREATE INDEX IF NOT EXISTS idx_expenses_company_date ON public.expenses (company_id, date);
+CREATE INDEX IF NOT EXISTS idx_expenses_affiliate ON public.expenses (company_id, affiliate_id);
+CREATE INDEX IF NOT EXISTS idx_withdrawals_company_date ON public.withdrawals (company_id, date);
+CREATE INDEX IF NOT EXISTS idx_withdrawals_affiliate ON public.withdrawals (company_id, affiliate_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_company_date ON public.attendance (company_id, date);
+CREATE INDEX IF NOT EXISTS idx_attendance_employee_date ON public.attendance (employee_id, date);
+CREATE INDEX IF NOT EXISTS idx_dla_entry ON public.daily_lead_activations (entry_id);
+CREATE INDEX IF NOT EXISTS idx_dla_employee ON public.daily_lead_activations (company_id, employee_id);
+CREATE INDEX IF NOT EXISTS idx_dla_conversion_employee ON public.daily_lead_activations (company_id, conversion_employee_id);
+CREATE INDEX IF NOT EXISTS idx_dla_lead_name ON public.daily_lead_activations (company_id, lower(btrim(lead_name)));
+CREATE INDEX IF NOT EXISTS idx_dle_company_date ON public.daily_lead_entries (company_id, entry_date);
+CREATE INDEX IF NOT EXISTS idx_notifications_company_created ON public.notifications (company_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_app_logs_company_created ON public.app_logs (company_id, created_at DESC);
