@@ -183,7 +183,11 @@ function AffiliatesPage() {
               </thead>
               <tbody>
                 {pageItems.map((r) => (
-                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
+                  <tr
+                    key={r.id}
+                    className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
+                    onClick={() => navigate({ to: "/affiliates/$id", params: { id: r.id } })}
+                  >
                     <td className="py-3 px-4 font-medium">
                       {r.name}
                       {!r.active && <span className="ml-2 text-xs text-muted-foreground">inactive</span>}

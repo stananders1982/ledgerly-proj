@@ -155,7 +155,11 @@ function UsersPage() {
               const adm = u.roles.includes("admin");
               const locked = !!u.is_super_admin && !isSuperAdmin && u.id !== user?.id;
               return (
-                <TableRow key={u.id}>
+                <TableRow
+                  key={u.id}
+                  className={locked ? undefined : "cursor-pointer"}
+                  onClick={locked ? undefined : () => setEditing(u)}
+                >
                   <TableCell className="font-medium">{u.full_name ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{u.email}</TableCell>
                   <TableCell>
@@ -176,7 +180,7 @@ function UsersPage() {
                       <span className="text-xs">{u.nav_keys.length} page{u.nav_keys.length === 1 ? "" : "s"}</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right space-x-1">
+                  <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
                     {locked ? (
                       <span className="text-xs text-muted-foreground">Managed by platform owner</span>
                     ) : (

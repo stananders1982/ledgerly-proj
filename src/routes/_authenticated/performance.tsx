@@ -285,7 +285,11 @@ function PerformancePage() {
               </thead>
               <tbody>
                 {pageItems.map((r: any) => (
-                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
+                  <tr
+                    key={r.id}
+                    className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
+                    onClick={() => navigate({ to: "/employees/$id", params: { id: r.id } })}
+                  >
                     <td className="py-3 px-4 font-medium">
                       <EmployeeLink id={r.id} name={r.name} />
                       {!r.active && <span className="ml-2 text-xs text-muted-foreground">inactive</span>}
