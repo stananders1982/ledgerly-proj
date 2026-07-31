@@ -36,6 +36,7 @@ export const Route = createFileRoute("/_authenticated/withdrawals")({
 });
 
 function WithdrawalsPage() {
+  const settings = useCompanySettings();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -286,7 +287,8 @@ function WithdrawalDialog({
     notes: row?.notes ?? "",
   }));
 
-  const penaltyPreview = withdrawalPenalty(form.amount);
+  const settings = useCompanySettings();
+  const penaltyPreview = withdrawalPenalty(form.amount, settings);
   const hasSplit = !!form.employee_id_2;
 
   const onPickRevenue = (id: string) => {
@@ -367,7 +369,7 @@ function WithdrawalDialog({
           </Select>
         </Field>
         <div className="rounded-md border border-border bg-accent/30 px-3 py-2 text-xs text-muted-foreground">
-          Agent penalty (10%): <span className="text-destructive font-medium">−{fmtMoney(penaltyPreview)}</span>
+          Agent penalty ({settings.withdrawalPenaltyPct}%): <span className="text-destructive font-medium">−{fmtMoney(penaltyPreview)}</span>
           {hasSplit && <span> · split {Number(form.split_pct)}% / {100 - Number(form.split_pct)}%</span>}
         </div>
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>

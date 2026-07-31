@@ -69,6 +69,7 @@ function PotentialBadge({ value }: { value: Row["potential"] }) {
 }
 
 function ActivationsPage() {
+  const settings = useCompanySettings();
   const qc = useQueryClient();
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");
