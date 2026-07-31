@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileDown, FileSpreadsheet, FileText, Printer, ArrowUpDown } from "lucide-react";
@@ -86,35 +87,35 @@ function ReportsPage() {
   });
   const revQ = useQuery({
     queryKey: ["rpt-rev", start, end],
-    queryFn: async () => (await supabase.from("revenue").select("id,date,amount,customer_name,employee_id,employee_id_2,split_pct,lead_id,affiliate_id,notes,created_at,employees:employee_id(name),employee2:employee_id_2(name),leads(affiliate_id)").gte("date", start).lte("date", end)).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("id,date,amount,customer_name,employee_id,employee_id_2,split_pct,lead_id,affiliate_id,notes,created_at,employees:employee_id(name),employee2:employee_id_2(name),leads(affiliate_id)").gte("date", start).lte("date", end)),
   });
   const expQ = useQuery({
     queryKey: ["rpt-exp", start, end],
-    queryFn: async () => (await supabase.from("expenses").select("id,date,amount,notes,category_id,affiliate_id,created_at,expense_categories(name)").gte("date", start).lte("date", end)).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("id,date,amount,notes,category_id,affiliate_id,created_at,expense_categories(name)").gte("date", start).lte("date", end)),
   });
   const wdQ = useQuery({
     queryKey: ["rpt-wd", start, end],
-    queryFn: async () => (await supabase.from("withdrawals").select("id,date,amount,customer_name,affiliate_id,revenue_id,revenue:revenue_id(affiliate_id)").gte("date", start).lte("date", end)).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("withdrawals").select("id,date,amount,customer_name,affiliate_id,revenue_id,revenue:revenue_id(affiliate_id)").gte("date", start).lte("date", end)),
   });
   const revCustAffQ = useQuery({
     queryKey: ["rpt-rev-cust-aff"],
-    queryFn: async () => (await supabase.from("revenue").select("customer_name,affiliate_id,leads(affiliate_id)")).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("customer_name,affiliate_id,leads(affiliate_id)")),
   });
   const empQ = useQuery({
     queryKey: ["rpt-emp"],
-    queryFn: async () => (await supabase.from("employees").select("id,name,salary,commission_pct,active,role,updated_at,created_at")).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,name,salary,commission_pct,active,role,updated_at,created_at")),
   });
   const recQ = useQuery({
     queryKey: ["rpt-recurring"],
-    queryFn: async () => (await supabase.from("recurring_expenses").select("id,name,amount,frequency,next_due_date,end_date,active,expense_categories(name)").eq("active", true)).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("recurring_expenses").select("id,name,amount,frequency,next_due_date,end_date,active,expense_categories(name)").eq("active", true)),
   });
   const srcQ = useQuery({
     queryKey: ["rpt-sources"],
-    queryFn: async () => (await supabase.from("lead_sources").select("id,name,pricing_model,price,expected_conversion_rate")).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("lead_sources").select("id,name,pricing_model,price,expected_conversion_rate")),
   });
   const attQ = useQuery({
     queryKey: ["rpt-attendance", start, end],
-    queryFn: async () => (await supabase.from("attendance").select("employee_id,date,present").gte("date", start).lte("date", end)).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("attendance").select("employee_id,date,present").gte("date", start).lte("date", end)),
   });
   const pvLeadsQ = useQuery({
     queryKey: ["pv-entries", pvWindow.start, pvWindow.end],
@@ -134,7 +135,7 @@ function ReportsPage() {
   });
   const affMapQ = useQuery({
     queryKey: ["pv-affs"],
-    queryFn: async () => (await supabase.from("affiliates").select("id,name")).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("affiliates").select("id,name")),
   });
 
 

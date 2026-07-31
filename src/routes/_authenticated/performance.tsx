@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DataCard, DataCardList } from "@/components/data-card-list";
@@ -74,25 +75,25 @@ function PerformancePage() {
   const revQ = useQuery({
     queryKey: ["perf-revenue", start, end],
     queryFn: async () =>
-      (await sb.from("revenue")
+      await fetchAll(() => sb.from("revenue")
         .select("id,date,amount,employee_id,employee_id_2,split_pct")
-        .gte("date", start).lte("date", end)).data ?? [],
+        .gte("date", start).lte("date", end)),
   });
 
   const withQ = useQuery({
     queryKey: ["perf-withdrawals", start, end],
     queryFn: async () =>
-      (await sb.from("withdrawals")
+      await fetchAll(() => sb.from("withdrawals")
         .select("id,date,amount,employee_penalty,employee_id")
-        .gte("date", start).lte("date", end)).data ?? [],
+        .gte("date", start).lte("date", end)),
   });
 
   const attQ = useQuery({
     queryKey: ["perf-attendance", start, end],
     queryFn: async () =>
-      (await sb.from("attendance")
+      await fetchAll(() => sb.from("attendance")
         .select("employee_id,date,present")
-        .gte("date", start).lte("date", end)).data ?? [],
+        .gte("date", start).lte("date", end)),
   });
 
   const actQ = useQuery({

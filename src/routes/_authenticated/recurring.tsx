@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Repeat, RefreshCw } from "lucide-react";
@@ -71,7 +72,7 @@ function RecurringPage() {
   });
   const catQ = useQuery({
     queryKey: ["categories"],
-    queryFn: async () => (await supabase.from("expense_categories").select("*").order("name")).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("expense_categories").select("*").order("name")),
   });
 
   const stats = useMemo(() => {

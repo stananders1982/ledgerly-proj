@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Banknote } from "lucide-react";
@@ -64,7 +65,7 @@ function WithdrawalsPage() {
   }});
   const revQ = useQuery({
     queryKey: ["revenue-min"],
-    queryFn: async () => (await supabase.from("revenue").select("id,customer_name,amount,date,employee_id,affiliate_id").order("date", { ascending: false })).data ?? [],
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("id,customer_name,amount,date,employee_id,affiliate_id").order("date", { ascending: false })),
   });
 
   const empNameById = useMemo(
