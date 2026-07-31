@@ -175,8 +175,8 @@ function EmployeeDetailPage() {
       return 0;
     };
     const attributed = rev.reduce((s: number, r: any) => s + share(r, Number(r.amount)), 0);
-    // Commission base after the deposit-method fee (wire 15%, card 25%, crypto 0%).
-    const commBase = rev.reduce((s: number, r: any) => s + share(r, commissionableAmount(r.amount, r.method)), 0);
+    // Commission base after the configured deposit-method fee.
+    const commBase = rev.reduce((s: number, r: any) => s + share(r, commissionableAmount(r.amount, r.method, settings)), 0);
 
     const withdrawn = wds.reduce((s: number, w: any) => s + Number(w.amount), 0);
     const penalty = wds.reduce((s: number, w: any) => s + Number(w.employee_penalty), 0);

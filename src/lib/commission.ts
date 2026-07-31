@@ -1,3 +1,5 @@
+import { DEFAULT_SETTINGS, type CompanySettings } from "./settings";
+
 export type CommissionTiers = {
   commission_tier1_max: number;
   commission_tier1_pct: number;
@@ -23,22 +25,35 @@ export function commissionAmount(monthlyRevenue: number, t: CommissionTiers): nu
 }
 
 /**
- * Deposit-method fees deducted before commission is calculated.
+ * Default deposit-method fees deducted before commission is calculated.
  * Wire -15%, Card -25%, Crypto -0%.
  */
-export const METHOD_FEE_PCT: Record<string, number> = {
+export const DEFAULT_METHOD_FEE_PCT: Record<string, number> = {
   wire: 15,
   card: 25,
   crypto: 0,
 };
 
-export function methodFeePct(method?: string | null): number {
+function feesFromSettings(settings?: CompanySettings): Record<string, number> {
+  if (!settings) return DEFAULT_METHOD_FEE_PCT;
+  return {
+    wire: settings.methodFeeWirePct,
+    card: settings.methodFeeCardPct,
+    crypto: settings.methodFeeCryptoPct,
+  };
+}
+
+export function methodFeePct(method?: string | null, settings?: CompanySettings): number {
   if (!method) return 0;
-  return METHOD_FEE_PCT[String(method).toLowerCase()] ?? 0;
+  return feesFromSettings(settings)[String(method).toLowerCase()] ?? 0;
 }
 
 /** Revenue amount that commission is calculated on, after the method fee. */
-export function commissionableAmount(amount: number | string | null | undefined, method?: string | null): number {
+export function commissionableAmount(
+  amount: number | string | null | undefined,
+  method?: string | null,
+  settings?: CompanySettings,
+): number {
   const a = Number(amount) || 0;
-  return a * (1 - methodFeePct(method) / 100);
+  return a * (1 - methodFeePct(method, settings) / 100);
 }
