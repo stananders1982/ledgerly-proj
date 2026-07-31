@@ -16,7 +16,7 @@ import { usePagination, TablePagination } from "@/components/pagination";
 import { depositsByName, effectiveBalance, qualifiesAsFtd, isStd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
-import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
+import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
 
@@ -78,7 +78,7 @@ function PerformancePage() {
     queryKey: ["perf-revenue", start, end],
     queryFn: async () =>
       await fetchAll(() => sb.from("revenue")
-        .select("id,date,amount,employee_id,employee_id_2,split_pct")
+        .select("id,date,amount,method,employee_id,employee_id_2,split_pct")
         .gte("date", start).lte("date", end)),
   });
 
@@ -142,13 +142,16 @@ function PerformancePage() {
     return emps.map((emp: any) => {
       const team = String(emp.team ?? "R").toUpperCase();
 
-      const attributed = (revQ.data ?? []).reduce((s: number, r: any) => {
-        const amt = Number(r.amount || 0);
+      const share = (r: any, amt: number) => {
         const pct = Number(r.split_pct ?? 100);
-        if (r.employee_id === emp.id) return s + amt * (pct / 100);
-        if (r.employee_id_2 === emp.id) return s + amt * ((100 - pct) / 100);
-        return s;
-      }, 0);
+        if (r.employee_id === emp.id) return amt * (pct / 100);
+        if (r.employee_id_2 === emp.id) return amt * ((100 - pct) / 100);
+        return 0;
+      };
+      // Gross revenue attributed to the agent (display).
+      const attributed = (revQ.data ?? []).reduce((s: number, r: any) => s + share(r, Number(r.amount || 0)), 0);
+      // Commission base: deposit-method fee (wire 15%, card 25%, crypto 0%) deducted first.
+      const commBase = (revQ.data ?? []).reduce((s: number, r: any) => s + share(r, commissionableAmount(r.amount, r.method)), 0);
 
       const wds = (withQ.data ?? []).filter((w: any) => w.employee_id === emp.id);
       const withdrawn = wds.reduce((s: number, w: any) => s + Number(w.amount || 0), 0);
@@ -161,8 +164,8 @@ function PerformancePage() {
         commission_tier2_pct: Number(emp.commission_tier2_pct),
         commission_tier3_pct: Number(emp.commission_tier3_pct),
       };
-      const commission = team === "R" ? commissionAmount(attributed, tiers) : 0;
-      const rate = commissionRate(attributed, tiers);
+      const commission = team === "R" ? commissionAmount(commBase, tiers) : 0;
+      const rate = commissionRate(commBase, tiers);
 
       const att = (attQ.data ?? []).filter((a: any) => a.employee_id === emp.id);
       const absent = att.filter((a: any) => !a.present).length;

@@ -492,6 +492,7 @@ function RevenueDialog({
               <SelectItem value="_none">None</SelectItem>
               <SelectItem value="card">Card</SelectItem>
               <SelectItem value="wire">Wire</SelectItem>
+              <SelectItem value="crypto">Crypto</SelectItem>
             </SelectContent>
           </Select>
         </Field>
