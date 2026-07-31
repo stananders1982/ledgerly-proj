@@ -592,6 +592,7 @@ function ActivationsPage() {
                   </td>
 
                   <td className="py-3 px-4"><PotentialBadge value={r.potential} /></td>
+                  <td className="py-3 px-4"><TagBadges tags={r.tags} /></td>
                   <td className="py-3 px-4"><StdBadge count={stdCountFor(r)} /></td>
                   <td className="py-3 px-4"><EmployeeLink id={r.conversion_employee_id} name={employeeName(r.conversion_employee_id)} /></td>
                   <td className="py-3 px-4"><EmployeeLink id={r.employee_id} name={employeeName(r.employee_id)} /></td>
