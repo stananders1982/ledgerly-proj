@@ -155,6 +155,8 @@ function RevenuePage() {
         employee_id_2: v.employee_id_2 || null,
         split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
         notes: v.notes || null,
+        // Direct link to the client record, so renaming a client keeps history intact.
+        activation_id: v.activation_id || null,
       };
       const { error } = v.id
         ? await supabase.from("revenue").update(payload).eq("id", v.id)
@@ -368,15 +370,16 @@ function RevenueDialog({
     employee_id_2: rev?.employee_id_2 ?? "",
     split_pct: rev?.split_pct ?? 50,
     notes: rev?.notes ?? "",
+    activation_id: rev?.activation_id ?? "",
   }));
   const hasSplit = !!form.employee_id_2;
-  const [activationId, setActivationId] = useState("");
+  const [activationId, setActivationId] = useState(rev?.activation_id ?? "");
   const [manual, setManual] = useState(false);
   const picked = activations.find((x: any) => x.id === activationId);
   const detailsHidden = !!picked && !manual;
 
   const pickActivation = (id: string) => {
-    if (id === "_none") { setActivationId(""); return; }
+    if (id === "_none") { setActivationId(""); setForm((f) => ({ ...f, activation_id: "" })); return; }
     setActivationId(id);
     setManual(false);
     const a = activations.find((x) => x.id === id);
@@ -385,6 +388,7 @@ function RevenueDialog({
     const aff = sourceName ? affiliates.find((f: any) => f.name === sourceName) : undefined;
     setForm((f) => ({
       ...f,
+      activation_id: a.id,
       customer_name: a.lead_name ?? f.customer_name,
       employee_id: a.employee_id || f.employee_id,
       affiliate_id: aff?.id ?? f.affiliate_id,
