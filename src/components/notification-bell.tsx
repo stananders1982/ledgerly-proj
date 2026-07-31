@@ -43,6 +43,20 @@ export function NotificationBell() {
     },
   });
 
+  const openNotification = (n: Notification) => {
+    if (n.lead_activation_id) {
+      navigate({ to: "/activations", search: { client: n.lead_activation_id } });
+      return;
+    }
+    if (n.lead_name) {
+      navigate({ to: "/activations", search: { name: n.lead_name } });
+      return;
+    }
+    // Fallback so every notification leads somewhere useful.
+    if (n.type === "revenue") navigate({ to: "/revenue" });
+    else navigate({ to: "/activations", search: {} });
+  };
+
   useEffect(() => {
     const channel = supabase
       .channel("notifications-feed")
@@ -51,18 +65,14 @@ export function NotificationBell() {
         { event: "INSERT", schema: "public", table: "notifications" },
         (payload) => {
           const n = payload.new as Notification;
-          const go = () =>
-            navigate({
-              to: "/activations",
-              search: n.lead_activation_id
-                ? { client: n.lead_activation_id }
-                : n.lead_name
-                  ? { name: n.lead_name }
-                  : {},
-            });
           const opts = {
             description: n.body ?? undefined,
-            action: { label: "View client", onClick: go },
+            action: {
+              label: n.lead_activation_id || n.lead_name ? "View client" : "View",
+              onClick: () => openNotification(n),
+            },
+            onClick: () => openNotification(n),
+            className: "cursor-pointer",
           };
           if (n.type === "revenue") toast.success(n.title, opts);
           else toast.warning(n.title, opts);
@@ -125,19 +135,12 @@ export function NotificationBell() {
             {items.map((n) => (
               <button
                 key={n.id}
-                className={`w-full border-b border-border/50 px-3 py-2 text-left last:border-0 hover:bg-muted/50 ${
+                className={`w-full cursor-pointer border-b border-border/50 px-3 py-2 text-left last:border-0 hover:bg-muted/50 ${
                   n.read_at ? "opacity-70" : ""
                 }`}
                 onClick={async () => {
                   await markRead([n.id]);
-                  navigate({
-                    to: "/activations",
-                    search: n.lead_activation_id
-                      ? { client: n.lead_activation_id }
-                      : n.lead_name
-                        ? { name: n.lead_name }
-                        : {},
-                  });
+                  openNotification(n);
                 }}
               >
                 <div className="flex items-start gap-2">
