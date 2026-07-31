@@ -279,7 +279,6 @@ function RevenuePage() {
                     affiliateId={r.affiliate_id}
                     onEdit={() => { setEditing(r); setOpen(true); }}
                     onDelete={() => del.mutate(r.id)}
-                    onToggleReconcile={(on) => reconcile.mutate({ id: r.id, on })}
                   />
                 ))}
               </tbody>
@@ -301,7 +300,6 @@ function RevenueRow({
   affiliateId,
   onEdit,
   onDelete,
-  onToggleReconcile,
 }: {
   revenue: any;
   employeeName?: string;
@@ -310,7 +308,6 @@ function RevenueRow({
   affiliateId?: string | null;
   onEdit: () => void;
   onDelete: () => void;
-  onToggleReconcile: (on: boolean) => void;
 }) {
   return (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
@@ -334,12 +331,6 @@ function RevenueRow({
                       ) : (
                         <span className="text-muted-foreground">{affiliateName || "—"}</span>
                       )}
-                    </td>
-                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Checkbox checked={!!r.reconciled_at} onCheckedChange={(c) => onToggleReconcile(Boolean(c))} />
-                        {r.reconciled_at ? fmtDate(String(r.reconciled_at).slice(0, 10)) : "Open"}
-                      </label>
                     </td>
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={onDelete} label="Delete revenue?" />
