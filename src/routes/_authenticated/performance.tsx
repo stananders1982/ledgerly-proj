@@ -12,11 +12,12 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { FTD_COMMISSION, effectiveBalance, qualifiesAsFtd } from "@/lib/rules";
 import { fmtMoney } from "@/lib/format";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
-const FTD_COMMISSION = 100;
+
 
 export const Route = createFileRoute("/_authenticated/performance")({
   head: () => ({
@@ -167,8 +168,8 @@ function PerformancePage() {
       let ftds = 0;
       let pendingFtds = 0;
       for (const a of mine) {
-        const eff = Number(a.balance || 0) + (deposits.get((a.lead_name ?? "").trim().toLowerCase()) ?? 0);
-        const ok = !!a.answered && (a.potential === "mid" || a.potential === "high" || eff >= 251);
+        const eff = effectiveBalance(a, deposits);
+        const ok = qualifiesAsFtd(a, eff);
         if (ok) ftds++;
         else pendingFtds++;
       }

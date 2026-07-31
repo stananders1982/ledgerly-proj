@@ -11,12 +11,13 @@ import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { FTD_COMMISSION, FTD_BALANCE_THRESHOLD, depositsByName, effectiveBalance, qualifiesAsFtd, ftdPendingReason } from "@/lib/rules";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
 
 /** Flat commission paid to the conversion agent per qualifying FTD. */
-const FTD_COMMISSION = 100;
+
 
 export const Route = createFileRoute("/_authenticated/employees/$id")({
   head: () => ({ meta: [{ title: "Employee — Ledgerly" }] }),
@@ -143,20 +144,11 @@ function EmployeeDetailPage() {
 
 
   const conversions = useMemo(() => {
-    const deposits = new Map<string, number>();
-    for (const r of depositsQ.data ?? []) {
-      const k = (r.customer_name ?? "").trim().toLowerCase();
-      if (!k) continue;
-      deposits.set(k, (deposits.get(k) ?? 0) + Number(r.amount || 0));
-    }
+    const deposits = depositsByName(depositsQ.data ?? []);
     const all = ((conversionsQ.data ?? []) as any[]).map((r) => {
-      const effectiveBalance =
-        Number(r.balance || 0) + (deposits.get((r.lead_name ?? "").trim().toLowerCase()) ?? 0);
-      const qualifies =
-        !!r.answered &&
-        (r.potential === "mid" || r.potential === "high" || effectiveBalance >= 251);
-      const reason = !r.answered ? "Not answered yet" : "Low potential under $251";
-      return { ...r, effectiveBalance, qualifies, reason };
+      const bal = effectiveBalance(r, deposits);
+      const qualifies = qualifiesAsFtd(r, bal);
+      return { ...r, effectiveBalance: bal, qualifies, reason: ftdPendingReason(r, bal) };
     });
     return { all, counted: all.filter((r) => r.qualifies), pending: all.filter((r) => !r.qualifies) };
   }, [conversionsQ.data, depositsQ.data]);

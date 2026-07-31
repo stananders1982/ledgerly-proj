@@ -23,9 +23,10 @@ import { StatCard } from "@/components/stat-card";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { withdrawalPenalty } from "@/lib/rules";
 
 const sb = supabase as any;
-const PENALTY_RATE = 0.1;
+
 
 export const Route = createFileRoute("/_authenticated/withdrawals")({
   head: () => ({ meta: [{ title: "Withdrawals — Ledgerly" }] }),
@@ -124,7 +125,7 @@ function WithdrawalsPage() {
         split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
         affiliate_id: v.affiliate_id || null,
         amount,
-        employee_penalty: +(amount * PENALTY_RATE).toFixed(2),
+        employee_penalty: +withdrawalPenalty(amount).toFixed(2),
         date: v.date,
         notes: v.notes || null,
       };
@@ -284,7 +285,7 @@ function WithdrawalDialog({
     notes: row?.notes ?? "",
   }));
 
-  const penaltyPreview = (Number(form.amount) || 0) * PENALTY_RATE;
+  const penaltyPreview = withdrawalPenalty(form.amount);
   const hasSplit = !!form.employee_id_2;
 
   const onPickRevenue = (id: string) => {
