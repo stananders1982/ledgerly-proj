@@ -276,6 +276,7 @@ function RevenuePage() {
                   <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Employee" k="employee" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <th className="py-3 px-4">Reconciled</th>
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
@@ -290,6 +291,7 @@ function RevenuePage() {
                     affiliateId={r.affiliate_id}
                     onEdit={() => { setEditing(r); setOpen(true); }}
                     onDelete={() => del.mutate(r.id)}
+                    onToggleReconcile={(on) => reconcile.mutate({ id: r.id, on })}
                   />
                 ))}
               </tbody>
