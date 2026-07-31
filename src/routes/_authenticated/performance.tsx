@@ -285,7 +285,7 @@ function PerformancePage() {
                 subtitle={`Team ${r.team ?? "C"}`}
                 fields={[
                   { label: "FTDs", value: <span className="num">{r.ftds}</span> },
-                  { label: "STDs", value: <span className="num">{r.stds}</span> },
+                  { label: "STDs", value: <span className="num">{r.team === "R" ? `${r.stds}${r.clients > 0 ? ` (${r.stdPct.toFixed(1)}%)` : ""}` : "—"}</span> },
                   { label: "Clients", value: <span className="num">{r.clients}</span> },
                   { label: "Revenue", value: <span className="num">{fmtMoney(r.attributed)}</span> },
                   { label: "Net payout", value: <span className="num font-medium">{fmtMoney(r.payout)}</span> },
@@ -300,7 +300,7 @@ function PerformancePage() {
                   <SortTh label="Agent" k="name" sort={sort} toggle={toggle} />
                   <SortTh label="Dept" k="team" sort={sort} toggle={toggle} />
                   <SortTh label="FTDs" k="ftds" sort={sort} toggle={toggle} />
-                  <SortTh label="STDs" k="stds" sort={sort} toggle={toggle} />
+                  <SortTh label="STDs (% clients)" k="stds" sort={sort} toggle={toggle} />
                   <SortTh label="Clients" k="clients" sort={sort} toggle={toggle} />
                   <SortTh label="Revenue" k="attributed" sort={sort} toggle={toggle} />
                   <SortTh label="Commission" k="commission" sort={sort} toggle={toggle} />
