@@ -95,6 +95,7 @@ function ActivationsPage() {
   const [stdFilter, setStdFilter] = useState<"all" | "yes" | "no">("all");
   const [search, setSearch] = useState("");
   const [dupOnly, setDupOnly] = useState(false);
+  const [tagFilter, setTagFilter] = useState<string>("all");
 
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
