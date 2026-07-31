@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useAuth } from "@/lib/auth-context";
 import { CompanySwitcher } from "@/components/company-switcher";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { NAV_GROUPS, NAV_ITEMS, type NavGroup } from "@/lib/nav-items";
 import { cn } from "@/lib/utils";
 
@@ -138,7 +139,8 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
         )}
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="space-y-1">
+        <ThemeToggle collapsed={collapsed} />
         <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={() => signOut()}>
           <LogOut className="h-4 w-4" /> {!collapsed && "Sign out"}
         </Button>

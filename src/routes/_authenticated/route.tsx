@@ -17,7 +17,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, UserCircle, Search as SearchIcon } from "lucide-react";
+import { LogOut, UserCircle, Search as SearchIcon, Keyboard } from "lucide-react";
+import { KeyboardShortcutsPanel, useKeyboardShortcutsPanel } from "@/components/keyboard-shortcuts";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -29,6 +30,7 @@ function ProtectedLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const palette = useCommandPalette();
+  const shortcuts = useKeyboardShortcutsPanel();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: pathname }, replace: true });
@@ -54,6 +56,7 @@ function ProtectedLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar onSearchClick={() => palette.setOpen(true)} />
         <CommandPalette open={palette.open} onOpenChange={palette.setOpen} />
+        <KeyboardShortcutsPanel open={shortcuts.open} onOpenChange={shortcuts.setOpen} />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 flex items-center gap-3 border-b border-border px-4 sticky top-0 z-10 bg-background/80 backdrop-blur">
             <SidebarTrigger />
@@ -84,6 +87,9 @@ function ProtectedLayout() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/profile"><UserCircle className="h-4 w-4 mr-2" /> Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => shortcuts.setOpen(true)}>
+                    <Keyboard className="h-4 w-4 mr-2" /> Shortcuts <kbd className="ml-auto text-[10px]">?</kbd>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={signOut}>
                     <LogOut className="h-4 w-4 mr-2" /> Sign out
