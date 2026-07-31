@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { FTD_COMMISSION, depositsByName, effectiveBalance, qualifiesAsFtd } from "@/lib/rules";
+import { depositsByName, effectiveBalance, qualifiesAsFtd } from "@/lib/rules";
+import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
 
@@ -163,11 +164,11 @@ function PerformancePage() {
       let pendingFtds = 0;
       for (const a of mine) {
         const eff = effectiveBalance(a, deposits);
-        const ok = qualifiesAsFtd(a, eff);
+        const ok = qualifiesAsFtd(a, eff, settings);
         if (ok) ftds++;
         else pendingFtds++;
       }
-      const ftdCommission = team === "C" ? ftds * FTD_COMMISSION : 0;
+      const ftdCommission = team === "C" ? ftds * settings.ftdCommission : 0;
 
       const payout = salary + (team === "R" ? commission - penalty : 0) + ftdCommission;
 

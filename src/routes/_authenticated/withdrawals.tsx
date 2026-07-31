@@ -25,6 +25,7 @@ import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { withdrawalPenalty } from "@/lib/rules";
+import { useCompanySettings } from "@/lib/settings";
 
 const sb = supabase as any;
 
@@ -125,7 +126,7 @@ function WithdrawalsPage() {
         split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
         affiliate_id: v.affiliate_id || null,
         amount,
-        employee_penalty: +withdrawalPenalty(amount).toFixed(2),
+        employee_penalty: +withdrawalPenalty(amount, settings).toFixed(2),
         date: v.date,
         notes: v.notes || null,
       };

@@ -26,6 +26,7 @@ import { CheckCircle2, PhoneCall, Wallet } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { qualifiesAsFtd, ftdPendingReasons } from "@/lib/rules";
+import { useCompanySettings } from "@/lib/settings";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -230,11 +231,11 @@ function ActivationsPage() {
       if (!id) continue;
       const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
       const bal = Number(r.balance || 0) + depositsFor(r.lead_name);
-      const qualifies = qualifiesAsFtd(r, bal);
+      const qualifies = qualifiesAsFtd(r, bal, settings);
       if (qualifies) e.count += 1;
       else {
         e.pending += 1;
-        e.pendingRows.push({ row: r, balance: bal, reasons: ftdPendingReasons(r, bal), agent: employeeName(id) });
+        e.pendingRows.push({ row: r, balance: bal, reasons: ftdPendingReasons(r, bal, settings), agent: employeeName(id) });
       }
       m.set(id, e);
     }
@@ -517,7 +518,7 @@ function ActivationsPage() {
           const depositTotal = deposits.reduce((a, d) => a + Number(d.amount || 0), 0);
           const wdTotal = wds.reduce((a, d) => a + Number(d.amount || 0), 0);
           const effective = Number(cur.balance || 0) + depositTotal;
-          const qualifies = qualifiesAsFtd(cur, effective);
+          const qualifies = qualifiesAsFtd(cur, effective, settings);
           return (
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto scroll-slim">
               <DialogHeader>
