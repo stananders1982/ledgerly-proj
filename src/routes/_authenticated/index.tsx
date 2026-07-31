@@ -104,6 +104,31 @@ function Dashboard() {
     queryKey: ["dash-emp"],
     queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,salary,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active,created_at").eq("active", true)),
   });
+  // Previous period of the same length, for period-over-period deltas.
+  const prevRange = useMemo(() => {
+    const msPerDay = 86_400_000;
+    const span = Math.max(1, Math.round((range.end.getTime() - range.start.getTime()) / msPerDay) + 1);
+    const end = new Date(range.start); end.setDate(end.getDate() - 1);
+    const start = new Date(end); start.setDate(start.getDate() - (span - 1));
+    return { start: iso(start), end: iso(end) };
+  }, [startIso, endIso]);
+
+  const prevRevQ = useQuery({
+    queryKey: ["dash-rev-prev", prevRange.start, prevRange.end],
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("amount").gte("date", prevRange.start).lte("date", prevRange.end)),
+  });
+  const prevExpQ = useQuery({
+    queryKey: ["dash-exp-prev", prevRange.start, prevRange.end],
+    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("amount").gte("date", prevRange.start).lte("date", prevRange.end)),
+  });
+  const prevLeadsQ = useQuery({
+    queryKey: ["dash-leads-prev", prevRange.start, prevRange.end],
+    queryFn: async () => await fetchAll(() => supabase
+      .from("daily_lead_entries")
+      .select("received,activated,reported,lead_sources(pricing_model,price)")
+      .gte("entry_date", prevRange.start).lte("entry_date", prevRange.end)),
+  });
+
   const recQ = useQuery({
     queryKey: ["dash-recurring"],
     queryFn: async () => await fetchAll(() => supabase.from("recurring_expenses").select("amount,frequency,next_due_date,active,end_date").eq("active", true)),
@@ -262,6 +287,30 @@ function Dashboard() {
   }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, range.start, range.end]);
 
 
+  const prev = useMemo(() => {
+    const rev = (prevRevQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const otherExp = (prevExpQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    let received = 0, activated = 0, leadCost = 0;
+    for (const e of (prevLeadsQ.data ?? []) as any[]) {
+      received += e.received ?? 0;
+      activated += e.activated ?? 0;
+      const src = e.lead_sources;
+      if (src) {
+        const p = Number(src.price) || 0;
+        leadCost += src.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
+      }
+    }
+    // Salaries/commissions are period-scaled the same way, so compare the
+    // variable part plus the same fixed baseline for a like-for-like delta.
+    const expTotal = otherExp + leadCost + m.salaries + m.commissions;
+    return {
+      income: rev,
+      expTotal,
+      profit: rev - expTotal,
+      rate: received ? (activated / received) * 100 : 0,
+    };
+  }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions]);
+
   const insights = useMemo(() => buildInsights(m), [m]);
 
   return (
@@ -297,6 +346,7 @@ function Dashboard() {
           tone={m.profit >= 0 ? "green" : "red"}
           icon={TrendingUp}
           sub={`ROI ${m.roi.toFixed(1)}%`}
+          delta={pctChange(m.profit, prev.profit)}
           data={m.series.map((s) => ({ v: s.profit }))}
           primary
           to="/reports"
@@ -307,6 +357,7 @@ function Dashboard() {
           tone="blue"
           icon={DollarSign}
           sub={rangeLabel}
+          delta={pctChange(m.income, prev.income)}
           data={m.series.map((s) => ({ v: s.revenue }))}
           to="/revenue"
         />
@@ -316,6 +367,8 @@ function Dashboard() {
           tone="red"
           icon={TrendingDown}
           sub={`Lead cost ${fmtMoney(m.leadCost)}`}
+          delta={pctChange(m.expTotal, prev.expTotal)}
+          invertDelta
           data={m.series.map((s) => ({ v: s.expenses }))}
           to="/expenses"
         />
@@ -325,6 +378,7 @@ function Dashboard() {
           tone={m.rate >= m.expectedRate ? "green" : "amber"}
           icon={Target}
           sub={`Target ${m.expectedRate.toFixed(1)}%`}
+          delta={pctChange(m.rate, prev.rate)}
           data={m.series.map((s) => ({ v: s.received ? (s.activated / s.received) * 100 : 0 }))}
           to="/leads"
         />
@@ -467,11 +521,18 @@ function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
   );
 }
 
+// Percent change vs. the previous period; null when there is nothing to compare.
+function pctChange(current: number, previous: number): number | null {
+  if (!previous) return null;
+  return ((current - previous) / Math.abs(previous)) * 100;
+}
+
 function HeroCard({
-  label, value, sub, tone, icon: Icon, data, primary, to,
+  label, value, sub, tone, icon: Icon, data, primary, to, delta, invertDelta,
 }: {
   label: string; value: string; sub?: string; tone: Tone;
   icon: typeof DollarSign; data: { v: number }[]; primary?: boolean; to?: string;
+  delta?: number | null; invertDelta?: boolean;
 }) {
   const t = toneStyles[tone];
   const content = (
@@ -486,7 +547,22 @@ function HeroCard({
       <div className="h-12 -mx-1">
         <Sparkline data={data} tone={tone} />
       </div>
-      {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        {delta != null && (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium",
+              (invertDelta ? delta <= 0 : delta >= 0)
+                ? "bg-emerald-500/15 text-emerald-300"
+                : "bg-rose-500/15 text-rose-300",
+            )}
+          >
+            {delta >= 0 ? "+" : ""}{delta.toFixed(1)}%
+          </span>
+        )}
+        {sub && <span>{sub}</span>}
+        {delta != null && <span className="hidden sm:inline">vs. prev.</span>}
+      </div>
     </>
   );
   const className = cn("glass-surface glass-hover p-5 flex flex-col gap-3 overflow-hidden relative", t.glow, primary && "md:col-span-2 xl:col-span-1");

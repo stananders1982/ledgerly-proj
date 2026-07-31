@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { FTD_COMMISSION, depositsByName, effectiveBalance, qualifiesAsFtd } from "@/lib/rules";
+import { depositsByName, effectiveBalance, qualifiesAsFtd } from "@/lib/rules";
+import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
 
@@ -58,6 +59,7 @@ const TEAM_RANK: Record<string, number> = { C: 0, R: 1, M: 2 };
 const TEAM_LABEL: Record<string, string> = { C: "Conversion", R: "Retention", M: "Marketing" };
 
 function PerformancePage() {
+  const settings = useCompanySettings();
   const navigate = useNavigate();
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [search, setSearch] = useState("");
@@ -163,11 +165,11 @@ function PerformancePage() {
       let pendingFtds = 0;
       for (const a of mine) {
         const eff = effectiveBalance(a, deposits);
-        const ok = qualifiesAsFtd(a, eff);
+        const ok = qualifiesAsFtd(a, eff, settings);
         if (ok) ftds++;
         else pendingFtds++;
       }
-      const ftdCommission = team === "C" ? ftds * FTD_COMMISSION : 0;
+      const ftdCommission = team === "C" ? ftds * settings.ftdCommission : 0;
 
       const payout = salary + (team === "R" ? commission - penalty : 0) + ftdCommission;
 
@@ -193,7 +195,7 @@ function PerformancePage() {
     })
     .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()))
     .sort((a, b) => (TEAM_RANK[a.team] ?? 3) - (TEAM_RANK[b.team] ?? 3) || a.name.localeCompare(b.name));
-  }, [empQ.data, revQ.data, withQ.data, attQ.data, actQ.data, depositsQ.data, start, end, search]);
+  }, [empQ.data, revQ.data, withQ.data, attQ.data, actQ.data, depositsQ.data, start, end, search, settings]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     name: (r) => r.name,

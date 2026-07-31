@@ -26,6 +26,7 @@ import { CheckCircle2, PhoneCall, Wallet } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { qualifiesAsFtd, ftdPendingReasons } from "@/lib/rules";
+import { useCompanySettings } from "@/lib/settings";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -68,6 +69,7 @@ function PotentialBadge({ value }: { value: Row["potential"] }) {
 }
 
 function ActivationsPage() {
+  const settings = useCompanySettings();
   const qc = useQueryClient();
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");
@@ -132,10 +134,11 @@ function ActivationsPage() {
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("revenue")
-        .select("id, customer_name, amount, date, notes, employee_id, affiliate_id")
+        .select("id, activation_id, customer_name, amount, date, notes, employee_id, affiliate_id")
         .order("date", { ascending: false }));
       return (data ?? []) as {
         id: string;
+        activation_id: string | null;
         customer_name: string | null;
         amount: number;
         date: string;
@@ -175,8 +178,10 @@ function ActivationsPage() {
   const matchName = (a?: string | null, b?: string | null) =>
     !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 
-  const depositRowsFor = (name?: string | null) =>
-    (revenueQ.data ?? []).filter((r) => matchName(r.customer_name, name));
+  // Prefer the direct activation link; fall back to name for older records.
+  const depositRowsFor = (name?: string | null, activationId?: string | null) =>
+    (revenueQ.data ?? []).filter((r) =>
+      r.activation_id ? r.activation_id === activationId : matchName(r.customer_name, name));
 
   const withdrawalRowsFor = (name?: string | null) =>
     (withdrawalsQ.data ?? []).filter((w) => matchName(w.customer_name, name));
@@ -230,18 +235,18 @@ function ActivationsPage() {
       if (!id) continue;
       const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
       const bal = Number(r.balance || 0) + depositsFor(r.lead_name);
-      const qualifies = qualifiesAsFtd(r, bal);
+      const qualifies = qualifiesAsFtd(r, bal, settings);
       if (qualifies) e.count += 1;
       else {
         e.pending += 1;
-        e.pendingRows.push({ row: r, balance: bal, reasons: ftdPendingReasons(r, bal), agent: employeeName(id) });
+        e.pendingRows.push({ row: r, balance: bal, reasons: ftdPendingReasons(r, bal, settings), agent: employeeName(id) });
       }
       m.set(id, e);
     }
     return [...m.entries()]
       .map(([id, v]) => ({ id, name: employeeName(id), ...v, total: v.count + v.pending }))
       .sort((a, b) => b.count - a.count);
-  }, [rows, employeesQ.data]);
+  }, [rows, employeesQ.data, settings]);
 
   const conversionTotals = useMemo(
     () => ({
@@ -275,6 +280,31 @@ function ActivationsPage() {
       qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
       toast.success("Saved");
       setEditing(null);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const bulkUpdate = useMutation({
+    mutationFn: async (patch: { answered?: boolean; potential?: string }) => {
+      const ids = [...selected];
+      if (!ids.length) return 0;
+      const { error } = await supabase.from("daily_lead_activations").update(patch as any).in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["activated-leads"] });
+      qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
+      setSelected(new Set());
+      if (count) toast.success(`Updated ${count} client${count === 1 ? "" : "s"}`);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -332,7 +362,7 @@ function ActivationsPage() {
       <div className="mb-6 rounded-lg border border-border">
         <div className="border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">Conversions by agent</h2>
-          <p className="text-xs text-muted-foreground">Counts qualified FTDs: answered and (mid/high potential or balance over $250). Everything else is pending.</p>
+          <p className="text-xs text-muted-foreground">{`Counts qualified FTDs: answered and (mid/high potential or balance of $${settings.ftdBalanceThreshold}+). Everything else is pending.`}</p>
         </div>
         {conversionsByAgent.length === 0 ? (
           <p className="px-4 py-6 text-sm text-muted-foreground">No conversions in this range.</p>
@@ -393,9 +423,31 @@ function ActivationsPage() {
       </div>
 
 
+      {selected.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-2.5 text-sm">
+          <span className="font-medium">{selected.size} selected</span>
+          <div className="flex-1" />
+          <Button size="sm" variant="outline" disabled={bulkUpdate.isPending} onClick={() => bulkUpdate.mutate({ answered: true })}>
+            Mark answered
+          </Button>
+          <Button size="sm" variant="outline" disabled={bulkUpdate.isPending} onClick={() => bulkUpdate.mutate({ answered: false })}>
+            Mark unanswered
+          </Button>
+          <Select onValueChange={(v) => bulkUpdate.mutate({ potential: v })}>
+            <SelectTrigger className="h-8 w-[150px]"><SelectValue placeholder="Set potential" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="mid">Mid</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
+        </div>
+      )}
+
       <div className="rounded-lg border border-border overflow-hidden">
         {q.isLoading ? (
-          <TableSkeleton cols={8} />
+          <TableSkeleton cols={9} />
         ) : rows.length === 0 ? (
           <EmptyState icon={CheckCircle2} title="No clients" description="Activated leads logged on the Leads page appear here." />
         ) : (
@@ -420,6 +472,19 @@ function ActivationsPage() {
           <table className="w-full text-sm">
             <thead className="table-head bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>
+                <th className="py-3 px-4 w-10">
+                  <Checkbox
+                    checked={pageItems.length > 0 && pageItems.every((r: any) => selected.has(r.id))}
+                    onCheckedChange={(c) =>
+                      setSelected((prev) => {
+                        const next = new Set(prev);
+                        pageItems.forEach((r: any) => (c ? next.add(r.id) : next.delete(r.id)));
+                        return next;
+                      })
+                    }
+                    aria-label="Select all on page"
+                  />
+                </th>
                 <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -437,6 +502,9 @@ function ActivationsPage() {
                   className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                   onClick={() => setViewing(r)}
                 >
+                  <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleSelected(r.id)} aria-label="Select client" />
+                  </td>
                   <td className="py-3 px-4">{r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : "—"}</td>
                   <td className="py-3 px-4 font-medium">{r.lead_name || "—"}</td>
                   <td className="py-3 px-4">{r.daily_lead_entries?.lead_sources?.name ?? "—"}</td>
@@ -512,12 +580,12 @@ function ActivationsPage() {
       <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null); }}>
         {viewing && (() => {
           const cur = (q.data ?? []).find((r) => r.id === viewing.id) ?? viewing;
-          const deposits = depositRowsFor(cur.lead_name);
+          const deposits = depositRowsFor(cur.lead_name, cur.id);
           const wds = withdrawalRowsFor(cur.lead_name);
           const depositTotal = deposits.reduce((a, d) => a + Number(d.amount || 0), 0);
           const wdTotal = wds.reduce((a, d) => a + Number(d.amount || 0), 0);
           const effective = Number(cur.balance || 0) + depositTotal;
-          const qualifies = qualifiesAsFtd(cur, effective);
+          const qualifies = qualifiesAsFtd(cur, effective, settings);
           return (
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto scroll-slim">
               <DialogHeader>

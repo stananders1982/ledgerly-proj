@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { FTD_COMMISSION, FTD_BALANCE_THRESHOLD, depositsByName, effectiveBalance, qualifiesAsFtd, ftdPendingReason } from "@/lib/rules";
+import { depositsByName, effectiveBalance, qualifiesAsFtd, ftdPendingReason } from "@/lib/rules";
+import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
@@ -46,6 +47,7 @@ function workingDays(startISO: string, endISO: string) {
 }
 
 function EmployeeDetailPage() {
+  const settings = useCompanySettings();
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
@@ -145,11 +147,11 @@ function EmployeeDetailPage() {
     const deposits = depositsByName(depositsQ.data ?? []);
     const all = ((conversionsQ.data ?? []) as any[]).map((r) => {
       const bal = effectiveBalance(r, deposits);
-      const qualifies = qualifiesAsFtd(r, bal);
-      return { ...r, effectiveBalance: bal, qualifies, reason: ftdPendingReason(r, bal) };
+      const qualifies = qualifiesAsFtd(r, bal, settings);
+      return { ...r, effectiveBalance: bal, qualifies, reason: ftdPendingReason(r, bal, settings) };
     });
     return { all, counted: all.filter((r) => r.qualifies), pending: all.filter((r) => !r.qualifies) };
-  }, [conversionsQ.data, depositsQ.data]);
+  }, [conversionsQ.data, depositsQ.data, settings]);
 
   const conversionRows = useMemo(() => [...conversions.counted, ...conversions.pending], [conversions]);
   const { pageItems: convPage, ...pgConv } = usePagination(conversionRows, 30);
@@ -197,7 +199,7 @@ function EmployeeDetailPage() {
     const salary = Math.max(0, Number(emp?.salary ?? 0) - deduction);
 
     const ftdCount = isConversion ? conversions.counted.length : 0;
-    const ftdCommission = ftdCount * FTD_COMMISSION;
+    const ftdCommission = ftdCount * settings.ftdCommission;
 
     const payout = salary + (isRetention ? commission - penalty : 0) + ftdCommission;
 
@@ -205,7 +207,7 @@ function EmployeeDetailPage() {
     const revenuePerClient = clients > 0 ? attributed / clients : 0;
 
     return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission };
-  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention]);
+  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention, settings]);
 
   if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
   if (!emp) return (
@@ -239,7 +241,7 @@ function EmployeeDetailPage() {
         {isConversion && (
           <>
             <StatCard label="FTDs (activations)" value={String(conversions.counted.length)} tone="positive" />
-            <StatCard label={`FTD commission ($${FTD_COMMISSION}/FTD)`} value={fmtMoney(totals.ftdCommission)} tone="positive" />
+            <StatCard label={`FTD commission ($${settings.ftdCommission}/FTD)`} value={fmtMoney(totals.ftdCommission)} tone="positive" />
           </>
         )}
         <StatCard label="Salary after absences" value={fmtMoney(totals.salary)} />
@@ -403,7 +405,7 @@ function EmployeeDetailPage() {
             </>
           )}
           {isConversion && (
-            <Row label={`FTD commission (${totals.ftdCount} × ${fmtMoney(FTD_COMMISSION)})`} value={`+${fmtMoney(totals.ftdCommission)}`} positive />
+            <Row label={`FTD commission (${totals.ftdCount} × ${fmtMoney(settings.ftdCommission)})`} value={`+${fmtMoney(totals.ftdCommission)}`} positive />
           )}
           <div className="flex justify-between py-3 mt-2 border-t border-border font-display text-lg font-semibold">
             <span>Net payout</span>

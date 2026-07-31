@@ -5,17 +5,16 @@
  * FTD counts, pending counts and balances always agree across the app.
  */
 
-/** A client only counts as an FTD once the effective balance clears this. */
-export const FTD_BALANCE_THRESHOLD = 251;
+import { DEFAULT_SETTINGS, type CompanySettings } from "./settings";
 
-/** Default balance credited when a lead is activated. */
-export const DEFAULT_ACTIVATION_BALANCE = 250;
-
-/** Commission paid to the conversion agent for each qualified FTD. */
-export const FTD_COMMISSION = 100;
-
-/** Share of every withdrawal deducted from the responsible agent. */
-export const WITHDRAWAL_PENALTY_PCT = 10;
+/**
+ * These are the platform defaults. Prefer `useCompanySettings()` in pages and
+ * pass the result in — every rule below accepts an optional settings object.
+ */
+export const FTD_BALANCE_THRESHOLD = DEFAULT_SETTINGS.ftdBalanceThreshold;
+export const DEFAULT_ACTIVATION_BALANCE = DEFAULT_SETTINGS.defaultActivationBalance;
+export const FTD_COMMISSION = DEFAULT_SETTINGS.ftdCommission;
+export const WITHDRAWAL_PENALTY_PCT = DEFAULT_SETTINGS.withdrawalPenaltyPct;
 
 export type PotentialValue = "low" | "mid" | "high" | null | undefined;
 
@@ -53,52 +52,65 @@ export function effectiveBalance(row: ActivationLike, deposits: Map<string, numb
  * FTD rule: the lead must have answered, and either be mid/high potential or
  * have deposited beyond the default activation balance.
  */
-export function qualifiesAsFtd(row: ActivationLike, balance: number): boolean {
+export function qualifiesAsFtd(
+  row: ActivationLike,
+  balance: number,
+  settings: CompanySettings = DEFAULT_SETTINGS,
+): boolean {
   return (
     !!row.answered &&
-    (row.potential === "mid" || row.potential === "high" || balance >= FTD_BALANCE_THRESHOLD)
+    (row.potential === "mid" || row.potential === "high" || balance >= settings.ftdBalanceThreshold)
   );
 }
 
 /** Human-readable reasons a lead has not yet become a qualified FTD. */
-export function ftdPendingReasons(row: ActivationLike, balance: number): string[] {
+export function ftdPendingReasons(
+  row: ActivationLike,
+  balance: number,
+  settings: CompanySettings = DEFAULT_SETTINGS,
+): string[] {
   const reasons: string[] = [];
+  const threshold = settings.ftdBalanceThreshold;
   if (!row.answered) reasons.push("Not answered yet");
-  if (
-    row.potential !== "mid" &&
-    row.potential !== "high" &&
-    balance < FTD_BALANCE_THRESHOLD
-  ) {
+  if (row.potential !== "mid" && row.potential !== "high" && balance < threshold) {
     reasons.push(
       row.potential === "low"
-        ? `Low potential and balance under $${FTD_BALANCE_THRESHOLD}`
-        : `No potential set and balance under $${FTD_BALANCE_THRESHOLD}`,
+        ? `Low potential and balance under $${threshold}`
+        : `No potential set and balance under $${threshold}`,
     );
   }
   return reasons;
 }
 
 /** Single-line variant of {@link ftdPendingReasons}. */
-export function ftdPendingReason(row: ActivationLike, balance: number): string {
-  return ftdPendingReasons(row, balance).join(" • ") || "Pending";
+export function ftdPendingReason(
+  row: ActivationLike,
+  balance: number,
+  settings: CompanySettings = DEFAULT_SETTINGS,
+): string {
+  return ftdPendingReasons(row, balance, settings).join(" • ") || "Pending";
 }
 
 /** Amount deducted from the agent for a given withdrawal amount. */
-export function withdrawalPenalty(amount: number | string | null | undefined): number {
-  return (Number(amount) || 0) * (WITHDRAWAL_PENALTY_PCT / 100);
+export function withdrawalPenalty(
+  amount: number | string | null | undefined,
+  settings: CompanySettings = DEFAULT_SETTINGS,
+): number {
+  return (Number(amount) || 0) * (settings.withdrawalPenaltyPct / 100);
 }
 
 /** Convenience: evaluate an activation row in one call. */
 export function evaluateActivation<T extends ActivationLike>(
   row: T,
   deposits: Map<string, number>,
+  settings: CompanySettings = DEFAULT_SETTINGS,
 ) {
   const balance = effectiveBalance(row, deposits);
-  const qualifies = qualifiesAsFtd(row, balance);
+  const qualifies = qualifiesAsFtd(row, balance, settings);
   return {
     row,
     balance,
     qualifies,
-    reasons: qualifies ? [] : ftdPendingReasons(row, balance),
+    reasons: qualifies ? [] : ftdPendingReasons(row, balance, settings),
   };
 }

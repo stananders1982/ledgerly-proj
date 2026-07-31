@@ -319,6 +319,44 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          company_id: string
+          created_at: string
+          default_activation_balance: number
+          ftd_balance_threshold: number
+          ftd_commission: number
+          updated_at: string
+          withdrawal_penalty_pct: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          default_activation_balance?: number
+          ftd_balance_threshold?: number
+          ftd_commission?: number
+          updated_at?: string
+          withdrawal_penalty_pct?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          default_activation_balance?: number
+          ftd_balance_threshold?: number
+          ftd_commission?: number
+          updated_at?: string
+          withdrawal_penalty_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_users: {
         Row: {
           company_id: string
@@ -986,6 +1024,7 @@ export type Database = {
       }
       revenue: {
         Row: {
+          activation_id: string | null
           affiliate_id: string | null
           amount: number
           company_id: string
@@ -1002,6 +1041,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          activation_id?: string | null
           affiliate_id?: string | null
           amount?: number
           company_id?: string
@@ -1018,6 +1058,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          activation_id?: string | null
           affiliate_id?: string | null
           amount?: number
           company_id?: string
@@ -1034,6 +1075,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "revenue_activation_id_fkey"
+            columns: ["activation_id"]
+            isOneToOne: false
+            referencedRelation: "daily_lead_activations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "revenue_affiliate_id_fkey"
             columns: ["affiliate_id"]
