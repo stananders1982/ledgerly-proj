@@ -319,6 +319,7 @@ function PerformancePage() {
                   <SortTh label="Absences" k="absent" sort={sort} toggle={toggle} />
                   <SortTh label="Salary" k="salary" sort={sort} toggle={toggle} />
                   <SortTh label="Net payout" k="payout" sort={sort} toggle={toggle} />
+                  <th className="py-3 px-4 text-left text-xs uppercase tracking-wider">Goals</th>
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
