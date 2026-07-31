@@ -135,19 +135,12 @@ export function NotificationBell() {
             {items.map((n) => (
               <button
                 key={n.id}
-                className={`w-full border-b border-border/50 px-3 py-2 text-left last:border-0 hover:bg-muted/50 ${
+                className={`w-full cursor-pointer border-b border-border/50 px-3 py-2 text-left last:border-0 hover:bg-muted/50 ${
                   n.read_at ? "opacity-70" : ""
                 }`}
                 onClick={async () => {
                   await markRead([n.id]);
-                  navigate({
-                    to: "/activations",
-                    search: n.lead_activation_id
-                      ? { client: n.lead_activation_id }
-                      : n.lead_name
-                        ? { name: n.lead_name }
-                        : {},
-                  });
+                  openNotification(n);
                 }}
               >
                 <div className="flex items-start gap-2">
