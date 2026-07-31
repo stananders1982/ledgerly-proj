@@ -56,6 +56,7 @@ const TEAM_RANK: Record<string, number> = { C: 0, R: 1, M: 2 };
 const TEAM_LABEL: Record<string, string> = { C: "Conversion", R: "Retention", M: "Marketing" };
 
 function PerformancePage() {
+  const navigate = useNavigate();
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [search, setSearch] = useState("");
   const { start, end } = monthRange(month);

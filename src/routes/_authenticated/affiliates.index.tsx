@@ -28,6 +28,7 @@ export const Route = createFileRoute("/_authenticated/affiliates/")({
 });
 
 function AffiliatesPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
   const affQ = useQuery({
