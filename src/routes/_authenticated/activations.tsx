@@ -134,10 +134,11 @@ function ActivationsPage() {
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("revenue")
-        .select("id, customer_name, amount, date, notes, employee_id, affiliate_id")
+        .select("id, activation_id, customer_name, amount, date, notes, employee_id, affiliate_id")
         .order("date", { ascending: false }));
       return (data ?? []) as {
         id: string;
+        activation_id: string | null;
         customer_name: string | null;
         amount: number;
         date: string;
@@ -177,8 +178,10 @@ function ActivationsPage() {
   const matchName = (a?: string | null, b?: string | null) =>
     !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 
-  const depositRowsFor = (name?: string | null) =>
-    (revenueQ.data ?? []).filter((r) => matchName(r.customer_name, name));
+  // Prefer the direct activation link; fall back to name for older records.
+  const depositRowsFor = (name?: string | null, activationId?: string | null) =>
+    (revenueQ.data ?? []).filter((r) =>
+      r.activation_id ? r.activation_id === activationId : matchName(r.customer_name, name));
 
   const withdrawalRowsFor = (name?: string | null) =>
     (withdrawalsQ.data ?? []).filter((w) => matchName(w.customer_name, name));
@@ -514,7 +517,7 @@ function ActivationsPage() {
       <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null); }}>
         {viewing && (() => {
           const cur = (q.data ?? []).find((r) => r.id === viewing.id) ?? viewing;
-          const deposits = depositRowsFor(cur.lead_name);
+          const deposits = depositRowsFor(cur.lead_name, cur.id);
           const wds = withdrawalRowsFor(cur.lead_name);
           const depositTotal = deposits.reduce((a, d) => a + Number(d.amount || 0), 0);
           const wdTotal = wds.reduce((a, d) => a + Number(d.amount || 0), 0);
