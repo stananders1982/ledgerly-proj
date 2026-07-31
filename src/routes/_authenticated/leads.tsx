@@ -590,7 +590,7 @@ function EntryDialog({
 
 
   return (
-    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto scroll-slim">
+    <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto scroll-slim">
       <DialogHeader><DialogTitle>{entry?.id ? "Edit entry" : "New daily entry"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
         <div className="grid grid-cols-2 gap-3">
