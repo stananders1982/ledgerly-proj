@@ -519,9 +519,7 @@ function ActivationsPage() {
           const depositTotal = deposits.reduce((a, d) => a + Number(d.amount || 0), 0);
           const wdTotal = wds.reduce((a, d) => a + Number(d.amount || 0), 0);
           const effective = Number(cur.balance || 0) + depositTotal;
-          const qualifies =
-            !!cur.answered &&
-            (cur.potential === "mid" || cur.potential === "high" || effective >= 251);
+          const qualifies = qualifiesAsFtd(cur, effective);
           return (
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto scroll-slim">
               <DialogHeader>
