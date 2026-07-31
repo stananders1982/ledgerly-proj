@@ -45,16 +45,16 @@ export function NotificationBell() {
 
   const openNotification = (n: Notification) => {
     if (n.lead_activation_id) {
-      navigate({ to: "/activations", search: { client: n.lead_activation_id } });
+      navigate({ to: "/activations", search: { client: n.lead_activation_id, name: undefined } });
       return;
     }
     if (n.lead_name) {
-      navigate({ to: "/activations", search: { name: n.lead_name } });
+      navigate({ to: "/activations", search: { client: undefined, name: n.lead_name } });
       return;
     }
     // Fallback so every notification leads somewhere useful.
     if (n.type === "revenue") navigate({ to: "/revenue" });
-    else navigate({ to: "/activations", search: {} });
+    else navigate({ to: "/activations", search: { client: undefined, name: undefined } });
   };
 
   useEffect(() => {
