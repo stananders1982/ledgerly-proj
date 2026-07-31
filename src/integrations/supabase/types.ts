@@ -561,6 +561,7 @@ export type Database = {
           company_id: string
           created_at: string
           email: string | null
+          ftd_commission: number
           id: string
           name: string
           profile_id: string | null
@@ -580,6 +581,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           email?: string | null
+          ftd_commission?: number
           id?: string
           name: string
           profile_id?: string | null
@@ -599,6 +601,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           email?: string | null
+          ftd_commission?: number
           id?: string
           name?: string
           profile_id?: string | null
