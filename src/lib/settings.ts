@@ -17,6 +17,12 @@ export type CompanySettings = {
   ftdCommission: number;
   /** Share of every withdrawal deducted from the responsible agent. */
   withdrawalPenaltyPct: number;
+  /** Deposit-method fee deducted before commission is calculated (wire). */
+  methodFeeWirePct: number;
+  /** Deposit-method fee deducted before commission is calculated (card). */
+  methodFeeCardPct: number;
+  /** Deposit-method fee deducted before commission is calculated (crypto). */
+  methodFeeCryptoPct: number;
 };
 
 export const DEFAULT_SETTINGS: CompanySettings = {
@@ -24,6 +30,9 @@ export const DEFAULT_SETTINGS: CompanySettings = {
   defaultActivationBalance: 250,
   ftdCommission: 100,
   withdrawalPenaltyPct: 10,
+  methodFeeWirePct: 15,
+  methodFeeCardPct: 25,
+  methodFeeCryptoPct: 0,
 };
 
 type SettingsRow = {
@@ -31,6 +40,9 @@ type SettingsRow = {
   default_activation_balance: number | string;
   ftd_commission: number | string;
   withdrawal_penalty_pct: number | string;
+  method_fee_wire_pct: number | string;
+  method_fee_card_pct: number | string;
+  method_fee_crypto_pct: number | string;
 };
 
 export function fromRow(row?: Partial<SettingsRow> | null): CompanySettings {
@@ -44,6 +56,9 @@ export function fromRow(row?: Partial<SettingsRow> | null): CompanySettings {
     defaultActivationBalance: num(row.default_activation_balance, DEFAULT_SETTINGS.defaultActivationBalance),
     ftdCommission: num(row.ftd_commission, DEFAULT_SETTINGS.ftdCommission),
     withdrawalPenaltyPct: num(row.withdrawal_penalty_pct, DEFAULT_SETTINGS.withdrawalPenaltyPct),
+    methodFeeWirePct: num(row.method_fee_wire_pct, DEFAULT_SETTINGS.methodFeeWirePct),
+    methodFeeCardPct: num(row.method_fee_card_pct, DEFAULT_SETTINGS.methodFeeCardPct),
+    methodFeeCryptoPct: num(row.method_fee_crypto_pct, DEFAULT_SETTINGS.methodFeeCryptoPct),
   };
 }
 
@@ -60,7 +75,7 @@ export function useCompanySettings(): CompanySettings {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("ftd_balance_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct")
+        .select("ftd_balance_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct")
         .maybeSingle();
       if (error) return null;
       return data;
