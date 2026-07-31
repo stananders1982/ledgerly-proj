@@ -98,8 +98,8 @@ function LeadsPage() {
   const revenueQ = useQuery({
     queryKey: ["revenue-names-for-leads"],
     queryFn: async () => {
-      const data = await fetchAll(() => supabase.from("revenue").select("customer_name"));
-      return (data ?? []) as { customer_name: string | null }[];
+      const data = await fetchAll(() => supabase.from("revenue").select("customer_name, date"));
+      return (data ?? []) as { customer_name: string | null; date: string | null }[];
     },
   });
 
@@ -188,15 +188,22 @@ function LeadsPage() {
 
   const allocated = useMemo(() => byEmployee.reduce((s, e) => s + e.count, 0), [byEmployee]);
 
-  // STD: FTDs in the selected range whose client deposited again (any revenue record)
+  // STD: FTDs credited to this period (by activation date) whose client made a
+  // further deposit on or after that activation date.
   const stdCount = useMemo(() => {
-    const depositors = new Set(
-      (revenueQ.data ?? []).map((r) => (r.customer_name ?? "").trim().toLowerCase()).filter(Boolean),
-    );
+    const latest = new Map<string, string>();
+    for (const r of revenueQ.data ?? []) {
+      const n = (r.customer_name ?? "").trim().toLowerCase();
+      if (!n || !r.date) continue;
+      const prev = latest.get(n);
+      if (!prev || r.date > prev) latest.set(n, r.date);
+    }
     const names = new Set<string>();
     for (const a of activationsInRange) {
       const n = (a.lead_name ?? "").trim().toLowerCase();
-      if (n && depositors.has(n)) names.add(n);
+      if (!n || !a.activation_date) continue;
+      const last = latest.get(n);
+      if (last && last >= a.activation_date) names.add(n);
     }
     return names.size;
   }, [activationsInRange, revenueQ.data]);
