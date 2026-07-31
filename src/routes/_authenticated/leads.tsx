@@ -189,24 +189,30 @@ function LeadsPage() {
   const allocated = useMemo(() => byEmployee.reduce((s, e) => s + e.count, 0), [byEmployee]);
 
   // STD: FTDs credited to this period (by activation date) whose client made a
-  // further deposit on or after that activation date.
+  // further deposit inside the same selected date range (and on/after activation).
   const stdCount = useMemo(() => {
-    const latest = new Map<string, string>();
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const rs = fmt(activeRange.start);
+    const re = fmt(activeRange.end);
+    const depositsInRange = new Map<string, string[]>();
     for (const r of revenueQ.data ?? []) {
       const n = (r.customer_name ?? "").trim().toLowerCase();
       if (!n || !r.date) continue;
-      const prev = latest.get(n);
-      if (!prev || r.date > prev) latest.set(n, r.date);
+      if (r.date < rs || r.date > re) continue;
+      const arr = depositsInRange.get(n);
+      if (arr) arr.push(r.date);
+      else depositsInRange.set(n, [r.date]);
     }
     const names = new Set<string>();
     for (const a of activationsInRange) {
       const n = (a.lead_name ?? "").trim().toLowerCase();
       if (!n || !a.activation_date) continue;
-      const last = latest.get(n);
-      if (last && last >= a.activation_date) names.add(n);
+      const dates = depositsInRange.get(n);
+      if (dates?.some((d) => d >= a.activation_date!)) names.add(n);
     }
     return names.size;
-  }, [activationsInRange, revenueQ.data]);
+  }, [activationsInRange, revenueQ.data, activeRange]);
 
 
 
