@@ -658,8 +658,8 @@ function ActivationsPage() {
                           <tr>
                             <th className="py-2 px-3 font-medium">Date</th>
                             <th className="py-2 px-3 font-medium">Amount</th>
-                            <th className="py-2 px-3 font-medium">Agent</th>
                             <th className="py-2 px-3 font-medium">STD</th>
+                            <th className="py-2 px-3 font-medium">Agent</th>
                             <th className="py-2 px-3 font-medium">Notes</th>
                           </tr>
                         </thead>
