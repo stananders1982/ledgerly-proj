@@ -556,6 +556,7 @@ function ActivationsPage() {
                 <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Potential" k="potential" sort={sort} toggle={toggle} className="py-3 px-4" />
+                <th className="py-3 px-4">Tags</th>
                 <SortTh label="STD" k="std" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-3 px-4" />
