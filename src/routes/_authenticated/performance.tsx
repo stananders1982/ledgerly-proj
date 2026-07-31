@@ -135,6 +135,9 @@ function PerformancePage() {
     const wd = workingDays(start, end);
 
     const deposits = depositsByName(depositsQ.data ?? []);
+    const allDeposits = (depositsQ.data ?? []) as any[];
+    const allActs = (allActQ.data ?? []) as any[];
+
 
     return emps.map((emp: any) => {
       const team = String(emp.team ?? "R").toUpperCase();
