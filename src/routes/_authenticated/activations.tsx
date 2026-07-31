@@ -239,11 +239,12 @@ function ActivationsPage() {
         if (stdFilter === "no" && isStdRow) return false;
       }
       if (dupOnly && !dupNames.has((r.lead_name ?? "").trim().toLowerCase())) return false;
+      if (tagFilter !== "all" && !(r.tags ?? []).includes(tagFilter)) return false;
       const term = search.trim().toLowerCase();
       if (term && !(r.lead_name ?? "").toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames]);
+  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames, tagFilter]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => actDate(r) ?? "",
