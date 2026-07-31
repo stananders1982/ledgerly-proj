@@ -347,6 +347,12 @@ function RevenueRow({
                         <span className="text-muted-foreground">{affiliateName || "—"}</span>
                       )}
                     </td>
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Checkbox checked={!!r.reconciled_at} onCheckedChange={(c) => onToggleReconcile(Boolean(c))} />
+                        {r.reconciled_at ? fmtDate(String(r.reconciled_at).slice(0, 10)) : "Open"}
+                      </label>
+                    </td>
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={onDelete} label="Delete revenue?" />
                     </td>
