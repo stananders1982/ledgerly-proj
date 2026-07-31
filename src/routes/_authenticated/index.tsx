@@ -489,6 +489,9 @@ function Dashboard() {
         </div>
 
         <AIInsights insights={insights} />
+
+        <CashflowForecast />
+
       </section>
 
       {/* Secondary detail */}
