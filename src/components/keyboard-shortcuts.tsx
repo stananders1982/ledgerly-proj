@@ -10,9 +10,7 @@ import { Keyboard } from "lucide-react";
 const shortcuts = [
   { keys: ["⌘", "K"], description: "Open command palette / global search" },
   { keys: ["?"], description: "Show this shortcuts panel" },
-  { keys: ["N"], description: "New record on list pages (Revenue, Expenses, Leads)" },
   { keys: ["Esc"], description: "Close dialogs and menus" },
-  { keys: ["R"], description: "Refresh data on current page" },
 ];
 
 export function useKeyboardShortcutsPanel() {
