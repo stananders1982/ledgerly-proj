@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.trg_revenue_notify() FROM PUBLIC, anon, authenticated;
