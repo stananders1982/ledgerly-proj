@@ -243,7 +243,7 @@ function ActivationsPage() {
     return [...m.entries()]
       .map(([id, v]) => ({ id, name: employeeName(id), ...v, total: v.count + v.pending }))
       .sort((a, b) => b.count - a.count);
-  }, [rows, employeesQ.data]);
+  }, [rows, employeesQ.data, settings]);
 
   const conversionTotals = useMemo(
     () => ({
@@ -334,7 +334,7 @@ function ActivationsPage() {
       <div className="mb-6 rounded-lg border border-border">
         <div className="border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">Conversions by agent</h2>
-          <p className="text-xs text-muted-foreground">Counts qualified FTDs: answered and (mid/high potential or balance over $250). Everything else is pending.</p>
+          <p className="text-xs text-muted-foreground">Counts qualified FTDs: answered and (mid/high potential or balance of ${settings.ftdBalanceThreshold}+). Everything else is pending.</p>
         </div>
         {conversionsByAgent.length === 0 ? (
           <p className="px-4 py-6 text-sm text-muted-foreground">No conversions in this range.</p>

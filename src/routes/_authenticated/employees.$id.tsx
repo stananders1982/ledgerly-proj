@@ -151,7 +151,7 @@ function EmployeeDetailPage() {
       return { ...r, effectiveBalance: bal, qualifies, reason: ftdPendingReason(r, bal, settings) };
     });
     return { all, counted: all.filter((r) => r.qualifies), pending: all.filter((r) => !r.qualifies) };
-  }, [conversionsQ.data, depositsQ.data]);
+  }, [conversionsQ.data, depositsQ.data, settings]);
 
   const conversionRows = useMemo(() => [...conversions.counted, ...conversions.pending], [conversions]);
   const { pageItems: convPage, ...pgConv } = usePagination(conversionRows, 30);
@@ -207,7 +207,7 @@ function EmployeeDetailPage() {
     const revenuePerClient = clients > 0 ? attributed / clients : 0;
 
     return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission };
-  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention]);
+  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention, settings]);
 
   if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
   if (!emp) return (

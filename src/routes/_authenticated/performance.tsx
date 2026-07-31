@@ -195,7 +195,7 @@ function PerformancePage() {
     })
     .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()))
     .sort((a, b) => (TEAM_RANK[a.team] ?? 3) - (TEAM_RANK[b.team] ?? 3) || a.name.localeCompare(b.name));
-  }, [empQ.data, revQ.data, withQ.data, attQ.data, actQ.data, depositsQ.data, start, end, search]);
+  }, [empQ.data, revQ.data, withQ.data, attQ.data, actQ.data, depositsQ.data, start, end, search, settings]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     name: (r) => r.name,
