@@ -188,6 +188,12 @@ function PerformancePage() {
       const ftdRate = Number(emp.ftd_commission ?? settings.ftdCommission);
       const ftdCommission = team === "C" ? ftds * ftdRate : 0;
 
+      // STD: clients attributed to this agent whose *second* deposit landed in range.
+      const myClients = allActs.filter((a) =>
+        team === "C" ? a.conversion_employee_id === emp.id : a.employee_id === emp.id,
+      );
+      const stds = myClients.filter((a) => isStd(a, allDeposits, { start, end })).length;
+
       const payout = salary + (team === "R" ? commission - penalty : 0) + ftdCommission;
 
       return {
@@ -198,6 +204,7 @@ function PerformancePage() {
         active: !!emp.active,
         ftds: team === "C" ? ftds : 0,
         pendingFtds: team === "C" ? pendingFtds : 0,
+        stds: team === "M" ? 0 : stds,
         clients,
         attributed: team === "R" ? attributed : 0,
         commission,
@@ -212,7 +219,7 @@ function PerformancePage() {
     })
     .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()))
     .sort((a, b) => (TEAM_RANK[a.team] ?? 3) - (TEAM_RANK[b.team] ?? 3) || a.name.localeCompare(b.name));
-  }, [empQ.data, revQ.data, withQ.data, attQ.data, actQ.data, depositsQ.data, start, end, search, settings]);
+  }, [empQ.data, revQ.data, withQ.data, attQ.data, actQ.data, allActQ.data, depositsQ.data, start, end, search, settings]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     name: (r) => r.name,
