@@ -1,57 +1,51 @@
-## Goal
+I reviewed the routes, shared libs, and the live database. Here's what I found and what I'd fix, in priority order.
 
-Let several companies use this app, each seeing only its own data, without losing anything that exists today.
+## 1. Silent data truncation (highest risk, verified)
 
-## About "separate database"
+The backend returns at most 1000 rows per query, and almost no page sets an explicit range — only Revenue and Logs do. Current row counts: attendance 405, activations 158, revenue 86, withdrawals 51. Attendance alone grows ~420 rows/month with 19 employees, so it crosses 1000 in roughly two months and reports will silently start showing wrong totals with no error.
 
-A literal separate database per company isn't something this backend can provision per customer — it would mean a separate deployment, separate login, and separate maintenance for every company, and every future change would have to be applied N times.
+Fix:
+- Add a shared paged-fetch helper that loops `range()` until all rows are read, and use it for every aggregate query (Dashboard, Reports, Leads, Clients, Attendance, Performance, Affiliate statements).
+- Tighten date filters where a query currently pulls the whole table (Reports pulls all revenue for player-value, all employees, all sources).
 
-The standard way to get the same guarantee is **one database, a `company_id` stamped on every row, and database-level access rules (RLS) that make it physically impossible for a query to return another company's rows** — even a bug in the app code can't leak across companies, because the database refuses. This is what banks and most SaaS products use, and it keeps one codebase.
+## 2. Business rules are duplicated instead of shared
 
-I'll build it that way. If you later want a company on truly isolated infrastructure, the same code can be deployed to a second instance for that one customer.
+The FTD qualification rule (`answered AND (mid/high potential OR effective balance >= 251)`) is re-implemented in at least four files: Clients, Employee detail, Performance, and the pending dialog. The same is true for effective-balance (base + deposits), the 10% withdrawal penalty, the $100 FTD commission, and the 8/10/12% tiers.
 
-## How it will work
+Fix: move all of it into `src/lib/rules.ts` (`effectiveBalance`, `qualifiesAsFtd`, `ftdReason`, `withdrawalPenalty`) and have every page import it. This is the root cause of the recurring "numbers don't match between pages" issues.
 
-- A new **Companies** table. All existing data is assigned to one company (your current business) — nothing is deleted or moved.
-- Every user belongs to exactly one company, set when you invite them.
-- **Super admin** (you) is not tied to a company: you get a company switcher in the header and an admin panel to create companies, invite their first admin, and see any company's data.
-- New companies are **invite only** — no public signup.
-- Login stays the same (email + password). No need to type a company name: the company is derived from the user's account. Only the super admin sees the switcher.
+## 3. Constants should be settings, not literals
 
-```text
-Super admin ──> Company switcher ──> any company's data
-Company admin ──> their company only (manages their own users)
-Regular user ──> their company only, limited nav items (as today)
-```
+`251`, `10%` withdrawal penalty, `$100` FTD bonus and the `$250` default balance are hardcoded in the UI. Add a `company_settings` table (one row per company) plus a small Settings page so the owner can change these per company without a code change. Defaults keep today's values, so nothing shifts.
 
-## Plan
+## 4. Reports page is a 1,126-line monolith
 
-**1. Database foundation**
-- `companies` table (name, slug, active, created_at).
-- `company_users` table linking each auth user to a company + their role in it.
-- Add `company_id` to every business table: affiliates, affiliate_events, affiliate_guarantee_periods, employees, attendance, leads, lead_sources, daily_lead_entries, daily_lead_activations, revenue, withdrawals, expenses, expense_categories, recurring_expenses, notifications, nav_permissions.
-- Backfill all existing rows with the default company, then make `company_id` required.
+It runs 13 queries on every visit regardless of which tab is open. Split each tab into its own component file and make its query lazy (only fetch when the tab is active). Big load-time win on the heaviest page.
 
-**2. Isolation rules**
-- Helper functions `current_company_id()` and `is_super_admin()` (security definer, no recursion).
-- Rewrite every table's RLS policy to add `company_id = current_company_id() OR is_super_admin()`, keeping today's admin/non-admin distinctions intact so Jack and the admin behave exactly as now.
-- Existing triggers and reporting functions (commission, affiliate recompute, recurring expense generation, deposit alerts, directories) updated to be company-scoped.
+## 5. Data integrity
 
-**3. App changes**
-- Company context in the app: current company id available everywhere; every insert stamps it automatically.
-- Header company switcher, visible to super admin only.
-- Super Admin panel: list/create companies, invite the first admin per company, deactivate a company, impersonate/view a company.
-- Existing Users page becomes per-company: a company admin manages only their own users and nav permissions.
+Client identity is matched by `lead_name` string in several places (deposits, STD, player value). Renaming or a typo silently splits a client's history. Add a proper `activation_id` link on revenue/withdrawals where it's still name-based, with a one-time backfill by exact name match.
 
-**4. Safety**
-- Migration is additive and reversible in stages; no data is deleted.
-- After migration I'll verify row counts per table match before/after, and check that a non-super-admin user cannot read another company's rows.
+## 6. UX and polish
 
-## Technical notes
+- Dashboard: add a "compare to previous period" delta on the hero KPIs.
+- Global: keyboard shortcut hints in the command palette, and remembering the last selected date range per user.
+- Clients: bulk actions (mark answered, set potential) for several rows at once.
+- Reports: saved report presets (filters + date range) per user.
+- Attendance: an at-a-glance monthly grid per employee instead of one day at a time.
 
-- Isolation is enforced in Postgres RLS, not in app code, so server functions and any future endpoint inherit it.
-- `current_company_id()` reads from `company_users` for `auth.uid()`; for a super admin it reads a selected-company claim/setting so the switcher works without weakening policies.
-- Views `employees_directory` / `affiliates_directory` get company filtering too.
-- Report/dashboard queries need no rewrite — RLS filters them automatically — but explicit `company_id` filters will be added where queries aggregate across joins.
+## 7. Operational
 
-This is a large change touching every table and most pages; I'd do it in the order above so the app stays working throughout.
+- No automated tests exist. Add a small vitest suite for `commission.ts` and the new `rules.ts` — those are the money-critical functions.
+- Add DB indexes on the columns every report filters by (`revenue.date`, `expenses.date`, `withdrawals.date`, `attendance.date`, `daily_lead_activations.entry_id`), scoped by `company_id`.
+
+## Suggested order
+
+1. Paged fetch helper + explicit ranges (correctness)
+2. Shared `rules.ts` + replace duplicates (consistency)
+3. Indexes + Reports tab splitting (performance)
+4. Settings table & page (flexibility)
+5. Activation ID linking + backfill (integrity)
+6. UX items and tests
+
+Tell me which of these you want and I'll start with that subset — or say "all" and I'll go through them in the order above.
