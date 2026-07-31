@@ -205,6 +205,8 @@ function PerformancePage() {
         ftds: team === "C" ? ftds : 0,
         pendingFtds: team === "C" ? pendingFtds : 0,
         stds: team === "R" ? stds : 0,
+        // Share of this agent's clients (in range) that made a second deposit.
+        stdPct: team === "R" && clients > 0 ? (stds / clients) * 100 : 0,
         clients,
         attributed: team === "R" ? attributed : 0,
         commission,
@@ -333,7 +335,16 @@ function PerformancePage() {
                         </>
                       ) : "—"}
                     </td>
-                    <td className="py-3 px-4">{r.team === "R" ? r.stds : "—"}</td>
+                    <td className="py-3 px-4">
+                      {r.team === "R" ? (
+                        <>
+                          {r.stds}
+                          {r.clients > 0 && (
+                            <span className="ml-1 text-xs text-muted-foreground">({r.stdPct.toFixed(1)}%)</span>
+                          )}
+                        </>
+                      ) : "—"}
+                    </td>
                     <td className="py-3 px-4">{r.team === "M" ? "—" : r.clients}</td>
                     <td className="py-3 px-4">{r.team === "R" ? fmtMoney(r.attributed) : "—"}</td>
                     <td className="py-3 px-4 text-primary">
