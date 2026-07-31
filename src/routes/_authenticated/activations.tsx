@@ -28,7 +28,7 @@ import { usePagination, TablePagination } from "@/components/pagination";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { CLIENT_TAGS, TagBadges, TagPicker } from "@/components/client-tags";
-import { ClientCommunications, ClientTimeline, useClientComms, type TimelineEvent } from "@/components/client-activity";
+import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   validateSearch: (search: Record<string, unknown>) => ({
