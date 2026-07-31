@@ -318,6 +318,27 @@ function EmpDialog({
           </div>
         </div>
 
+        <div className="grid gap-3 rounded-md border border-border p-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Monthly goals</Label>
+            <span className="text-xs text-muted-foreground">Leave empty for no target</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Field label="FTDs">
+              <Input type="number" min={0} value={form.target_ftds}
+                onChange={(e) => setForm({ ...form, target_ftds: e.target.value })} />
+            </Field>
+            <Field label="STDs">
+              <Input type="number" min={0} value={form.target_stds}
+                onChange={(e) => setForm({ ...form, target_stds: e.target.value })} />
+            </Field>
+            <Field label="Revenue">
+              <Input type="number" min={0} step="0.01" value={form.target_revenue}
+                onChange={(e) => setForm({ ...form, target_revenue: e.target.value })} />
+            </Field>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between rounded-md border border-border p-3">
           <Label className="text-sm">Active</Label>
           <Switch checked={form.active} onCheckedChange={(v) => setForm({ ...form, active: v })} />
