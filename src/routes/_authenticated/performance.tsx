@@ -238,13 +238,18 @@ function PerformancePage() {
   });
   const { pageItems, ...pg } = usePagination(sorted, 30);
 
-  const totals = useMemo(() => ({
-    ftds: rows.reduce((s, r) => s + r.ftds, 0),
-    stds: rows.reduce((s, r) => s + r.stds, 0),
-    revenue: rows.reduce((s, r) => s + r.attributed, 0),
-    commission: rows.reduce((s, r) => s + r.commission + r.ftdCommission, 0),
-    payout: rows.reduce((s, r) => s + r.payout, 0),
-  }), [rows]);
+  const totals = useMemo(() => {
+    const retClients = rows.filter((r) => r.team === "R").reduce((s, r) => s + r.clients, 0);
+    const stds = rows.reduce((s, r) => s + r.stds, 0);
+    return {
+      ftds: rows.reduce((s, r) => s + r.ftds, 0),
+      stds,
+      stdPct: retClients > 0 ? (stds / retClients) * 100 : 0,
+      revenue: rows.reduce((s, r) => s + r.attributed, 0),
+      commission: rows.reduce((s, r) => s + r.commission + r.ftdCommission, 0),
+      payout: rows.reduce((s, r) => s + r.payout, 0),
+    };
+  }, [rows]);
 
   const loading = empQ.isLoading || revQ.isLoading || actQ.isLoading;
 
