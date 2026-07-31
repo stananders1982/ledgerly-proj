@@ -188,11 +188,11 @@ function PerformancePage() {
       const ftdRate = Number(emp.ftd_commission ?? settings.ftdCommission);
       const ftdCommission = team === "C" ? ftds * ftdRate : 0;
 
-      // STD: clients attributed to this agent whose *second* deposit landed in range.
-      const myClients = allActs.filter((a) =>
-        team === "C" ? a.conversion_employee_id === emp.id : a.employee_id === emp.id,
-      );
+      // STD is a retention metric only: clients this retention agent handles
+      // whose *second* deposit landed in range.
+      const myClients = team === "R" ? allActs.filter((a) => a.employee_id === emp.id) : [];
       const stds = myClients.filter((a) => isStd(a, allDeposits, { start, end })).length;
+
 
       const payout = salary + (team === "R" ? commission - penalty : 0) + ftdCommission;
 
