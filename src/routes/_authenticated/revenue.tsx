@@ -172,6 +172,18 @@ function RevenuePage() {
     mutationFn: async (id: string) => { const { error } = await supabase.from("revenue").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["revenue-list"] }); toast.success("Deleted"); },
   });
+  const reconcile = useMutation({
+    mutationFn: async ({ id, on }: { id: string; on: boolean }) => {
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("revenue")
+        .update({ reconciled_at: on ? new Date().toISOString() : null, reconciled_by: on ? u.user?.id ?? null : null } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["revenue-list"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
     const rows = filtered.map((r: any) => ({
