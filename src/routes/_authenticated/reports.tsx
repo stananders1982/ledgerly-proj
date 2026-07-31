@@ -359,13 +359,17 @@ function ReportsPage() {
     const rev = data.revenue;
     const acts = (stdActQ.data ?? []) as any[];
     const deps = (stdRevQ.data ?? []) as any[];
+    // STD is a retention metric: credit only the retention agent on the client.
+    const retentionIds = new Set(
+      data.employees.filter((e: any) => String(e.team ?? "R").toUpperCase() === "R").map((e: any) => e.id),
+    );
     const stdByEmp = new Map<string, number>();
     for (const a of acts) {
       if (!isStd(a, deps, { start, end })) continue;
-      for (const id of [a.employee_id, a.conversion_employee_id]) {
-        if (id) stdByEmp.set(id, (stdByEmp.get(id) ?? 0) + 1);
-      }
+      const id = a.employee_id;
+      if (id && retentionIds.has(id)) stdByEmp.set(id, (stdByEmp.get(id) ?? 0) + 1);
     }
+
     const byEmp = new Map<string, { name: string; revenue: number; leads: number; activated: number; std: number; salary: number; commissionPct: number }>();
     for (const e of data.employees) byEmp.set(e.id, { name: e.name, revenue: 0, leads: 0, activated: 0, std: stdByEmp.get(e.id) ?? 0, salary: Number(e.salary), commissionPct: Number(e.commission_pct) });
     for (const r of rev) {
