@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { FTD_COMMISSION, effectiveBalance, qualifiesAsFtd } from "@/lib/rules";
+import { FTD_COMMISSION, depositsByName, effectiveBalance, qualifiesAsFtd } from "@/lib/rules";
 import { fmtMoney } from "@/lib/format";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
 
@@ -121,12 +121,7 @@ function PerformancePage() {
     const emps = empQ.data ?? [];
     const wd = workingDays(start, end);
 
-    const deposits = new Map<string, number>();
-    for (const r of depositsQ.data ?? []) {
-      const k = (r.customer_name ?? "").trim().toLowerCase();
-      if (!k) continue;
-      deposits.set(k, (deposits.get(k) ?? 0) + Number(r.amount || 0));
-    }
+    const deposits = depositsByName(revAll);
 
     return emps.map((emp: any) => {
       const team = String(emp.team ?? "R").toUpperCase();
