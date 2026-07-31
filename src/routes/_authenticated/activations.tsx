@@ -885,6 +885,10 @@ function EditDialog({
             </SelectContent>
           </Select>
         </div>
+        <div className="grid gap-1.5">
+          <label className="text-xs text-muted-foreground">Tags</label>
+          <TagPicker value={form.tags ?? []} onChange={(tags) => setForm({ ...form, tags })} />
+        </div>
         <label className="flex items-center gap-2 text-sm">
           <Checkbox checked={form.answered} onCheckedChange={(c) => setForm({ ...form, answered: Boolean(c) })} />
           Answered
