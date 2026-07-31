@@ -77,8 +77,7 @@ function RevenuePage() {
         .from("daily_lead_activations")
         .select("id, lead_name, employee_id, conversion_employee_id, daily_lead_entries(entry_date, lead_sources(name))")
         .not("lead_name", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(500));
+        .order("created_at", { ascending: false }));
       return (data ?? []) as any[];
     },
   });
