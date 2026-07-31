@@ -41,10 +41,11 @@ type AppUser = {
   created_at: string;
   roles: string[];
   nav_keys: string[];
+  is_super_admin?: boolean;
 };
 
 function UsersPage() {
-  const { isAdmin, permsLoaded, user } = useAuth();
+  const { isAdmin, isSuperAdmin, permsLoaded, user } = useAuth();
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<AppUser | null>(null);
@@ -152,12 +153,15 @@ function UsersPage() {
             )}
             {pageItems.map((u) => {
               const adm = u.roles.includes("admin");
+              const locked = !!u.is_super_admin && !isSuperAdmin && u.id !== user?.id;
               return (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.full_name ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{u.email}</TableCell>
                   <TableCell>
-                    {adm ? (
+                    {u.is_super_admin ? (
+                      <Badge className="gap-1"><ShieldCheck className="h-3 w-3" /> Owner</Badge>
+                    ) : adm ? (
                       <Badge className="gap-1"><ShieldCheck className="h-3 w-3" /> Admin</Badge>
                     ) : (
                       <Badge variant="secondary">User</Badge>
@@ -173,11 +177,17 @@ function UsersPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                    <Button size="sm" variant="outline" onClick={() => setEditing(u)}>Edit access</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setResetting(u)}>
-                      <KeyRound className="h-4 w-4" />
-                    </Button>
-                    {u.id !== user?.id && (
+                    {locked ? (
+                      <span className="text-xs text-muted-foreground">Managed by platform owner</span>
+                    ) : (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => setEditing(u)}>Edit access</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setResetting(u)}>
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                    {u.id !== user?.id && !locked && !u.is_super_admin && (
                       <ConfirmDelete
                         label={`Delete ${u.email}?`}
                         description="This permanently removes the user account."

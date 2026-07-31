@@ -8,6 +8,22 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: admin only");
 }
 
+/** True when the given user is a platform owner (super admin). */
+async function isSuperAdminUser(supabaseAdmin: any, userId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin.from("super_admins").select("user_id").eq("user_id", userId).maybeSingle();
+  return !!data;
+}
+
+/** Company admins may not modify or delete platform owners. */
+async function assertNotProtected(supabaseAdmin: any, callerId: string, targetId: string) {
+  if (callerId === targetId) return;
+  if (await isSuperAdminUser(supabaseAdmin, targetId)) {
+    if (!(await isSuperAdminUser(supabaseAdmin, callerId))) {
+      throw new Error("Forbidden: this account is managed by the platform owner");
+    }
+  }
+}
+
 /** The company the caller is currently working in. All user management is scoped to it. */
 async function currentCompanyId(supabase: any, userId: string): Promise<string> {
   const { data, error } = await supabase
@@ -41,11 +57,13 @@ export const listAppUsers = createServerFn({ method: "GET" })
     const ids = users.map((u) => u.id);
     if (!ids.length) return [];
 
-    const [{ data: profiles }, { data: roles }, { data: perms }] = await Promise.all([
+    const [{ data: profiles }, { data: roles }, { data: perms }, { data: supers }] = await Promise.all([
       supabaseAdmin.from("profiles").select("id, full_name").in("id", ids),
       supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", ids),
       supabaseAdmin.from("nav_permissions").select("user_id, nav_key").in("user_id", ids).eq("company_id", companyId),
+      supabaseAdmin.from("super_admins").select("user_id").in("user_id", ids),
     ]);
+    const superIds = new Set((supers ?? []).map((s: any) => s.user_id));
 
     return users.map((u) => ({
       id: u.id,
@@ -54,6 +72,7 @@ export const listAppUsers = createServerFn({ method: "GET" })
       full_name: profiles?.find((p) => p.id === u.id)?.full_name ?? null,
       roles: (roles ?? []).filter((r) => r.user_id === u.id).map((r) => r.role as string),
       nav_keys: (perms ?? []).filter((p) => p.user_id === u.id).map((p) => p.nav_key),
+      is_super_admin: superIds.has(u.id),
     }));
   });
 
@@ -127,6 +146,7 @@ export const updateUserPermissions = createServerFn({ method: "POST" })
     const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertSameCompany(supabaseAdmin, companyId, data.user_id);
+    await assertNotProtected(supabaseAdmin, context.userId, data.user_id);
 
     if (data.is_admin) {
       await supabaseAdmin.from("user_roles").upsert({ user_id: data.user_id, role: "admin" }, { onConflict: "user_id,role" });
@@ -154,6 +174,7 @@ export const resetUserPassword = createServerFn({ method: "POST" })
     const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertSameCompany(supabaseAdmin, companyId, data.user_id);
+    await assertNotProtected(supabaseAdmin, context.userId, data.user_id);
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, { password: data.password });
     if (error) throw error;
     return { ok: true };
@@ -168,6 +189,8 @@ export const deleteAppUser = createServerFn({ method: "POST" })
     const companyId = await currentCompanyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await assertSameCompany(supabaseAdmin, companyId, data.user_id);
+    await assertNotProtected(supabaseAdmin, context.userId, data.user_id);
+    if (await isSuperAdminUser(supabaseAdmin, data.user_id)) throw new Error("Platform owner accounts cannot be deleted");
     await supabaseAdmin.from("company_users").delete().eq("user_id", data.user_id);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
     if (error) throw error;
