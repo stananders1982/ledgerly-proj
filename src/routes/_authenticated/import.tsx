@@ -276,11 +276,11 @@ function useImportDefinitions() {
           { name: "Partner A", active: "true", cpa_rate: "50" },
           { name: "Partner B", active: "true", cpa_rate: "75" },
         ],
-        onImport: async (rows) => {
+          onImport: async (rows) => {
           const payload = rows.map((r) => ({
             name: (r.name ?? "").trim(),
             active: String(r.active).toLowerCase() !== "false",
-            cpa_rate: r.cpa_rate ? Number(r.cpa_rate) : null,
+            cpa_rate: r.cpa_rate ? Number(r.cpa_rate) : undefined,
           }));
           const { error } = await supabase.from("affiliates").insert(payload);
           if (error) throw error;
