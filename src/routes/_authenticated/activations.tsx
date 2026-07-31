@@ -22,7 +22,7 @@ import { fmtDate, fmtMoney } from "@/lib/format";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
-import { CheckCircle2, PhoneCall, Wallet } from "lucide-react";
+import { CheckCircle2, PhoneCall, Wallet, Copy } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate } from "@/lib/rules";
