@@ -279,3 +279,13 @@
     background: color-mix(in oklab, var(--primary) 45%, transparent);
   }
 }
+
+/* Compact table density (toggled from the top bar) */
+[data-density="compact"] table th,
+[data-density="compact"] table td {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+[data-density="compact"] table {
+  font-size: 0.8125rem;
+}

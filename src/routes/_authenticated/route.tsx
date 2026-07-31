@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { CommandPalette, useCommandPalette } from "@/components/command-palette";
 import { NotificationBell } from "@/components/notification-bell";
 import { ThemeSwitch } from "@/components/theme-switch";
+import { DensityToggle } from "@/components/density-provider";
 import { LiveClock } from "@/components/live-clock";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,7 @@ function ProtectedLayout() {
                 <span className="hidden sm:inline">Search</span>
                 <kbd className="hidden md:inline rounded border border-border px-1 py-0.5 text-[10px]">⌘K</kbd>
               </Button>
+              <DensityToggle />
               <ThemeSwitch />
               <NotificationBell />
               <DropdownMenu>
