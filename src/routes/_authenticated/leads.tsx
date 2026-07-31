@@ -181,11 +181,20 @@ function LeadsPage() {
       .sort((a, b) => b.count - a.count);
   }, [activationsInRange, employeesQ.data]);
 
-  // FTDs credited to this period, by activation date (not by lead date).
-  const activatedInRange = useMemo(
-    () => activationsInRange.reduce((n, a) => n + (a.activated_count ?? 0), 0),
-    [activationsInRange],
-  );
+  // FTDs credited to this period: attributed activations dated in range, plus
+  // activations logged on in-range entries that have not been attributed yet.
+  const activatedInRange = useMemo(() => {
+    const attributed = activationsInRange.reduce((n, a) => n + (a.activated_count ?? 0), 0);
+    const unattributed = rows.reduce((n, r) => {
+      const rowed = (activationsByEntry.get(r.id) ?? []).reduce(
+        (s, a) => s + (a.activated_count ?? 0),
+        0,
+      );
+      return n + Math.max(0, Number(r.activated ?? 0) - rowed);
+    }, 0);
+    return attributed + unattributed;
+  }, [activationsInRange, rows, activationsByEntry]);
+
 
   const allocated = useMemo(() => byEmployee.reduce((s, e) => s + e.count, 0), [byEmployee]);
 
