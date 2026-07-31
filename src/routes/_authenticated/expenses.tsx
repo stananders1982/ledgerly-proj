@@ -47,11 +47,10 @@ function ExpensesPage() {
   const expQ = useQuery({
     queryKey: ["expenses-list"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("expenses")
         .select("*, expense_categories(name), affiliates(id,name)")
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return data ?? [];
     },
   });

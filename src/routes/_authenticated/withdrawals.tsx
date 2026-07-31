@@ -43,11 +43,10 @@ function WithdrawalsPage() {
   const wQ = useQuery({
     queryKey: ["withdrawals-list"],
     queryFn: async () => {
-      const { data, error } = await sb
+      const data = await fetchAll(() => sb
         .from("withdrawals")
         .select("*, employees:employee_id(name), employee2:employee_id_2(name), affiliates:affiliate_id(name), revenue:revenue_id(customer_name, amount, date)")
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return data ?? [];
     },
   });

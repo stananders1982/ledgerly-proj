@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnsweredBadge, PotentialBadge as SharedPotentialBadge } from "@/components/status-badge";
@@ -86,11 +87,10 @@ function ActivationsPage() {
   const q = useQuery({
     queryKey: ["activated-leads"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("daily_lead_activations")
         .select("*, daily_lead_entries(entry_date, source_id, lead_sources(name))")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+        .order("created_at", { ascending: false }));
       return (data ?? []) as unknown as Row[];
     },
   });
@@ -130,11 +130,10 @@ function ActivationsPage() {
   const revenueQ = useQuery({
     queryKey: ["revenue-for-activations"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("revenue")
         .select("id, customer_name, amount, date, notes, employee_id, affiliate_id")
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return (data ?? []) as {
         id: string;
         customer_name: string | null;
@@ -150,11 +149,10 @@ function ActivationsPage() {
   const withdrawalsQ = useQuery({
     queryKey: ["withdrawals-for-activations"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("withdrawals")
         .select("id, customer_name, amount, date, notes")
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return (data ?? []) as {
         id: string; customer_name: string | null; amount: number; date: string; notes: string | null;
       }[];

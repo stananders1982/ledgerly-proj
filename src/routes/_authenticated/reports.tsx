@@ -77,11 +77,10 @@ function ReportsPage() {
   const leadsQ = useQuery({
     queryKey: ["rpt-leads", start, end],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("daily_lead_entries")
         .select("entry_date,source_id,campaign,received,activated,reported,converted,cost,notes,lead_sources(id,name,pricing_model,price)")
-        .gte("entry_date", start).lte("entry_date", end);
-      if (error) throw error;
+        .gte("entry_date", start).lte("entry_date", end));
       return data ?? [];
     },
   });

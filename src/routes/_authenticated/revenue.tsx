@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Download, TrendingUp } from "lucide-react";
@@ -50,11 +51,10 @@ function RevenuePage() {
   const revQ = useQuery({
     queryKey: ["revenue-list"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("revenue")
         .select("*, employees:employee_id(name), employee2:employee_id_2(name), affiliates(name), leads(name, lead_sources(name))")
-        .order("date", { ascending: false });
-      if (error) throw error;
+        .order("date", { ascending: false }));
       return data ?? [];
     },
   });
@@ -73,13 +73,12 @@ function RevenuePage() {
   const activationsQ = useQuery({
     queryKey: ["activated-leads-picker"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const data = await fetchAll(() => supabase
         .from("daily_lead_activations")
         .select("id, lead_name, employee_id, conversion_employee_id, daily_lead_entries(entry_date, lead_sources(name))")
         .not("lead_name", "is", null)
         .order("created_at", { ascending: false })
-        .limit(500);
-      if (error) throw error;
+        .limit(500));
       return (data ?? []) as any[];
     },
   });

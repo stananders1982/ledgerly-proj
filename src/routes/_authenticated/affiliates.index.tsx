@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, ExternalLink, TrendingUp, Wallet } from "lucide-react";
@@ -43,8 +44,7 @@ function AffiliatesPage() {
   const revQ = useQuery({
     queryKey: ["affiliates-revenue-all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("revenue").select("affiliate_id,amount").not("affiliate_id", "is", null);
-      if (error) throw error;
+      const data = await fetchAll(() => supabase.from("revenue").select("affiliate_id,amount").not("affiliate_id", "is", null));
       return (data ?? []) as { affiliate_id: string; amount: number }[];
     },
   });
@@ -52,8 +52,7 @@ function AffiliatesPage() {
   const withQ = useQuery({
     queryKey: ["affiliates-withdrawals-all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("withdrawals").select("affiliate_id,amount").not("affiliate_id", "is", null);
-      if (error) throw error;
+      const data = await fetchAll(() => supabase.from("withdrawals").select("affiliate_id,amount").not("affiliate_id", "is", null));
       return (data ?? []) as { affiliate_id: string; amount: number }[];
     },
   });
@@ -61,8 +60,7 @@ function AffiliatesPage() {
   const expQ = useQuery({
     queryKey: ["affiliates-expenses-all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("expenses").select("affiliate_id,amount").not("affiliate_id", "is", null);
-      if (error) throw error;
+      const data = await fetchAll(() => supabase.from("expenses").select("affiliate_id,amount").not("affiliate_id", "is", null));
       return (data ?? []) as { affiliate_id: string; amount: number }[];
     },
   });

@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
@@ -103,13 +104,12 @@ function EmployeeDetailPage() {
     enabled: isRetention || isConversion,
     queryKey: ["employee-clients", id, start, end],
     queryFn: async () => {
-      const { data, error } = await sb
+      const data = await fetchAll(() => sb
         .from("daily_lead_activations")
         .select("activated_count, lead_name, daily_lead_entries!inner(entry_date)")
         .eq("employee_id", id)
         .gte("daily_lead_entries.entry_date", start)
-        .lte("daily_lead_entries.entry_date", end);
-      if (error) throw error;
+        .lte("daily_lead_entries.entry_date", end));
       return data ?? [];
     },
   });
@@ -120,13 +120,12 @@ function EmployeeDetailPage() {
     enabled: isConversion,
     queryKey: ["employee-conversions", id, start, end],
     queryFn: async () => {
-      const { data, error } = await sb
+      const data = await fetchAll(() => sb
         .from("daily_lead_activations")
         .select("lead_name, potential, answered, balance, daily_lead_entries!inner(entry_date)")
         .eq("conversion_employee_id", id)
         .gte("daily_lead_entries.entry_date", start)
-        .lte("daily_lead_entries.entry_date", end);
-      if (error) throw error;
+        .lte("daily_lead_entries.entry_date", end));
       return data ?? [];
     },
   });
@@ -136,8 +135,7 @@ function EmployeeDetailPage() {
     enabled: isConversion,
     queryKey: ["revenue-by-name"],
     queryFn: async () => {
-      const { data, error } = await sb.from("revenue").select("customer_name, amount");
-      if (error) throw error;
+      const data = await fetchAll(() => sb.from("revenue").select("customer_name, amount"));
       return (data ?? []) as { customer_name: string | null; amount: number }[];
     },
   });

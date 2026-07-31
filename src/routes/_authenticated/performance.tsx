@@ -99,12 +99,11 @@ function PerformancePage() {
   const actQ = useQuery({
     queryKey: ["perf-activations", start, end],
     queryFn: async () => {
-      const { data, error } = await sb
+      const data = await fetchAll(() => sb
         .from("daily_lead_activations")
         .select("employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,daily_lead_entries!inner(entry_date)")
         .gte("daily_lead_entries.entry_date", start)
-        .lte("daily_lead_entries.entry_date", end);
-      if (error) throw error;
+        .lte("daily_lead_entries.entry_date", end));
       return data ?? [];
     },
   });
@@ -112,8 +111,7 @@ function PerformancePage() {
   const depositsQ = useQuery({
     queryKey: ["revenue-by-name"],
     queryFn: async () => {
-      const { data, error } = await sb.from("revenue").select("customer_name, amount");
-      if (error) throw error;
+      const data = await fetchAll(() => sb.from("revenue").select("customer_name, amount"));
       return (data ?? []) as { customer_name: string | null; amount: number }[];
     },
   });
