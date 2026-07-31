@@ -74,8 +74,9 @@ function PotentialBadge({ value }: { value: Row["potential"] }) {
 
 function StdBadge({ count }: { count: number }) {
   if (!count) return <span className="text-muted-foreground">—</span>;
-  return <Badge variant="default">{count > 1 ? `STD x${count}` : "STD"}</Badge>;
+  return <Badge variant="default">STD</Badge>;
 }
+
 
 function ActivationsPage() {
   const settings = useCompanySettings();
