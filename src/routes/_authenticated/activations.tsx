@@ -284,6 +284,31 @@ function ActivationsPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const bulkUpdate = useMutation({
+    mutationFn: async (patch: { answered?: boolean; potential?: string }) => {
+      const ids = [...selected];
+      if (!ids.length) return 0;
+      const { error } = await supabase.from("daily_lead_activations").update(patch as any).in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["activated-leads"] });
+      qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
+      setSelected(new Set());
+      if (count) toast.success(`Updated ${count} client${count === 1 ? "" : "s"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const toggleAnswered = useMutation({
     mutationFn: async ({ id, answered }: { id: string; answered: boolean }) => {
       const { error } = await supabase.from("daily_lead_activations").update({ answered }).eq("id", id);
@@ -398,9 +423,31 @@ function ActivationsPage() {
       </div>
 
 
+      {selected.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-2.5 text-sm">
+          <span className="font-medium">{selected.size} selected</span>
+          <div className="flex-1" />
+          <Button size="sm" variant="outline" disabled={bulkUpdate.isPending} onClick={() => bulkUpdate.mutate({ answered: true })}>
+            Mark answered
+          </Button>
+          <Button size="sm" variant="outline" disabled={bulkUpdate.isPending} onClick={() => bulkUpdate.mutate({ answered: false })}>
+            Mark unanswered
+          </Button>
+          <Select onValueChange={(v) => bulkUpdate.mutate({ potential: v })}>
+            <SelectTrigger className="h-8 w-[150px]"><SelectValue placeholder="Set potential" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="mid">Mid</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
+        </div>
+      )}
+
       <div className="rounded-lg border border-border overflow-hidden">
         {q.isLoading ? (
-          <TableSkeleton cols={8} />
+          <TableSkeleton cols={9} />
         ) : rows.length === 0 ? (
           <EmptyState icon={CheckCircle2} title="No clients" description="Activated leads logged on the Leads page appear here." />
         ) : (
@@ -425,6 +472,19 @@ function ActivationsPage() {
           <table className="w-full text-sm">
             <thead className="table-head bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>
+                <th className="py-3 px-4 w-10">
+                  <Checkbox
+                    checked={pageItems.length > 0 && pageItems.every((r: any) => selected.has(r.id))}
+                    onCheckedChange={(c) =>
+                      setSelected((prev) => {
+                        const next = new Set(prev);
+                        pageItems.forEach((r: any) => (c ? next.add(r.id) : next.delete(r.id)));
+                        return next;
+                      })
+                    }
+                    aria-label="Select all on page"
+                  />
+                </th>
                 <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -442,6 +502,9 @@ function ActivationsPage() {
                   className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                   onClick={() => setViewing(r)}
                 >
+                  <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleSelected(r.id)} aria-label="Select client" />
+                  </td>
                   <td className="py-3 px-4">{r.daily_lead_entries?.entry_date ? fmtDate(r.daily_lead_entries.entry_date) : "—"}</td>
                   <td className="py-3 px-4 font-medium">{r.lead_name || "—"}</td>
                   <td className="py-3 px-4">{r.daily_lead_entries?.lead_sources?.name ?? "—"}</td>
