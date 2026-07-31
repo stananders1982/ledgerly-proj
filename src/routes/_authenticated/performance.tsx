@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { depositsByName, effectiveBalance, qualifiesAsFtd } from "@/lib/rules";
+import { depositsByName, effectiveBalance, qualifiesAsFtd, isStd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
 import { commissionAmount, commissionRate, type CommissionTiers } from "@/lib/commission";
@@ -225,6 +225,7 @@ function PerformancePage() {
     name: (r) => r.name,
     team: (r) => TEAM_RANK[r.team] ?? 3,
     ftds: (r) => r.ftds,
+    stds: (r) => r.stds,
     clients: (r) => r.clients,
     attributed: (r) => r.attributed,
     commission: (r) => r.commission + r.ftdCommission,
@@ -237,6 +238,7 @@ function PerformancePage() {
 
   const totals = useMemo(() => ({
     ftds: rows.reduce((s, r) => s + r.ftds, 0),
+    stds: rows.reduce((s, r) => s + r.stds, 0),
     revenue: rows.reduce((s, r) => s + r.attributed, 0),
     commission: rows.reduce((s, r) => s + r.commission + r.ftdCommission, 0),
     payout: rows.reduce((s, r) => s + r.payout, 0),
@@ -258,8 +260,9 @@ function PerformancePage() {
         }
       />
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Total FTDs" value={String(totals.ftds)} tone="positive" />
+        <StatCard label="STDs" value={String(totals.stds)} />
         <StatCard label="Attributed revenue" value={fmtMoney(totals.revenue)} tone="positive" />
         <StatCard label="Total commission" value={fmtMoney(totals.commission)} />
         <StatCard label="Total payout" value={fmtMoney(totals.payout)} tone="negative" />
@@ -267,7 +270,7 @@ function PerformancePage() {
 
       <div className="card-surface overflow-hidden">
         {loading ? (
-          <TableSkeleton cols={8} />
+          <TableSkeleton cols={9} />
         ) : sorted.length === 0 ? (
           <div className="p-8 text-sm text-muted-foreground">No employees match.</div>
         ) : (
@@ -280,6 +283,7 @@ function PerformancePage() {
                 subtitle={`Team ${r.team ?? "C"}`}
                 fields={[
                   { label: "FTDs", value: <span className="num">{r.ftds}</span> },
+                  { label: "STDs", value: <span className="num">{r.stds}</span> },
                   { label: "Clients", value: <span className="num">{r.clients}</span> },
                   { label: "Revenue", value: <span className="num">{fmtMoney(r.attributed)}</span> },
                   { label: "Net payout", value: <span className="num font-medium">{fmtMoney(r.payout)}</span> },
@@ -294,6 +298,7 @@ function PerformancePage() {
                   <SortTh label="Agent" k="name" sort={sort} toggle={toggle} />
                   <SortTh label="Dept" k="team" sort={sort} toggle={toggle} />
                   <SortTh label="FTDs" k="ftds" sort={sort} toggle={toggle} />
+                  <SortTh label="STDs" k="stds" sort={sort} toggle={toggle} />
                   <SortTh label="Clients" k="clients" sort={sort} toggle={toggle} />
                   <SortTh label="Revenue" k="attributed" sort={sort} toggle={toggle} />
                   <SortTh label="Commission" k="commission" sort={sort} toggle={toggle} />
@@ -328,6 +333,7 @@ function PerformancePage() {
                         </>
                       ) : "—"}
                     </td>
+                    <td className="py-3 px-4">{r.team === "M" ? "—" : r.stds}</td>
                     <td className="py-3 px-4">{r.team === "M" ? "—" : r.clients}</td>
                     <td className="py-3 px-4">{r.team === "R" ? fmtMoney(r.attributed) : "—"}</td>
                     <td className="py-3 px-4 text-primary">
