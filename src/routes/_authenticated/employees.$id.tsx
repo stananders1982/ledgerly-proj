@@ -199,14 +199,16 @@ function EmployeeDetailPage() {
     const salary = Math.max(0, Number(emp?.salary ?? 0) - deduction);
 
     const ftdCount = isConversion ? conversions.counted.length : 0;
-    const ftdCommission = ftdCount * settings.ftdCommission;
+    // Per-FTD rate is configured on the employee (conversion agents).
+    const ftdRate = Number(emp?.ftd_commission ?? settings.ftdCommission);
+    const ftdCommission = ftdCount * ftdRate;
 
     const payout = salary + (isRetention ? commission - penalty : 0) + ftdCommission;
 
     const clients = (clientsQ.data ?? []).reduce((s: number, r: any) => s + Number(r.activated_count || 0), 0);
     const revenuePerClient = clients > 0 ? attributed / clients : 0;
 
-    return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission };
+    return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission, ftdRate };
   }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention, settings]);
 
   if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
@@ -241,7 +243,7 @@ function EmployeeDetailPage() {
         {isConversion && (
           <>
             <StatCard label="FTDs (activations)" value={String(conversions.counted.length)} tone="positive" />
-            <StatCard label={`FTD commission ($${settings.ftdCommission}/FTD)`} value={fmtMoney(totals.ftdCommission)} tone="positive" />
+            <StatCard label={`FTD commission (${fmtMoney(totals.ftdRate)}/FTD)`} value={fmtMoney(totals.ftdCommission)} tone="positive" />
           </>
         )}
         <StatCard label="Salary after absences" value={fmtMoney(totals.salary)} />
@@ -405,7 +407,7 @@ function EmployeeDetailPage() {
             </>
           )}
           {isConversion && (
-            <Row label={`FTD commission (${totals.ftdCount} × ${fmtMoney(settings.ftdCommission)})`} value={`+${fmtMoney(totals.ftdCommission)}`} positive />
+            <Row label={`FTD commission (${totals.ftdCount} × ${fmtMoney(totals.ftdRate)})`} value={`+${fmtMoney(totals.ftdCommission)}`} positive />
           )}
           <div className="flex justify-between py-3 mt-2 border-t border-border font-display text-lg font-semibold">
             <span>Net payout</span>

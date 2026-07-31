@@ -169,7 +169,9 @@ function PerformancePage() {
         if (ok) ftds++;
         else pendingFtds++;
       }
-      const ftdCommission = team === "C" ? ftds * settings.ftdCommission : 0;
+      // Per-FTD rate lives on the employee record.
+      const ftdRate = Number(emp.ftd_commission ?? settings.ftdCommission);
+      const ftdCommission = team === "C" ? ftds * ftdRate : 0;
 
       const payout = salary + (team === "R" ? commission - penalty : 0) + ftdCommission;
 
