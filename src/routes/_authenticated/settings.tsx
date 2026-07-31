@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SlidersHorizontal, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -98,7 +98,7 @@ function SettingsPage() {
   const save = useMutation({
     mutationFn: async () => {
       const companyId = (q.data as any)?.company_id;
-      const payload: Record<string, number> = {};
+      const payload: any = {};
       for (const f of FIELDS) payload[f.column] = Number(form[f.key]) || 0;
       if (companyId) {
         const { error } = await supabase.from("company_settings").update(payload).eq("company_id", companyId);
@@ -131,7 +131,6 @@ function SettingsPage() {
   return (
     <div className="p-6 max-w-3xl">
       <PageHeader
-        icon={SlidersHorizontal}
         title="Company Settings"
         description="The numbers behind FTDs, commissions and penalties — per workspace."
         actions={
