@@ -371,11 +371,11 @@ function ReportsPage() {
       if (id && retentionIds.has(id)) stdByEmp.set(id, (stdByEmp.get(id) ?? 0) + 1);
     }
 
-    const byEmp = new Map<string, { name: string; team: string; revenue: number; leads: number; activated: number; std: number; salary: number; tiers: CommissionTiers }>();
+    const byEmp = new Map<string, { name: string; team: string; revenue: number; commBase: number; leads: number; activated: number; std: number; salary: number; tiers: CommissionTiers }>();
     for (const e of data.employees as any[]) byEmp.set(e.id, {
       name: e.name,
       team: String(e.team ?? "R").toUpperCase(),
-      revenue: 0, leads: 0, activated: 0,
+      revenue: 0, commBase: 0, leads: 0, activated: 0,
       std: stdByEmp.get(e.id) ?? 0,
       salary: Number(e.salary),
       tiers: {
@@ -387,19 +387,23 @@ function ReportsPage() {
       },
     });
     for (const r of rev) {
-      const amt = commissionableAmount(r.amount, r.method);
+      const amt = Number(r.amount);
+      // Commission base: deposit-method fee (wire 15%, card 25%, crypto 0%) deducted first.
+      const base = commissionableAmount(r.amount, r.method);
       const pct = Number(r.split_pct ?? 100);
       if (r.employee_id) {
-        const x = byEmp.get(r.employee_id); if (x) x.revenue += amt * (pct / 100);
+        const x = byEmp.get(r.employee_id);
+        if (x) { x.revenue += amt * (pct / 100); x.commBase += base * (pct / 100); }
       }
       if (r.employee_id_2) {
-        const x = byEmp.get(r.employee_id_2); if (x) x.revenue += amt * ((100 - pct) / 100);
+        const x = byEmp.get(r.employee_id_2);
+        if (x) { x.revenue += amt * ((100 - pct) / 100); x.commBase += base * ((100 - pct) / 100); }
       }
     }
     // No employee_id on daily_lead_entries; leave leads/activated as 0
     return Array.from(byEmp.values()).map((e) => {
       // Tiered revenue commission applies to retention agents only.
-      const commission = e.team === "R" ? commissionAmount(e.revenue, e.tiers) : 0;
+      const commission = e.team === "R" ? commissionAmount(e.commBase, e.tiers) : 0;
       return { ...e, commission, profit: e.revenue - commission - e.salary, rate: e.leads ? (e.activated / e.leads) * 100 : 0 };
     }).sort((a, b) => b.revenue - a.revenue);
   }, [data.revenue, data.employees, stdActQ.data, stdRevQ.data, start, end]);

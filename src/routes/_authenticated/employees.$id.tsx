@@ -168,13 +168,15 @@ function EmployeeDetailPage() {
     const wds = withQ.data ?? [];
     const att = attQ.data ?? [];
 
-    const attributed = rev.reduce((s: number, r: any) => {
-      const amt = commissionableAmount(r.amount, r.method);
+    const share = (r: any, amt: number) => {
       const pct = Number(r.split_pct ?? 100);
-      if (r.employee_id === id) return s + amt * (pct / 100);
-      if (r.employee_id_2 === id) return s + amt * ((100 - pct) / 100);
-      return s;
-    }, 0);
+      if (r.employee_id === id) return amt * (pct / 100);
+      if (r.employee_id_2 === id) return amt * ((100 - pct) / 100);
+      return 0;
+    };
+    const attributed = rev.reduce((s: number, r: any) => s + share(r, Number(r.amount)), 0);
+    // Commission base after the deposit-method fee (wire 15%, card 25%, crypto 0%).
+    const commBase = rev.reduce((s: number, r: any) => s + share(r, commissionableAmount(r.amount, r.method)), 0);
 
     const withdrawn = wds.reduce((s: number, w: any) => s + Number(w.amount), 0);
     const penalty = wds.reduce((s: number, w: any) => s + Number(w.employee_penalty), 0);
@@ -187,8 +189,8 @@ function EmployeeDetailPage() {
       commission_tier3_pct: Number(emp.commission_tier3_pct),
     } : null;
 
-    const commission = tiers ? commissionAmount(attributed, tiers) : 0;
-    const rate = tiers ? commissionRate(attributed, tiers) : 0;
+    const commission = tiers ? commissionAmount(commBase, tiers) : 0;
+    const rate = tiers ? commissionRate(commBase, tiers) : 0;
 
     const wd = workingDays(start, end);
     const present = att.filter((a: any) => a.present).length;
@@ -208,7 +210,7 @@ function EmployeeDetailPage() {
     const clients = (clientsQ.data ?? []).reduce((s: number, r: any) => s + Number(r.activated_count || 0), 0);
     const revenuePerClient = clients > 0 ? attributed / clients : 0;
 
-    return { attributed, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission, ftdRate };
+    return { attributed, commBase, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission, ftdRate };
   }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention, settings]);
 
   if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
@@ -402,7 +404,7 @@ function EmployeeDetailPage() {
           <Row label={`Absence deduction (${totals.absent} × ${fmtMoney(totals.perDay)})`} value={`−${fmtMoney(totals.deduction)}`} negative />
           {isRetention && (
             <>
-              <Row label={`Commission (${totals.rate}% on ${fmtMoney(totals.attributed)})`} value={`+${fmtMoney(totals.commission)}`} positive />
+              <Row label={`Commission (${totals.rate}% on ${fmtMoney(totals.commBase)})`} value={`+${fmtMoney(totals.commission)}`} positive />
               <Row label="Withdrawal penalty (10%)" value={`−${fmtMoney(totals.penalty)}`} negative />
             </>
           )}
