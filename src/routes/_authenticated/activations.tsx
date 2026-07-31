@@ -223,31 +223,19 @@ function ActivationsPage() {
   const answeredCount = rows.filter((r) => r.answered).length;
   const highCount = rows.filter((r) => r.potential === "high").length;
 
-  // Conversions per conversion agent — same FTD rule as the employee page:
-  // answered AND (mid/high potential OR effective balance >= 251)
+  // Conversions per conversion agent — shared FTD rule from @/lib/rules.
   const conversionsByAgent = useMemo(() => {
     const m = new Map<string, { count: number; pending: number; pendingRows: PendingRow[] }>();
     for (const r of rows) {
       const id = r.conversion_employee_id;
       if (!id) continue;
       const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
-      const effectiveBalance = Number(r.balance || 0) + depositsFor(r.lead_name);
-      const qualifies =
-        !!r.answered &&
-        (r.potential === "mid" || r.potential === "high" || effectiveBalance >= 251);
+      const bal = Number(r.balance || 0) + depositsFor(r.lead_name);
+      const qualifies = qualifiesAsFtd(r, bal);
       if (qualifies) e.count += 1;
       else {
         e.pending += 1;
-        const reasons: string[] = [];
-        if (!r.answered) reasons.push("Not answered yet");
-        if (r.potential !== "mid" && r.potential !== "high" && effectiveBalance < 251) {
-          reasons.push(
-            r.potential === "low"
-              ? "Low potential and balance under $251"
-              : "No potential set and balance under $251",
-          );
-        }
-        e.pendingRows.push({ row: r, balance: effectiveBalance, reasons, agent: employeeName(id) });
+        e.pendingRows.push({ row: r, balance: bal, reasons: ftdPendingReasons(r, bal), agent: employeeName(id) });
       }
       m.set(id, e);
     }
