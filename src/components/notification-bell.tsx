@@ -43,6 +43,20 @@ export function NotificationBell() {
     },
   });
 
+  const openNotification = (n: Notification) => {
+    if (n.lead_activation_id) {
+      navigate({ to: "/activations", search: { client: n.lead_activation_id } });
+      return;
+    }
+    if (n.lead_name) {
+      navigate({ to: "/activations", search: { name: n.lead_name } });
+      return;
+    }
+    // Fallback so every notification leads somewhere useful.
+    if (n.type === "revenue") navigate({ to: "/revenue" });
+    else navigate({ to: "/activations", search: {} });
+  };
+
   useEffect(() => {
     const channel = supabase
       .channel("notifications-feed")
