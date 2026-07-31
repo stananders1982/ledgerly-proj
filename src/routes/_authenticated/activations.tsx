@@ -27,6 +27,8 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
+import { CLIENT_TAGS, TagBadges, TagPicker } from "@/components/client-tags";
+import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -57,6 +59,7 @@ type Row = {
   potential: "low" | "mid" | "high" | null;
   answered: boolean;
   activation_date: string | null;
+  tags?: string[] | null;
   daily_lead_entries?: { entry_date: string; source_id: string | null; lead_sources?: { name: string } | null } | null;
 };
 
@@ -92,6 +95,7 @@ function ActivationsPage() {
   const [stdFilter, setStdFilter] = useState<"all" | "yes" | "no">("all");
   const [search, setSearch] = useState("");
   const [dupOnly, setDupOnly] = useState(false);
+  const [tagFilter, setTagFilter] = useState<string>("all");
 
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
@@ -235,11 +239,12 @@ function ActivationsPage() {
         if (stdFilter === "no" && isStdRow) return false;
       }
       if (dupOnly && !dupNames.has((r.lead_name ?? "").trim().toLowerCase())) return false;
+      if (tagFilter !== "all" && !(r.tags ?? []).includes(tagFilter)) return false;
       const term = search.trim().toLowerCase();
       if (term && !(r.lead_name ?? "").toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames]);
+  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames, tagFilter]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => actDate(r) ?? "",
@@ -306,7 +311,8 @@ function ActivationsPage() {
           answered: v.answered,
           employee_id: v.employee_id,
           conversion_employee_id: v.conversion_employee_id || null,
-        })
+          tags: v.tags ?? [],
+        } as any)
         .eq("id", v.id);
       if (error) throw error;
     },
@@ -398,6 +404,15 @@ function ActivationsPage() {
             <SelectItem value="all">All potentials</SelectItem>
             {POTENTIALS.map((p) => (
               <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={tagFilter} onValueChange={setTagFilter}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All tags</SelectItem>
+            {CLIENT_TAGS.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -512,6 +527,7 @@ function ActivationsPage() {
                 fields={[
                   { label: "Balance", value: <span className="num">{fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}</span> },
                   { label: "Potential", value: <PotentialBadge value={r.potential} /> },
+                  { label: "Tags", value: <TagBadges tags={r.tags} /> },
                   { label: "Source", value: r.daily_lead_entries?.lead_sources?.name ?? "—" },
                   { label: "STD", value: <StdBadge count={stdCountFor(r)} /> },
                   { label: "Answered", value: <AnsweredBadge answered={!!r.answered} /> },
@@ -541,6 +557,7 @@ function ActivationsPage() {
                 <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Potential" k="potential" sort={sort} toggle={toggle} className="py-3 px-4" />
+                <th className="py-3 px-4">Tags</th>
                 <SortTh label="STD" k="std" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -577,6 +594,7 @@ function ActivationsPage() {
                   </td>
 
                   <td className="py-3 px-4"><PotentialBadge value={r.potential} /></td>
+                  <td className="py-3 px-4"><TagBadges tags={r.tags} /></td>
                   <td className="py-3 px-4"><StdBadge count={stdCountFor(r)} /></td>
                   <td className="py-3 px-4"><EmployeeLink id={r.conversion_employee_id} name={employeeName(r.conversion_employee_id)} /></td>
                   <td className="py-3 px-4"><EmployeeLink id={r.employee_id} name={employeeName(r.employee_id)} /></td>
@@ -673,7 +691,37 @@ function ActivationsPage() {
                   <Info label="Deposit count" value={String(deposits.length)} />
                   <Info label="STD" value={<StdBadge count={stdDepositsForRow(cur).length} />} />
                   <Info label="FTD status" value={<Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified" : "Pending"}</Badge>} />
+                  <Info label="Tags" value={<TagBadges tags={cur.tags} />} />
                 </div>
+
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold">Lifecycle</h3>
+                  <ClientTimeline
+                    events={[
+                      ...(cur.daily_lead_entries?.entry_date
+                        ? [{ date: cur.daily_lead_entries.entry_date, kind: "lead" as const, label: "Lead received" }]
+                        : []),
+                      ...(actDate(cur)
+                        ? [{ date: actDate(cur)!, kind: "activation" as const, label: "Activated" }]
+                        : []),
+                      ...deposits.map((d) => ({
+                        date: d.date,
+                        kind: "deposit" as const,
+                        label: d.notes ? `Deposit — ${d.notes}` : "Deposit",
+                        amount: Number(d.amount || 0),
+                      })),
+                      ...wds.map((w) => ({
+                        date: w.date,
+                        kind: "withdrawal" as const,
+                        label: w.notes ? `Withdrawal — ${w.notes}` : "Withdrawal",
+                        amount: Number(w.amount || 0),
+                      })),
+                    ] satisfies TimelineEvent[]}
+                  />
+                </div>
+
+                <ClientCommunications activationId={cur.id} clientName={cur.lead_name} />
+
 
                 <div>
                   <h3 className="mb-2 text-sm font-semibold">Deposits</h3>
@@ -836,6 +884,10 @@ function EditDialog({
                 .map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
             </SelectContent>
           </Select>
+        </div>
+        <div className="grid gap-1.5">
+          <label className="text-xs text-muted-foreground">Tags</label>
+          <TagPicker value={form.tags ?? []} onChange={(tags) => setForm({ ...form, tags })} />
         </div>
         <label className="flex items-center gap-2 text-sm">
           <Checkbox checked={form.answered} onCheckedChange={(c) => setForm({ ...form, answered: Boolean(c) })} />

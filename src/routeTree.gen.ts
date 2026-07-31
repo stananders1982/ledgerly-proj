@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedWithdrawalsRouteImport } from './routes/_authenticated/withdrawals'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSourcesRouteImport } from './routes/_authenticated/sources'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedRevenueRouteImport } from './routes/_authenticated/revenue'
@@ -61,6 +62,11 @@ const AuthenticatedWithdrawalsRoute =
 const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSourcesRoute = AuthenticatedSourcesRouteImport.update({
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/revenue': typeof AuthenticatedRevenueRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/sources': typeof AuthenticatedSourcesRoute
+  '/tasks': typeof AuthenticatedTasksRoute
   '/users': typeof AuthenticatedUsersRoute
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/revenue': typeof AuthenticatedRevenueRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/sources': typeof AuthenticatedSourcesRoute
+  '/tasks': typeof AuthenticatedTasksRoute
   '/users': typeof AuthenticatedUsersRoute
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/': typeof AuthenticatedIndexRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/_authenticated/revenue': typeof AuthenticatedRevenueRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/sources': typeof AuthenticatedSourcesRoute
+  '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -248,6 +257,7 @@ export interface FileRouteTypes {
     | '/revenue'
     | '/settings'
     | '/sources'
+    | '/tasks'
     | '/users'
     | '/withdrawals'
     | '/affiliates/$id'
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
     | '/revenue'
     | '/settings'
     | '/sources'
+    | '/tasks'
     | '/users'
     | '/withdrawals'
     | '/'
@@ -296,6 +307,7 @@ export interface FileRouteTypes {
     | '/_authenticated/revenue'
     | '/_authenticated/settings'
     | '/_authenticated/sources'
+    | '/_authenticated/tasks'
     | '/_authenticated/users'
     | '/_authenticated/withdrawals'
     | '/_authenticated/'
@@ -353,6 +365,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof AuthenticatedUsersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tasks': {
+      id: '/_authenticated/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AuthenticatedTasksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sources': {
@@ -491,6 +510,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRevenueRoute: typeof AuthenticatedRevenueRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSourcesRoute: typeof AuthenticatedSourcesRoute
+  AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedWithdrawalsRoute: typeof AuthenticatedWithdrawalsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -514,6 +534,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRevenueRoute: AuthenticatedRevenueRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSourcesRoute: AuthenticatedSourcesRoute,
+  AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedWithdrawalsRoute: AuthenticatedWithdrawalsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,

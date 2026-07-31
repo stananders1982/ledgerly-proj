@@ -2,7 +2,10 @@ import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Building2, TrendingUp, Wallet } from "lucide-react";
+import { ArrowLeft, Building2, TrendingUp, Wallet, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { exportPDF } from "@/lib/export";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -152,6 +155,36 @@ function AffiliateStatementPage() {
       <PageHeader
         title={affQ.data?.name ?? "Affiliate"}
         description={affQ.data?.active ? "Monthly statement and transaction history." : "Inactive affiliate"}
+        actions={
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (!monthly.length) return toast.error("Nothing to export");
+              exportPDF(
+                `Payout statement — ${affQ.data?.name ?? "Affiliate"}`,
+                [
+                  ...monthly.map((r) => ({
+                    Month: r.month,
+                    Revenue: fmtMoney(r.revenue),
+                    Withdrawals: fmtMoney(r.withdrawals),
+                    Paid: fmtMoney(r.paid),
+                    Net: fmtMoney(r.net),
+                  })),
+                  {
+                    Month: "TOTAL",
+                    Revenue: fmtMoney(totals.revenue),
+                    Withdrawals: fmtMoney(totals.withdrawals),
+                    Paid: fmtMoney(totals.paid),
+                    Net: fmtMoney(totals.net),
+                  },
+                ],
+                "affiliate-statement",
+              );
+            }}
+          >
+            <Download className="h-4 w-4" /> Statement PDF
+          </Button>
+        }
       />
 
       <div className="mb-4">

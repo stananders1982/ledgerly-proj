@@ -42,6 +42,9 @@ type Emp = {
   commission_tier2_pct: number;
   commission_tier3_pct: number;
   ftd_commission: number;
+  target_ftds: number | null;
+  target_stds: number | null;
+  target_revenue: number | null;
 };
 
 const TEAMS = [
@@ -98,6 +101,9 @@ function EmployeesPage() {
         commission_tier2_pct: Number(v.commission_tier2_pct) || 0,
         commission_tier3_pct: Number(v.commission_tier3_pct) || 0,
         ftd_commission: Number(v.ftd_commission) || 0,
+        target_ftds: v.target_ftds === "" || v.target_ftds == null ? null : Number(v.target_ftds),
+        target_stds: v.target_stds === "" || v.target_stds == null ? null : Number(v.target_stds),
+        target_revenue: v.target_revenue === "" || v.target_revenue == null ? null : Number(v.target_revenue),
       };
       if (v.id) {
         const { error } = await supabase.from("employees").update(payload).eq("id", v.id);
@@ -241,6 +247,9 @@ function EmpDialog({
     commission_tier2_pct: emp?.commission_tier2_pct ?? 10,
     commission_tier3_pct: emp?.commission_tier3_pct ?? 12,
     ftd_commission: emp?.ftd_commission ?? 100,
+    target_ftds: emp?.target_ftds ?? "",
+    target_stds: emp?.target_stds ?? "",
+    target_revenue: emp?.target_revenue ?? "",
   }));
   return (
     <DialogContent className="max-w-lg">
@@ -305,6 +314,27 @@ function EmpDialog({
             <Field label="Rate %">
               <Input type="number" min={0} step="0.01" value={form.commission_tier3_pct}
                 onChange={(e) => setForm({ ...form, commission_tier3_pct: Number(e.target.value) })} />
+            </Field>
+          </div>
+        </div>
+
+        <div className="grid gap-3 rounded-md border border-border p-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Monthly goals</Label>
+            <span className="text-xs text-muted-foreground">Leave empty for no target</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Field label="FTDs">
+              <Input type="number" min={0} value={form.target_ftds}
+                onChange={(e) => setForm({ ...form, target_ftds: e.target.value })} />
+            </Field>
+            <Field label="STDs">
+              <Input type="number" min={0} value={form.target_stds}
+                onChange={(e) => setForm({ ...form, target_stds: e.target.value })} />
+            </Field>
+            <Field label="Revenue">
+              <Input type="number" min={0} step="0.01" value={form.target_revenue}
+                onChange={(e) => setForm({ ...form, target_revenue: e.target.value })} />
             </Field>
           </div>
         </div>

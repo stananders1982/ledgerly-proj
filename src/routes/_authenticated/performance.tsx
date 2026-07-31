@@ -16,6 +16,7 @@ import { usePagination, TablePagination } from "@/components/pagination";
 import { depositsByName, effectiveBalance, qualifiesAsFtd, isStd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
+import { GoalBar } from "@/components/goal-bar";
 import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
@@ -205,6 +206,9 @@ function PerformancePage() {
         team,
         teamLabel: TEAM_LABEL[team] ?? team,
         active: !!emp.active,
+        targetFtds: emp.target_ftds == null ? null : Number(emp.target_ftds),
+        targetStds: emp.target_stds == null ? null : Number(emp.target_stds),
+        targetRevenue: emp.target_revenue == null ? null : Number(emp.target_revenue),
         ftds: team === "C" ? ftds : 0,
         pendingFtds: team === "C" ? pendingFtds : 0,
         stds: team === "R" ? stds : 0,
@@ -316,6 +320,7 @@ function PerformancePage() {
                   <SortTh label="Absences" k="absent" sort={sort} toggle={toggle} />
                   <SortTh label="Salary" k="salary" sort={sort} toggle={toggle} />
                   <SortTh label="Net payout" k="payout" sort={sort} toggle={toggle} />
+                  <th className="py-3 px-4 text-left text-xs uppercase tracking-wider">Goals</th>
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
@@ -373,6 +378,18 @@ function PerformancePage() {
                     <td className="py-3 px-4">{r.absent}</td>
                     <td className="py-3 px-4">{fmtMoney(r.salary)}</td>
                     <td className="py-3 px-4 font-medium">{fmtMoney(r.payout)}</td>
+                    <td className="py-3 px-4">
+                      {r.team === "C" ? (
+                        <GoalBar label="FTDs" value={r.ftds} target={r.targetFtds} />
+                      ) : r.team === "R" ? (
+                        <div className="grid gap-1.5">
+                          <GoalBar label="STDs" value={r.stds} target={r.targetStds} />
+                          <GoalBar label="Revenue" value={r.attributed} target={r.targetRevenue} format={(n) => fmtMoney(n)} />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-right">
                       <Link to="/employees/$id" params={{ id: r.id }} className="text-primary hover:underline text-xs">View</Link>
                     </td>

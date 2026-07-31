@@ -35,6 +35,7 @@ import { fmtMoney, fmtPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
 import { useCompanySettings } from "@/lib/settings";
+import { CashflowForecast } from "@/components/cashflow-forecast";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — Ledgerly" }] }),
@@ -489,6 +490,9 @@ function Dashboard() {
         </div>
 
         <AIInsights insights={insights} />
+
+        <CashflowForecast />
+
       </section>
 
       {/* Secondary detail */}

@@ -26,6 +26,7 @@ import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { usePagination, TablePagination } from "@/components/pagination";
 
 
@@ -172,6 +173,18 @@ function RevenuePage() {
     mutationFn: async (id: string) => { const { error } = await supabase.from("revenue").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["revenue-list"] }); toast.success("Deleted"); },
   });
+  const reconcile = useMutation({
+    mutationFn: async ({ id, on }: { id: string; on: boolean }) => {
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("revenue")
+        .update({ reconciled_at: on ? new Date().toISOString() : null, reconciled_by: on ? u.user?.id ?? null : null } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["revenue-list"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
     const rows = filtered.map((r: any) => ({
@@ -264,6 +277,7 @@ function RevenuePage() {
                   <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Employee" k="employee" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  <th className="py-3 px-4">Reconciled</th>
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
@@ -278,6 +292,7 @@ function RevenuePage() {
                     affiliateId={r.affiliate_id}
                     onEdit={() => { setEditing(r); setOpen(true); }}
                     onDelete={() => del.mutate(r.id)}
+                    onToggleReconcile={(on) => reconcile.mutate({ id: r.id, on })}
                   />
                 ))}
               </tbody>
@@ -299,6 +314,7 @@ function RevenueRow({
   affiliateId,
   onEdit,
   onDelete,
+  onToggleReconcile,
 }: {
   revenue: any;
   employeeName?: string;
@@ -307,6 +323,7 @@ function RevenueRow({
   affiliateId?: string | null;
   onEdit: () => void;
   onDelete: () => void;
+  onToggleReconcile: (on: boolean) => void;
 }) {
   return (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
@@ -330,6 +347,12 @@ function RevenueRow({
                       ) : (
                         <span className="text-muted-foreground">{affiliateName || "—"}</span>
                       )}
+                    </td>
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Checkbox checked={!!r.reconciled_at} onCheckedChange={(c) => onToggleReconcile(Boolean(c))} />
+                        {r.reconciled_at ? fmtDate(String(r.reconciled_at).slice(0, 10)) : "Open"}
+                      </label>
                     </td>
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={onDelete} label="Delete revenue?" />
