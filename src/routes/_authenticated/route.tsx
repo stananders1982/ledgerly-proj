@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { CommandPalette, useCommandPalette } from "@/components/command-palette";
 import { NotificationBell } from "@/components/notification-bell";
+import { ThemeSwitch } from "@/components/theme-switch";
 import { LiveClock } from "@/components/live-clock";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
