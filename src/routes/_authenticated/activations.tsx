@@ -25,7 +25,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { CheckCircle2, PhoneCall, Wallet } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { qualifiesAsFtd, ftdPendingReasons } from "@/lib/rules";
+import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 
 export const Route = createFileRoute("/_authenticated/activations")({
@@ -72,6 +72,11 @@ function PotentialBadge({ value }: { value: Row["potential"] }) {
   return <SharedPotentialBadge potential={value} />;
 }
 
+function StdBadge({ count }: { count: number }) {
+  if (!count) return <span className="text-muted-foreground">—</span>;
+  return <Badge variant="default">{count > 1 ? `STD x${count}` : "STD"}</Badge>;
+}
+
 function ActivationsPage() {
   const settings = useCompanySettings();
   const qc = useQueryClient();
@@ -83,6 +88,7 @@ function ActivationsPage() {
   const [pendingView, setPendingView] = useState<{ title: string; rows: PendingRow[] } | null>(null);
   const [answeredFilter, setAnsweredFilter] = useState<"all" | "yes" | "no">("all");
   const [potentialFilter, setPotentialFilter] = useState<string>("all");
+  const [stdFilter, setStdFilter] = useState<"all" | "yes" | "no">("all");
   const [search, setSearch] = useState("");
 
   const activeRange = useMemo(
@@ -190,6 +196,10 @@ function ActivationsPage() {
   const withdrawalRowsFor = (name?: string | null) =>
     (withdrawalsQ.data ?? []).filter((w) => matchName(w.customer_name, name));
 
+  /** Deposits made on/after activation — every one of these is an STD. */
+  const stdDepositsForRow = (r: Row) => stdDepositsFor(r as any, revenueQ.data ?? []);
+  const stdCountFor = (r: Row) => stdDepositsForRow(r).length;
+
   const employeeName = (id?: string | null) =>
     (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
 
@@ -205,11 +215,16 @@ function ActivationsPage() {
       if (answeredFilter === "yes" && !r.answered) return false;
       if (answeredFilter === "no" && r.answered) return false;
       if (potentialFilter !== "all" && (r.potential ?? "") !== potentialFilter) return false;
+      if (stdFilter !== "all") {
+        const isStdRow = stdCountFor(r) > 0;
+        if (stdFilter === "yes" && !isStdRow) return false;
+        if (stdFilter === "no" && isStdRow) return false;
+      }
       const term = search.trim().toLowerCase();
       if (term && !(r.lead_name ?? "").toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [q.data, activeRange, answeredFilter, potentialFilter, search]);
+  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => actDate(r) ?? "",
@@ -220,6 +235,7 @@ function ActivationsPage() {
     conversion: (r) => r.conversion_employee_id ?? "",
     retention: (r) => r.employee_id ?? "",
     answered: (r) => !!r.answered,
+    std: (r) => stdCountFor(r),
   });
   const { pageItems, ...pg } = usePagination(sorted, 30);
 
@@ -346,6 +362,14 @@ function ActivationsPage() {
             <SelectItem value="no">Not answered</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={stdFilter} onValueChange={(v) => setStdFilter(v as any)}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All clients</SelectItem>
+            <SelectItem value="yes">STD only</SelectItem>
+            <SelectItem value="no">No STD</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={potentialFilter} onValueChange={setPotentialFilter}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -467,6 +491,7 @@ function ActivationsPage() {
                   { label: "Balance", value: <span className="num">{fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}</span> },
                   { label: "Potential", value: <PotentialBadge value={r.potential} /> },
                   { label: "Source", value: r.daily_lead_entries?.lead_sources?.name ?? "—" },
+                  { label: "STD", value: <StdBadge count={stdCountFor(r)} /> },
                   { label: "Answered", value: <AnsweredBadge answered={!!r.answered} /> },
                 ]}
               />
@@ -494,6 +519,7 @@ function ActivationsPage() {
                 <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Potential" k="potential" sort={sort} toggle={toggle} className="py-3 px-4" />
+                <SortTh label="STD" k="std" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Answered" k="answered" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -522,6 +548,7 @@ function ActivationsPage() {
                   </td>
 
                   <td className="py-3 px-4"><PotentialBadge value={r.potential} /></td>
+                  <td className="py-3 px-4"><StdBadge count={stdCountFor(r)} /></td>
                   <td className="py-3 px-4"><EmployeeLink id={r.conversion_employee_id} name={employeeName(r.conversion_employee_id)} /></td>
                   <td className="py-3 px-4"><EmployeeLink id={r.employee_id} name={employeeName(r.employee_id)} /></td>
                   <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
@@ -615,6 +642,7 @@ function ActivationsPage() {
                   <Info label="Conversion agent" value={<EmployeeLink id={cur.conversion_employee_id} name={employeeName(cur.conversion_employee_id)} />} />
                   <Info label="Retention agent" value={<EmployeeLink id={cur.employee_id} name={employeeName(cur.employee_id)} />} />
                   <Info label="Deposit count" value={String(deposits.length)} />
+                  <Info label="STD" value={<StdBadge count={stdDepositsForRow(cur).length} />} />
                   <Info label="FTD status" value={<Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified" : "Pending"}</Badge>} />
                 </div>
 
@@ -630,6 +658,7 @@ function ActivationsPage() {
                             <th className="py-2 px-3 font-medium">Date</th>
                             <th className="py-2 px-3 font-medium">Amount</th>
                             <th className="py-2 px-3 font-medium">Agent</th>
+                            <th className="py-2 px-3 font-medium">STD</th>
                             <th className="py-2 px-3 font-medium">Notes</th>
                           </tr>
                         </thead>
@@ -638,6 +667,14 @@ function ActivationsPage() {
                             <tr key={d.id} className="border-t border-border/50">
                               <td className="py-2 px-3">{fmtDate(d.date)}</td>
                               <td className="py-2 px-3 num font-medium">{fmtMoney(d.amount)}</td>
+                              <td className="py-2 px-3">
+                                {(() => {
+                                  const act = activationDate(cur as any);
+                                  return !act || (d.date && d.date >= act)
+                                    ? <Badge variant="default">STD</Badge>
+                                    : <span className="text-muted-foreground">—</span>;
+                                })()}
+                              </td>
                               <td className="py-2 px-3"><EmployeeLink id={d.employee_id} name={employeeName(d.employee_id)} /></td>
                               <td className="py-2 px-3 text-muted-foreground">{d.notes || "—"}</td>
                             </tr>
@@ -664,6 +701,7 @@ function ActivationsPage() {
                           <tr>
                             <th className="py-2 px-3 font-medium">Date</th>
                             <th className="py-2 px-3 font-medium">Amount</th>
+                            <th className="py-2 px-3 font-medium">STD</th>
                             <th className="py-2 px-3 font-medium">Notes</th>
                           </tr>
                         </thead>
