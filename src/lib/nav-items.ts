@@ -26,6 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "expenses", title: "Expenses", url: "/expenses", icon: Receipt, group: "Operations" },
   { key: "recurring", title: "Recurring", url: "/recurring", icon: Repeat, group: "Operations" },
   { key: "tasks", title: "Tasks", url: "/tasks", icon: ListTodo, group: "Operations" },
+  { key: "import", title: "Import", url: "/import", icon: Upload, group: "Operations" },
 
   { key: "employees", title: "Employees", url: "/employees", icon: UserCog, group: "People" },
   { key: "performance", title: "Performance", url: "/performance", icon: Gauge, group: "People" },
