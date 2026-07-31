@@ -139,7 +139,7 @@ function ReportsPage() {
   });
   const empQ = useQuery({
     queryKey: ["rpt-emp"],
-    queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,name,salary,commission_pct,active,role,updated_at,created_at")),
+    queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,name,team,salary,commission_pct,active,role,updated_at,created_at")),
   });
   const recQ = useQuery({
     queryKey: ["rpt-recurring"],
