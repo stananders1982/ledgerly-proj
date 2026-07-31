@@ -97,6 +97,7 @@ function ReportsPage() {
     queryFn: async () => await fetchAll(() => supabase.from("withdrawals").select("id,date,amount,customer_name,affiliate_id,revenue_id,revenue:revenue_id(affiliate_id)").gte("date", start).lte("date", end)),
   });
   const revCustAffQ = useQuery({
+    enabled: tab === "payouts",
     queryKey: ["rpt-rev-cust-aff"],
     queryFn: async () => await fetchAll(() => supabase.from("revenue").select("customer_name,affiliate_id,leads(affiliate_id)")),
   });
@@ -113,24 +114,27 @@ function ReportsPage() {
     queryFn: async () => await fetchAll(() => supabase.from("lead_sources").select("id,name,pricing_model,price,expected_conversion_rate")),
   });
   const attQ = useQuery({
+    enabled: tab === "attendance",
     queryKey: ["rpt-attendance", start, end],
     queryFn: async () => await fetchAll(() => supabase.from("attendance").select("employee_id,date,present").gte("date", start).lte("date", end)),
   });
   const pvLeadsQ = useQuery({
+    enabled: tab === "playervalue",
     queryKey: ["pv-entries", pvWindow.start, pvWindow.end],
-    queryFn: async () => (await supabase
+    queryFn: async () => await fetchAll(() => supabase
       .from("daily_lead_entries")
       .select("source_id,activated,entry_date,lead_sources(id,name)")
       .gte("entry_date", pvWindow.start)
-      .lte("entry_date", pvWindow.end)).data ?? [],
+      .lte("entry_date", pvWindow.end)),
   });
   const pvRevQ = useQuery({
+    enabled: tab === "playervalue",
     queryKey: ["pv-rev", pvWindow.start, pvWindow.end],
-    queryFn: async () => (await supabase
+    queryFn: async () => await fetchAll(() => supabase
       .from("revenue")
       .select("id,amount,date,affiliate_id,employee_id,employee_id_2,split_pct,lead_id,leads(affiliate_id)")
       .gte("date", pvWindow.start)
-      .lte("date", pvWindow.end)).data ?? [],
+      .lte("date", pvWindow.end)),
   });
   const affMapQ = useQuery({
     queryKey: ["pv-affs"],
