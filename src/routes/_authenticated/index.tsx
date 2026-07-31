@@ -34,6 +34,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
+import { useCompanySettings } from "@/lib/settings";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — Ledgerly" }] }),
@@ -53,6 +54,7 @@ const toneStyles: Record<Tone, { glow: string; ring: string; text: string; strok
 
 function Dashboard() {
   const qc = useQueryClient();
+  const settings = useCompanySettings();
   const [rangeKey, setRangeKey] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState<string>("");
   const [customEnd, setCustomEnd] = useState<string>("");
@@ -191,7 +193,7 @@ function Dashboard() {
     // Per-employee commission using tiered rate on their attributed revenue in range
     const perEmp = new Map<string, number>();
     for (const r of rangeRev as any[]) {
-      const amt = commissionableAmount(r.amount, r.method);
+      const amt = commissionableAmount(r.amount, r.method, settings);
       if (r.employee_id_2 && r.split_pct != null) {
         const pct = Number(r.split_pct) / 100;
         if (r.employee_id) perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt * pct);

@@ -17,6 +17,7 @@ import { usePagination, TablePagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { TargetBadge } from "@/routes/_authenticated/sources";
 import { isStd } from "@/lib/rules";
+import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 
@@ -52,6 +53,7 @@ function monthlyEquiv(amount: number, freq: string) {
 }
 
 function ReportsPage() {
+  const settings = useCompanySettings();
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -388,8 +390,8 @@ function ReportsPage() {
     });
     for (const r of rev) {
       const amt = Number(r.amount);
-      // Commission base: deposit-method fee (wire 15%, card 25%, crypto 0%) deducted first.
-      const base = commissionableAmount(r.amount, r.method);
+      // Commission base: deposit-method fee deducted first.
+      const base = commissionableAmount(r.amount, r.method, settings);
       const pct = Number(r.split_pct ?? 100);
       if (r.employee_id) {
         const x = byEmp.get(r.employee_id);

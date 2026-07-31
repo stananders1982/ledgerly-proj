@@ -150,8 +150,8 @@ function PerformancePage() {
       };
       // Gross revenue attributed to the agent (display).
       const attributed = (revQ.data ?? []).reduce((s: number, r: any) => s + share(r, Number(r.amount || 0)), 0);
-      // Commission base: deposit-method fee (wire 15%, card 25%, crypto 0%) deducted first.
-      const commBase = (revQ.data ?? []).reduce((s: number, r: any) => s + share(r, commissionableAmount(r.amount, r.method)), 0);
+      // Commission base: configured deposit-method fee deducted first.
+      const commBase = (revQ.data ?? []).reduce((s: number, r: any) => s + share(r, commissionableAmount(r.amount, r.method, settings)), 0);
 
       const wds = (withQ.data ?? []).filter((w: any) => w.employee_id === emp.id);
       const withdrawn = wds.reduce((s: number, w: any) => s + Number(w.amount || 0), 0);
