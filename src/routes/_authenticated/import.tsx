@@ -248,12 +248,12 @@ function useImportDefinitions() {
           { name: "Facebook", pricing_model: "CPL", price: "5", expected_conversion_rate: "0.15", active: "true" },
           { name: "Referral", pricing_model: "CPA", price: "100", expected_conversion_rate: "0.30", active: "true" },
         ],
-        onImport: async (rows) => {
+          onImport: async (rows) => {
           const payload = rows.map((r) => ({
             name: (r.name ?? "").trim(),
-            pricing_model: ["CPL", "CPA"].includes((r.pricing_model ?? "").trim().toUpperCase()) ? (r.pricing_model ?? "").trim().toUpperCase() : "CPL",
+            pricing_model: (["CPL", "CPA"].includes((r.pricing_model ?? "").trim().toUpperCase()) ? (r.pricing_model ?? "").trim().toUpperCase() : "CPL") as "CPL" | "CPA",
             price: Number(r.price) || 0,
-            expected_conversion_rate: r.expected_conversion_rate ? Number(r.expected_conversion_rate) : null,
+            expected_conversion_rate: r.expected_conversion_rate ? Number(r.expected_conversion_rate) : undefined,
             active: String(r.active).toLowerCase() !== "false",
           }));
           const { error } = await supabase.from("lead_sources").insert(payload);
