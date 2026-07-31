@@ -1,0 +1,1 @@
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS ftd_commission numeric NOT NULL DEFAULT 100;

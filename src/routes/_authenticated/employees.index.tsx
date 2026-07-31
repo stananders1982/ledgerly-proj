@@ -41,6 +41,7 @@ type Emp = {
   commission_tier2_max: number;
   commission_tier2_pct: number;
   commission_tier3_pct: number;
+  ftd_commission: number;
 };
 
 const TEAMS = [
@@ -96,6 +97,7 @@ function EmployeesPage() {
         commission_tier2_max: Number(v.commission_tier2_max) || 0,
         commission_tier2_pct: Number(v.commission_tier2_pct) || 0,
         commission_tier3_pct: Number(v.commission_tier3_pct) || 0,
+        ftd_commission: Number(v.ftd_commission) || 0,
       };
       if (v.id) {
         const { error } = await supabase.from("employees").update(payload).eq("id", v.id);
@@ -238,6 +240,7 @@ function EmpDialog({
     commission_tier2_max: emp?.commission_tier2_max ?? 250000,
     commission_tier2_pct: emp?.commission_tier2_pct ?? 10,
     commission_tier3_pct: emp?.commission_tier3_pct ?? 12,
+    ftd_commission: emp?.ftd_commission ?? 100,
   }));
   return (
     <DialogContent className="max-w-lg">
@@ -256,6 +259,12 @@ function EmpDialog({
             </SelectContent>
           </Select>
         </Field>
+        {form.team === "C" && (
+          <Field label="FTD commission ($ per qualified FTD)">
+            <Input type="number" min={0} step="0.01" value={form.ftd_commission}
+              onChange={(e) => setForm({ ...form, ftd_commission: Number(e.target.value) })} />
+          </Field>
+        )}
         <Field label="Base salary">
           <Input type="number" min={0} step="0.01" value={form.salary}
             onChange={(e) => setForm({ ...form, salary: Number(e.target.value) })} />
