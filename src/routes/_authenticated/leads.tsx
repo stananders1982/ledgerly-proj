@@ -26,6 +26,8 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { isStd, isoDay } from "@/lib/rules";
+import { SavedViews } from "@/components/saved-views";
+import { CsvImportDialog } from "@/components/csv-import";
 
 
 
@@ -331,6 +333,45 @@ function LeadsPage() {
         title="Leads"
         description="Log daily totals per source — received, activated, reported. Costs are computed from each source's pricing model."
         actions={
+          <div className="flex items-center gap-2">
+          <CsvImportDialog
+            title="Import lead entries"
+            templateName="lead-entries-template.csv"
+            fields={[
+              { key: "entry_date", label: "Date", required: true },
+              { key: "source", label: "Affiliate" },
+              { key: "campaign", label: "Campaign" },
+              { key: "received", label: "Received", required: true },
+              { key: "activated", label: "Activated" },
+              { key: "reported", label: "Reported" },
+              { key: "notes", label: "Notes" },
+            ]}
+            onImport={async (csvRows) => {
+              const byName = new Map(
+                (sourcesQ.data ?? []).map((s: any) => [String(s.name).trim().toLowerCase(), s.id]),
+              );
+              const payload = csvRows.map((r) => {
+                const d = new Date(r.entry_date);
+                if (Number.isNaN(d.getTime())) throw new Error(`Invalid date: ${r.entry_date}`);
+                const activated = Number(r.activated) || 0;
+                return {
+                  entry_date: d.toISOString().slice(0, 10),
+                  source_id: byName.get((r.source ?? "").trim().toLowerCase()) ?? null,
+                  campaign: r.campaign || null,
+                  received: Number(r.received) || 0,
+                  activated,
+                  converted: activated,
+                  reported: Number(r.reported) || 0,
+                  cost: 0,
+                  notes: r.notes || null,
+                };
+              });
+              const { error } = await supabase.from("daily_lead_entries").insert(payload);
+              if (error) throw error;
+              qc.invalidateQueries({ queryKey: ["daily-leads-v2"] });
+              toast.success(`Imported ${payload.length} entries`);
+            }}
+          />
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4" /> Add entry</Button>
@@ -357,6 +398,7 @@ function LeadsPage() {
               loading={upsert.isPending}
             />
           </Dialog>
+          </div>
         }
       />
 
@@ -369,6 +411,16 @@ function LeadsPage() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <div className="flex items-center gap-2">
+          <SavedViews
+            id="leads"
+            state={{ range, customStart, customEnd, sourceFilter }}
+            onApply={(v: any) => {
+              setRange(v.range ?? "month");
+              setCustomStart(v.customStart ?? "");
+              setCustomEnd(v.customEnd ?? "");
+              setSourceFilter(Array.isArray(v.sourceFilter) ? v.sourceFilter : []);
+            }}
+          />
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="h-9 w-[220px] justify-between font-normal">
