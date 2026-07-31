@@ -148,9 +148,10 @@ export function depositMatchesActivation(dep: DepositLike, row: ActivationDatedL
 }
 
 /**
- * STD rule: the activation balance is the FTD, so every recorded deposit made
- * on or after the activation date counts as a second-time deposit.
- * Optionally restrict to deposits inside a date window (YYYY-MM-DD strings).
+ * STD rule: the activation balance is the FTD, so the *second* deposit — the
+ * first one recorded on or after the activation date — is the STD. Later
+ * deposits (3rd, 4th, ...) are ignored.
+ * Optionally restrict to an STD dated inside a window (YYYY-MM-DD strings).
  */
 export function stdDepositsFor<T extends DepositLike>(
   row: ActivationDatedLike,
@@ -158,16 +159,17 @@ export function stdDepositsFor<T extends DepositLike>(
   window?: { start?: string; end?: string },
 ): T[] {
   const act = activationDate(row);
-  return deposits.filter((d) => {
-    if (!d.date) return false;
-    if (act && d.date < act) return false;
-    if (window?.start && d.date < window.start) return false;
-    if (window?.end && d.date > window.end) return false;
-    return depositMatchesActivation(d, row);
-  });
+  const matches = deposits
+    .filter((d) => !!d.date && (!act || d.date! >= act) && depositMatchesActivation(d, row))
+    .sort((a, b) => (a.date! < b.date! ? -1 : a.date! > b.date! ? 1 : 0));
+  const second = matches[0];
+  if (!second) return [];
+  if (window?.start && second.date! < window.start) return [];
+  if (window?.end && second.date! > window.end) return [];
+  return [second];
 }
 
-/** True when the client has at least one qualifying second deposit. */
+/** True when the client has a qualifying second deposit. */
 export function isStd(
   row: ActivationDatedLike,
   deposits: DepositLike[],
@@ -175,6 +177,7 @@ export function isStd(
 ): boolean {
   return stdDepositsFor(row, deposits, window).length > 0;
 }
+
 
 /** YYYY-MM-DD in local time, for comparing against date columns. */
 export function isoDay(d: Date): string {
