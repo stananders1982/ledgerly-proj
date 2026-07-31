@@ -13,7 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { createCompany, listCompanies, updateCompany } from "@/lib/company.functions";
+import { createCompany, deleteCompany, listCompanies, updateCompany } from "@/lib/company.functions";
+import { ConfirmDelete } from "@/components/confirm-delete";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
@@ -37,6 +38,7 @@ function CompaniesPage() {
   const list = useServerFn(listCompanies);
   const create = useServerFn(createCompany);
   const update = useServerFn(updateCompany);
+  const remove = useServerFn(deleteCompany);
   const [open, setOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -52,6 +54,15 @@ function CompaniesPage() {
       toast.success("Company updated");
     },
     onError: (e: any) => toast.error(e?.message ?? "Update failed"),
+  });
+
+  const del = useMutation({
+    mutationFn: (company_id: string) => remove({ data: { company_id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["companies-admin"] });
+      toast.success("Company deleted");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
   });
 
   if (!isSuperAdmin) {
@@ -109,7 +120,7 @@ function CompaniesPage() {
                       onCheckedChange={(v) => toggle.mutate({ company_id: c.id, active: v })}
                     />
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right space-x-1">
                     <Button
                       size="sm"
                       variant="ghost"
@@ -125,6 +136,13 @@ function CompaniesPage() {
                     >
                       Switch to
                     </Button>
+                    {c.id !== companyId && (
+                      <ConfirmDelete
+                        label={`Delete ${c.name}?`}
+                        description="This permanently removes the company, its users and all of its data. This cannot be undone."
+                        onConfirm={() => del.mutate(c.id)}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

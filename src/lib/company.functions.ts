@@ -149,3 +149,43 @@ export const updateCompany = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+/** Platform owner permanently deletes a company workspace and all of its data. */
+export const deleteCompany = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { company_id: string }) => z.object({ company_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: myRow } = await supabaseAdmin
+      .from("company_users")
+      .select("company_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (myRow?.company_id === data.company_id) {
+      throw new Error("Switch to another company before deleting this one");
+    }
+
+    const { data: members } = await supabaseAdmin
+      .from("company_users")
+      .select("user_id")
+      .eq("company_id", data.company_id);
+    const memberIds = (members ?? []).map((m) => m.user_id);
+
+    const { data: supers } = memberIds.length
+      ? await supabaseAdmin.from("super_admins").select("user_id").in("user_id", memberIds)
+      : { data: [] as { user_id: string }[] };
+    const superIds = new Set((supers ?? []).map((s) => s.user_id));
+
+    await supabaseAdmin.from("company_users").delete().eq("company_id", data.company_id);
+
+    for (const id of memberIds) {
+      if (superIds.has(id)) continue;
+      await supabaseAdmin.auth.admin.deleteUser(id);
+    }
+
+    const { error } = await supabaseAdmin.from("companies").delete().eq("id", data.company_id);
+    if (error) throw error;
+    return { ok: true };
+  });
