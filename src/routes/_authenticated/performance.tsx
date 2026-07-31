@@ -269,7 +269,7 @@ function PerformancePage() {
 
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Total FTDs" value={String(totals.ftds)} tone="positive" />
-        <StatCard label="STDs" value={String(totals.stds)} />
+        <StatCard label="STDs" value={`${totals.stds} · ${totals.stdPct.toFixed(1)}%`} />
         <StatCard label="Attributed revenue" value={fmtMoney(totals.revenue)} tone="positive" />
         <StatCard label="Total commission" value={fmtMoney(totals.commission)} />
         <StatCard label="Total payout" value={fmtMoney(totals.payout)} tone="negative" />
