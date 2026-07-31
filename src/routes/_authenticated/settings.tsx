@@ -47,13 +47,6 @@ const FIELDS: {
     suffix: "$",
   },
   {
-    key: "ftdCommission",
-    column: "ftd_commission",
-    label: "FTD commission",
-    hint: "Paid to the conversion agent for every qualified FTD.",
-    suffix: "$",
-  },
-  {
     key: "withdrawalPenaltyPct",
     column: "withdrawal_penalty_pct",
     label: "Withdrawal penalty",
