@@ -311,7 +311,8 @@ function ActivationsPage() {
           answered: v.answered,
           employee_id: v.employee_id,
           conversion_employee_id: v.conversion_employee_id || null,
-        })
+          tags: v.tags ?? [],
+        } as any)
         .eq("id", v.id);
       if (error) throw error;
     },
