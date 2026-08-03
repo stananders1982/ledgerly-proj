@@ -132,16 +132,19 @@ function LeadsPage() {
     const e = activeRange.end.getTime();
     const term = leadSearch.trim().toLowerCase();
     return allRows.filter((r) => {
+      const names = (activationsByEntry.get(r.id) ?? [])
+        .map((a) => (a.lead_name ?? "").toLowerCase())
+        .join(" ");
+      const matchesSearch = term ? names.includes(term) : true;
+      if (term && matchesSearch) {
+        // When searching by lead name, don't restrict by the selected time frame.
+        if (sourceFilter.length > 0 && !sourceFilter.includes(r.source_id ?? "")) return false;
+        return true;
+      }
       const t = new Date(r.entry_date + "T00:00:00").getTime();
       if (t < s || t > e) return false;
       if (sourceFilter.length > 0 && !sourceFilter.includes(r.source_id ?? "")) return false;
-      if (term) {
-        const names = (activationsByEntry.get(r.id) ?? [])
-          .map((a) => (a.lead_name ?? "").toLowerCase())
-          .join(" ");
-        if (!names.includes(term)) return false;
-      }
-      return true;
+      return matchesSearch;
     });
   }, [allRows, activeRange, sourceFilter, leadSearch, activationsByEntry]);
 
