@@ -31,6 +31,8 @@ import { usePagination, TablePagination } from "@/components/pagination";
 
 
 import { useQuickCreate } from "@/lib/quick-create";
+import { CommentThread } from "@/components/comment-thread";
+import { AttachmentsPanel } from "@/components/attachments-panel";
 import { useRowSelection } from "@/lib/row-selection";
 import { BulkBar } from "@/components/bulk-bar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -609,6 +611,13 @@ function RevenueDialog({
 
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
       </div>
+      {rev?.id && (
+        <div className="grid gap-4 border-t border-border pt-4">
+          <AttachmentsPanel entityType="revenue" entityId={rev.id} />
+          <CommentThread entityType="revenue" entityId={rev.id} />
+        </div>
+      )}
+
       <DialogFooter><Button onClick={() => onSubmit(form)} disabled={loading || !form.customer_name || !form.amount}>Save</Button></DialogFooter>
     </DialogContent>
   );
