@@ -116,6 +116,17 @@ function LeadsPage() {
 
 
   const allRows = q.data ?? [];
+
+  const activationsByEntry = useMemo(() => {
+    const m = new Map<string, Activation[]>();
+    for (const a of activationsQ.data ?? []) {
+      const arr = m.get(a.entry_id) ?? [];
+      arr.push(a);
+      m.set(a.entry_id, arr);
+    }
+    return m;
+  }, [activationsQ.data]);
+
   const rows = useMemo(() => {
     const s = activeRange.start.getTime();
     const e = activeRange.end.getTime();
@@ -159,16 +170,6 @@ function LeadsPage() {
     notes: (r) => r.notes ?? "",
   });
   const { pageItems, ...pg } = usePagination(sorted, 30);
-
-  const activationsByEntry = useMemo(() => {
-    const m = new Map<string, Activation[]>();
-    for (const a of activationsQ.data ?? []) {
-      const arr = m.get(a.entry_id) ?? [];
-      arr.push(a);
-      m.set(a.entry_id, arr);
-    }
-    return m;
-  }, [activationsQ.data]);
 
   // Activations are dated independently of the lead entry: an April lead
   // activated today belongs to today's period for FTD/commission purposes.
