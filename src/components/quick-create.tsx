@@ -36,10 +36,10 @@ const OPTIONS: Option[] = [
   { key: "revenue", navKey: "revenue", label: "Income", to: "/revenue", icon: TrendingUp, tone: "text-emerald-600 dark:text-emerald-400" },
   { key: "expenses", navKey: "expenses", label: "Expense", to: "/expenses", icon: Receipt, tone: "text-rose-600 dark:text-rose-400" },
   { key: "leads", navKey: "leads", label: "Lead entry", to: "/leads", icon: Users, tone: "text-sky-600 dark:text-sky-400" },
-  { key: "activations", navKey: "activations", label: "Client", to: "/activations", icon: UserCheck, tone: "text-fuchsia-600 dark:text-fuchsia-400" },
   { key: "withdrawals", navKey: "withdrawals", label: "Withdrawal", to: "/withdrawals", icon: Banknote, tone: "text-amber-600 dark:text-amber-400" },
-  { key: "attendance", navKey: "attendance", label: "Attendance", to: "/attendance", icon: CalendarCheck, tone: "text-indigo-600 dark:text-indigo-400" },
   { key: "tasks", navKey: "tasks", label: "Task", to: "/tasks", icon: ListTodo, tone: "text-teal-600 dark:text-teal-400" },
+  { key: "activations", navKey: "activations", label: "Clients", to: "/activations", icon: UserCheck, tone: "text-fuchsia-600 dark:text-fuchsia-400" },
+  { key: "attendance", navKey: "attendance", label: "Attendance", to: "/attendance", icon: CalendarCheck, tone: "text-indigo-600 dark:text-indigo-400" },
 ];
 
 export function QuickCreate() {
