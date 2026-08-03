@@ -148,7 +148,30 @@ function LeadsPage() {
     });
   }, [allRows, activeRange, sourceFilter, leadSearch, activationsByEntry]);
 
+  const navigate = useNavigate();
+
+  const matchingLeads = useMemo(() => {
+    const term = leadSearch.trim().toLowerCase();
+    if (!term) return [];
+    const entryById = new Map((allRows ?? []).map((r: any) => [r.id, r]));
+    const empName = (id?: string | null) =>
+      (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
+    return (activationsQ.data ?? [])
+      .filter((a) => (a.lead_name ?? "").toLowerCase().includes(term))
+      .sort((a, b) => (b.activation_date ?? "").localeCompare(a.activation_date ?? ""))
+      .slice(0, 50)
+      .map((a) => ({
+        id: a.id,
+        name: a.lead_name ?? "—",
+        date: a.activation_date,
+        retention: empName(a.employee_id),
+        conversion: empName(a.conversion_employee_id),
+        source: (entryById.get(a.entry_id) as any)?.lead_sources?.name ?? "—",
+      }));
+  }, [leadSearch, activationsQ.data, employeesQ.data, allRows]);
+
   const sel = useRowSelection<any>(rows);
+
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => r.entry_date,
