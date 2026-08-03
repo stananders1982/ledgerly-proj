@@ -97,7 +97,7 @@ export function AttendanceWeekGrid({ employees }: { employees: Emp[] }) {
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="text-sm font-medium">
-          {format(days[0], "MMM d")} – {format(days[DAY_COUNT - 1], "MMM d, yyyy")}
+          {format(days[0], "MMM d")} – {format(days[days.length - 1], "MMM d, yyyy")}
         </span>
         <Button variant="outline" size="sm" onClick={() => setAnchor(addDays(anchor, 7))}>
           <ChevronRight className="h-4 w-4" />
