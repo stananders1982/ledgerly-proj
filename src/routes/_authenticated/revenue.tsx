@@ -36,6 +36,7 @@ import { AttachmentsPanel } from "@/components/attachments-panel";
 import { useRowSelection } from "@/lib/row-selection";
 import { BulkBar } from "@/components/bulk-bar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useCompanySettings } from "@/lib/settings";
 
 export const Route = createFileRoute("/_authenticated/revenue")({
   head: () => ({ meta: [{ title: "Revenue — Ledgerly" }] }),
@@ -44,6 +45,7 @@ export const Route = createFileRoute("/_authenticated/revenue")({
 
 function RevenuePage() {
   const qc = useQueryClient();
+  const settings = useCompanySettings();
   const [open, setOpen] = useState(false);
   useQuickCreate("revenue", () => setOpen(true));
   const [editing, setEditing] = useState<any | null>(null);
@@ -68,10 +70,10 @@ function RevenuePage() {
     },
   });
   const empQ = useQuery({ queryKey: ["employees-dir-any"], queryFn: async () => {
-    const admin = await supabase.from("employees").select("id,name,active").order("name");
+    const admin = await supabase.from("employees").select("id,name,active,team").order("name");
     if (!admin.error && (admin.data?.length ?? 0) > 0) return admin.data ?? [];
     const rpc = await supabase.rpc("list_employees_directory");
-    return (rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>;
+    return (rpc.data ?? []) as Array<{ id: string; name: string; active: boolean; team?: string | null }>;
   }});
   const affQ = useQuery({ queryKey: ["affiliates-dir-any"], queryFn: async () => {
     const admin = await supabase.from("affiliates").select("id,name,active").eq("active", true).order("name");
@@ -155,6 +157,35 @@ function RevenuePage() {
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
+      let activationId: string | null = v.activation_id || null;
+
+      // No client picked → create the client record from the details typed in
+      // the dialog, so every deposit belongs to a client (and STDs can be seen).
+      if (!activationId && v.new_client) {
+        const name = String(v.customer_name ?? "").trim();
+        const key = name.toLowerCase();
+        const existing = (activationsQ.data ?? []).find(
+          (a: any) => (a.lead_name ?? "").trim().toLowerCase() === key,
+        );
+        if (existing) {
+          activationId = existing.id;
+        } else {
+          const { data, error } = await supabase
+            .from("daily_lead_activations")
+            .insert({
+              lead_name: name,
+              activation_date: v.new_client.activation_date,
+              conversion_employee_id: v.new_client.conversion_employee_id || null,
+              employee_id: v.new_client.employee_id,
+              balance: settings.defaultActivationBalance,
+            })
+            .select("id")
+            .single();
+          if (error) throw error;
+          activationId = data.id;
+        }
+      }
+
       const payload = {
         customer_name: v.customer_name,
         amount: Number(v.amount) || 0,
@@ -167,14 +198,14 @@ function RevenuePage() {
         method: v.method || null,
         method_provider: v.method_provider || null,
         // Direct link to the client record, so renaming a client keeps history intact.
-        activation_id: v.activation_id || null,
+        activation_id: activationId,
       };
       const { error } = v.id
         ? await supabase.from("revenue").update(payload).eq("id", v.id)
         : await supabase.from("revenue").insert(payload);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["revenue-list"] }); qc.invalidateQueries({ queryKey: ["revenue"] }); toast.success("Saved"); setOpen(false); setEditing(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["revenue-list"] }); qc.invalidateQueries({ queryKey: ["revenue"] }); qc.invalidateQueries({ queryKey: ["activated-leads-picker"] }); qc.invalidateQueries({ queryKey: ["activations"] }); toast.success("Saved"); setOpen(false); setEditing(null); },
     onError: (e: any) => toast.error(e.message),
   });
   const del = useMutation({
@@ -487,6 +518,22 @@ function RevenueDialog({
   const picked = activations.find((x: any) => x.id === activationId);
   const detailsHidden = !!picked && !manual;
 
+  // New-client details, asked for when no existing client is selected.
+  const [newClient, setNewClient] = useState(() => ({
+    activation_date: rev?.date ?? new Date().toISOString().slice(0, 10),
+    conversion_employee_id: "",
+    employee_id: "",
+  }));
+  const typedName = String(form.customer_name ?? "").trim().toLowerCase();
+  const nameMatch = activations.find(
+    (a: any) => (a.lead_name ?? "").trim().toLowerCase() === typedName && typedName,
+  );
+  // Only for brand-new deposits: existing rows keep their current linkage.
+  const needsNewClient = !rev?.id && !activationId && !nameMatch;
+  const newClientValid =
+    !needsNewClient ||
+    (!!form.customer_name.trim() && !!newClient.activation_date && !!newClient.conversion_employee_id && !!newClient.employee_id);
+
   const pickActivation = (id: string) => {
     if (id === "_none") { setActivationId(""); setForm((f) => ({ ...f, activation_id: "" })); return; }
     setActivationId(id);
@@ -540,6 +587,50 @@ function RevenueDialog({
           </div>
         ) : (
           <Field label="Customer name"><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></Field>
+        )}
+
+        {needsNewClient && (
+          <div className="rounded-lg border border-dashed border-border bg-muted/20 p-3 grid gap-3">
+            <div>
+              <p className="text-sm font-medium">New client</p>
+              <p className="text-xs text-muted-foreground">
+                No client record matches this name — fill these in and one will be created.
+              </p>
+            </div>
+            <Field label="Date of activation">
+              <Input
+                type="date"
+                value={newClient.activation_date}
+                onChange={(e) => setNewClient({ ...newClient, activation_date: e.target.value })}
+              />
+            </Field>
+            <Field label="Conversion agent (Team C)">
+              <Select
+                value={newClient.conversion_employee_id}
+                onValueChange={(v) => setNewClient({ ...newClient, conversion_employee_id: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Pick agent" /></SelectTrigger>
+                <SelectContent>
+                  {employees
+                    .filter((e: any) => (e.team ?? "C") === "C")
+                    .map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Retention agent (Team R)">
+              <Select
+                value={newClient.employee_id}
+                onValueChange={(v) => setNewClient({ ...newClient, employee_id: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Pick agent" /></SelectTrigger>
+                <SelectContent>
+                  {employees
+                    .filter((e: any) => (e.team ?? "R") === "R")
+                    .map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
         )}
 
         <div className={detailsHidden ? "" : "grid grid-cols-2 gap-3"}>
@@ -618,7 +709,20 @@ function RevenueDialog({
         </div>
       )}
 
-      <DialogFooter><Button onClick={() => onSubmit(form)} disabled={loading || !form.customer_name || !form.amount}>Save</Button></DialogFooter>
+      <DialogFooter>
+        <Button
+          onClick={() =>
+            onSubmit({
+              ...form,
+              activation_id: form.activation_id || nameMatch?.id || "",
+              new_client: needsNewClient ? newClient : null,
+            })
+          }
+          disabled={loading || !form.customer_name || !form.amount || !newClientValid}
+        >
+          Save
+        </Button>
+      </DialogFooter>
     </DialogContent>
   );
 }
