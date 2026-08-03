@@ -4,22 +4,28 @@ Today's deposits from **Robert Dix** and **Wayne Hughes** don't have a matching 
 
 ## What changes for you
 
-1. **Recording income creates the client automatically.** When you record a deposit and the customer name doesn't match any existing client, a client record is created on the spot (activation date = deposit date, balance = the workspace default), and the deposit is linked to it. The client shows up on the Clients page immediately.
-2. **Existing orphan deposits get cleaned up.** A one-time backfill creates a client for every past deposit whose customer name has no client record, using that customer's earliest deposit date as the activation date. Wayne Hughes (earliest deposit 14 Jul) and Robert Dix (3 Aug) both get records.
-3. **Auto-created clients are marked.** They're tagged `auto` so you can spot them on the Clients page and fill in the missing details (potential, answered, conversion agent).
+1. **Recording income asks for the missing client details.** In the Record Revenue dialog, if you don't pick a client from the list, a "New client" block appears and asks for:
+   - Full name (prefilled from the customer name you typed)
+   - Date of activation (defaults to the deposit date)
+   - Conversion agent who activated the client (Team C)
+   - Retention agent who holds the client (Team R)
+
+   Saving creates the client record with the workspace default balance and links the deposit to it, so it appears on the Clients page right away.
+2. **These fields are required** when no client is selected, so no new deposit can create an unattributed client.
+3. **Existing orphan deposits get cleaned up.** A one-time backfill creates a client for every past deposit whose customer name has no client record, using that customer's earliest deposit date as the activation date, and links all of that customer's deposits to it. Wayne Hughes (earliest deposit 14 Jul) and Robert Dix (3 Aug) both get records. These backfilled clients have no agents set and are tagged `auto` so you can open them on the Clients page and assign the conversion/retention agents.
 4. **STD counts become correct.** With a client record and a linked first deposit, later deposits are properly recognised as STDs instead of being invisible.
 
 ## Behaviour rules
 
-- Matching is by trimmed, case-insensitive customer name (same rule the app already uses elsewhere).
-- The client's activation date is the deposit date, and the first deposit is treated as the FTD, so a same-day second deposit is the STD.
-- Nothing is auto-created when the deposit already picks a client from the lead picker.
-- Auto-created clients start with no attribution (no conversion agent / no lead source), so employee commission and lead-count KPIs are not silently inflated.
+- Matching is by trimmed, case-insensitive customer name (same rule the app already uses elsewhere). If the typed name already matches an existing client, it links to it instead of asking for new details.
+- The client's activation date is what you enter (deposit date by default); the first deposit is the FTD, so a later deposit is the STD.
+- Conversion agent choices are Team C employees, retention agent choices are Team R — same filtering already used on the Clients page.
 
 ## Technical notes
 
-- `daily_lead_activations.entry_id` and `employee_id` are currently `NOT NULL`, which blocks standalone client records. Migration makes both nullable and adds a `source` column (`manual` / `auto`) defaulting to `manual`.
-- Every page that reads activations joins/uses `entry_id` and `employee_id`; those call sites (leads, activations, performance, reports, employees detail, dashboard) get null-safe handling so unattributed clients don't break counts or crash.
-- Auto-creation runs in the revenue insert path in `src/routes/_authenticated/revenue.tsx`: look up by normalised name, create when missing, then set `activation_id` on the revenue row.
-- Backfill is a one-time SQL block in the same migration, inserting one activation per orphan customer name at their earliest deposit date, then setting `revenue.activation_id` for all of that customer's rows.
-- Company scoping uses the existing `company_id` default, so backfill runs per company.
+- `daily_lead_activations.entry_id` and `employee_id` are currently `NOT NULL`, which blocks client records created outside a daily lead entry. Migration makes both nullable and adds a `source` column (`manual` / `auto`) defaulting to `manual`.
+- Retention agent maps to the existing `employee_id` field, conversion agent to `conversion_employee_id`.
+- Call sites that read activations (leads, activations, performance, reports, employee detail, dashboard) get null-safe handling for a missing `entry_id`.
+- Revenue dialog work is in `src/routes/_authenticated/revenue.tsx`: when `activation_id` is empty, render the new-client fields, validate them, insert the activation, then save the revenue row with the new `activation_id`.
+- Backfill is a one-time SQL block in the same migration, inserting one activation per orphan customer name at their earliest deposit date, then setting `revenue.activation_id` for all of that customer's rows, scoped per company.
+
