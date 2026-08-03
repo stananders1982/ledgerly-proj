@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_permissions: {
+        Row: {
+          action_key: string
+          allowed: boolean
+          company_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_key: string
+          allowed?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_key?: string
+          allowed?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       activity_log: {
         Row: {
           action: string
@@ -276,6 +306,51 @@ export type Database = {
           },
         ]
       }
+      attachments: {
+        Row: {
+          company_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          filename: string
+          id: string
+          mime_type: string | null
+          path: string
+          size_bytes: number | null
+          updated_at: string
+          user_email: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id?: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          filename: string
+          id?: string
+          mime_type?: string | null
+          path: string
+          size_bytes?: number | null
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          path?: string
+          size_bytes?: number | null
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       attendance: {
         Row: {
           company_id: string
@@ -513,6 +588,48 @@ export type Database = {
           },
         ]
       }
+      custom_field_defs: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          field_key: string
+          field_type: string
+          id: string
+          label: string
+          module: string
+          options: string[]
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          field_key: string
+          field_type?: string
+          id?: string
+          label: string
+          module: string
+          options?: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          field_key?: string
+          field_type?: string
+          id?: string
+          label?: string
+          module?: string
+          options?: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_lead_activations: {
         Row: {
           activated_count: number
@@ -522,6 +639,7 @@ export type Database = {
           company_id: string
           conversion_employee_id: string | null
           created_at: string
+          custom_fields: Json
           employee_id: string
           entry_id: string
           id: string
@@ -540,6 +658,7 @@ export type Database = {
           company_id?: string
           conversion_employee_id?: string | null
           created_at?: string
+          custom_fields?: Json
           employee_id: string
           entry_id: string
           id?: string
@@ -558,6 +677,7 @@ export type Database = {
           company_id?: string
           conversion_employee_id?: string | null
           created_at?: string
+          custom_fields?: Json
           employee_id?: string
           entry_id?: string
           id?: string
@@ -622,6 +742,7 @@ export type Database = {
           cost: number
           created_at: string
           created_by: string | null
+          custom_fields: Json
           entry_date: string
           id: string
           notes: string | null
@@ -639,6 +760,7 @@ export type Database = {
           cost?: number
           created_at?: string
           created_by?: string | null
+          custom_fields?: Json
           entry_date?: string
           id?: string
           notes?: string | null
@@ -656,6 +778,7 @@ export type Database = {
           cost?: number
           created_at?: string
           created_by?: string | null
+          custom_fields?: Json
           entry_date?: string
           id?: string
           notes?: string | null
@@ -693,6 +816,7 @@ export type Database = {
           commission_tier3_pct: number
           company_id: string
           created_at: string
+          custom_fields: Json
           email: string | null
           ftd_commission: number
           id: string
@@ -716,6 +840,7 @@ export type Database = {
           commission_tier3_pct?: number
           company_id?: string
           created_at?: string
+          custom_fields?: Json
           email?: string | null
           ftd_commission?: number
           id?: string
@@ -739,6 +864,7 @@ export type Database = {
           commission_tier3_pct?: number
           company_id?: string
           created_at?: string
+          custom_fields?: Json
           email?: string | null
           ftd_commission?: number
           id?: string
@@ -1137,6 +1263,45 @@ export type Database = {
         }
         Relationships: []
       }
+      record_comments: {
+        Row: {
+          body: string
+          company_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          mentions: string[]
+          updated_at: string
+          user_email: string | null
+          user_id: string
+        }
+        Insert: {
+          body: string
+          company_id?: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          mentions?: string[]
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string
+        }
+        Update: {
+          body?: string
+          company_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          mentions?: string[]
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       recurring_expenses: {
         Row: {
           active: boolean
@@ -1200,6 +1365,95 @@ export type Database = {
           },
         ]
       }
+      recurring_revenue: {
+        Row: {
+          active: boolean
+          affiliate_id: string | null
+          amount: number
+          company_id: string
+          created_at: string
+          customer_name: string | null
+          employee_id: string | null
+          end_date: string | null
+          frequency: Database["public"]["Enums"]["recurrence_frequency"]
+          id: string
+          method: string | null
+          method_provider: string | null
+          name: string
+          next_due_date: string
+          notes: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          affiliate_id?: string | null
+          amount?: number
+          company_id?: string
+          created_at?: string
+          customer_name?: string | null
+          employee_id?: string | null
+          end_date?: string | null
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          method?: string | null
+          method_provider?: string | null
+          name: string
+          next_due_date?: string
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          affiliate_id?: string | null
+          amount?: number
+          company_id?: string
+          created_at?: string
+          customer_name?: string | null
+          employee_id?: string | null
+          end_date?: string | null
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          method?: string | null
+          method_provider?: string | null
+          name?: string
+          next_due_date?: string
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_revenue_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_revenue_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_revenue_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_revenue_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       revenue: {
         Row: {
           activation_id: string | null
@@ -1208,6 +1462,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          custom_fields: Json
           customer_name: string
           date: string
           employee_id: string | null
@@ -1229,6 +1484,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          custom_fields?: Json
           customer_name: string
           date?: string
           employee_id?: string | null
@@ -1250,6 +1506,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          custom_fields?: Json
           customer_name?: string
           date?: string
           employee_id?: string | null
@@ -1355,9 +1612,11 @@ export type Database = {
           created_by: string | null
           due_date: string | null
           employee_id: string | null
+          entry_id: string | null
           id: string
           notes: string | null
           priority: string
+          revenue_id: string | null
           status: string
           title: string
           updated_at: string
@@ -1371,9 +1630,11 @@ export type Database = {
           created_by?: string | null
           due_date?: string | null
           employee_id?: string | null
+          entry_id?: string | null
           id?: string
           notes?: string | null
           priority?: string
+          revenue_id?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -1387,9 +1648,11 @@ export type Database = {
           created_by?: string | null
           due_date?: string | null
           employee_id?: string | null
+          entry_id?: string | null
           id?: string
           notes?: string | null
           priority?: string
+          revenue_id?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -1414,6 +1677,20 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "daily_lead_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_revenue_id_fkey"
+            columns: ["revenue_id"]
+            isOneToOne: false
+            referencedRelation: "revenue"
             referencedColumns: ["id"]
           },
         ]
@@ -1601,8 +1878,10 @@ export type Database = {
           period_start: string
         }[]
       }
+      can_do: { Args: { _action: string }; Returns: boolean }
       current_company_id: { Args: never; Returns: string }
       generate_due_recurring_expenses: { Args: never; Returns: number }
+      generate_due_recurring_revenue: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
