@@ -477,9 +477,15 @@ function LeadsPage() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <div className="flex items-center gap-2">
+          <Input
+            placeholder="Search lead name…"
+            value={leadSearch}
+            onChange={(e) => setLeadSearch(e.target.value)}
+            className="h-9 w-[200px]"
+          />
           <SavedViews
             id="leads"
-            state={{ range, customStart, customEnd, sourceFilter }}
+            state={{ range, customStart, customEnd, sourceFilter, leadSearch }}
             onApply={(v: any) => {
               setRange(v.range ?? "month");
               setCustomStart(v.customStart ?? "");
