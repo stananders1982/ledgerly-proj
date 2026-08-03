@@ -491,6 +491,7 @@ function LeadsPage() {
               setCustomStart(v.customStart ?? "");
               setCustomEnd(v.customEnd ?? "");
               setSourceFilter(Array.isArray(v.sourceFilter) ? v.sourceFilter : []);
+              setLeadSearch(typeof v.leadSearch === "string" ? v.leadSearch : "");
             }}
           />
           <Popover>
