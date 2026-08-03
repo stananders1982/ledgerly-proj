@@ -84,7 +84,7 @@ const FIELDS: {
 function SettingsPage() {
   const qc = useQueryClient();
   const { isAdmin } = useAuth();
-  const [form, setForm] = useState<Record<keyof CompanySettings, string>>({
+  const [form, setForm] = useState<Record<string, string>>({
     ftdBalanceThreshold: String(DEFAULT_SETTINGS.ftdBalanceThreshold),
     defaultActivationBalance: String(DEFAULT_SETTINGS.defaultActivationBalance),
     ftdCommission: String(DEFAULT_SETTINGS.ftdCommission),
