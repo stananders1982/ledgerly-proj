@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { DataCard, DataCardList } from "@/components/data-card-list";
 
 export const Route = createFileRoute("/_authenticated/sources")({
   head: () => ({ meta: [{ title: "Lead Sources — Ledgerly" }] }),
@@ -283,7 +284,26 @@ function SourcesPage() {
           />
         ) : (
           <>
-          <div className="overflow-x-auto scroll-slim">
+          <DataCardList>
+            {pageItems.map((a: any) => (
+              <DataCard
+                key={a.source.id}
+                title={a.source.name}
+                subtitle={a.source.active ? undefined : "Inactive"}
+                onClick={() => { setEditing(a.source); setOpen(true); }}
+                actions={<ConfirmDelete onConfirm={() => del.mutate(a.source.id)} label="Delete source?" />}
+                fields={[
+                  { label: "Model", value: <PricingBadge model={a.source.pricing_model} /> },
+                  { label: "Price", value: fmtMoney(a.source.price) },
+                  { label: "Leads", value: String(a.total) },
+                  { label: "Expected", value: a.expected ? fmtPct(a.expected) : "—" },
+                  { label: "Actual", value: <span className="flex items-center gap-1">{fmtPct(a.actualRate)} <TargetBadge actual={a.actualRate} expected={a.expected} /></span> },
+                  { label: "Cost", value: fmtMoney(a.cost) },
+                ]}
+              />
+            ))}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">

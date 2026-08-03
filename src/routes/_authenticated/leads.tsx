@@ -31,6 +31,12 @@ import { CsvImportDialog } from "@/components/csv-import";
 
 
 
+import { useQuickCreate } from "@/lib/quick-create";
+import { useRowSelection } from "@/lib/row-selection";
+import { BulkBar } from "@/components/bulk-bar";
+import { DataCard, DataCardList } from "@/components/data-card-list";
+import { exportCSV } from "@/lib/export";
+
 export const Route = createFileRoute("/_authenticated/leads")({
   head: () => ({ meta: [{ title: "Leads — Ledgerly" }] }),
   component: LeadsPage,
@@ -54,6 +60,7 @@ type Split = { id?: string; employee_id: string; conversion_employee_id?: string
 function LeadsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  useQuickCreate("leads", () => setOpen(true));
   const [editing, setEditing] = useState<Entry | null>(null);
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState<string>("");
@@ -118,6 +125,8 @@ function LeadsPage() {
       return true;
     });
   }, [allRows, activeRange, sourceFilter]);
+
+  const sel = useRowSelection<any>(rows);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => r.entry_date,
@@ -327,6 +336,54 @@ function LeadsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["daily-leads-v2"] }); toast.success("Deleted"); },
   });
 
+  const bulkStats = useMemo(() => ({
+    received: sel.selectedRows.reduce((a: number, r: any) => a + Number(r.received || 0), 0),
+    activated: sel.selectedRows.reduce((a: number, r: any) => a + Number(r.activated || 0), 0),
+  }), [sel.selectedRows]);
+
+  const bulkDelete = useMutation({
+    mutationFn: async () => {
+      if (!sel.ids.length) return 0;
+      const { error } = await supabase.from("daily_lead_entries").delete().in("id", sel.ids);
+      if (error) throw error;
+      return sel.ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["daily-leads-v2"] });
+      sel.clear();
+      if (count) toast.success(`Deleted ${count} entr${count === 1 ? "y" : "ies"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkSource = useMutation({
+    mutationFn: async (sourceId: string) => {
+      if (!sel.ids.length) return 0;
+      const { error } = await supabase.from("daily_lead_entries").update({ source_id: sourceId }).in("id", sel.ids);
+      if (error) throw error;
+      return sel.ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["daily-leads-v2"] });
+      sel.clear();
+      if (count) toast.success(`Updated ${count} entr${count === 1 ? "y" : "ies"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const exportSelection = () =>
+    exportCSV(
+      sel.selectedRows.map((r: any) => ({
+        Date: r.entry_date,
+        Source: r.lead_sources?.name ?? "",
+        Received: r.received,
+        Activated: r.activated,
+        Reported: r.reported,
+        Notes: r.notes ?? "",
+      })),
+      "leads-selection",
+    );
+
   return (
     <div>
       <PageHeader
@@ -522,6 +579,22 @@ function LeadsPage() {
         )}
       </div>
 
+      <BulkBar
+        count={sel.count}
+        noun="entry"
+        summary={`${bulkStats.received} received · ${bulkStats.activated} activated`}
+        onClear={sel.clear}
+      >
+        <Select onValueChange={(v) => bulkSource.mutate(v)}>
+          <SelectTrigger className="h-8 w-[170px]"><SelectValue placeholder="Set source" /></SelectTrigger>
+          <SelectContent>
+            {(sourcesQ.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Button size="sm" variant="outline" onClick={exportSelection}>Export selection</Button>
+        <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${sel.count} selected entr${sel.count === 1 ? "y" : "ies"}?`} />
+      </BulkBar>
+
       <div className="card-surface overflow-hidden">
         {q.isLoading ? (
           <div className="p-8 text-sm text-muted-foreground">Loading…</div>
@@ -534,10 +607,41 @@ function LeadsPage() {
           />
         ) : (
           <>
-          <div className="overflow-x-auto scroll-slim">
+          <DataCardList>
+            {pageItems.map((r: any) => {
+              const s = r.lead_sources;
+              const p = s ? Number(s.price) : 0;
+              const cost = !s ? 0 : s.pricing_model === "CPL" ? p * r.received : p * r.reported;
+              return (
+                <DataCard
+                  key={r.id}
+                  title={s?.name ?? "No source"}
+                  subtitle={fmtDate(r.entry_date)}
+                  onClick={() => { setEditing(r); setOpen(true); }}
+                  actions={<ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete entry?" />}
+                  fields={[
+                    { label: "Model", value: s ? <PricingBadge model={s.pricing_model} /> : "—" },
+                    { label: "Received", value: String(r.received) },
+                    { label: "Activated", value: String(r.activated) },
+                    { label: "Reported", value: String(r.reported) },
+                    { label: "Activated %", value: r.received ? fmtPct((r.activated / r.received) * 100) : "—" },
+                    { label: "Cost", value: fmtMoney(cost) },
+                  ]}
+                />
+              );
+            })}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto scroll-slim">
             <table className="w-full text-xs">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-2.5 px-2 w-8">
+                    <Checkbox
+                      checked={pageItems.length > 0 && pageItems.every((r: any) => sel.selected.has(r.id))}
+                      onCheckedChange={() => sel.toggleAll(pageItems.map((r: any) => r.id))}
+                      aria-label="Select all entries on this page"
+                    />
+                  </th>
                   <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-2.5 px-2" />
                   <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-2.5 px-2" />
                   <SortTh label="Model" k="model" sort={sort} toggle={toggle} className="py-2.5 px-2" />
@@ -570,6 +674,13 @@ function LeadsPage() {
                   return (
                     <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                         onClick={() => { setEditing(r); setOpen(true); }}>
+                      <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={sel.selected.has(r.id)}
+                          onCheckedChange={() => sel.toggle(r.id)}
+                          aria-label="Select entry"
+                        />
+                      </td>
                       <td className="py-2.5 px-2 font-medium">{fmtDate(r.entry_date)}</td>
                       <td className="py-2.5 px-2">{s?.name ?? "—"}</td>
                       <td className="py-2.5 px-2">{s ? <PricingBadge model={s.pricing_model} /> : "—"}</td>

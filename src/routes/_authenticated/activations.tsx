@@ -20,6 +20,8 @@ import {
 import { toast } from "sonner";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { EmptyState } from "@/components/empty-state";
+import { CommentThread } from "@/components/comment-thread";
+import { AttachmentsPanel } from "@/components/attachments-panel";
 import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { CheckCircle2, PhoneCall, Wallet, Copy } from "lucide-react";
@@ -830,6 +832,10 @@ function ActivationsPage() {
                     </div>
                   </div>
                 )}
+
+                <AttachmentsPanel entityType="client" entityId={cur.id} />
+
+                <CommentThread entityType="client" entityId={cur.id} />
               </div>
 
               <DialogFooter>

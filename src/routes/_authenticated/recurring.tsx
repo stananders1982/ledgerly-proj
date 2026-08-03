@@ -23,9 +23,21 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { DataCard, DataCardList } from "@/components/data-card-list";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RecurringRevenueTab } from "@/components/recurring-revenue";
 
 export const Route = createFileRoute("/_authenticated/recurring")({
-  head: () => ({ meta: [{ title: "Recurring Expenses — Ledgerly" }] }),
+  head: () => ({
+    meta: [
+      { title: "Recurring — Ledgerly" },
+      { name: "description", content: "Manage recurring expenses and recurring income that bill on a schedule." },
+      { property: "og:title", content: "Recurring — Ledgerly" },
+      { property: "og:description", content: "Manage recurring expenses and recurring income that bill on a schedule." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: RecurringPage,
 });
 
@@ -145,20 +157,30 @@ function RecurringPage() {
   return (
     <div>
       <PageHeader
-        title="Recurring Expenses"
-        description="Subscriptions, rent, utilities — anything that repeats."
-        actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => runNow.mutate()} disabled={runNow.isPending}>
-              <RefreshCw className="h-4 w-4" /> Run now
-            </Button>
-            <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New recurring</Button></DialogTrigger>
-              <RecurringDialog item={editing} categories={catQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
-            </Dialog>
-          </div>
-        }
+        title="Recurring"
+        description="Subscriptions, rent, utilities and retainers — anything that repeats on a schedule."
       />
+
+      <Tabs defaultValue="expenses">
+        <TabsList className="mb-4">
+          <TabsTrigger value="expenses">Expenses</TabsTrigger>
+          <TabsTrigger value="income">Income</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="income">
+          <RecurringRevenueTab />
+        </TabsContent>
+
+        <TabsContent value="expenses">
+      <div className="mb-4 flex justify-end gap-2">
+        <Button variant="outline" onClick={() => runNow.mutate()} disabled={runNow.isPending}>
+          <RefreshCw className="h-4 w-4" /> Run now
+        </Button>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+          <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New recurring</Button></DialogTrigger>
+          <RecurringDialog item={editing} categories={catQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+        </Dialog>
+      </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
         <StatCard label="Active subscriptions" value={String(stats.count)} icon={Repeat} />
@@ -173,7 +195,24 @@ function RecurringPage() {
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New recurring</Button>} />
         ) : (
           <>
-          <div className="overflow-x-auto scroll-slim">
+          <DataCardList>
+            {pageItems.map((r: any) => (
+              <DataCard
+                key={r.id}
+                title={r.name}
+                subtitle={r.expense_categories?.name ?? undefined}
+                onClick={() => { setEditing(r); setOpen(true); }}
+                actions={<ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete recurring expense?" />}
+                fields={[
+                  { label: "Amount", value: fmtMoney(r.amount) },
+                  { label: "Frequency", value: <span className="capitalize">{r.frequency}</span> },
+                  { label: "Next due", value: fmtDate(r.next_due_date) },
+                  { label: "Status", value: <StatusBadge tone={r.active ? "success" : "muted"}>{r.active ? "Active" : "Paused"}</StatusBadge> },
+                ]}
+              />
+            ))}
+          </DataCardList>
+          <div className="hidden md:block overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
@@ -210,6 +249,8 @@ function RecurringPage() {
           </>
         )}
       </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

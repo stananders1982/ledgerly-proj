@@ -28,6 +28,10 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 
+import { useQuickCreate } from "@/lib/quick-create";
+import { CommentThread } from "@/components/comment-thread";
+import { AttachmentsPanel } from "@/components/attachments-panel";
+
 export const Route = createFileRoute("/_authenticated/expenses")({
   head: () => ({ meta: [{ title: "Expenses — Ledgerly" }] }),
   component: ExpensesPage,
@@ -36,6 +40,7 @@ export const Route = createFileRoute("/_authenticated/expenses")({
 function ExpensesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  useQuickCreate("expenses", () => setOpen(true));
   const [editing, setEditing] = useState<any | null>(null);
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");
@@ -365,6 +370,13 @@ function ExpenseDialog({
         )}
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
       </div>
+      {exp?.id && (
+        <div className="grid gap-4 border-t border-border pt-4">
+          <AttachmentsPanel entityType="expense" entityId={exp.id} title="Receipts & documents" />
+          <CommentThread entityType="expense" entityId={exp.id} />
+        </div>
+      )}
+
       <DialogFooter><Button onClick={() => onSubmit(form)} disabled={loading || !form.amount}>Save</Button></DialogFooter>
     </DialogContent>
   );

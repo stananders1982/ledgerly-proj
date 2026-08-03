@@ -30,6 +30,13 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 
 
+import { useQuickCreate } from "@/lib/quick-create";
+import { CommentThread } from "@/components/comment-thread";
+import { AttachmentsPanel } from "@/components/attachments-panel";
+import { useRowSelection } from "@/lib/row-selection";
+import { BulkBar } from "@/components/bulk-bar";
+import { Checkbox } from "@/components/ui/checkbox";
+
 export const Route = createFileRoute("/_authenticated/revenue")({
   head: () => ({ meta: [{ title: "Revenue — Ledgerly" }] }),
   component: RevenuePage,
@@ -38,6 +45,7 @@ export const Route = createFileRoute("/_authenticated/revenue")({
 function RevenuePage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  useQuickCreate("revenue", () => setOpen(true));
   const [editing, setEditing] = useState<any | null>(null);
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");
@@ -174,6 +182,67 @@ function RevenuePage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["revenue-list"] }); toast.success("Deleted"); },
   });
 
+  const sel = useRowSelection<any>(filtered);
+
+  const selectedTotal = sel.selectedRows.reduce((a: number, r: any) => a + Number(r.amount || 0), 0);
+
+  const bulkDelete = useMutation({
+    mutationFn: async () => {
+      if (!sel.ids.length) return 0;
+      const { error } = await supabase.from("revenue").delete().in("id", sel.ids);
+      if (error) throw error;
+      return sel.ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["revenue-list"] });
+      sel.clear();
+      if (count) toast.success(`Deleted ${count} record${count === 1 ? "" : "s"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkAssign = useMutation({
+    mutationFn: async (employeeId: string) => {
+      if (!sel.ids.length) return 0;
+      const { error } = await supabase.from("revenue").update({ employee_id: employeeId }).in("id", sel.ids);
+      if (error) throw error;
+      return sel.ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["revenue-list"] });
+      sel.clear();
+      if (count) toast.success(`Reassigned ${count} record${count === 1 ? "" : "s"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkMethod = useMutation({
+    mutationFn: async (method: string) => {
+      if (!sel.ids.length) return 0;
+      const { error } = await supabase.from("revenue").update({ method }).in("id", sel.ids);
+      if (error) throw error;
+      return sel.ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["revenue-list"] });
+      sel.clear();
+      if (count) toast.success(`Updated ${count} record${count === 1 ? "" : "s"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const exportSelection = () =>
+    exportCSV(
+      sel.selectedRows.map((r: any) => ({
+        Date: r.date,
+        Customer: r.customer_name,
+        Amount: r.amount,
+        Method: r.method ?? "",
+        Employee: getEmployeeName(r.employee_id, r.employees) ?? "",
+      })),
+      "revenue-selection",
+    );
+
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
     const rows = filtered.map((r: any) => ({
       Date: r.date, Customer: r.customer_name, Amount: r.amount,
@@ -233,6 +302,25 @@ function RevenuePage() {
         <BreakdownCard title="Revenue by affiliate" rows={stats.byAff} />
       </div>
 
+      <BulkBar count={sel.count} noun="record" summary={fmtMoney(selectedTotal)} onClear={sel.clear}>
+        <Select onValueChange={(v) => bulkAssign.mutate(v)}>
+          <SelectTrigger className="h-8 w-[170px]"><SelectValue placeholder="Set employee" /></SelectTrigger>
+          <SelectContent>
+            {(empQ.data ?? []).map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select onValueChange={(v) => bulkMethod.mutate(v)}>
+          <SelectTrigger className="h-8 w-[140px]"><SelectValue placeholder="Set method" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="card">Card</SelectItem>
+            <SelectItem value="wire">Wire</SelectItem>
+            <SelectItem value="crypto">Crypto</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button size="sm" variant="outline" onClick={exportSelection}>Export selection</Button>
+        <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${sel.count} selected record(s)?`} />
+      </BulkBar>
+
       <div className="card-surface overflow-hidden">
         {revQ.isLoading ? <TableSkeleton cols={6} />
         : filtered.length === 0 ? (
@@ -260,6 +348,13 @@ function RevenuePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-3 px-4 w-8">
+                    <Checkbox
+                      checked={pageItems.length > 0 && pageItems.every((r: any) => sel.selected.has(r.id))}
+                      onCheckedChange={() => sel.toggleAll(pageItems.map((r: any) => r.id))}
+                      aria-label="Select all records on this page"
+                    />
+                  </th>
                   <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Customer" k="customer" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -279,6 +374,8 @@ function RevenuePage() {
                     affiliateId={r.affiliate_id}
                     onEdit={() => { setEditing(r); setOpen(true); }}
                     onDelete={() => del.mutate(r.id)}
+                    selected={sel.selected.has(r.id)}
+                    onToggleSelect={() => sel.toggle(r.id)}
                   />
                 ))}
               </tbody>
@@ -300,6 +397,8 @@ function RevenueRow({
   affiliateId,
   onEdit,
   onDelete,
+  selected,
+  onToggleSelect,
 }: {
   revenue: any;
   employeeName?: string;
@@ -308,10 +407,15 @@ function RevenueRow({
   affiliateId?: string | null;
   onEdit: () => void;
   onDelete: () => void;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   return (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={onEdit}>
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox checked={!!selected} onCheckedChange={() => onToggleSelect?.()} aria-label="Select record" />
+                    </td>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     <td className="py-3 px-4 text-primary font-medium">{fmtMoney(r.amount)}</td>
@@ -507,6 +611,13 @@ function RevenueDialog({
 
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
       </div>
+      {rev?.id && (
+        <div className="grid gap-4 border-t border-border pt-4">
+          <AttachmentsPanel entityType="revenue" entityId={rev.id} />
+          <CommentThread entityType="revenue" entityId={rev.id} />
+        </div>
+      )}
+
       <DialogFooter><Button onClick={() => onSubmit(form)} disabled={loading || !form.customer_name || !form.amount}>Save</Button></DialogFooter>
     </DialogContent>
   );

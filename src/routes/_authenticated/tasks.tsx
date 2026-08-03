@@ -27,6 +27,8 @@ import { CheckCircle2, ListTodo, Plus, AlarmClock } from "lucide-react";
 
 const sb = supabase as any;
 
+import { useQuickCreate } from "@/lib/quick-create";
+
 export const Route = createFileRoute("/_authenticated/tasks")({
   head: () => ({
     meta: [
@@ -68,6 +70,7 @@ function PriorityBadge({ p }: { p: string }) {
 function TasksPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  useQuickCreate("tasks", () => setOpen(true));
   const [editing, setEditing] = useState<Task | null>(null);
   const [statusFilter, setStatusFilter] = useState<"open" | "done" | "all">("open");
   const [search, setSearch] = useState("");

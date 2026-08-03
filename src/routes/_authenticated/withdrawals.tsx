@@ -31,6 +31,8 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 const sb = supabase as any;
 
 
+import { useQuickCreate } from "@/lib/quick-create";
+
 export const Route = createFileRoute("/_authenticated/withdrawals")({
   head: () => ({ meta: [{ title: "Withdrawals — Ledgerly" }] }),
   component: WithdrawalsPage,
@@ -40,6 +42,7 @@ function WithdrawalsPage() {
   const settings = useCompanySettings();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  useQuickCreate("withdrawals", () => setOpen(true));
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
   const [range, setRange] = useState<RangeKey>("month");

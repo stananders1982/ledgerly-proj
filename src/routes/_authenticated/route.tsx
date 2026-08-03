@@ -22,6 +22,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LogOut, UserCircle, Search as SearchIcon, Keyboard } from "lucide-react";
 import { KeyboardShortcutsPanel, useKeyboardShortcutsPanel } from "@/components/keyboard-shortcuts";
+import { QuickCreate } from "@/components/quick-create";
+import { TaskReminders } from "@/components/task-reminders";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -107,6 +109,8 @@ function ProtectedLayout() {
           <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
             <Outlet />
           </main>
+          <QuickCreate />
+          <TaskReminders />
         </div>
       </div>
     </SidebarProvider>

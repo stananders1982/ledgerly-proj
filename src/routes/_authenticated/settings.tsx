@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { DEFAULT_SETTINGS, SETTINGS_QUERY_KEY, fromRow, type CompanySettings } from "@/lib/settings";
 import { useAuth } from "@/lib/auth-context";
 import { BackupExport } from "@/components/backup-export";
+import { CustomFieldsAdmin } from "@/components/custom-fields-admin";
+import { ActionPermissionsAdmin } from "@/components/action-permissions-admin";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -277,6 +279,14 @@ function SettingsPage() {
             <p className="text-xs text-muted-foreground">Shown in the sidebar next to the workspace name.</p>
           </div>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <CustomFieldsAdmin />
+      </div>
+
+      <div className="mt-6">
+        <ActionPermissionsAdmin />
       </div>
 
       <div className="mt-6">
