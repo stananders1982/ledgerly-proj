@@ -45,6 +45,7 @@ export const Route = createFileRoute("/_authenticated/revenue")({
 
 function RevenuePage() {
   const qc = useQueryClient();
+  const settings = useCompanySettings();
   const [open, setOpen] = useState(false);
   useQuickCreate("revenue", () => setOpen(true));
   const [editing, setEditing] = useState<any | null>(null);
