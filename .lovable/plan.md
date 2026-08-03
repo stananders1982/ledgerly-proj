@@ -12,8 +12,8 @@ Today's deposits from **Robert Dix** and **Wayne Hughes** don't have a matching 
 
    Saving creates the client record with the workspace default balance and links the deposit to it, so it appears on the Clients page right away.
 2. **These fields are required** when no client is selected, so no new deposit can create an unattributed client.
-3. **Existing orphan deposits get cleaned up.** A one-time backfill creates a client for every past deposit whose customer name has no client record, using that customer's earliest deposit date as the activation date, and links all of that customer's deposits to it. Wayne Hughes (earliest deposit 14 Jul) and Robert Dix (3 Aug) both get records. These backfilled clients have no agents set and are tagged `auto` so you can open them on the Clients page and assign the conversion/retention agents.
-4. **STD counts become correct.** With a client record and a linked first deposit, later deposits are properly recognised as STDs instead of being invisible.
+3. **Past deposits are left as they are.** No backfill runs — existing orphan deposits (Robert Dix, Wayne Hughes) stay untouched; you can create those clients manually if you want them tracked.
+4. **STD counts become correct going forward.** With a client record and a linked first deposit, later deposits are properly recognised as STDs instead of being invisible.
 
 ## Behaviour rules
 
@@ -23,9 +23,8 @@ Today's deposits from **Robert Dix** and **Wayne Hughes** don't have a matching 
 
 ## Technical notes
 
-- `daily_lead_activations.entry_id` and `employee_id` are currently `NOT NULL`, which blocks client records created outside a daily lead entry. Migration makes both nullable and adds a `source` column (`manual` / `auto`) defaulting to `manual`.
+- `daily_lead_activations.entry_id` and `employee_id` are currently `NOT NULL`, which blocks client records created outside a daily lead entry. Migration makes `entry_id` nullable only (schema change, no data migration).
 - Retention agent maps to the existing `employee_id` field, conversion agent to `conversion_employee_id`.
 - Call sites that read activations (leads, activations, performance, reports, employee detail, dashboard) get null-safe handling for a missing `entry_id`.
 - Revenue dialog work is in `src/routes/_authenticated/revenue.tsx`: when `activation_id` is empty, render the new-client fields, validate them, insert the activation, then save the revenue row with the new `activation_id`.
-- Backfill is a one-time SQL block in the same migration, inserting one activation per orphan customer name at their earliest deposit date, then setting `revenue.activation_id` for all of that customer's rows, scoped per company.
 
