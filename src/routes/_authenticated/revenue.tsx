@@ -203,7 +203,7 @@ function RevenuePage() {
         : await supabase.from("revenue").insert(payload);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["revenue-list"] }); qc.invalidateQueries({ queryKey: ["revenue"] }); toast.success("Saved"); setOpen(false); setEditing(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["revenue-list"] }); qc.invalidateQueries({ queryKey: ["revenue"] }); qc.invalidateQueries({ queryKey: ["activated-leads-picker"] }); qc.invalidateQueries({ queryKey: ["activations"] }); toast.success("Saved"); setOpen(false); setEditing(null); },
     onError: (e: any) => toast.error(e.message),
   });
   const del = useMutation({
