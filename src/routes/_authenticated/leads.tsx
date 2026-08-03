@@ -32,6 +32,10 @@ import { CsvImportDialog } from "@/components/csv-import";
 
 
 import { useQuickCreate } from "@/lib/quick-create";
+import { useRowSelection } from "@/lib/row-selection";
+import { BulkBar } from "@/components/bulk-bar";
+import { DataCard, DataCardList } from "@/components/data-card-list";
+import { exportCSV } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/leads")({
   head: () => ({ meta: [{ title: "Leads — Ledgerly" }] }),
@@ -57,6 +61,7 @@ function LeadsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   useQuickCreate("leads", () => setOpen(true));
+  const sel = useRowSelection<any>([]);
   const [editing, setEditing] = useState<Entry | null>(null);
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState<string>("");
