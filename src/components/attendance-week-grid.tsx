@@ -21,12 +21,23 @@ export function AttendanceWeekGrid({ employees }: { employees: Emp[] }) {
   const qc = useQueryClient();
   const [anchor, setAnchor] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-  const days = useMemo(
-    () => Array.from({ length: DAY_COUNT }, (_, i) => addDays(anchor, i)),
-    [anchor],
-  );
+  const days = useMemo(() => {
+    const all = Array.from({ length: DAY_COUNT }, (_, i) => addDays(anchor, i));
+    // Never mix months in one view: keep the month that owns most of the week.
+    const counts = new Map<string, number>();
+    all.forEach((d) => {
+      const k = format(d, "yyyy-MM");
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    });
+    let best = format(all[0], "yyyy-MM");
+    for (const [k, n] of counts) {
+      const bestN = counts.get(best) ?? 0;
+      if (n > bestN || (n === bestN && k > best)) best = k;
+    }
+    return all.filter((d) => format(d, "yyyy-MM") === best);
+  }, [anchor]);
   const startISO = format(days[0], "yyyy-MM-dd");
-  const endISO = format(days[DAY_COUNT - 1], "yyyy-MM-dd");
+  const endISO = format(days[days.length - 1], "yyyy-MM-dd");
 
   const weekQ = useQuery({
     queryKey: ["attendance", "week", startISO],
@@ -86,7 +97,7 @@ export function AttendanceWeekGrid({ employees }: { employees: Emp[] }) {
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="text-sm font-medium">
-          {format(days[0], "MMM d")} – {format(days[DAY_COUNT - 1], "MMM d, yyyy")}
+          {format(days[0], "MMM d")} – {format(days[days.length - 1], "MMM d, yyyy")}
         </span>
         <Button variant="outline" size="sm" onClick={() => setAnchor(addDays(anchor, 7))}>
           <ChevronRight className="h-4 w-4" />
