@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          changes: Json | null
+          company_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string
+          id: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          changes?: Json | null
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type: string
+          id?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          changes?: Json | null
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string
+          id?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       affiliate_events: {
         Row: {
           affiliate_id: string
@@ -388,11 +427,15 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          brand_color: string | null
           company_id: string
           created_at: string
+          currency: string
           default_activation_balance: number
+          fiscal_year_start_month: number
           ftd_balance_threshold: number
           ftd_commission: number
+          logo_url: string | null
           method_fee_card_pct: number
           method_fee_crypto_pct: number
           method_fee_wire_pct: number
@@ -400,11 +443,15 @@ export type Database = {
           withdrawal_penalty_pct: number
         }
         Insert: {
+          brand_color?: string | null
           company_id: string
           created_at?: string
+          currency?: string
           default_activation_balance?: number
+          fiscal_year_start_month?: number
           ftd_balance_threshold?: number
           ftd_commission?: number
+          logo_url?: string | null
           method_fee_card_pct?: number
           method_fee_crypto_pct?: number
           method_fee_wire_pct?: number
@@ -412,11 +459,15 @@ export type Database = {
           withdrawal_penalty_pct?: number
         }
         Update: {
+          brand_color?: string | null
           company_id?: string
           created_at?: string
+          currency?: string
           default_activation_balance?: number
+          fiscal_year_start_month?: number
           ftd_balance_threshold?: number
           ftd_commission?: number
+          logo_url?: string | null
           method_fee_card_pct?: number
           method_fee_crypto_pct?: number
           method_fee_wire_pct?: number
@@ -476,6 +527,7 @@ export type Database = {
           id: string
           lead_name: string | null
           low_potential_alerted: boolean
+          notes: string | null
           potential: string | null
           tags: string[]
           updated_at: string
@@ -493,6 +545,7 @@ export type Database = {
           id?: string
           lead_name?: string | null
           low_potential_alerted?: boolean
+          notes?: string | null
           potential?: string | null
           tags?: string[]
           updated_at?: string
@@ -510,6 +563,7 @@ export type Database = {
           id?: string
           lead_name?: string | null
           low_potential_alerted?: boolean
+          notes?: string | null
           potential?: string | null
           tags?: string[]
           updated_at?: string
@@ -811,6 +865,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      favorites: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          label: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          label?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          label?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       lead_sources: {
         Row: {
