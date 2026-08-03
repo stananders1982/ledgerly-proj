@@ -165,9 +165,17 @@ function WithdrawalsPage() {
         }
       />
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <DateRangePicker
+          value={range}
+          onChange={setRange}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+        />
         <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
       </div>
+
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label={activeRange.label} value={fmtMoney(stats.total)} tone="negative" />
