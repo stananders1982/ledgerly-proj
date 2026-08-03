@@ -619,7 +619,7 @@ function Mini({ label, value, tone, data, to }: { label: string; value: string; 
 function Sparkline({ data, tone, thin }: { data: { v: number }[]; tone: Tone; thin?: boolean }) {
   const t = toneStyles[tone];
   if (!data.length || data.every((d) => !d.v)) {
-    return <div className="h-full w-full rounded bg-gradient-to-t from-foreground/[0.03] to-transparent" />;
+    return <div className="h-full w-full rounded bg-gradient-to-t from-foreground/[0.015] dark:from-white/[0.03] to-transparent" />;
   }
   const id = `spk-${tone}-${Math.random().toString(36).slice(2, 7)}`;
   return (
