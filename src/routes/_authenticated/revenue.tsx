@@ -518,6 +518,22 @@ function RevenueDialog({
   const picked = activations.find((x: any) => x.id === activationId);
   const detailsHidden = !!picked && !manual;
 
+  // New-client details, asked for when no existing client is selected.
+  const [newClient, setNewClient] = useState(() => ({
+    activation_date: rev?.date ?? new Date().toISOString().slice(0, 10),
+    conversion_employee_id: "",
+    employee_id: "",
+  }));
+  const typedName = String(form.customer_name ?? "").trim().toLowerCase();
+  const nameMatch = activations.find(
+    (a: any) => (a.lead_name ?? "").trim().toLowerCase() === typedName && typedName,
+  );
+  // Only for brand-new deposits: existing rows keep their current linkage.
+  const needsNewClient = !rev?.id && !activationId && !nameMatch;
+  const newClientValid =
+    !needsNewClient ||
+    (!!form.customer_name.trim() && !!newClient.activation_date && !!newClient.conversion_employee_id && !!newClient.employee_id);
+
   const pickActivation = (id: string) => {
     if (id === "_none") { setActivationId(""); setForm((f) => ({ ...f, activation_id: "" })); return; }
     setActivationId(id);
