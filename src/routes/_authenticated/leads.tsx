@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -148,7 +148,30 @@ function LeadsPage() {
     });
   }, [allRows, activeRange, sourceFilter, leadSearch, activationsByEntry]);
 
+  const navigate = useNavigate();
+
+  const matchingLeads = useMemo(() => {
+    const term = leadSearch.trim().toLowerCase();
+    if (!term) return [];
+    const entryById = new Map((allRows ?? []).map((r: any) => [r.id, r]));
+    const empName = (id?: string | null) =>
+      (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
+    return (activationsQ.data ?? [])
+      .filter((a) => (a.lead_name ?? "").toLowerCase().includes(term))
+      .sort((a, b) => (b.activation_date ?? "").localeCompare(a.activation_date ?? ""))
+      .slice(0, 50)
+      .map((a) => ({
+        id: a.id,
+        name: a.lead_name ?? "—",
+        date: a.activation_date,
+        retention: empName(a.employee_id),
+        conversion: empName(a.conversion_employee_id),
+        source: (entryById.get(a.entry_id) as any)?.lead_sources?.name ?? "—",
+      }));
+  }, [leadSearch, activationsQ.data, employeesQ.data, allRows]);
+
   const sel = useRowSelection<any>(rows);
+
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => r.entry_date,
@@ -543,6 +566,53 @@ function LeadsPage() {
           <div className="text-xs text-muted-foreground">{activeRange.label}</div>
         </div>
       </div>
+
+      {leadSearch.trim() && (
+        <div className="card-surface p-4 mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Matching leads</h3>
+            <span className="text-xs text-muted-foreground">
+              {matchingLeads.length} found · all time
+            </span>
+          </div>
+          {matchingLeads.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No lead matches “{leadSearch}”.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="py-2 pr-4">Lead</th>
+                    <th className="py-2 pr-4">Activated</th>
+                    <th className="py-2 pr-4">Conversion</th>
+                    <th className="py-2 pr-4">Retention</th>
+                    <th className="py-2 pr-4">Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matchingLeads.map((l) => (
+                    <tr
+                      key={l.id}
+                      className="cursor-pointer border-t border-border/60 hover:bg-accent/50"
+                      onClick={() =>
+                        navigate({ to: "/activations", search: { name: l.name, client: undefined } })
+                      }
+                    >
+                      <td className="py-2 pr-4 font-medium">{l.name}</td>
+                      <td className="py-2 pr-4">{fmtDate(l.date)}</td>
+                      <td className="py-2 pr-4">{l.conversion}</td>
+                      <td className="py-2 pr-4">{l.retention}</td>
+                      <td className="py-2 pr-4">{l.source}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+
 
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Received" value={String(stats.received)} />
