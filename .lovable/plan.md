@@ -12,8 +12,8 @@ Today's deposits from **Robert Dix** and **Wayne Hughes** don't have a matching 
 
    Saving creates the client record with the workspace default balance and links the deposit to it, so it appears on the Clients page right away.
 2. **These fields are required** when no client is selected, so no new deposit can create an unattributed client.
-3. **Existing orphan deposits get cleaned up.** A one-time backfill creates a client for every past deposit whose customer name has no client record, using that customer's earliest deposit date as the activation date, and links all of that customer's deposits to it. Wayne Hughes (earliest deposit 14 Jul) and Robert Dix (3 Aug) both get records. These backfilled clients have no agents set and are tagged `auto` so you can open them on the Clients page and assign the conversion/retention agents.
-4. **STD counts become correct.** With a client record and a linked first deposit, later deposits are properly recognised as STDs instead of being invisible.
+3. **Past deposits are left as they are.** No backfill runs — existing orphan deposits (Robert Dix, Wayne Hughes) stay untouched; you can create those clients manually if you want them tracked.
+4. **STD counts become correct going forward.** With a client record and a linked first deposit, later deposits are properly recognised as STDs instead of being invisible.
 
 ## Behaviour rules
 
