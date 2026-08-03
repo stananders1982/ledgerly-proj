@@ -66,6 +66,7 @@ function LeadsPage() {
   const [customStart, setCustomStart] = useState<string>("");
   const [customEnd, setCustomEnd] = useState<string>("");
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
+  const [leadSearch, setLeadSearch] = useState<string>("");
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
@@ -115,16 +116,34 @@ function LeadsPage() {
 
 
   const allRows = q.data ?? [];
+
+  const activationsByEntry = useMemo(() => {
+    const m = new Map<string, Activation[]>();
+    for (const a of activationsQ.data ?? []) {
+      const arr = m.get(a.entry_id) ?? [];
+      arr.push(a);
+      m.set(a.entry_id, arr);
+    }
+    return m;
+  }, [activationsQ.data]);
+
   const rows = useMemo(() => {
     const s = activeRange.start.getTime();
     const e = activeRange.end.getTime();
+    const term = leadSearch.trim().toLowerCase();
     return allRows.filter((r) => {
       const t = new Date(r.entry_date + "T00:00:00").getTime();
       if (t < s || t > e) return false;
       if (sourceFilter.length > 0 && !sourceFilter.includes(r.source_id ?? "")) return false;
+      if (term) {
+        const names = (activationsByEntry.get(r.id) ?? [])
+          .map((a) => (a.lead_name ?? "").toLowerCase())
+          .join(" ");
+        if (!names.includes(term)) return false;
+      }
       return true;
     });
-  }, [allRows, activeRange, sourceFilter]);
+  }, [allRows, activeRange, sourceFilter, leadSearch, activationsByEntry]);
 
   const sel = useRowSelection<any>(rows);
 
@@ -151,16 +170,6 @@ function LeadsPage() {
     notes: (r) => r.notes ?? "",
   });
   const { pageItems, ...pg } = usePagination(sorted, 30);
-
-  const activationsByEntry = useMemo(() => {
-    const m = new Map<string, Activation[]>();
-    for (const a of activationsQ.data ?? []) {
-      const arr = m.get(a.entry_id) ?? [];
-      arr.push(a);
-      m.set(a.entry_id, arr);
-    }
-    return m;
-  }, [activationsQ.data]);
 
   // Activations are dated independently of the lead entry: an April lead
   // activated today belongs to today's period for FTD/commission purposes.
@@ -468,14 +477,21 @@ function LeadsPage() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <div className="flex items-center gap-2">
+          <Input
+            placeholder="Search lead name…"
+            value={leadSearch}
+            onChange={(e) => setLeadSearch(e.target.value)}
+            className="h-9 w-[200px]"
+          />
           <SavedViews
             id="leads"
-            state={{ range, customStart, customEnd, sourceFilter }}
+            state={{ range, customStart, customEnd, sourceFilter, leadSearch }}
             onApply={(v: any) => {
               setRange(v.range ?? "month");
               setCustomStart(v.customStart ?? "");
               setCustomEnd(v.customEnd ?? "");
               setSourceFilter(Array.isArray(v.sourceFilter) ? v.sourceFilter : []);
+              setLeadSearch(typeof v.leadSearch === "string" ? v.leadSearch : "");
             }}
           />
           <Popover>
