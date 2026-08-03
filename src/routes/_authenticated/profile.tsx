@@ -113,7 +113,7 @@ function ProfilePage() {
             </p>
           </div>
           {hasMfa && (
-            <span className="text-xs font-medium px-2 py-1 rounded bg-emerald-500/15 text-emerald-300">Enabled</span>
+            <span className="text-xs font-medium px-2 py-1 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">Enabled</span>
           )}
         </div>
 
