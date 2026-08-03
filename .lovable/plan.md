@@ -1,75 +1,25 @@
-# Implementation Plan — Items 1–11
+# Auto-create clients for deposits with no client record
 
-Eleven improvements across daily speed, data trust, and team collaboration. Grouped into four batches so each lands working before the next starts.
+Today's deposits from **Robert Dix** and **Wayne Hughes** don't have a matching client (activation) record, so they can never count as FTD/STD and never show on the Clients page. This adds automatic client creation so every deposit belongs to a client.
 
-## Batch A — Daily Speed (items 1, 2, 3)
+## What changes for you
 
-**1. Global Quick-Create Speed Dial**
-- Floating action button, bottom-right on every authenticated page, plus a `C` keyboard shortcut.
-- Options: Income, Expense, Lead entry, Client activation, Withdrawal, Attendance, Task.
-- Options are filtered by the user's existing nav permissions, so a non-admin only sees what they can access.
-- Each option opens the relevant page with its create dialog already open (via a `?new=1` URL param the pages read).
+1. **Recording income creates the client automatically.** When you record a deposit and the customer name doesn't match any existing client, a client record is created on the spot (activation date = deposit date, balance = the workspace default), and the deposit is linked to it. The client shows up on the Clients page immediately.
+2. **Existing orphan deposits get cleaned up.** A one-time backfill creates a client for every past deposit whose customer name has no client record, using that customer's earliest deposit date as the activation date. Wayne Hughes (earliest deposit 14 Jul) and Robert Dix (3 Aug) both get records.
+3. **Auto-created clients are marked.** They're tagged `auto` so you can spot them on the Clients page and fill in the missing details (potential, answered, conversion agent).
+4. **STD counts become correct.** With a client record and a linked first deposit, later deposits are properly recognised as STDs instead of being invisible.
 
-**2. Mobile Card Views**
-- `DataCardList` already exists and is used on 9 pages. Missing on: Leads, Expenses table body on small screens, Sources, Recurring, Reports tables.
-- Add responsive card rendering to Leads, Sources, and Recurring; verify and tighten the existing card layouts elsewhere so no table forces horizontal scroll on phones.
+## Behaviour rules
 
-**3. Bulk Actions on Revenue and Leads**
-- Reuse the selection pattern already built on Expenses and Clients.
-- Revenue: select rows → bulk delete, bulk reassign agent/affiliate, export selection, running total in the floating bar.
-- Leads: select rows → bulk delete, bulk change source, export selection.
+- Matching is by trimmed, case-insensitive customer name (same rule the app already uses elsewhere).
+- The client's activation date is the deposit date, and the first deposit is treated as the FTD, so a same-day second deposit is the STD.
+- Nothing is auto-created when the deposit already picks a client from the lead picker.
+- Auto-created clients start with no attribution (no conversion agent / no lead source), so employee commission and lead-count KPIs are not silently inflated.
 
-## Batch B — Records & Files (items 4, 7)
+## Technical notes
 
-**4. Comment Threads on Records**
-- New `record_comments` table: entity type, entity id, body, author, timestamps, workspace scoped.
-- A reusable `CommentThread` panel added to Client detail, Revenue edit, Expense edit, and Employee detail.
-- Shows author, relative time, edit/delete for own comments (admins can delete any).
-
-**7. Document Attachments**
-- New private storage bucket plus an `attachments` table: entity type, entity id, file path, filename, size, uploader.
-- Upload/preview/delete widget added to Revenue, Expenses, Employees, and Clients.
-- Files are workspace scoped; download uses short-lived signed links so nothing is publicly reachable.
-
-## Batch C — Data Trust & Recurring Income (items 5, 6, 8)
-
-**5. Data Quality Dashboard**
-- New card on the Dashboard plus a `/data-quality` page.
-- Checks: leads missing a source, revenue missing payment method, clients missing potential, clients missing a name, employees missing a team, employees missing salary, duplicate client names/phones, activations with no revenue.
-- Each row shows a count and links directly to the filtered list so the issue can be fixed in place.
-
-**6. Recurring Revenue**
-- New `recurring_revenue` table mirroring `recurring_expenses`: amount, frequency, start/end date, next due date, agent, affiliate, method, notes.
-- A "Recurring Income" section on the Recurring page (tabbed alongside recurring expenses).
-- Auto-generation reuses the existing due-generation approach, so due entries appear in Income automatically.
-- Feeds the Dashboard cashflow forecast on the inflow side.
-
-**8. Custom Fields**
-- New `custom_field_defs` table: module, label, key, type (text/number/date/select), options, sort order, active.
-- Values stored in a `custom_fields` JSONB column on Leads, Employees, Clients, and Revenue.
-- Admin UI in Settings to define fields; forms render them automatically; values appear in table columns and CSV/Excel exports.
-
-## Batch D — Team & Permissions (items 9, 10, 11)
-
-**9. @Mentions and Record-Linked Tasks**
-- Typing `@` in a comment opens an employee picker; mentioning someone creates a notification (the `notifications` table already exists) and highlights the mention.
-- Tasks gain optional links to a Revenue record or Lead entry in addition to the existing client/agent links.
-- Due-date reminders: tasks due today or overdue generate a notification for the assignee on first load of the day.
-
-**10. Action Permissions**
-- Extend permissions beyond navigation with a second matrix per user: can delete records, can export data, can view/edit salaries, can approve withdrawals, can edit company settings.
-- New `action_permissions` table; a `useCan(action)` hook gates buttons in the UI, with matching database rules so it is enforced server-side too, not just hidden.
-- Admins keep full access; the matrix appears in User Management next to the existing nav toggles.
-
-**11. Attendance Weekly Calendar**
-- Replace the single-day view with a week grid: employees down the left, Mon–Fri across the top, click a cell to toggle present/absent.
-- Keeps the existing day view as a toggle option.
-- Right-hand summary shows, per employee, days absent this month and the running salary deduction, updating live as cells are toggled.
-
-## Technical Notes
-
-- Database work: 5 new tables (`record_comments`, `attachments`, `recurring_revenue`, `custom_field_defs`, `action_permissions`), one new storage bucket, one new JSONB column on four existing tables, and one new task-link column set. All workspace scoped with access rules matching the current model, and all covered by the existing audit-log triggers.
-- No changes to existing commission, STD/FTD, or split-clock logic.
-- Each batch will be verified against the running preview before moving to the next.
-
-I will work through batches A → D in order.
+- `daily_lead_activations.entry_id` and `employee_id` are currently `NOT NULL`, which blocks standalone client records. Migration makes both nullable and adds a `source` column (`manual` / `auto`) defaulting to `manual`.
+- Every page that reads activations joins/uses `entry_id` and `employee_id`; those call sites (leads, activations, performance, reports, employees detail, dashboard) get null-safe handling so unattributed clients don't break counts or crash.
+- Auto-creation runs in the revenue insert path in `src/routes/_authenticated/revenue.tsx`: look up by normalised name, create when missing, then set `activation_id` on the revenue row.
+- Backfill is a one-time SQL block in the same migration, inserting one activation per orphan customer name at their earliest deposit date, then setting `revenue.activation_id` for all of that customer's rows.
+- Company scoping uses the existing `company_id` default, so backfill runs per company.
