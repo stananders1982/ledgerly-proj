@@ -589,6 +589,13 @@ function RevenueDialog({
           <Field label="Customer name"><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></Field>
         )}
 
+        {!activationId && nameMatch && (
+          <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+            Matches existing client <span className="font-medium text-foreground">{nameMatch.lead_name}</span>
+            {nameMatch.activation_date ? ` · activated ${nameMatch.activation_date}` : ""} — this deposit will be linked to that client on save.
+          </div>
+        )}
+
         {needsNewClient && (
           <div className="rounded-lg border border-dashed border-border bg-muted/20 p-3 grid gap-3">
             <div>
