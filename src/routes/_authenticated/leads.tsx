@@ -61,7 +61,6 @@ function LeadsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   useQuickCreate("leads", () => setOpen(true));
-  const sel = useRowSelection<any>([]);
   const [editing, setEditing] = useState<Entry | null>(null);
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState<string>("");
@@ -126,6 +125,8 @@ function LeadsPage() {
       return true;
     });
   }, [allRows, activeRange, sourceFilter]);
+
+  const sel = useRowSelection<any>(rows);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => r.entry_date,
@@ -334,6 +335,54 @@ function LeadsPage() {
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["daily-leads-v2"] }); toast.success("Deleted"); },
   });
+
+  const bulkStats = useMemo(() => ({
+    received: sel.selectedRows.reduce((a: number, r: any) => a + Number(r.received || 0), 0),
+    activated: sel.selectedRows.reduce((a: number, r: any) => a + Number(r.activated || 0), 0),
+  }), [sel.selectedRows]);
+
+  const bulkDelete = useMutation({
+    mutationFn: async () => {
+      if (!sel.ids.length) return 0;
+      const { error } = await supabase.from("daily_lead_entries").delete().in("id", sel.ids);
+      if (error) throw error;
+      return sel.ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["daily-leads-v2"] });
+      sel.clear();
+      if (count) toast.success(`Deleted ${count} entr${count === 1 ? "y" : "ies"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkSource = useMutation({
+    mutationFn: async (sourceId: string) => {
+      if (!sel.ids.length) return 0;
+      const { error } = await supabase.from("daily_lead_entries").update({ source_id: sourceId }).in("id", sel.ids);
+      if (error) throw error;
+      return sel.ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["daily-leads-v2"] });
+      sel.clear();
+      if (count) toast.success(`Updated ${count} entr${count === 1 ? "y" : "ies"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const exportSelection = () =>
+    exportCSV(
+      sel.selectedRows.map((r: any) => ({
+        Date: r.entry_date,
+        Source: r.lead_sources?.name ?? "",
+        Received: r.received,
+        Activated: r.activated,
+        Reported: r.reported,
+        Notes: r.notes ?? "",
+      })),
+      "leads-selection",
+    );
 
   return (
     <div>
