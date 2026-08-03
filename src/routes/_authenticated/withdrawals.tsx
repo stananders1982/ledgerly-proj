@@ -26,6 +26,7 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { withdrawalPenalty } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
+import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 
 const sb = supabase as any;
 
@@ -41,6 +42,13 @@ function WithdrawalsPage() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
+  const [range, setRange] = useState<RangeKey>("month");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const activeRange = useMemo(
+    () => getRange(range, { start: customStart, end: customEnd }),
+    [range, customStart, customEnd],
+  );
 
   const wQ = useQuery({
     queryKey: ["withdrawals-list"],
@@ -75,12 +83,20 @@ function WithdrawalsPage() {
   );
   const getEmpName = (r: any) => r.employees?.name ?? (r.employee_id ? empNameById.get(r.employee_id) : undefined) ?? "—";
 
+  const inRange = useMemo(() => {
+    const s = activeRange.start.getTime();
+    const e = activeRange.end.getTime();
+    return (wQ.data ?? []).filter((r: any) => {
+      const t = new Date(r.date).getTime();
+      return t >= s && t <= e;
+    });
+  }, [wQ.data, activeRange]);
+
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const list = wQ.data ?? [];
-    if (!term) return list;
-    return list.filter((r: any) => (r.customer_name ?? "").toLowerCase().includes(term));
-  }, [wQ.data, search]);
+    if (!term) return inRange;
+    return inRange.filter((r: any) => (r.customer_name ?? "").toLowerCase().includes(term));
+  }, [inRange, search]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => r.date,
@@ -94,11 +110,11 @@ function WithdrawalsPage() {
   const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const stats = useMemo(() => {
-    const list = wQ.data ?? [];
+    const list = inRange;
     const total = list.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const month = new Date().toISOString().slice(0, 7);
-    const monthTotal = list.filter((r: any) => r.date?.startsWith(month)).reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const allTotal = (wQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount), 0);
     const penalty = list.reduce((s: number, r: any) => s + Number(r.employee_penalty), 0);
+
     const byEmp = new Map<string, number>();
     list.forEach((r: any) => {
       const totalPenalty = Number(r.employee_penalty) || 0;
@@ -112,8 +128,8 @@ function WithdrawalsPage() {
         byEmp.set(n, (byEmp.get(n) ?? 0) + totalPenalty * (1 - pct));
       }
     });
-    return { total, monthTotal, count: list.length, penalty, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [wQ.data, empNameById]);
+    return { total, allTotal, count: list.length, penalty, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]) };
+  }, [inRange, wQ.data, empNameById]);
 
 
   const upsert = useMutation({
@@ -165,16 +181,25 @@ function WithdrawalsPage() {
         }
       />
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <DateRangePicker
+          value={range}
+          onChange={setRange}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+        />
         <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
       </div>
 
+
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total withdrawn" value={fmtMoney(stats.total)} tone="negative" />
-        <StatCard label="This month" value={fmtMoney(stats.monthTotal)} />
+        <StatCard label={activeRange.label} value={fmtMoney(stats.total)} tone="negative" />
+        <StatCard label="All-time withdrawn" value={fmtMoney(stats.allTotal)} />
         <StatCard label="Withdrawals" value={String(stats.count)} />
         <StatCard label="Agent penalties (10%)" value={fmtMoney(stats.penalty)} />
       </section>
+
 
       {stats.byEmp.length > 0 && (
         <div className="card-surface p-5 mb-6">
