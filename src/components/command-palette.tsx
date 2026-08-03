@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Banknote, CalendarCheck, Receipt, TrendingUp, Users, UserCog, Building2 } from "lucide-react";
+import { Banknote, CalendarCheck, Receipt, TrendingUp, Users, UserCog, Building2, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CommandDialog,
@@ -15,6 +15,7 @@ import { NAV_GROUPS, NAV_ITEMS } from "@/lib/nav-items";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
+import { useFavorites } from "@/lib/favorites";
 
 const QUICK_ACTIONS = [
   { label: "Add income", to: "/revenue", icon: TrendingUp, key: "revenue" },
@@ -83,6 +84,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const navigate = useNavigate();
   const { isAdmin, navKeys, permsLoaded } = useAuth();
   const { clientsQ, employeesQ, affiliatesQ } = useEntitySearch(open);
+  const { favorites } = useFavorites();
 
   const allowed = NAV_ITEMS.filter((item) => {
     if (isAdmin) return true;
@@ -111,6 +113,17 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     navigate({ to });
   };
 
+  const openFavorite = (f: { entity_type: string; entity_id: string; label: string | null }) => {
+    onOpenChange(false);
+    if (f.entity_type === "client") {
+      navigate({ to: "/activations", search: { client: f.entity_id, name: f.label ?? undefined } });
+    } else if (f.entity_type === "employee") {
+      navigate({ to: "/employees/$id", params: { id: f.entity_id } });
+    } else if (f.entity_type === "affiliate") {
+      navigate({ to: "/affiliates/$id", params: { id: f.entity_id } });
+    }
+  };
+
   const actions = QUICK_ACTIONS.filter((a) => allowed.some((i) => i.key === a.key));
 
   return (
@@ -118,6 +131,21 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       <CommandInput placeholder="Search pages, clients, employees, affiliates..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
+        {favorites.length > 0 && (
+          <CommandGroup heading="Pinned">
+            {favorites.map((f) => (
+              <CommandItem
+                key={f.id}
+                value={`pinned ${f.label ?? f.entity_type}`}
+                onSelect={() => openFavorite(f)}
+              >
+                <Star className="mr-2 h-4 w-4 fill-current text-amber-500" />
+                {f.label ?? "Untitled"}
+                <span className="ml-auto text-xs capitalize text-muted-foreground">{f.entity_type}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
         {NAV_GROUPS.map((group) => {
           const items = allowed.filter((i) => i.group === group);
           if (!items.length) return null;

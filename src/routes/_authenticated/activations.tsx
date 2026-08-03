@@ -29,6 +29,9 @@ import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate } fro
 import { useCompanySettings } from "@/lib/settings";
 import { CLIENT_TAGS, TagBadges, TagPicker } from "@/components/client-tags";
 import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
+import { FavoriteStar } from "@/components/favorite-star";
+import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDelete } from "@/components/confirm-delete";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -59,6 +62,7 @@ type Row = {
   potential: "low" | "mid" | "high" | null;
   answered: boolean;
   activation_date: string | null;
+  notes?: string | null;
   tags?: string[] | null;
   daily_lead_entries?: { entry_date: string; source_id: string | null; lead_sources?: { name: string } | null } | null;
 };
@@ -311,6 +315,7 @@ function ActivationsPage() {
           answered: v.answered,
           employee_id: v.employee_id,
           conversion_employee_id: v.conversion_employee_id || null,
+          notes: v.notes?.trim() || null,
           tags: v.tags ?? [],
         } as any)
         .eq("id", v.id);
@@ -346,6 +351,23 @@ function ActivationsPage() {
       qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
       setSelected(new Set());
       if (count) toast.success(`Updated ${count} client${count === 1 ? "" : "s"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkDelete = useMutation({
+    mutationFn: async () => {
+      const ids = [...selected];
+      if (!ids.length) return 0;
+      const { error } = await supabase.from("daily_lead_activations").delete().in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["activated-leads"] });
+      qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
+      setSelected(new Set());
+      if (count) toast.success(`Deleted ${count} client${count === 1 ? "" : "s"}`);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -506,6 +528,7 @@ function ActivationsPage() {
               <SelectItem value="high">High</SelectItem>
             </SelectContent>
           </Select>
+          <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${selected.size} selected client(s)?`} />
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
         </div>
       )}
@@ -552,6 +575,7 @@ function ActivationsPage() {
                     aria-label="Select all on page"
                   />
                 </th>
+                <th className="py-3 px-2 w-8"></th>
                 <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -573,6 +597,9 @@ function ActivationsPage() {
                 >
                   <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                     <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleSelected(r.id)} aria-label="Select client" />
+                  </td>
+                  <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
+                    <FavoriteStar type="client" id={r.id} label={r.lead_name} />
                   </td>
                   <td className="py-3 px-4">{actDate(r) ? fmtDate(actDate(r)!) : "—"}</td>
                   <td className="py-3 px-4 font-medium">
@@ -668,6 +695,7 @@ function ActivationsPage() {
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto scroll-slim">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
+                  <FavoriteStar type="client" id={cur.id} label={cur.lead_name} />
                   {cur.lead_name || "Unnamed client"}
                   <PotentialBadge value={cur.potential} />
                   <AnsweredBadge answered={!!cur.answered} />
@@ -718,6 +746,13 @@ function ActivationsPage() {
                       })),
                     ] satisfies TimelineEvent[]}
                   />
+                </div>
+
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold">Notes</h3>
+                  <p className="whitespace-pre-wrap rounded-lg border border-border p-3 text-sm text-muted-foreground">
+                    {cur.notes?.trim() || "No notes yet — add them from Edit client."}
+                  </p>
                 </div>
 
                 <ClientCommunications activationId={cur.id} clientName={cur.lead_name} />
@@ -888,6 +923,15 @@ function EditDialog({
         <div className="grid gap-1.5">
           <label className="text-xs text-muted-foreground">Tags</label>
           <TagPicker value={form.tags ?? []} onChange={(tags) => setForm({ ...form, tags })} />
+        </div>
+        <div className="grid gap-1.5">
+          <label className="text-xs text-muted-foreground">Notes</label>
+          <Textarea
+            rows={3}
+            placeholder="Context for this client — preferences, objections, next steps…"
+            value={form.notes ?? ""}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          />
         </div>
         <label className="flex items-center gap-2 text-sm">
           <Checkbox checked={form.answered} onCheckedChange={(c) => setForm({ ...form, answered: Boolean(c) })} />

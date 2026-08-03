@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { DEFAULT_SETTINGS, SETTINGS_QUERY_KEY, fromRow, type CompanySettings } from "@/lib/settings";
 import { useAuth } from "@/lib/auth-context";
+import { BackupExport } from "@/components/backup-export";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -24,6 +26,9 @@ export const Route = createFileRoute("/_authenticated/settings")({
   }),
   component: SettingsPage,
 });
+
+const CURRENCIES = ["USD", "EUR", "GBP", "ILS", "AUD", "CAD", "CHF", "AED", "JPY"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const FIELDS: {
   key: keyof CompanySettings;
@@ -79,7 +84,7 @@ const FIELDS: {
 function SettingsPage() {
   const qc = useQueryClient();
   const { isAdmin } = useAuth();
-  const [form, setForm] = useState<Record<keyof CompanySettings, string>>({
+  const [form, setForm] = useState<Record<string, string>>({
     ftdBalanceThreshold: String(DEFAULT_SETTINGS.ftdBalanceThreshold),
     defaultActivationBalance: String(DEFAULT_SETTINGS.defaultActivationBalance),
     ftdCommission: String(DEFAULT_SETTINGS.ftdCommission),
@@ -88,13 +93,19 @@ function SettingsPage() {
     methodFeeCardPct: String(DEFAULT_SETTINGS.methodFeeCardPct),
     methodFeeCryptoPct: String(DEFAULT_SETTINGS.methodFeeCryptoPct),
   });
+  const [branding, setBranding] = useState({
+    currency: DEFAULT_SETTINGS.currency,
+    fiscal_year_start_month: String(DEFAULT_SETTINGS.fiscalYearStartMonth),
+    brand_color: "",
+    logo_url: "",
+  });
 
   const q = useQuery({
     queryKey: ["company-settings-page"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("company_id,ftd_balance_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct")
+        .select("company_id,ftd_balance_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct,currency,fiscal_year_start_month,brand_color,logo_url")
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -113,6 +124,12 @@ function SettingsPage() {
       methodFeeCardPct: String(s.methodFeeCardPct),
       methodFeeCryptoPct: String(s.methodFeeCryptoPct),
     });
+    setBranding({
+      currency: s.currency,
+      fiscal_year_start_month: String(s.fiscalYearStartMonth),
+      brand_color: s.brandColor ?? "",
+      logo_url: s.logoUrl ?? "",
+    });
   }, [q.data]);
 
   const save = useMutation({
@@ -120,6 +137,10 @@ function SettingsPage() {
       const companyId = (q.data as any)?.company_id;
       const payload: any = {};
       for (const f of FIELDS) payload[f.column] = Number(form[f.key]) || 0;
+      payload.currency = branding.currency || "USD";
+      payload.fiscal_year_start_month = Number(branding.fiscal_year_start_month) || 1;
+      payload.brand_color = branding.brand_color.trim() || null;
+      payload.logo_url = branding.logo_url.trim() || null;
       if (companyId) {
         const { error } = await supabase.from("company_settings").update(payload).eq("company_id", companyId);
         if (error) throw error;
@@ -191,6 +212,75 @@ function SettingsPage() {
         {!isAdmin && (
           <p className="text-xs text-muted-foreground">Only company admins can change these values.</p>
         )}
+      </div>
+
+      <div className="card-surface mt-6 grid gap-5 p-5">
+        <div>
+          <h2 className="font-display text-base font-semibold">Workspace &amp; branding</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Currency, fiscal year and the accent colour used across the app.</p>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Currency</Label>
+            <Select value={branding.currency} disabled={!isAdmin} onValueChange={(v) => setBranding({ ...branding, currency: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Applied to every money figure in the app.</p>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Fiscal year starts</Label>
+            <Select
+              value={branding.fiscal_year_start_month}
+              disabled={!isAdmin}
+              onValueChange={(v) => setBranding({ ...branding, fiscal_year_start_month: v })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m, i) => <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Used by fiscal-year reporting ranges.</p>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Accent colour</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="color"
+                className="h-9 w-14 p-1"
+                disabled={!isAdmin}
+                value={branding.brand_color || "#6366f1"}
+                onChange={(e) => setBranding({ ...branding, brand_color: e.target.value })}
+              />
+              <Input
+                placeholder="#6366f1"
+                disabled={!isAdmin}
+                value={branding.brand_color}
+                onChange={(e) => setBranding({ ...branding, brand_color: e.target.value })}
+              />
+              {branding.brand_color && isAdmin && (
+                <Button variant="ghost" size="sm" onClick={() => setBranding({ ...branding, brand_color: "" })}>Clear</Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">Leave empty to keep the default theme accent.</p>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Logo URL</Label>
+            <Input
+              placeholder="https://…/logo.png"
+              disabled={!isAdmin}
+              value={branding.logo_url}
+              onChange={(e) => setBranding({ ...branding, logo_url: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">Shown in the sidebar next to the workspace name.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <BackupExport />
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
 import { Route as AuthenticatedCompaniesRouteImport } from './routes/_authenticated/companies'
 import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authenticated/attendance'
+import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedActivationsRouteImport } from './routes/_authenticated/activations'
 import { Route as AuthenticatedEmployeesIndexRouteImport } from './routes/_authenticated/employees.index'
 import { Route as AuthenticatedAffiliatesIndexRouteImport } from './routes/_authenticated/affiliates.index'
@@ -136,6 +137,11 @@ const AuthenticatedAttendanceRoute = AuthenticatedAttendanceRouteImport.update({
   path: '/attendance',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedActivityRoute = AuthenticatedActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedActivationsRoute =
   AuthenticatedActivationsRouteImport.update({
     id: '/activations',
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/activations': typeof AuthenticatedActivationsRoute
+  '/activity': typeof AuthenticatedActivityRoute
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/companies': typeof AuthenticatedCompaniesRoute
   '/expenses': typeof AuthenticatedExpensesRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/activations': typeof AuthenticatedActivationsRoute
+  '/activity': typeof AuthenticatedActivityRoute
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/companies': typeof AuthenticatedCompaniesRoute
   '/expenses': typeof AuthenticatedExpensesRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/activations': typeof AuthenticatedActivationsRoute
+  '/_authenticated/activity': typeof AuthenticatedActivityRoute
   '/_authenticated/attendance': typeof AuthenticatedAttendanceRoute
   '/_authenticated/companies': typeof AuthenticatedCompaniesRoute
   '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/activations'
+    | '/activity'
     | '/attendance'
     | '/companies'
     | '/expenses'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/activations'
+    | '/activity'
     | '/attendance'
     | '/companies'
     | '/expenses'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/activations'
+    | '/_authenticated/activity'
     | '/_authenticated/attendance'
     | '/_authenticated/companies'
     | '/_authenticated/expenses'
@@ -477,6 +489,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAttendanceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/activity': {
+      id: '/_authenticated/activity'
+      path: '/activity'
+      fullPath: '/activity'
+      preLoaderRoute: typeof AuthenticatedActivityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/activations': {
       id: '/_authenticated/activations'
       path: '/activations'
@@ -517,6 +536,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedActivationsRoute: typeof AuthenticatedActivationsRoute
+  AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
   AuthenticatedAttendanceRoute: typeof AuthenticatedAttendanceRoute
   AuthenticatedCompaniesRoute: typeof AuthenticatedCompaniesRoute
   AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
@@ -542,6 +562,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedActivationsRoute: AuthenticatedActivationsRoute,
+  AuthenticatedActivityRoute: AuthenticatedActivityRoute,
   AuthenticatedAttendanceRoute: AuthenticatedAttendanceRoute,
   AuthenticatedCompaniesRoute: AuthenticatedCompaniesRoute,
   AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
