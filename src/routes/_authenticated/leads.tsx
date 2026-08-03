@@ -119,13 +119,20 @@ function LeadsPage() {
   const rows = useMemo(() => {
     const s = activeRange.start.getTime();
     const e = activeRange.end.getTime();
+    const term = leadSearch.trim().toLowerCase();
     return allRows.filter((r) => {
       const t = new Date(r.entry_date + "T00:00:00").getTime();
       if (t < s || t > e) return false;
       if (sourceFilter.length > 0 && !sourceFilter.includes(r.source_id ?? "")) return false;
+      if (term) {
+        const names = (activationsByEntry.get(r.id) ?? [])
+          .map((a) => (a.lead_name ?? "").toLowerCase())
+          .join(" ");
+        if (!names.includes(term)) return false;
+      }
       return true;
     });
-  }, [allRows, activeRange, sourceFilter]);
+  }, [allRows, activeRange, sourceFilter, leadSearch, activationsByEntry]);
 
   const sel = useRowSelection<any>(rows);
 
