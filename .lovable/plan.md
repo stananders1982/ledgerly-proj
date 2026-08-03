@@ -23,9 +23,8 @@ Today's deposits from **Robert Dix** and **Wayne Hughes** don't have a matching 
 
 ## Technical notes
 
-- `daily_lead_activations.entry_id` and `employee_id` are currently `NOT NULL`, which blocks client records created outside a daily lead entry. Migration makes both nullable and adds a `source` column (`manual` / `auto`) defaulting to `manual`.
+- `daily_lead_activations.entry_id` and `employee_id` are currently `NOT NULL`, which blocks client records created outside a daily lead entry. Migration makes `entry_id` nullable only (schema change, no data migration).
 - Retention agent maps to the existing `employee_id` field, conversion agent to `conversion_employee_id`.
 - Call sites that read activations (leads, activations, performance, reports, employee detail, dashboard) get null-safe handling for a missing `entry_id`.
 - Revenue dialog work is in `src/routes/_authenticated/revenue.tsx`: when `activation_id` is empty, render the new-client fields, validate them, insert the activation, then save the revenue row with the new `activation_id`.
-- Backfill is a one-time SQL block in the same migration, inserting one activation per orphan customer name at their earliest deposit date, then setting `revenue.activation_id` for all of that customer's rows, scoped per company.
 
