@@ -1,91 +1,32 @@
-# Ledgerly improvement roadmap
+## What's wrong with light mode today
 
-Based on the current app (dark SaaS control center, centralized business rules in `src/lib/rules.ts`, Leads/Clients/Revenue/Expenses/Reports/Performance modules), here are the highest-impact improvements grouped by effort and theme.
+Looking at the live screens, light mode is currently the dark theme's palette dropped onto a white page rather than a designed theme:
 
-## Phase 1 — UX polish & productivity (small effort, high feel)
+1. **Glow effects are hardcoded for dark.** The `glow-green` / `glow-red` / `glow-blue` / `glow-purple` / `glow-amber` utilities use fixed dark-mode colors and 55% opacity halos. On white, the KPI cards get fuzzy pink/green clouds bleeding into the page instead of crisp cards.
+2. **Glass surfaces have invisible borders.** `glass-surface` borders use `white 8%`, which disappears on a light background — cards read as floating text blocks with no edge.
+3. **Big numbers are washed out.** Hero KPI values ("$0", "-$110,499", "0.0%") use the dark-tuned chart/success/destructive hues, which are far too light on white. Several fail readable contrast.
+4. **No surface hierarchy.** Page background (`0.985`), card (`1.0`), and sidebar (`0.97`) are nearly identical, and cards have no shadow — everything sits on one flat plane. In dark mode the depth comes from glow; light mode has no replacement.
+5. **Sparklines and muted text** are too faint: chart strokes and `muted-foreground` were picked for a dark canvas.
 
-### 1.1 Global entity search in the command palette
-- Today `⌘K` only searches pages and quick actions.
-- Add live search across **clients**, **employees**, and **affiliates** by name, so a user can jump directly to `/activations?name=James` or `/employees/$id` without browsing.
-- Reuse existing directory RPCs and route deep-link params already supported by `/activations`.
+## Proposed fix
 
-### 1.2 Theme toggle (light / dark / system)
-- The app is currently dark-only. Add a toggle in the sidebar footer or profile menu, persisted to `localStorage`, using the existing CSS variables.
-- This broadens usability for users who prefer light mode or print reports.
+**A. Theme-aware effect utilities (`src/styles.css`)**
+- Rewrite the `glow-*` utilities so light mode gets a soft neutral elevation shadow plus a tinted 1px ring, instead of the wide colored halo. Dark mode keeps the current glow.
+- Make `glass-surface` border and background theme-aware: on light, a real `--border` edge, higher card opacity, subtle top highlight.
+- Tone down `aurora-bg` opacity in light mode so the hero area stays clean.
 
-### 1.3 Keyboard shortcuts help panel
-- Surface the shortcuts users already have (`⌘K`, row clicks) plus add new ones: `n` for "new record" on list pages, `?` to open the shortcuts panel.
-- Keeps power users fast without cluttering the UI.
+**B. Retune light tokens (`:root` in `src/styles.css`)**
+- Darken the semantic accent colors for light mode so numbers are legible: `--primary`, `--success`, `--destructive`, `--warning`, and `--chart-1..5` each get a light-mode-specific lightness/chroma (roughly 0.45–0.55 L instead of 0.6–0.78).
+- Lower `--muted-foreground` slightly for body-text contrast.
+- Add real separation: cool-tinted page background, pure-white cards, slightly deeper sidebar, and a defined `--shadow-card` token used by card surfaces.
 
-### 1.4 Richer empty states
-- Replace text-only empty states on Revenue, Expenses, and Clients with contextual illustrations and a primary CTA.
-- Reduces the "blank page" feeling for new workspaces.
+**C. Card + KPI polish**
+- Apply the new elevation token to `card-surface` / KPI cards so they read as raised panels in light mode.
+- Ensure badge and status-badge tints (CPA badge, savings green, delta chips) use the retuned tokens rather than the dark values.
 
-### 1.5 Sticky bulk-action bar
-- The Clients page already has multi-select. Make the bulk-action bar sticky when scrolling long tables, and extend the pattern to Employees, Revenue, and Expenses.
+**D. Verify**
+- Re-capture Dashboard, Leads, Clients, Reports and Performance in both light and dark mode and compare, so the dark theme is unchanged and light mode is consistent across pages.
 
-## Phase 2 — Data power tools (medium effort, high leverage)
+## Technical notes
 
-### 2.1 Saved filter views
-- Let users save date range + filter combinations (e.g. "This month's STD clients" or "Q3 CPA sources") to `localStorage`, similar to the report presets already in `/reports`.
-- Apply to Leads, Clients, Revenue, and Expenses.
-
-### 2.2 CSV bulk import
-- Add an import wizard for **leads**, **revenue**, and **expenses` with column mapping and validation preview.
-- Useful for migrating from spreadsheets or ad-network CSVs.
-
-### 2.3 Duplicate-client detection
-- When recording revenue or creating an activation, warn if a similar client name already exists (fuzzy match on `nameKey`).
-- Prevents the same person appearing as multiple client records.
-
-### 2.4 Column visibility / density toggle
-- Let users hide columns they don't need and switch between "comfortable" and "compact" table density.
-- Persist preference per page.
-
-### 2.5 Recent items & bookmarks
-- Add a "Recent" section to the command palette or sidebar showing last viewed clients/employees/reports.
-- Optional star/bookmark per client for fast follow-up.
-
-## Phase 3 — Business intelligence (medium effort, deeper insight)
-
-### 3.1 Client lifecycle timeline
-- On the client detail modal, show a visual timeline: lead entry → activation → each deposit → each withdrawal → status changes.
-- Reuses existing `daily_lead_activations`, `revenue`, and `withdrawals` data.
-
-### 3.2 Cash-flow forecast
-- Project the next 90 days by combining recurring expenses (already stored) with trailing-30-day average revenue.
-- Add a new dashboard mini-section or Reports tab showing expected burn/runway.
-
-### 3.3 Employee goals / targets
-- Add monthly FTD and revenue targets per employee.
-- Show progress rings on the Performance page and in the employee detail page.
-- Could be stored on `employees` (target_ftds, target_revenue) or a new `employee_monthly_targets` table.
-
-### 3.4 Affiliate payout statement PDF
-- Generate a monthly PDF statement per affiliate from the existing Payouts report data, ready to send.
-- Builds on the affiliate payout logic already in `/reports`.
-
-## Phase 4 — Operational workflows (larger effort, daily value)
-
-### 4.1 Client tags / labels
-- Add a `tags` array or `client_tags` table linked to activations.
-- Predefined tags: "VIP", "Follow up", "At risk", "No answer".
-- Filter by tags on the Clients page and show tags in the client modal.
-
-### 4.2 Follow-up reminders / task list
-- Allow users to schedule a follow-up date for a client and see a global "Due today" list.
-- Could live as a new `/tasks` page or a dashboard widget.
-
-### 4.3 Client communication log
-- Log calls, WhatsApp, emails per client with timestamp and note.
-- Appears in the client detail modal alongside deposits/withdrawals.
-
-### 4.4 Revenue reconciliation
-- Add a `reconciled_at` / `reconciled_by` flag to revenue rows so finance can mark deposits as verified against the payment processor.
-- Filter "Unreconciled" on the Revenue page.
-
-## Suggested first slice
-
-If you want to pick one phase to start, **Phase 1.1 + 1.2 + 1.3** gives the biggest perceived upgrade for the least work: global search, theme toggle, and keyboard help make the app feel significantly more polished without touching business logic.
-
-Which phase interests you most, or would you like me to implement the first slice?
+All changes stay in `src/styles.css` (tokens + `@utility` blocks) plus any component that hardcodes a dark-mode value. No component logic, no data or backend changes. The `dark` variant already exists via `@custom-variant dark`, so effect utilities can branch with `:root:not(.dark)` / `.dark` selectors inside each `@utility` body — the same token names keep working everywhere they're already used, so no page-by-page rewrite is needed.
