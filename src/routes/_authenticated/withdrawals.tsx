@@ -170,11 +170,12 @@ function WithdrawalsPage() {
       </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total withdrawn" value={fmtMoney(stats.total)} tone="negative" />
-        <StatCard label="This month" value={fmtMoney(stats.monthTotal)} />
+        <StatCard label={activeRange.label} value={fmtMoney(stats.total)} tone="negative" />
+        <StatCard label="All-time withdrawn" value={fmtMoney(stats.allTotal)} />
         <StatCard label="Withdrawals" value={String(stats.count)} />
         <StatCard label="Agent penalties (10%)" value={fmtMoney(stats.penalty)} />
       </section>
+
 
       {stats.byEmp.length > 0 && (
         <div className="card-surface p-5 mb-6">
