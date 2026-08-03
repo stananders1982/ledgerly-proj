@@ -9,6 +9,7 @@ import { ThemeSwitch } from "@/components/theme-switch";
 import { DensityToggle } from "@/components/density-provider";
 import { LiveClock } from "@/components/live-clock";
 import { useAuth } from "@/lib/auth-context";
+import { useWorkspaceBranding } from "@/lib/settings";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,6 +34,7 @@ function ProtectedLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const palette = useCommandPalette();
   const shortcuts = useKeyboardShortcutsPanel();
+  useWorkspaceBranding();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: pathname }, replace: true });

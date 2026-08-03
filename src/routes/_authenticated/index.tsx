@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
 import { useCompanySettings } from "@/lib/settings";
 import { CashflowForecast } from "@/components/cashflow-forecast";
+import { ActivityFeed } from "@/components/activity-feed";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — Ledgerly" }] }),
@@ -493,6 +494,8 @@ function Dashboard() {
         <AIInsights insights={insights} />
 
         <CashflowForecast />
+
+        <ActivityFeed />
 
       </section>
 
