@@ -1,0 +1,1 @@
+ALTER TABLE public.daily_lead_activations ALTER COLUMN entry_id DROP NOT NULL;

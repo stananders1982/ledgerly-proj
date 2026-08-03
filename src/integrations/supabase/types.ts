@@ -641,7 +641,7 @@ export type Database = {
           created_at: string
           custom_fields: Json
           employee_id: string
-          entry_id: string
+          entry_id: string | null
           id: string
           lead_name: string | null
           low_potential_alerted: boolean
@@ -660,7 +660,7 @@ export type Database = {
           created_at?: string
           custom_fields?: Json
           employee_id: string
-          entry_id: string
+          entry_id?: string | null
           id?: string
           lead_name?: string | null
           low_potential_alerted?: boolean
@@ -679,7 +679,7 @@ export type Database = {
           created_at?: string
           custom_fields?: Json
           employee_id?: string
-          entry_id?: string
+          entry_id?: string | null
           id?: string
           lead_name?: string | null
           low_potential_alerted?: boolean
