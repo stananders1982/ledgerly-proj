@@ -146,6 +146,18 @@
   --sidebar-border: oklch(1 0 0 / 6%);
   --sidebar-ring: oklch(0.72 0.18 160);
   --shadow-card: none;
+  --spark-green: oklch(0.78 0.18 160);
+  --spark-green-fill: oklch(0.72 0.18 160 / 0.35);
+  --spark-red: oklch(0.7 0.22 25);
+  --spark-red-fill: oklch(0.65 0.22 25 / 0.35);
+  --spark-blue: oklch(0.75 0.17 250);
+  --spark-blue-fill: oklch(0.7 0.17 250 / 0.35);
+  --spark-purple: oklch(0.76 0.2 320);
+  --spark-purple-fill: oklch(0.7 0.2 320 / 0.35);
+  --spark-amber: oklch(0.82 0.16 75);
+  --spark-amber-fill: oklch(0.78 0.16 75 / 0.35);
+  --spark-neutral: oklch(0.7 0.02 260);
+  --spark-neutral-fill: oklch(0.7 0.02 260 / 0.25);
 }
 
 @layer base {
