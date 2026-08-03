@@ -395,6 +395,8 @@ function RevenueRow({
   affiliateId,
   onEdit,
   onDelete,
+  selected,
+  onToggleSelect,
 }: {
   revenue: any;
   employeeName?: string;
@@ -403,10 +405,15 @@ function RevenueRow({
   affiliateId?: string | null;
   onEdit: () => void;
   onDelete: () => void;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   return (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={onEdit}>
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox checked={!!selected} onCheckedChange={() => onToggleSelect?.()} aria-label="Select record" />
+                    </td>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     <td className="py-3 px-4 text-primary font-medium">{fmtMoney(r.amount)}</td>
