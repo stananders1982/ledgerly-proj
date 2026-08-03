@@ -5,8 +5,10 @@
  * (one row per company) so each workspace can tune them without a code change.
  * Defaults match the previous hardcoded values, so nothing shifts on upgrade.
  */
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { setDisplayCurrency } from "@/lib/format";
 
 export type CompanySettings = {
   /** A client only counts as an FTD once the effective balance clears this. */
@@ -23,6 +25,14 @@ export type CompanySettings = {
   methodFeeCardPct: number;
   /** Deposit-method fee deducted before commission is calculated (crypto). */
   methodFeeCryptoPct: number;
+  /** ISO currency code used across every money figure in the app. */
+  currency: string;
+  /** Month the fiscal year starts on (1 = January). */
+  fiscalYearStartMonth: number;
+  /** Hex accent colour applied to the workspace theme. */
+  brandColor: string | null;
+  /** Optional workspace logo shown in the sidebar. */
+  logoUrl: string | null;
 };
 
 export const DEFAULT_SETTINGS: CompanySettings = {
@@ -33,6 +43,10 @@ export const DEFAULT_SETTINGS: CompanySettings = {
   methodFeeWirePct: 15,
   methodFeeCardPct: 25,
   methodFeeCryptoPct: 0,
+  currency: "USD",
+  fiscalYearStartMonth: 1,
+  brandColor: null,
+  logoUrl: null,
 };
 
 type SettingsRow = {
@@ -43,6 +57,10 @@ type SettingsRow = {
   method_fee_wire_pct: number | string;
   method_fee_card_pct: number | string;
   method_fee_crypto_pct: number | string;
+  currency: string | null;
+  fiscal_year_start_month: number | string | null;
+  brand_color: string | null;
+  logo_url: string | null;
 };
 
 export function fromRow(row?: Partial<SettingsRow> | null): CompanySettings {
@@ -59,6 +77,10 @@ export function fromRow(row?: Partial<SettingsRow> | null): CompanySettings {
     methodFeeWirePct: num(row.method_fee_wire_pct, DEFAULT_SETTINGS.methodFeeWirePct),
     methodFeeCardPct: num(row.method_fee_card_pct, DEFAULT_SETTINGS.methodFeeCardPct),
     methodFeeCryptoPct: num(row.method_fee_crypto_pct, DEFAULT_SETTINGS.methodFeeCryptoPct),
+    currency: (row.currency || DEFAULT_SETTINGS.currency) as string,
+    fiscalYearStartMonth: num(row.fiscal_year_start_month, DEFAULT_SETTINGS.fiscalYearStartMonth),
+    brandColor: row.brand_color ?? null,
+    logoUrl: row.logo_url ?? null,
   };
 }
 
@@ -75,11 +97,38 @@ export function useCompanySettings(): CompanySettings {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("ftd_balance_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct")
+        .select("ftd_balance_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct,currency,fiscal_year_start_month,brand_color,logo_url")
         .maybeSingle();
       if (error) return null;
       return data;
     },
   });
   return fromRow(data as SettingsRow | null);
+}
+
+/**
+ * Applies workspace branding: display currency and accent colour.
+ * Mounted once in the authenticated layout.
+ */
+export function useWorkspaceBranding(): CompanySettings {
+  const settings = useCompanySettings();
+
+  useEffect(() => {
+    setDisplayCurrency(settings.currency);
+  }, [settings.currency]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.brandColor) {
+      root.style.setProperty("--primary", settings.brandColor);
+      root.style.setProperty("--sidebar-primary", settings.brandColor);
+      root.style.setProperty("--ring", settings.brandColor);
+    } else {
+      root.style.removeProperty("--primary");
+      root.style.removeProperty("--sidebar-primary");
+      root.style.removeProperty("--ring");
+    }
+  }, [settings.brandColor]);
+
+  return settings;
 }
