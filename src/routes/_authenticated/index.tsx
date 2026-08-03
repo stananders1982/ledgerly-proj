@@ -45,10 +45,10 @@ export const Route = createFileRoute("/_authenticated/")({
 type Tone = "green" | "red" | "blue" | "purple" | "amber" | "neutral";
 
 const toneStyles: Record<Tone, { glow: string; ring: string; text: string; stroke: string; fill: string }> = {
-  green:   { glow: "glow-green",  ring: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300", text: "text-emerald-700 dark:text-emerald-300", stroke: "var(--spark-green)",  fill: "var(--spark-green-fill)" },
-  red:     { glow: "glow-red",    ring: "bg-rose-500/15 text-rose-700 dark:text-rose-300",          text: "text-rose-700 dark:text-rose-300",       stroke: "var(--spark-red)",    fill: "var(--spark-red-fill)" },
+  green:   { glow: "glow-green",  ring: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-700 dark:text-emerald-300", text: "text-emerald-700 dark:text-emerald-700 dark:text-emerald-300", stroke: "var(--spark-green)",  fill: "var(--spark-green-fill)" },
+  red:     { glow: "glow-red",    ring: "bg-rose-500/15 text-rose-700 dark:text-rose-700 dark:text-rose-300",          text: "text-rose-700 dark:text-rose-700 dark:text-rose-300",       stroke: "var(--spark-red)",    fill: "var(--spark-red-fill)" },
   blue:    { glow: "glow-blue",   ring: "bg-sky-500/15 text-sky-700 dark:text-sky-300",             text: "text-sky-700 dark:text-sky-300",         stroke: "var(--spark-blue)",   fill: "var(--spark-blue-fill)" },
-  purple:  { glow: "glow-purple", ring: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300", text: "text-fuchsia-700 dark:text-fuchsia-300", stroke: "var(--spark-purple)", fill: "var(--spark-purple-fill)" },
+  purple:  { glow: "glow-purple", ring: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-700 dark:text-fuchsia-300", text: "text-fuchsia-700 dark:text-fuchsia-700 dark:text-fuchsia-300", stroke: "var(--spark-purple)", fill: "var(--spark-purple-fill)" },
   amber:   { glow: "glow-amber",  ring: "bg-amber-500/15 text-amber-700 dark:text-amber-300",       text: "text-amber-700 dark:text-amber-300",     stroke: "var(--spark-amber)",  fill: "var(--spark-amber-fill)" },
   neutral: { glow: "",            ring: "bg-foreground/5 text-muted-foreground",                    text: "text-foreground",                        stroke: "var(--spark-neutral)", fill: "var(--spark-neutral-fill)" },
 };
@@ -321,7 +321,7 @@ function Dashboard() {
     <div className="aurora-bg">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-8">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">
+          <div className="inline-flex items-center gap-2 rounded-full bg-foreground/5 border border-border px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             Live control center
           </div>
@@ -560,8 +560,8 @@ function HeroCard({
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium",
               (invertDelta ? delta <= 0 : delta >= 0)
-                ? "bg-emerald-500/15 text-emerald-300"
-                : "bg-rose-500/15 text-rose-300",
+                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                : "bg-rose-500/15 text-rose-700 dark:text-rose-300",
             )}
           >
             {delta >= 0 ? "+" : ""}{delta.toFixed(1)}%
@@ -608,7 +608,7 @@ function Mini({ label, value, tone, data, to }: { label: string; value: string; 
       </div>
     </>
   );
-  const className = "rounded-lg border border-white/5 bg-white/[0.02] p-3 flex items-center gap-3 transition hover:bg-white/[0.04]";
+  const className = "rounded-lg border border-border bg-foreground/[0.02] p-3 flex items-center gap-3 transition hover:bg-foreground/[0.04]";
   return to ? (
     <Link to={to} className={cn(className, "block cursor-pointer")}>{content}</Link>
   ) : (
@@ -619,7 +619,7 @@ function Mini({ label, value, tone, data, to }: { label: string; value: string; 
 function Sparkline({ data, tone, thin }: { data: { v: number }[]; tone: Tone; thin?: boolean }) {
   const t = toneStyles[tone];
   if (!data.length || data.every((d) => !d.v)) {
-    return <div className="h-full w-full rounded bg-gradient-to-t from-white/[0.03] to-transparent" />;
+    return <div className="h-full w-full rounded bg-gradient-to-t from-foreground/[0.03] to-transparent" />;
   }
   const id = `spk-${tone}-${Math.random().toString(36).slice(2, 7)}`;
   return (
@@ -646,7 +646,7 @@ function FunnelStep({ label, value, max, tone }: { label: string; value: number;
         <span className="text-muted-foreground">{label}</span>
         <span className={cn("font-medium tabular-nums", t.text)}>{value}</span>
       </div>
-      <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+      <div className="h-2 rounded-full bg-foreground/5 overflow-hidden">
         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${t.stroke}, ${t.fill})` }} />
       </div>
     </div>
@@ -656,7 +656,7 @@ function FunnelStep({ label, value, max, tone }: { label: string; value: number;
 function Pill({ label, value, tone }: { label: string; value: string; tone: Tone }) {
   const t = toneStyles[tone];
   return (
-    <div className={cn("rounded-md px-3 py-2 border border-white/5", t.ring.replace("text-", "bg-").split(" ")[0])}>
+    <div className={cn("rounded-md px-3 py-2 border border-border", t.ring.replace("text-", "bg-").split(" ")[0])}>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className={cn("font-display text-sm font-semibold mt-0.5", t.text)}>{value}</div>
     </div>
@@ -670,7 +670,7 @@ function ChartHeader({ title, subtitle, icon: Icon }: { title: string; subtitle?
         <h3 className="font-display text-base font-semibold">{title}</h3>
         {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>
-      <div className="h-8 w-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-muted-foreground">
+      <div className="h-8 w-8 rounded-lg bg-foreground/5 border border-border flex items-center justify-center text-muted-foreground">
         <Icon className="h-4 w-4" />
       </div>
     </div>
@@ -680,7 +680,7 @@ function ChartHeader({ title, subtitle, icon: Icon }: { title: string; subtitle?
 function DarkTooltip({ active, payload, label, money }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-white/10 bg-[oklch(0.18_0.018_260)]/95 backdrop-blur px-3 py-2 text-xs shadow-2xl">
+    <div className="rounded-lg border border-border bg-[oklch(0.18_0.018_260)]/95 backdrop-blur px-3 py-2 text-xs shadow-2xl">
       <div className="text-muted-foreground mb-1">{label}</div>
       {payload.map((p: any) => (
         <div key={p.dataKey} className="flex items-center gap-2">
@@ -702,7 +702,7 @@ function EmptyState({ text }: { text: string }) {
 function Row({ label, value, icon: Icon, accent }: { label: string; value: string; icon?: typeof CalendarClock; accent?: Tone }) {
   const t = accent ? toneStyles[accent] : null;
   return (
-    <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+    <div className="rounded-lg border border-border bg-foreground/[0.02] p-3">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
         {Icon && <Icon className="h-3 w-3" />}{label}
       </div>
@@ -791,7 +791,7 @@ function AIInsights({ insights }: { insights: LocalInsight[] }) {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-display text-base font-semibold flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-fuchsia-300" /> AI insights
+            <Sparkles className="h-4 w-4 text-fuchsia-700 dark:text-fuchsia-300" /> AI insights
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">Generated from your live data</p>
         </div>
@@ -801,7 +801,7 @@ function AIInsights({ insights }: { insights: LocalInsight[] }) {
           const t = toneStyles[i.tone];
           const Icon = i.icon;
           return (
-            <li key={i.id} className="group flex gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3 transition hover:bg-white/[0.05] hover:-translate-y-0.5">
+            <li key={i.id} className="group flex gap-3 rounded-lg border border-border bg-foreground/[0.02] p-3 transition hover:bg-foreground/[0.05] hover:-translate-y-0.5">
               <div className={cn("h-8 w-8 rounded-lg shrink-0 flex items-center justify-center", t.ring)}>
                 <Icon className="h-4 w-4" />
               </div>
