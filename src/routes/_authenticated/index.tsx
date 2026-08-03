@@ -45,10 +45,10 @@ export const Route = createFileRoute("/_authenticated/")({
 type Tone = "green" | "red" | "blue" | "purple" | "amber" | "neutral";
 
 const toneStyles: Record<Tone, { glow: string; ring: string; text: string; stroke: string; fill: string }> = {
-  green:   { glow: "glow-green",  ring: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-700 dark:text-emerald-300", text: "text-emerald-700 dark:text-emerald-700 dark:text-emerald-300", stroke: "var(--spark-green)",  fill: "var(--spark-green-fill)" },
-  red:     { glow: "glow-red",    ring: "bg-rose-500/15 text-rose-700 dark:text-rose-700 dark:text-rose-300",          text: "text-rose-700 dark:text-rose-700 dark:text-rose-300",       stroke: "var(--spark-red)",    fill: "var(--spark-red-fill)" },
+  green:   { glow: "glow-green",  ring: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300", text: "text-emerald-700 dark:text-emerald-300", stroke: "var(--spark-green)",  fill: "var(--spark-green-fill)" },
+  red:     { glow: "glow-red",    ring: "bg-rose-500/15 text-rose-700 dark:text-rose-300",          text: "text-rose-700 dark:text-rose-300",       stroke: "var(--spark-red)",    fill: "var(--spark-red-fill)" },
   blue:    { glow: "glow-blue",   ring: "bg-sky-500/15 text-sky-700 dark:text-sky-300",             text: "text-sky-700 dark:text-sky-300",         stroke: "var(--spark-blue)",   fill: "var(--spark-blue-fill)" },
-  purple:  { glow: "glow-purple", ring: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-700 dark:text-fuchsia-300", text: "text-fuchsia-700 dark:text-fuchsia-700 dark:text-fuchsia-300", stroke: "var(--spark-purple)", fill: "var(--spark-purple-fill)" },
+  purple:  { glow: "glow-purple", ring: "bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300", text: "text-fuchsia-700 dark:text-fuchsia-300", stroke: "var(--spark-purple)", fill: "var(--spark-purple-fill)" },
   amber:   { glow: "glow-amber",  ring: "bg-amber-500/15 text-amber-700 dark:text-amber-300",       text: "text-amber-700 dark:text-amber-300",     stroke: "var(--spark-amber)",  fill: "var(--spark-amber-fill)" },
   neutral: { glow: "",            ring: "bg-foreground/5 text-muted-foreground",                    text: "text-foreground",                        stroke: "var(--spark-neutral)", fill: "var(--spark-neutral-fill)" },
 };
