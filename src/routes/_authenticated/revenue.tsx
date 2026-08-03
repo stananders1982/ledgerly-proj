@@ -36,6 +36,7 @@ import { AttachmentsPanel } from "@/components/attachments-panel";
 import { useRowSelection } from "@/lib/row-selection";
 import { BulkBar } from "@/components/bulk-bar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useCompanySettings } from "@/lib/settings";
 
 export const Route = createFileRoute("/_authenticated/revenue")({
   head: () => ({ meta: [{ title: "Revenue — Ledgerly" }] }),
