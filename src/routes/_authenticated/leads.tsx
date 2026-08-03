@@ -31,6 +31,8 @@ import { CsvImportDialog } from "@/components/csv-import";
 
 
 
+import { useQuickCreate } from "@/lib/quick-create";
+
 export const Route = createFileRoute("/_authenticated/leads")({
   head: () => ({ meta: [{ title: "Leads — Ledgerly" }] }),
   component: LeadsPage,
@@ -54,6 +56,7 @@ type Split = { id?: string; employee_id: string; conversion_employee_id?: string
 function LeadsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  useQuickCreate("leads", () => setOpen(true));
   const [editing, setEditing] = useState<Entry | null>(null);
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState<string>("");

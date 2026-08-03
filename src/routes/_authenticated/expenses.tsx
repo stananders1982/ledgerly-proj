@@ -28,6 +28,8 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 
+import { useQuickCreate } from "@/lib/quick-create";
+
 export const Route = createFileRoute("/_authenticated/expenses")({
   head: () => ({ meta: [{ title: "Expenses — Ledgerly" }] }),
   component: ExpensesPage,
@@ -36,6 +38,7 @@ export const Route = createFileRoute("/_authenticated/expenses")({
 function ExpensesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  useQuickCreate("expenses", () => setOpen(true));
   const [editing, setEditing] = useState<any | null>(null);
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");
