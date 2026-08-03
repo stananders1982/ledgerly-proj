@@ -16,6 +16,8 @@ import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AttendanceWeekGrid } from "@/components/attendance-week-grid";
 
 export const Route = createFileRoute("/_authenticated/attendance")({
   head: () => ({ meta: [{ title: "Attendance — Ledgerly" }] }),
@@ -139,6 +141,17 @@ function AttendancePage() {
         description="Mark daily presence. Absences are deducted from monthly salary based on working days (Mon–Fri)."
       />
 
+      <Tabs defaultValue="day" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="day">Daily</TabsTrigger>
+          <TabsTrigger value="week">Weekly grid</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="week">
+          <AttendanceWeekGrid employees={employees.map((e) => ({ id: e.id, name: e.name }))} />
+        </TabsContent>
+
+        <TabsContent value="day" className="space-y-6">
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Date</CardTitle></CardHeader>
@@ -255,6 +268,8 @@ function AttendancePage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
