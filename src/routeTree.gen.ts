@@ -27,6 +27,7 @@ import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/l
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
+import { Route as AuthenticatedDataQualityRouteImport } from './routes/_authenticated/data-quality'
 import { Route as AuthenticatedCompaniesRouteImport } from './routes/_authenticated/companies'
 import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authenticated/attendance'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
@@ -127,6 +128,12 @@ const AuthenticatedExpensesRoute = AuthenticatedExpensesRouteImport.update({
   path: '/expenses',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDataQualityRoute =
+  AuthenticatedDataQualityRouteImport.update({
+    id: '/data-quality',
+    path: '/data-quality',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCompaniesRoute = AuthenticatedCompaniesRouteImport.update({
   id: '/companies',
   path: '/companies',
@@ -181,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/activity': typeof AuthenticatedActivityRoute
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/companies': typeof AuthenticatedCompaniesRoute
+  '/data-quality': typeof AuthenticatedDataQualityRoute
   '/expenses': typeof AuthenticatedExpensesRoute
   '/import': typeof AuthenticatedImportRoute
   '/leads': typeof AuthenticatedLeadsRoute
@@ -207,6 +215,7 @@ export interface FileRoutesByTo {
   '/activity': typeof AuthenticatedActivityRoute
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/companies': typeof AuthenticatedCompaniesRoute
+  '/data-quality': typeof AuthenticatedDataQualityRoute
   '/expenses': typeof AuthenticatedExpensesRoute
   '/import': typeof AuthenticatedImportRoute
   '/leads': typeof AuthenticatedLeadsRoute
@@ -236,6 +245,7 @@ export interface FileRoutesById {
   '/_authenticated/activity': typeof AuthenticatedActivityRoute
   '/_authenticated/attendance': typeof AuthenticatedAttendanceRoute
   '/_authenticated/companies': typeof AuthenticatedCompaniesRoute
+  '/_authenticated/data-quality': typeof AuthenticatedDataQualityRoute
   '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
   '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/leads': typeof AuthenticatedLeadsRoute
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/attendance'
     | '/companies'
+    | '/data-quality'
     | '/expenses'
     | '/import'
     | '/leads'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/attendance'
     | '/companies'
+    | '/data-quality'
     | '/expenses'
     | '/import'
     | '/leads'
@@ -320,6 +332,7 @@ export interface FileRouteTypes {
     | '/_authenticated/activity'
     | '/_authenticated/attendance'
     | '/_authenticated/companies'
+    | '/_authenticated/data-quality'
     | '/_authenticated/expenses'
     | '/_authenticated/import'
     | '/_authenticated/leads'
@@ -475,6 +488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedExpensesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/data-quality': {
+      id: '/_authenticated/data-quality'
+      path: '/data-quality'
+      fullPath: '/data-quality'
+      preLoaderRoute: typeof AuthenticatedDataQualityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/companies': {
       id: '/_authenticated/companies'
       path: '/companies'
@@ -539,6 +559,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
   AuthenticatedAttendanceRoute: typeof AuthenticatedAttendanceRoute
   AuthenticatedCompaniesRoute: typeof AuthenticatedCompaniesRoute
+  AuthenticatedDataQualityRoute: typeof AuthenticatedDataQualityRoute
   AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
@@ -565,6 +586,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedActivityRoute: AuthenticatedActivityRoute,
   AuthenticatedAttendanceRoute: AuthenticatedAttendanceRoute,
   AuthenticatedCompaniesRoute: AuthenticatedCompaniesRoute,
+  AuthenticatedDataQualityRoute: AuthenticatedDataQualityRoute,
   AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
