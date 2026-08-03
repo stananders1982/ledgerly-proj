@@ -1,7 +1,16 @@
+let displayCurrency = "USD";
+
+/** Set the workspace display currency (called once company settings load). */
+export const setDisplayCurrency = (code: string) => {
+  displayCurrency = code || "USD";
+};
+
+export const getDisplayCurrency = () => displayCurrency;
+
 export const fmtMoney = (n: number | null | undefined) =>
   (Number(n) || 0).toLocaleString("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: displayCurrency,
     maximumFractionDigits: 0,
   });
 
