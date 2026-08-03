@@ -552,7 +552,7 @@ function RevenueDialog({
     }));
   };
   return (
-    <DialogContent>
+    <DialogContent className="max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{rev?.id ? "Edit revenue" : "Record revenue"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
         <Field label="Pick from activated leads (optional)">
