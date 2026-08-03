@@ -1,32 +1,75 @@
-## What's wrong with light mode today
+# Implementation Plan — Items 1–11
 
-Looking at the live screens, light mode is currently the dark theme's palette dropped onto a white page rather than a designed theme:
+Eleven improvements across daily speed, data trust, and team collaboration. Grouped into four batches so each lands working before the next starts.
 
-1. **Glow effects are hardcoded for dark.** The `glow-green` / `glow-red` / `glow-blue` / `glow-purple` / `glow-amber` utilities use fixed dark-mode colors and 55% opacity halos. On white, the KPI cards get fuzzy pink/green clouds bleeding into the page instead of crisp cards.
-2. **Glass surfaces have invisible borders.** `glass-surface` borders use `white 8%`, which disappears on a light background — cards read as floating text blocks with no edge.
-3. **Big numbers are washed out.** Hero KPI values ("$0", "-$110,499", "0.0%") use the dark-tuned chart/success/destructive hues, which are far too light on white. Several fail readable contrast.
-4. **No surface hierarchy.** Page background (`0.985`), card (`1.0`), and sidebar (`0.97`) are nearly identical, and cards have no shadow — everything sits on one flat plane. In dark mode the depth comes from glow; light mode has no replacement.
-5. **Sparklines and muted text** are too faint: chart strokes and `muted-foreground` were picked for a dark canvas.
+## Batch A — Daily Speed (items 1, 2, 3)
 
-## Proposed fix
+**1. Global Quick-Create Speed Dial**
+- Floating action button, bottom-right on every authenticated page, plus a `C` keyboard shortcut.
+- Options: Income, Expense, Lead entry, Client activation, Withdrawal, Attendance, Task.
+- Options are filtered by the user's existing nav permissions, so a non-admin only sees what they can access.
+- Each option opens the relevant page with its create dialog already open (via a `?new=1` URL param the pages read).
 
-**A. Theme-aware effect utilities (`src/styles.css`)**
-- Rewrite the `glow-*` utilities so light mode gets a soft neutral elevation shadow plus a tinted 1px ring, instead of the wide colored halo. Dark mode keeps the current glow.
-- Make `glass-surface` border and background theme-aware: on light, a real `--border` edge, higher card opacity, subtle top highlight.
-- Tone down `aurora-bg` opacity in light mode so the hero area stays clean.
+**2. Mobile Card Views**
+- `DataCardList` already exists and is used on 9 pages. Missing on: Leads, Expenses table body on small screens, Sources, Recurring, Reports tables.
+- Add responsive card rendering to Leads, Sources, and Recurring; verify and tighten the existing card layouts elsewhere so no table forces horizontal scroll on phones.
 
-**B. Retune light tokens (`:root` in `src/styles.css`)**
-- Darken the semantic accent colors for light mode so numbers are legible: `--primary`, `--success`, `--destructive`, `--warning`, and `--chart-1..5` each get a light-mode-specific lightness/chroma (roughly 0.45–0.55 L instead of 0.6–0.78).
-- Lower `--muted-foreground` slightly for body-text contrast.
-- Add real separation: cool-tinted page background, pure-white cards, slightly deeper sidebar, and a defined `--shadow-card` token used by card surfaces.
+**3. Bulk Actions on Revenue and Leads**
+- Reuse the selection pattern already built on Expenses and Clients.
+- Revenue: select rows → bulk delete, bulk reassign agent/affiliate, export selection, running total in the floating bar.
+- Leads: select rows → bulk delete, bulk change source, export selection.
 
-**C. Card + KPI polish**
-- Apply the new elevation token to `card-surface` / KPI cards so they read as raised panels in light mode.
-- Ensure badge and status-badge tints (CPA badge, savings green, delta chips) use the retuned tokens rather than the dark values.
+## Batch B — Records & Files (items 4, 7)
 
-**D. Verify**
-- Re-capture Dashboard, Leads, Clients, Reports and Performance in both light and dark mode and compare, so the dark theme is unchanged and light mode is consistent across pages.
+**4. Comment Threads on Records**
+- New `record_comments` table: entity type, entity id, body, author, timestamps, workspace scoped.
+- A reusable `CommentThread` panel added to Client detail, Revenue edit, Expense edit, and Employee detail.
+- Shows author, relative time, edit/delete for own comments (admins can delete any).
 
-## Technical notes
+**7. Document Attachments**
+- New private storage bucket plus an `attachments` table: entity type, entity id, file path, filename, size, uploader.
+- Upload/preview/delete widget added to Revenue, Expenses, Employees, and Clients.
+- Files are workspace scoped; download uses short-lived signed links so nothing is publicly reachable.
 
-All changes stay in `src/styles.css` (tokens + `@utility` blocks) plus any component that hardcodes a dark-mode value. No component logic, no data or backend changes. The `dark` variant already exists via `@custom-variant dark`, so effect utilities can branch with `:root:not(.dark)` / `.dark` selectors inside each `@utility` body — the same token names keep working everywhere they're already used, so no page-by-page rewrite is needed.
+## Batch C — Data Trust & Recurring Income (items 5, 6, 8)
+
+**5. Data Quality Dashboard**
+- New card on the Dashboard plus a `/data-quality` page.
+- Checks: leads missing a source, revenue missing payment method, clients missing potential, clients missing a name, employees missing a team, employees missing salary, duplicate client names/phones, activations with no revenue.
+- Each row shows a count and links directly to the filtered list so the issue can be fixed in place.
+
+**6. Recurring Revenue**
+- New `recurring_revenue` table mirroring `recurring_expenses`: amount, frequency, start/end date, next due date, agent, affiliate, method, notes.
+- A "Recurring Income" section on the Recurring page (tabbed alongside recurring expenses).
+- Auto-generation reuses the existing due-generation approach, so due entries appear in Income automatically.
+- Feeds the Dashboard cashflow forecast on the inflow side.
+
+**8. Custom Fields**
+- New `custom_field_defs` table: module, label, key, type (text/number/date/select), options, sort order, active.
+- Values stored in a `custom_fields` JSONB column on Leads, Employees, Clients, and Revenue.
+- Admin UI in Settings to define fields; forms render them automatically; values appear in table columns and CSV/Excel exports.
+
+## Batch D — Team & Permissions (items 9, 10, 11)
+
+**9. @Mentions and Record-Linked Tasks**
+- Typing `@` in a comment opens an employee picker; mentioning someone creates a notification (the `notifications` table already exists) and highlights the mention.
+- Tasks gain optional links to a Revenue record or Lead entry in addition to the existing client/agent links.
+- Due-date reminders: tasks due today or overdue generate a notification for the assignee on first load of the day.
+
+**10. Action Permissions**
+- Extend permissions beyond navigation with a second matrix per user: can delete records, can export data, can view/edit salaries, can approve withdrawals, can edit company settings.
+- New `action_permissions` table; a `useCan(action)` hook gates buttons in the UI, with matching database rules so it is enforced server-side too, not just hidden.
+- Admins keep full access; the matrix appears in User Management next to the existing nav toggles.
+
+**11. Attendance Weekly Calendar**
+- Replace the single-day view with a week grid: employees down the left, Mon–Fri across the top, click a cell to toggle present/absent.
+- Keeps the existing day view as a toggle option.
+- Right-hand summary shows, per employee, days absent this month and the running salary deduction, updating live as cells are toggled.
+
+## Technical Notes
+
+- Database work: 5 new tables (`record_comments`, `attachments`, `recurring_revenue`, `custom_field_defs`, `action_permissions`), one new storage bucket, one new JSONB column on four existing tables, and one new task-link column set. All workspace scoped with access rules matching the current model, and all covered by the existing audit-log triggers.
+- No changes to existing commission, STD/FTD, or split-clock logic.
+- Each batch will be verified against the running preview before moving to the next.
+
+I will work through batches A → D in order.
