@@ -589,6 +589,50 @@ function RevenueDialog({
           <Field label="Customer name"><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></Field>
         )}
 
+        {needsNewClient && (
+          <div className="rounded-lg border border-dashed border-border bg-muted/20 p-3 grid gap-3">
+            <div>
+              <p className="text-sm font-medium">New client</p>
+              <p className="text-xs text-muted-foreground">
+                No client record matches this name — fill these in and one will be created.
+              </p>
+            </div>
+            <Field label="Date of activation">
+              <Input
+                type="date"
+                value={newClient.activation_date}
+                onChange={(e) => setNewClient({ ...newClient, activation_date: e.target.value })}
+              />
+            </Field>
+            <Field label="Conversion agent (Team C)">
+              <Select
+                value={newClient.conversion_employee_id}
+                onValueChange={(v) => setNewClient({ ...newClient, conversion_employee_id: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Pick agent" /></SelectTrigger>
+                <SelectContent>
+                  {employees
+                    .filter((e: any) => (e.team ?? "C") === "C")
+                    .map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Retention agent (Team R)">
+              <Select
+                value={newClient.employee_id}
+                onValueChange={(v) => setNewClient({ ...newClient, employee_id: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Pick agent" /></SelectTrigger>
+                <SelectContent>
+                  {employees
+                    .filter((e: any) => (e.team ?? "R") === "R")
+                    .map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+        )}
+
         <div className={detailsHidden ? "" : "grid grid-cols-2 gap-3"}>
           <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
           {!detailsHidden && (
