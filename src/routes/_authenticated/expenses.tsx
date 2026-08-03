@@ -26,6 +26,7 @@ import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/_authenticated/expenses")({
   head: () => ({ meta: [{ title: "Expenses — Ledgerly" }] }),
@@ -115,6 +116,50 @@ function ExpensesPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["expenses-list"] }); toast.success("Deleted"); },
   });
 
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const selectedTotal = filtered
+    .filter((e: any) => selected.has(e.id))
+    .reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+
+  const bulkDelete = useMutation({
+    mutationFn: async () => {
+      const ids = [...selected];
+      if (!ids.length) return 0;
+      const { error } = await supabase.from("expenses").delete().in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["expenses-list"] });
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      setSelected(new Set());
+      if (count) toast.success(`Deleted ${count} expense${count === 1 ? "" : "s"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkCategory = useMutation({
+    mutationFn: async (categoryId: string) => {
+      const ids = [...selected];
+      if (!ids.length) return 0;
+      const { error } = await supabase.from("expenses").update({ category_id: categoryId }).in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["expenses-list"] });
+      setSelected(new Set());
+      if (count) toast.success(`Recategorized ${count} expense${count === 1 ? "" : "s"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const handleExport = (type: "csv" | "xlsx" | "pdf") => {
     const rows = filtered.map((e: any) => ({ Date: e.date, Category: e.expense_categories?.name ?? "", Affiliate: e.affiliates?.name ?? "", Amount: e.amount, Notes: e.notes ?? "" }));
     if (!rows.length) return toast.error("Nothing to export");
@@ -172,6 +217,36 @@ function ExpensesPage() {
         ))}
       </div>
 
+      {selected.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-2.5 text-sm">
+          <span className="font-medium">{selected.size} selected</span>
+          <span className="text-muted-foreground">{fmtMoney(selectedTotal)}</span>
+          <div className="flex-1" />
+          <Select onValueChange={(v) => bulkCategory.mutate(v)}>
+            <SelectTrigger className="h-8 w-[170px]"><SelectValue placeholder="Set category" /></SelectTrigger>
+            <SelectContent>
+              {(catQ.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              exportCSV(
+                filtered
+                  .filter((e: any) => selected.has(e.id))
+                  .map((e: any) => ({ Date: e.date, Category: e.expense_categories?.name ?? "", Amount: e.amount, Notes: e.notes ?? "" })),
+                "expenses-selection",
+              )
+            }
+          >
+            Export selection
+          </Button>
+          <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${selected.size} selected expense(s)?`} />
+          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
+        </div>
+      )}
+
       <div className="card-surface overflow-hidden">
         {expQ.isLoading ? <TableSkeleton cols={6} />
         : (expQ.data?.length ?? 0) === 0 ? (
@@ -199,6 +274,19 @@ function ExpensesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-3 px-4 w-10">
+                    <Checkbox
+                      checked={pageItems.length > 0 && pageItems.every((e: any) => selected.has(e.id))}
+                      onCheckedChange={(c) =>
+                        setSelected((prev) => {
+                          const next = new Set(prev);
+                          pageItems.forEach((e: any) => (c ? next.add(e.id) : next.delete(e.id)));
+                          return next;
+                        })
+                      }
+                      aria-label="Select all on page"
+                    />
+                  </th>
                   <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Category" k="category" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />
@@ -211,6 +299,9 @@ function ExpensesPage() {
                 {pageItems.map((e: any) => (
                   <tr key={e.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
+                    <td className="py-3 px-4" onClick={(ev) => ev.stopPropagation()}>
+                      <Checkbox checked={selected.has(e.id)} onCheckedChange={() => toggleSelected(e.id)} aria-label="Select expense" />
+                    </td>
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>
                     <td className="py-3 px-4"><Badge variant="outline">{e.expense_categories?.name ?? "—"}</Badge></td>
                     <td className="py-3 px-4 text-muted-foreground">{e.affiliates?.name ?? "—"}</td>
