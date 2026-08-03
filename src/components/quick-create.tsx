@@ -98,7 +98,7 @@ export function QuickCreate() {
           onClick={() => setOpen((v) => !v)}
           title="Quick create (C)"
           aria-label="Quick create"
-          className="h-13 w-13 h-12 w-12 rounded-full shadow-xl"
+          className="h-12 w-12 rounded-full shadow-xl"
         >
           {open ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
         </Button>
