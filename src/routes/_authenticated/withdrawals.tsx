@@ -83,12 +83,20 @@ function WithdrawalsPage() {
   );
   const getEmpName = (r: any) => r.employees?.name ?? (r.employee_id ? empNameById.get(r.employee_id) : undefined) ?? "—";
 
+  const inRange = useMemo(() => {
+    const s = activeRange.start.getTime();
+    const e = activeRange.end.getTime();
+    return (wQ.data ?? []).filter((r: any) => {
+      const t = new Date(r.date).getTime();
+      return t >= s && t <= e;
+    });
+  }, [wQ.data, activeRange]);
+
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const list = wQ.data ?? [];
-    if (!term) return list;
-    return list.filter((r: any) => (r.customer_name ?? "").toLowerCase().includes(term));
-  }, [wQ.data, search]);
+    if (!term) return inRange;
+    return inRange.filter((r: any) => (r.customer_name ?? "").toLowerCase().includes(term));
+  }, [inRange, search]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => r.date,
@@ -102,11 +110,11 @@ function WithdrawalsPage() {
   const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const stats = useMemo(() => {
-    const list = wQ.data ?? [];
+    const list = inRange;
     const total = list.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const month = new Date().toISOString().slice(0, 7);
-    const monthTotal = list.filter((r: any) => r.date?.startsWith(month)).reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const allTotal = (wQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount), 0);
     const penalty = list.reduce((s: number, r: any) => s + Number(r.employee_penalty), 0);
+
     const byEmp = new Map<string, number>();
     list.forEach((r: any) => {
       const totalPenalty = Number(r.employee_penalty) || 0;
