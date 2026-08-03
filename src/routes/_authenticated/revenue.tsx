@@ -68,10 +68,10 @@ function RevenuePage() {
     },
   });
   const empQ = useQuery({ queryKey: ["employees-dir-any"], queryFn: async () => {
-    const admin = await supabase.from("employees").select("id,name,active").order("name");
+    const admin = await supabase.from("employees").select("id,name,active,team").order("name");
     if (!admin.error && (admin.data?.length ?? 0) > 0) return admin.data ?? [];
     const rpc = await supabase.rpc("list_employees_directory");
-    return (rpc.data ?? []) as Array<{ id: string; name: string; active: boolean }>;
+    return (rpc.data ?? []) as Array<{ id: string; name: string; active: boolean; team?: string | null }>;
   }});
   const affQ = useQuery({ queryKey: ["affiliates-dir-any"], queryFn: async () => {
     const admin = await supabase.from("affiliates").select("id,name,active").eq("active", true).order("name");
