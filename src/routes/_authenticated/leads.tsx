@@ -567,6 +567,53 @@ function LeadsPage() {
         </div>
       </div>
 
+      {leadSearch.trim() && (
+        <div className="card-surface p-4 mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Matching leads</h3>
+            <span className="text-xs text-muted-foreground">
+              {matchingLeads.length} found · all time
+            </span>
+          </div>
+          {matchingLeads.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No lead matches “{leadSearch}”.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="py-2 pr-4">Lead</th>
+                    <th className="py-2 pr-4">Activated</th>
+                    <th className="py-2 pr-4">Conversion</th>
+                    <th className="py-2 pr-4">Retention</th>
+                    <th className="py-2 pr-4">Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matchingLeads.map((l) => (
+                    <tr
+                      key={l.id}
+                      className="cursor-pointer border-t border-border/60 hover:bg-accent/50"
+                      onClick={() =>
+                        navigate({ to: "/activations", search: { name: l.name, client: undefined } })
+                      }
+                    >
+                      <td className="py-2 pr-4 font-medium">{l.name}</td>
+                      <td className="py-2 pr-4">{fmtDate(l.date)}</td>
+                      <td className="py-2 pr-4">{l.conversion}</td>
+                      <td className="py-2 pr-4">{l.retention}</td>
+                      <td className="py-2 pr-4">{l.source}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+
+
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Received" value={String(stats.received)} />
         <StatCard label="Activated (FTD)" value={String(activatedInRange)} tone="positive" hint="Counted by activation date" />
