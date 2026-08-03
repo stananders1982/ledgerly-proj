@@ -155,6 +155,35 @@ function RevenuePage() {
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
+      let activationId: string | null = v.activation_id || null;
+
+      // No client picked → create the client record from the details typed in
+      // the dialog, so every deposit belongs to a client (and STDs can be seen).
+      if (!activationId && v.new_client) {
+        const name = String(v.customer_name ?? "").trim();
+        const key = name.toLowerCase();
+        const existing = (activationsQ.data ?? []).find(
+          (a: any) => (a.lead_name ?? "").trim().toLowerCase() === key,
+        );
+        if (existing) {
+          activationId = existing.id;
+        } else {
+          const { data, error } = await supabase
+            .from("daily_lead_activations")
+            .insert({
+              lead_name: name,
+              activation_date: v.new_client.activation_date,
+              conversion_employee_id: v.new_client.conversion_employee_id || null,
+              employee_id: v.new_client.employee_id,
+              balance: settings.defaultActivationBalance,
+            })
+            .select("id")
+            .single();
+          if (error) throw error;
+          activationId = data.id;
+        }
+      }
+
       const payload = {
         customer_name: v.customer_name,
         amount: Number(v.amount) || 0,
@@ -167,7 +196,7 @@ function RevenuePage() {
         method: v.method || null,
         method_provider: v.method_provider || null,
         // Direct link to the client record, so renaming a client keeps history intact.
-        activation_id: v.activation_id || null,
+        activation_id: activationId,
       };
       const { error } = v.id
         ? await supabase.from("revenue").update(payload).eq("id", v.id)
