@@ -128,8 +128,8 @@ function WithdrawalsPage() {
         byEmp.set(n, (byEmp.get(n) ?? 0) + totalPenalty * (1 - pct));
       }
     });
-    return { total, monthTotal, count: list.length, penalty, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [wQ.data, empNameById]);
+    return { total, allTotal, count: list.length, penalty, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]) };
+  }, [inRange, wQ.data, empNameById]);
 
 
   const upsert = useMutation({
