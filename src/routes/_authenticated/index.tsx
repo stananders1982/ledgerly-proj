@@ -680,7 +680,7 @@ function ChartHeader({ title, subtitle, icon: Icon }: { title: string; subtitle?
 function DarkTooltip({ active, payload, label, money }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-border bg-[oklch(0.18_0.018_260)]/95 backdrop-blur px-3 py-2 text-xs shadow-2xl">
+    <div className="rounded-lg border border-border bg-popover/95 text-popover-foreground backdrop-blur px-3 py-2 text-xs shadow-2xl">
       <div className="text-muted-foreground mb-1">{label}</div>
       {payload.map((p: any) => (
         <div key={p.dataKey} className="flex items-center gap-2">
