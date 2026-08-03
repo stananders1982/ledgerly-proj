@@ -709,7 +709,20 @@ function RevenueDialog({
         </div>
       )}
 
-      <DialogFooter><Button onClick={() => onSubmit(form)} disabled={loading || !form.customer_name || !form.amount}>Save</Button></DialogFooter>
+      <DialogFooter>
+        <Button
+          onClick={() =>
+            onSubmit({
+              ...form,
+              activation_id: form.activation_id || nameMatch?.id || "",
+              new_client: needsNewClient ? newClient : null,
+            })
+          }
+          disabled={loading || !form.customer_name || !form.amount || !newClientValid}
+        >
+          Save
+        </Button>
+      </DialogFooter>
     </DialogContent>
   );
 }
