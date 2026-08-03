@@ -91,7 +91,20 @@
   --shadow-card:
     0 1px 2px oklch(0.25 0.03 260 / 6%),
     0 6px 20px -12px oklch(0.25 0.03 260 / 18%);
+  --spark-green: oklch(0.55 0.16 160);
+  --spark-green-fill: oklch(0.55 0.16 160 / 0.18);
+  --spark-red: oklch(0.55 0.2 25);
+  --spark-red-fill: oklch(0.55 0.2 25 / 0.16);
+  --spark-blue: oklch(0.55 0.17 255);
+  --spark-blue-fill: oklch(0.55 0.17 255 / 0.16);
+  --spark-purple: oklch(0.53 0.19 320);
+  --spark-purple-fill: oklch(0.53 0.19 320 / 0.16);
+  --spark-amber: oklch(0.6 0.14 70);
+  --spark-amber-fill: oklch(0.6 0.14 70 / 0.16);
+  --spark-neutral: oklch(0.5 0.02 260);
+  --spark-neutral-fill: oklch(0.5 0.02 260 / 0.14);
 }
+
 
 
 .dark {
