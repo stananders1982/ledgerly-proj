@@ -280,7 +280,9 @@
     filter: blur(40px);
     opacity: .55;
     pointer-events: none;
-
+  }
+  :root:not(.dark) &::before {
+    opacity: .3;
   }
 }
 
