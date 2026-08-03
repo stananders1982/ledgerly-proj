@@ -528,8 +528,8 @@ function RevenueDialog({
   const nameMatch = activations.find(
     (a: any) => (a.lead_name ?? "").trim().toLowerCase() === typedName && typedName,
   );
-  // Only for brand-new deposits: existing rows keep their current linkage.
-  const needsNewClient = !rev?.id && !activationId && !nameMatch;
+  // New or existing deposit: if nothing links it to a client, collect the details.
+  const needsNewClient = !activationId && !nameMatch;
   const newClientValid =
     !needsNewClient ||
     (!!form.customer_name.trim() && !!newClient.activation_date && !!newClient.conversion_employee_id && !!newClient.employee_id);
