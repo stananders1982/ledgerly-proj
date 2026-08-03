@@ -163,6 +163,7 @@
   );
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 @utility glow-primary {
@@ -183,12 +184,27 @@
   border-radius: var(--radius-lg);
   backdrop-filter: blur(18px) saturate(140%);
   transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+
+  :root:not(.dark) & {
+    background: linear-gradient(
+      180deg,
+      var(--card) 0%,
+      color-mix(in oklab, var(--card) 94%, var(--background)) 100%
+    );
+    border-color: var(--border);
+  }
 }
 
 @utility glass-hover {
   &:hover {
     transform: translateY(-3px);
     border-color: color-mix(in oklab, white 16%, transparent);
+  }
+  :root:not(.dark) &:hover {
+    border-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+    box-shadow:
+      0 2px 4px oklch(0.25 0.03 260 / 6%),
+      0 16px 36px -16px oklch(0.25 0.03 260 / 26%);
   }
 }
 
@@ -197,30 +213,55 @@
     inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
     0 0 0 1px color-mix(in oklab, oklch(0.72 0.18 160) 22%, transparent),
     0 18px 60px -20px color-mix(in oklab, oklch(0.72 0.18 160) 55%, transparent);
+  :root:not(.dark) & {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, oklch(0.52 0.15 160) 22%, transparent),
+      var(--shadow-card);
+  }
 }
 @utility glow-red {
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
     0 0 0 1px color-mix(in oklab, oklch(0.65 0.22 25) 22%, transparent),
     0 18px 60px -20px color-mix(in oklab, oklch(0.65 0.22 25) 55%, transparent);
+  :root:not(.dark) & {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, oklch(0.53 0.2 25) 22%, transparent),
+      var(--shadow-card);
+  }
 }
 @utility glow-blue {
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
     0 0 0 1px color-mix(in oklab, oklch(0.7 0.17 250) 22%, transparent),
     0 18px 60px -20px color-mix(in oklab, oklch(0.7 0.17 250) 55%, transparent);
+  :root:not(.dark) & {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, oklch(0.5 0.17 255) 22%, transparent),
+      var(--shadow-card);
+  }
 }
 @utility glow-purple {
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
     0 0 0 1px color-mix(in oklab, oklch(0.7 0.2 320) 22%, transparent),
     0 18px 60px -20px color-mix(in oklab, oklch(0.7 0.2 320) 55%, transparent);
+  :root:not(.dark) & {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, oklch(0.5 0.19 320) 22%, transparent),
+      var(--shadow-card);
+  }
 }
 @utility glow-amber {
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
     0 0 0 1px color-mix(in oklab, oklch(0.78 0.16 75) 22%, transparent),
     0 18px 60px -20px color-mix(in oklab, oklch(0.78 0.16 75) 55%, transparent);
+  :root:not(.dark) & {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, oklch(0.58 0.14 70) 22%, transparent),
+      var(--shadow-card);
+  }
 }
 
 @utility aurora-bg {
@@ -239,6 +280,7 @@
     filter: blur(40px);
     opacity: .55;
     pointer-events: none;
+
   }
 }
 
