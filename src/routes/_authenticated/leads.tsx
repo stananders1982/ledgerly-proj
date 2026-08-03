@@ -66,6 +66,7 @@ function LeadsPage() {
   const [customStart, setCustomStart] = useState<string>("");
   const [customEnd, setCustomEnd] = useState<string>("");
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
+  const [leadSearch, setLeadSearch] = useState<string>("");
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
