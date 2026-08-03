@@ -1,4 +1,4 @@
-import { Settings, LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, Banknote, Gauge, Building2, Landmark, ScrollText, ListTodo, Upload, History } from "lucide-react";
+import { Settings, LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, ShieldAlert, Banknote, Gauge, Building2, Landmark, ScrollText, ListTodo, Upload, History } from "lucide-react";
 
 export type NavGroup = "Overview" | "Operations" | "People" | "Analytics" | "Admin";
 
@@ -34,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
 
   { key: "reports", title: "Reports", url: "/reports", icon: FileBarChart, group: "Analytics" },
   { key: "affiliates", title: "Affiliates", url: "/affiliates", icon: Building2, group: "Analytics" },
+  { key: "data-quality", title: "Data Quality", url: "/data-quality", icon: ShieldAlert, group: "Analytics" },
 
   { key: "users", title: "Users", url: "/users", icon: ShieldCheck, group: "Admin", adminOnly: true },
   { key: "settings", title: "Settings", url: "/settings", icon: Settings, group: "Admin", adminOnly: true },
