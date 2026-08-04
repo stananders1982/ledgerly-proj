@@ -751,6 +751,43 @@ function ActivationsPage() {
                   <Info label="Tags" value={<TagBadges tags={cur.tags} />} />
                 </div>
 
+                <div className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-2">
+                  <div className="grid gap-1.5">
+                    <span className="text-xs uppercase text-muted-foreground">Potential</span>
+                    <Select
+                      value={cur.potential ?? "_none"}
+                      onValueChange={(v) =>
+                        setStatus.mutate({ id: cur.id, patch: { potential: v === "_none" ? null : (v as Row["potential"]) } })
+                      }
+                    >
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Set potential" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Not set</SelectItem>
+                        {POTENTIALS.map((p) => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <span className="text-xs uppercase text-muted-foreground">Answered</span>
+                    <Select
+                      value={cur.answered ? "yes" : "no"}
+                      onValueChange={(v) => setStatus.mutate({ id: cur.id, patch: { answered: v === "yes" } })}
+                    >
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Answered</SelectItem>
+                        <SelectItem value="no">Unanswered</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-xs text-muted-foreground sm:col-span-2">
+                    FTD status is derived: answered + (mid/high potential or balance of ${settings.ftdBalanceThreshold}+).
+                  </p>
+                </div>
+
+
                 <div>
                   <h3 className="mb-2 text-sm font-semibold">Lifecycle</h3>
                   <ClientTimeline
