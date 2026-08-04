@@ -606,6 +606,18 @@ function ActivationsPage() {
                     <FavoriteStar type="client" id={r.id} label={r.lead_name} />
                   </td>
                   <td className="py-3 px-4">{actDate(r) ? fmtDate(actDate(r)!) : "—"}</td>
+                  <td className="py-3 px-4">
+                    {r.qualified_at ? (
+                      <span className="text-primary">
+                        {fmtDate(r.qualified_at)}
+                        {String(r.qualified_at).slice(0, 7) !== String(actDate(r) ?? "").slice(0, 7) && (
+                          <span className="ml-1 text-xs text-muted-foreground">(late)</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Pending</span>
+                    )}
+                  </td>
                   <td className="py-3 px-4 font-medium">
                     {r.lead_name || "—"}
                     {isDup(r) && (
