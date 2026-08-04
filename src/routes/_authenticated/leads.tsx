@@ -501,6 +501,14 @@ function LeadsPage() {
         }
       />
 
+      {issue && (
+        <IssueFilterBanner
+          issue={issue}
+          count={rows.length}
+          onClear={() => routeNavigate({ search: (prev: any) => ({ ...prev, issue: undefined }), replace: true })}
+        />
+      )}
+
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <DateRangePicker
           value={range}
