@@ -252,6 +252,32 @@ function LeadsPage() {
 
   const allocated = useMemo(() => byEmployee.reduce((s, e) => s + e.count, 0), [byEmployee]);
 
+  const unallocatedBySource = useMemo(() => {
+    const map = new Map<string, { sourceName: string; count: number }>();
+    for (const r of rows) {
+      const splits = activationsByEntry.get(r.id) ?? [];
+      const rowed = splits.reduce((s, a) => s + (a.activated_count ?? 0), 0);
+      const diff = Math.max(0, Number(r.activated ?? 0) - rowed);
+      if (diff > 0) {
+        const name = r.lead_sources?.name ?? "No source";
+        const existing = map.get(name);
+        if (existing) existing.count += diff;
+        else map.set(name, { sourceName: name, count: diff });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [rows, activationsByEntry]);
+
+  const unallocatedHint = useMemo(() => {
+    const total = activatedInRange - allocated;
+    if (total <= 0) return undefined;
+    const parts = unallocatedBySource.map(
+      (s) => `${s.count} FTD${s.count === 1 ? "" : "s"} from ${s.sourceName}`,
+    );
+    if (parts.length === 1) return `${parts[0]} is not allocated`;
+    return `${parts.join(", ")} are not allocated`;
+  }, [allocated, activatedInRange, unallocatedBySource]);
+
   // STD: any deposit recorded on/after the client's activation date. Counted in
   // the period the deposit was made (the activation itself may be older).
   const stdCount = useMemo(() => {
