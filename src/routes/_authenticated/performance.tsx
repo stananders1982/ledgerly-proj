@@ -104,12 +104,27 @@ function PerformancePage() {
     queryFn: async () => {
       const data = await fetchAll(() => sb
         .from("daily_lead_activations")
-        .select("id,employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,activation_date")
+        .select("id,employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,activation_date,qualified_at")
         .gte("activation_date", start)
         .lte("activation_date", end));
       return data ?? [];
     },
   });
+
+  // FTDs are credited in the month the lead became valid (qualified_at), which
+  // may be later than the activation month.
+  const ftdQ = useQuery({
+    queryKey: ["perf-ftds", start, end],
+    queryFn: async () => {
+      const data = await fetchAll(() => sb
+        .from("daily_lead_activations")
+        .select("id,conversion_employee_id,qualified_at")
+        .gte("qualified_at", start)
+        .lte("qualified_at", end));
+      return (data ?? []) as any[];
+    },
+  });
+
 
   // Every client this agent handles (any activation date) — used for STD, which is
   // scoped by the *deposit* date, not the activation date.
