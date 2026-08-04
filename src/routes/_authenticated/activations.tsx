@@ -231,6 +231,10 @@ function ActivationsPage() {
   const isDup = (r: any) => dupNames.has((r.lead_name ?? "").trim().toLowerCase());
 
   const issue = routeSearch.issue;
+  const retentionIds = useMemo(
+    () => new Set((employeesQ.data ?? []).filter((e) => e.team === "R").map((e) => e.id)),
+    [employeesQ.data],
+  );
   const issueMatch = React.useCallback(
     (r: any) => {
       const name = (r.lead_name ?? "").trim();
