@@ -296,7 +296,7 @@ function EmployeeDetailPage() {
               {conversions.pending.length > 0 && ` · ${conversions.pending.length} pending`}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Only counted FTDs are paid ({conversions.counted.length} × {fmtMoney(totals.ftdRate)}). Pending rows are excluded from commission.
+              Counted in the month the lead became valid ({conversions.counted.length} × {fmtMoney(totals.ftdRate)}) — including leads activated earlier. Pending rows are excluded from commission.
             </p>
           </div>
           <Link to="/activations" search={{ client: undefined, name: undefined }} className="text-xs text-primary hover:underline">Manage</Link>
@@ -308,7 +308,8 @@ function EmployeeDetailPage() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-card">
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="py-2 px-4">Date</th>
+                  <th className="py-2 px-4">Activated</th>
+                  <th className="py-2 px-4">Qualified</th>
                   <th className="py-2 px-4">Lead</th>
                   <th className="py-2 px-4">Potential</th>
                   <th className="py-2 px-4 text-right">Balance</th>
@@ -319,10 +320,21 @@ function EmployeeDetailPage() {
                 {convPage.map((c: any, i: number) => (
                   <tr key={`ftd-${i}`} className={cn("border-b border-border/50", c.qualifies ? "" : "text-muted-foreground")}>
                     <td className="py-2 px-4 text-muted-foreground">{fmtDate(c.activation_date ?? c.daily_lead_entries?.entry_date)}</td>
+                    <td className="py-2 px-4">
+                      {c.qualified_at ? (
+                        <>
+                          {fmtDate(c.qualified_at)}
+                          {String(c.qualified_at).slice(0, 7) !== String(c.activation_date ?? "").slice(0, 7) && (
+                            <span className="ml-1 text-xs text-muted-foreground">(late)</span>
+                          )}
+                        </>
+                      ) : "—"}
+                    </td>
                     <td className="py-2 px-4">{c.lead_name || "—"}</td>
                     <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
                     <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
                     <td className={cn("py-2 px-4", c.qualifies ? "text-primary" : "")}>{c.qualifies ? "Counted" : c.reason}</td>
+
                   </tr>
                 ))}
               </tbody>
