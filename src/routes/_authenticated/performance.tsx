@@ -194,15 +194,13 @@ function PerformancePage() {
         .filter((a) => a.employee_id === emp.id)
         .reduce((s, a) => s + Number(a.activated_count || 0), 0);
 
-      const mine = acts.filter((a) => a.conversion_employee_id === emp.id);
-      let ftds = 0;
-      let pendingFtds = 0;
-      for (const a of mine) {
-        const eff = effectiveBalance(a, deposits);
-        const ok = qualifiesAsFtd(a, eff, settings);
-        if (ok) ftds++;
-        else pendingFtds++;
-      }
+      // Counted FTDs: qualified inside the period (activation may be older).
+      const ftds = ((ftdQ.data ?? []) as any[]).filter((a) => a.conversion_employee_id === emp.id).length;
+      // Pending: activated in the period but not yet valid.
+      const pendingFtds = acts.filter(
+        (a) => a.conversion_employee_id === emp.id && !a.qualified_at,
+      ).length;
+
       // Per-FTD rate lives on the employee record.
       const ftdRate = Number(emp.ftd_commission ?? settings.ftdCommission);
       const ftdCommission = team === "C" ? ftds * ftdRate : 0;
