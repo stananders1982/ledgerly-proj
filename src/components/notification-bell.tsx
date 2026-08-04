@@ -74,7 +74,7 @@ export function NotificationBell() {
             onClick: () => openNotification(n),
             className: "cursor-pointer",
           };
-          if (n.type === "revenue") toast.success(n.title, opts);
+          if (n.type === "revenue" || n.type === "ftd_qualified") toast.success(n.title, opts);
           else toast.warning(n.title, opts);
           qc.invalidateQueries({ queryKey: ["notifications"] });
         },
