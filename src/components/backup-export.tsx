@@ -79,18 +79,18 @@ export function BackupExport() {
       </p>
       {!can("export_data") ? (
         <p className="mt-4 text-sm text-muted-foreground">
-          You don't have permission to export data. Ask an admin to enable it.
+          You don&apos;t have permission to export data. Ask an admin to enable it.
         </p>
       ) : (
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="outline" disabled={busy} onClick={() => run("xlsx")}>
-          <Download className="h-4 w-4" /> {busy ? "Preparing…" : "Excel workbook"}
-        </Button>
-        <Button variant="outline" disabled={busy} onClick={() => run("json")}>
-          <Download className="h-4 w-4" /> JSON snapshot
-        </Button>
-      </div>
-      )
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="outline" disabled={busy} onClick={() => run("xlsx")}>
+            <Download className="h-4 w-4" /> {busy ? "Preparing…" : "Excel workbook"}
+          </Button>
+          <Button variant="outline" disabled={busy} onClick={() => run("json")}>
+            <Download className="h-4 w-4" /> JSON snapshot
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
