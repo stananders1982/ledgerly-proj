@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { History, Download, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useExporters } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { SearchInput } from "@/components/search-input";
 import { EmptyState } from "@/components/empty-state";
@@ -13,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { exportCSV } from "@/lib/export";
 import { prettyEntity, relativeTime } from "@/components/activity-feed";
 
 export const Route = createFileRoute("/_authenticated/activity")({
@@ -52,6 +52,7 @@ function ActionBadge({ action }: { action: string }) {
 }
 
 function ActivityPage() {
+  const { exportCSV } = useExporters();
   const [search, setSearch] = useState("");
   const [action, setAction] = useState<string>("all");
   const [entity, setEntity] = useState<string>("all");

@@ -2,6 +2,7 @@ import { useState } from "react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { Database, Download } from "lucide-react";
+import { useCan } from "@/lib/permissions";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const BACKUP_TABLES = [
 ] as const;
 
 export function BackupExport() {
+  const can = useCan();
   const [busy, setBusy] = useState(false);
 
   const run = async (format: "xlsx" | "json") => {
@@ -75,14 +77,20 @@ export function BackupExport() {
         Download every record your account can read — leads, clients, income, withdrawals, expenses,
         employees, attendance, affiliates, tasks and the audit log.
       </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="outline" disabled={busy} onClick={() => run("xlsx")}>
-          <Download className="h-4 w-4" /> {busy ? "Preparing…" : "Excel workbook"}
-        </Button>
-        <Button variant="outline" disabled={busy} onClick={() => run("json")}>
-          <Download className="h-4 w-4" /> JSON snapshot
-        </Button>
-      </div>
+      {!can("export_data") ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          You don&apos;t have permission to export data. Ask an admin to enable it.
+        </p>
+      ) : (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="outline" disabled={busy} onClick={() => run("xlsx")}>
+            <Download className="h-4 w-4" /> {busy ? "Preparing…" : "Excel workbook"}
+          </Button>
+          <Button variant="outline" disabled={busy} onClick={() => run("json")}>
+            <Download className="h-4 w-4" /> JSON snapshot
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,8 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Building2, TrendingUp, Wallet, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { exportPDF } from "@/lib/export";
 import { supabase } from "@/integrations/supabase/client";
+import { useExporters } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fmtMoney } from "@/lib/format";
@@ -34,6 +34,7 @@ function monthKey(iso: string) {
 }
 
 function AffiliateStatementPage() {
+  const { exportPDF } = useExporters();
   const { id } = useParams({ from: "/_authenticated/affiliates/$id" });
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");
