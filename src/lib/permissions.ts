@@ -10,6 +10,8 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
+import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 
 export type ActionKey =
   | "delete_records"
@@ -55,4 +57,24 @@ export function useMyActions() {
 export function useCan() {
   const actions = useMyActions();
   return (key: ActionKey) => actions.has(key);
+}
+
+/* ------------------------------------------------------------------ */
+/* Guarded exports                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Export helpers that respect the `export_data` permission. Use these instead
+ * of importing from `@/lib/export` directly inside pages.
+ */
+export function useExporters() {
+  const can = useCan();
+  const allowed = can("export_data");
+  const deny = () => toast.error("You don't have permission to export data.");
+  return {
+    canExport: allowed,
+    exportCSV: (...args: Parameters<typeof exportCSV>) => (allowed ? exportCSV(...args) : deny()),
+    exportXLSX: (...args: Parameters<typeof exportXLSX>) => (allowed ? exportXLSX(...args) : deny()),
+    exportPDF: (...args: Parameters<typeof exportPDF>) => (allowed ? exportPDF(...args) : deny()),
+  };
 }

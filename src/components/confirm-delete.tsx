@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { useCan } from "@/lib/permissions";
 
 export function ConfirmDelete({
   onConfirm,
@@ -21,6 +22,8 @@ export function ConfirmDelete({
   label?: string;
   description?: string;
 }) {
+  const can = useCan();
+  if (!can("delete_records")) return null;
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>

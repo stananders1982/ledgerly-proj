@@ -6,6 +6,7 @@ import { FileDown, FileSpreadsheet, FileText, Printer, ArrowUpDown, Bookmark, X 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct } from "@/lib/format";
+import { useExporters } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -19,7 +20,6 @@ import { TargetBadge } from "@/routes/_authenticated/sources";
 import { isStd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionableAmount, type CommissionTiers } from "@/lib/commission";
-import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({ meta: [{ title: "Reports — Ledgerly" }] }),

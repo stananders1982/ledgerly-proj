@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Users, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { IssueFilterBanner } from "@/components/issue-filter-banner";
+import { useExporters } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +37,6 @@ import { useQuickCreate } from "@/lib/quick-create";
 import { useRowSelection } from "@/lib/row-selection";
 import { BulkBar } from "@/components/bulk-bar";
 import { DataCard, DataCardList } from "@/components/data-card-list";
-import { exportCSV } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/leads")({
   validateSearch: (search: Record<string, unknown>) => ({
