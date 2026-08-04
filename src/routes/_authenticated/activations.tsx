@@ -64,6 +64,7 @@ type Row = {
   potential: "low" | "mid" | "high" | null;
   answered: boolean;
   activation_date: string | null;
+  qualified_at?: string | null;
   notes?: string | null;
   tags?: string[] | null;
   daily_lead_entries?: { entry_date: string; source_id: string | null; lead_sources?: { name: string } | null } | null;
