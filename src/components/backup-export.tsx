@@ -77,6 +77,11 @@ export function BackupExport() {
         Download every record your account can read — leads, clients, income, withdrawals, expenses,
         employees, attendance, affiliates, tasks and the audit log.
       </p>
+      {!can("export_data") ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          You don't have permission to export data. Ask an admin to enable it.
+        </p>
+      ) : (
       <div className="mt-4 flex flex-wrap gap-2">
         <Button variant="outline" disabled={busy} onClick={() => run("xlsx")}>
           <Download className="h-4 w-4" /> {busy ? "Preparing…" : "Excel workbook"}
@@ -85,6 +90,7 @@ export function BackupExport() {
           <Download className="h-4 w-4" /> JSON snapshot
         </Button>
       </div>
+      )
     </div>
   );
 }
