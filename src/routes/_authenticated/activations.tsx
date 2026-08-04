@@ -782,8 +782,34 @@ function ActivationsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="grid gap-1.5">
+                    <span className="text-xs uppercase text-muted-foreground">Activation date</span>
+                    <Input
+                      type="date"
+                      className="h-9"
+                      defaultValue={cur.activation_date ?? ""}
+                      key={`act-${cur.id}-${cur.activation_date ?? ""}`}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v) setStatus.mutate({ id: cur.id, patch: { activation_date: v } });
+                      }}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <span className="text-xs uppercase text-muted-foreground">Qualified date</span>
+                    <Input
+                      type="date"
+                      className="h-9"
+                      defaultValue={cur.qualified_at ? String(cur.qualified_at).slice(0, 10) : ""}
+                      key={`qual-${cur.id}-${cur.qualified_at ?? ""}`}
+                      onChange={(e) =>
+                        setStatus.mutate({ id: cur.id, patch: { qualified_at: e.target.value || null } })
+                      }
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground sm:col-span-2">
                     FTD status is derived: answered + (mid/high potential or balance of ${settings.ftdBalanceThreshold}+).
+                    Qualified date drives which month the conversion commission is paid in.
                   </p>
                 </div>
 
