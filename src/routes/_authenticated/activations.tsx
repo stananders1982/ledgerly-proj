@@ -9,6 +9,7 @@ import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchInput } from "@/components/search-input";
 import { PageHeader } from "@/components/page-header";
+import { IssueFilterBanner } from "@/components/issue-filter-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
