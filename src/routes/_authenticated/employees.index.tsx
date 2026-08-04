@@ -162,6 +162,14 @@ function EmployeesPage() {
         }
       />
 
+      {issue && (
+        <IssueFilterBanner
+          issue={issue}
+          count={rows.length}
+          onClear={() => navigate({ search: (prev: any) => ({ ...prev, issue: undefined }), replace: true })}
+        />
+      )}
+
       <div className="card-surface overflow-hidden">
         {q.isLoading ? (
           <TableSkeleton cols={6} />
