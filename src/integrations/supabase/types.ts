@@ -647,6 +647,7 @@ export type Database = {
           low_potential_alerted: boolean
           notes: string | null
           potential: string | null
+          qualified_at: string | null
           tags: string[]
           updated_at: string
         }
@@ -666,6 +667,7 @@ export type Database = {
           low_potential_alerted?: boolean
           notes?: string | null
           potential?: string | null
+          qualified_at?: string | null
           tags?: string[]
           updated_at?: string
         }
@@ -685,6 +687,7 @@ export type Database = {
           low_potential_alerted?: boolean
           notes?: string | null
           potential?: string | null
+          qualified_at?: string | null
           tags?: string[]
           updated_at?: string
         }
@@ -1864,6 +1867,18 @@ export type Database = {
       }
     }
     Functions: {
+      activation_effective_balance: {
+        Args: {
+          _act: Database["public"]["Tables"]["daily_lead_activations"]["Row"]
+        }
+        Returns: number
+      }
+      activation_qualifies: {
+        Args: {
+          _act: Database["public"]["Tables"]["daily_lead_activations"]["Row"]
+        }
+        Returns: boolean
+      }
       advance_due_date: {
         Args: {
           _d: string
@@ -1880,6 +1895,7 @@ export type Database = {
       }
       can_do: { Args: { _action: string }; Returns: boolean }
       current_company_id: { Args: never; Returns: string }
+      ftd_balance_threshold: { Args: { _company_id: string }; Returns: number }
       generate_due_recurring_expenses: { Args: never; Returns: number }
       generate_due_recurring_revenue: { Args: never; Returns: number }
       has_role: {
