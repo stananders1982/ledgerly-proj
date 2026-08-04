@@ -201,6 +201,7 @@ function DataQualityPage() {
               <Link
                 key={i.key}
                 to={i.to}
+                search={{ issue: i.key } as any}
                 className={cn(
                   "flex items-center gap-4 px-5 py-4 transition-colors hover:bg-accent/40",
                   i.count === 0 && "opacity-60",
