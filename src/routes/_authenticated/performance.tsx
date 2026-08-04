@@ -150,7 +150,7 @@ function PerformancePage() {
     const emps = empQ.data ?? [];
     const wd = workingDays(start, end);
 
-    const deposits = depositsByName(depositsQ.data ?? []);
+    
     const allDeposits = (depositsQ.data ?? []) as any[];
     const allActs = (allActQ.data ?? []) as any[];
 
