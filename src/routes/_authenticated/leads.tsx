@@ -664,6 +664,7 @@ function LeadsPage() {
           label="Allocated"
           value={`${allocated} / ${activatedInRange}`}
           tone={allocated < activatedInRange ? "negative" : "positive"}
+          hint={unallocatedHint}
         />
         <StatCard label="Reported" value={String(stats.reported)} />
         <StatCard label="Unreported" value={String(stats.unreported)} />
