@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { depositsByName, effectiveBalance, qualifiesAsFtd, isStd } from "@/lib/rules";
+import { isStd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
 import { GoalBar } from "@/components/goal-bar";
