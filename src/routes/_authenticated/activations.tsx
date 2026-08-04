@@ -229,11 +229,32 @@ function ActivationsPage() {
   }, [q.data]);
   const isDup = (r: any) => dupNames.has((r.lead_name ?? "").trim().toLowerCase());
 
+  const issue = routeSearch.issue;
+  const issueMatch = React.useCallback(
+    (r: any) => {
+      const name = (r.lead_name ?? "").trim();
+      switch (issue) {
+        case "clients-no-name":
+          return !name;
+        case "clients-no-potential":
+          return !!name && !r.potential;
+        case "clients-duplicate":
+          return dupNames.has(name.toLowerCase());
+        case "clients-no-revenue":
+          return !!name && !depositsByName.has(name.toLowerCase());
+        default:
+          return true;
+      }
+    },
+    [issue, dupNames, depositsByName],
+  );
+
   const rows = useMemo(() => {
     const s = activeRange.start.getTime();
     const e = activeRange.end.getTime();
-    const searching = search.trim().length > 0;
+    const searching = search.trim().length > 0 || !!issue;
     return (q.data ?? []).filter((r) => {
+      if (issue && !issueMatch(r)) return false;
       const d = actDate(r);
       if (d && !searching) {
         const t = new Date(d + "T00:00:00").getTime();
@@ -253,7 +274,7 @@ function ActivationsPage() {
       if (term && !(r.lead_name ?? "").toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames, tagFilter]);
+  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => actDate(r) ?? "",
