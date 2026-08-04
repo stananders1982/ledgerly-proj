@@ -117,18 +117,26 @@ function EmployeeDetailPage() {
   });
 
   // FTDs — leads this employee activated (as conversion agent).
-  // Counted when answered AND (mid/high potential OR effective balance >= 251).
+  // Counted in the month the lead *became valid* (qualified_at), which can be
+  // later than the activation month. Pending leads are listed by activation date.
   const conversionsQ = useQuery({
     enabled: isConversion,
     queryKey: ["employee-conversions", id, start, end],
     queryFn: async () => {
-      const data = await fetchAll(() => sb
+      const counted = await fetchAll(() => sb
         .from("daily_lead_activations")
-        .select("lead_name, potential, answered, balance, activation_date, daily_lead_entries(entry_date)")
+        .select("id, lead_name, potential, answered, balance, activation_date, qualified_at, daily_lead_entries(entry_date)")
         .eq("conversion_employee_id", id)
+        .gte("qualified_at", start)
+        .lte("qualified_at", end));
+      const pending = await fetchAll(() => sb
+        .from("daily_lead_activations")
+        .select("id, lead_name, potential, answered, balance, activation_date, qualified_at, daily_lead_entries(entry_date)")
+        .eq("conversion_employee_id", id)
+        .is("qualified_at", null)
         .gte("activation_date", start)
         .lte("activation_date", end));
-      return data ?? [];
+      return { counted: counted ?? [], pending: pending ?? [] };
     },
   });
 
@@ -145,13 +153,15 @@ function EmployeeDetailPage() {
 
   const conversions = useMemo(() => {
     const deposits = depositsByName(depositsQ.data ?? []);
-    const all = ((conversionsQ.data ?? []) as any[]).map((r) => {
+    const decorate = (r: any, qualifies: boolean) => {
       const bal = effectiveBalance(r, deposits);
-      const qualifies = qualifiesAsFtd(r, bal, settings);
-      return { ...r, effectiveBalance: bal, qualifies, reason: ftdPendingReason(r, bal, settings) };
-    });
-    return { all, counted: all.filter((r) => r.qualifies), pending: all.filter((r) => !r.qualifies) };
+      return { ...r, effectiveBalance: bal, qualifies, reason: qualifies ? "" : ftdPendingReason(r, bal, settings) };
+    };
+    const counted = ((conversionsQ.data?.counted ?? []) as any[]).map((r) => decorate(r, true));
+    const pending = ((conversionsQ.data?.pending ?? []) as any[]).map((r) => decorate(r, false));
+    return { all: [...counted, ...pending], counted, pending };
   }, [conversionsQ.data, depositsQ.data, settings]);
+
 
   const conversionRows = useMemo(() => [...conversions.counted, ...conversions.pending], [conversions]);
   const { pageItems: convPage, ...pgConv } = usePagination(conversionRows, 30);
