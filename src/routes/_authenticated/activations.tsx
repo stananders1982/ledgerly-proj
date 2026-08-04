@@ -384,6 +384,19 @@ function ActivationsPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  // Quick status change from the client detail dialog.
+  const setStatus = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: { answered?: boolean; potential?: Row["potential"] } }) => {
+      const { error } = await supabase.from("daily_lead_activations").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["activated-leads"] });
+      toast.success("Status updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return (
     <div>
       <PageHeader
