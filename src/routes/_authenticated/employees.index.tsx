@@ -5,6 +5,8 @@ import { Plus, UserCog } from "lucide-react";
 import { ActiveBadge, StatusBadge } from "@/components/status-badge";
 import { supabase } from "@/integrations/supabase/client";
 import { IssueFilterBanner } from "@/components/issue-filter-banner";
+import { useCan } from "@/lib/permissions";
+import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +60,9 @@ const TEAMS = [
 ];
 
 function EmployeesPage() {
+  const can = useCan();
+  const { isAdmin } = useAuth();
+  const canSeeSalaries = isAdmin || can("view_salaries");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Emp | null>(null);
@@ -161,6 +166,13 @@ function EmployeesPage() {
           </Dialog>
         }
       />
+
+      {!canSeeSalaries && (
+        <div className="mb-4 rounded-lg border border-border bg-foreground/[0.02] px-4 py-3 text-sm text-muted-foreground">
+          You don&apos;t have permission to view salaries, so employee records are hidden here. Ask an
+          admin to enable &ldquo;View salaries&rdquo;.
+        </div>
+      )}
 
       {issue && (
         <IssueFilterBanner
