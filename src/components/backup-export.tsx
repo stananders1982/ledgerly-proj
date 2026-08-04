@@ -2,6 +2,7 @@ import { useState } from "react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { Database, Download } from "lucide-react";
+import { useCan } from "@/lib/permissions";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const BACKUP_TABLES = [
 ] as const;
 
 export function BackupExport() {
+  const can = useCan();
   const [busy, setBusy] = useState(false);
 
   const run = async (format: "xlsx" | "json") => {

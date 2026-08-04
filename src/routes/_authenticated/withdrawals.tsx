@@ -7,6 +7,7 @@ import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { useCan } from "@/lib/permissions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +40,8 @@ export const Route = createFileRoute("/_authenticated/withdrawals")({
 });
 
 function WithdrawalsPage() {
+  const can = useCan();
+  const canApprove = can("approve_withdrawals");
   const settings = useCompanySettings();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -170,7 +173,9 @@ function WithdrawalsPage() {
         description="Record customer withdrawals. 10% of each amount is deducted from the sales agent."
         actions={
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New withdrawal</Button></DialogTrigger>
+            {canApprove && (
+              <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New withdrawal</Button></DialogTrigger>
+            )}
             <WithdrawalDialog
               key={editing?.id ?? "new"}
               row={editing}
@@ -221,7 +226,7 @@ function WithdrawalsPage() {
         {wQ.isLoading ? <TableSkeleton cols={7} />
         : rows.length === 0 ? (
           <EmptyState icon={Banknote} title="No withdrawals yet" description="Record your first withdrawal to track payouts and agent penalties."
-            action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New withdrawal</Button>} />
+            action={canApprove ? <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New withdrawal</Button> : undefined} />
         ) : (
           <>
           <DataCardList>
