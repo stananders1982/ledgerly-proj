@@ -253,7 +253,7 @@ function ActivationsPage() {
           return true;
       }
     },
-    [issue, dupNames, depositsByName],
+    [issue, dupNames, depositsByName, retentionIds],
   );
 
   const rows = useMemo(() => {
