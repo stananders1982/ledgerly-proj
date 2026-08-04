@@ -52,6 +52,7 @@ function ActionBadge({ action }: { action: string }) {
 }
 
 function ActivityPage() {
+  const { exportCSV } = useExporters();
   const [search, setSearch] = useState("");
   const [action, setAction] = useState<string>("all");
   const [entity, setEntity] = useState<string>("all");

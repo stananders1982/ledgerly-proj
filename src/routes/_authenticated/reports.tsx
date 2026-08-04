@@ -53,6 +53,7 @@ function monthlyEquiv(amount: number, freq: string) {
 }
 
 function ReportsPage() {
+  const { exportCSV, exportXLSX, exportPDF } = useExporters();
   const settings = useCompanySettings();
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");

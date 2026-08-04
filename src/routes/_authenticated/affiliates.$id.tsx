@@ -34,6 +34,7 @@ function monthKey(iso: string) {
 }
 
 function AffiliateStatementPage() {
+  const { exportPDF } = useExporters();
   const { id } = useParams({ from: "/_authenticated/affiliates/$id" });
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");

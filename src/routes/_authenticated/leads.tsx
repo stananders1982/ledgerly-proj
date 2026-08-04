@@ -62,6 +62,7 @@ type Activation = { id: string; entry_id: string; employee_id: string; conversio
 type Split = { id?: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null; activation_date: string };
 
 function LeadsPage() {
+  const { exportCSV } = useExporters();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   useQuickCreate("leads", () => setOpen(true));

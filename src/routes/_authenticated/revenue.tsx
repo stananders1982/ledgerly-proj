@@ -48,6 +48,7 @@ export const Route = createFileRoute("/_authenticated/revenue")({
 });
 
 function RevenuePage() {
+  const { exportCSV, exportXLSX, exportPDF } = useExporters();
   const qc = useQueryClient();
   const settings = useCompanySettings();
   const [open, setOpen] = useState(false);

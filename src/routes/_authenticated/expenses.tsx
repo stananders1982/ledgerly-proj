@@ -38,6 +38,7 @@ export const Route = createFileRoute("/_authenticated/expenses")({
 });
 
 function ExpensesPage() {
+  const { exportCSV, exportXLSX, exportPDF } = useExporters();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   useQuickCreate("expenses", () => setOpen(true));
