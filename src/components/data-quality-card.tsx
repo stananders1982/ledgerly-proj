@@ -46,6 +46,7 @@ export function DataQualityCard() {
                 <li key={i.key}>
                   <Link
                     to={i.to}
+                    search={{ issue: i.key } as any}
                     className="flex items-center gap-3 rounded-lg border border-border bg-foreground/[0.02] px-3 py-2 transition-colors hover:bg-accent/40"
                   >
                     <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />

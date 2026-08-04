@@ -9,6 +9,7 @@ import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchInput } from "@/components/search-input";
 import { PageHeader } from "@/components/page-header";
+import { IssueFilterBanner } from "@/components/issue-filter-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/_authenticated/activations")({
   validateSearch: (search: Record<string, unknown>) => ({
     client: typeof search.client === "string" ? search.client : undefined,
     name: typeof search.name === "string" ? search.name : undefined,
+    issue: typeof search.issue === "string" ? search.issue : undefined,
   }),
   head: () => ({
     meta: [
@@ -228,11 +230,32 @@ function ActivationsPage() {
   }, [q.data]);
   const isDup = (r: any) => dupNames.has((r.lead_name ?? "").trim().toLowerCase());
 
+  const issue = routeSearch.issue;
+  const issueMatch = React.useCallback(
+    (r: any) => {
+      const name = (r.lead_name ?? "").trim();
+      switch (issue) {
+        case "clients-no-name":
+          return !name;
+        case "clients-no-potential":
+          return !!name && !r.potential;
+        case "clients-duplicate":
+          return dupNames.has(name.toLowerCase());
+        case "clients-no-revenue":
+          return !!name && !depositsByName.has(name.toLowerCase());
+        default:
+          return true;
+      }
+    },
+    [issue, dupNames, depositsByName],
+  );
+
   const rows = useMemo(() => {
     const s = activeRange.start.getTime();
     const e = activeRange.end.getTime();
-    const searching = search.trim().length > 0;
+    const searching = search.trim().length > 0 || !!issue;
     return (q.data ?? []).filter((r) => {
+      if (issue && !issueMatch(r)) return false;
       const d = actDate(r);
       if (d && !searching) {
         const t = new Date(d + "T00:00:00").getTime();
@@ -252,7 +275,7 @@ function ActivationsPage() {
       if (term && !(r.lead_name ?? "").toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames, tagFilter]);
+  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => actDate(r) ?? "",
@@ -404,6 +427,16 @@ function ActivationsPage() {
         title="Clients"
         description="Every client with its balance, potential, agents and answer status."
       />
+
+      {issue && (
+        <IssueFilterBanner
+          issue={issue}
+          count={rows.length}
+          onClear={() => navigate({ search: (prev: any) => ({ ...prev, issue: undefined }), replace: true })}
+        />
+      )}
+
+
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <DateRangePicker

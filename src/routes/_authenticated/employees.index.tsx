@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, UserCog } from "lucide-react";
 import { ActiveBadge, StatusBadge } from "@/components/status-badge";
 import { supabase } from "@/integrations/supabase/client";
+import { IssueFilterBanner } from "@/components/issue-filter-banner";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,9 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/employees/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    issue: typeof search.issue === "string" ? search.issue : undefined,
+  }),
   head: () => ({ meta: [{ title: "Employees — Ledgerly" }] }),
   component: EmployeesPage,
 });
@@ -67,14 +71,24 @@ function EmployeesPage() {
     },
   });
 
+  const { issue } = Route.useSearch();
+  const navigate = Route.useNavigate();
+
   const rows = useMemo(() => {
     const rank: Record<string, number> = { C: 0, R: 1, M: 2 };
-    return [...(q.data ?? [])].sort(
+    const base = (q.data ?? []).filter((e) => {
+      if (!issue) return true;
+      if (e.active === false) return false;
+      if (issue === "employees-no-team") return !e.team;
+      if (issue === "employees-no-salary") return !Number(e.salary);
+      return true;
+    });
+    return [...base].sort(
       (a, b) =>
         (rank[String(a.team ?? "C").toUpperCase()] ?? 3) - (rank[String(b.team ?? "C").toUpperCase()] ?? 3) ||
         a.name.localeCompare(b.name),
     );
-  }, [q.data]);
+  }, [q.data, issue]);
   const { sorted, sort, toggle } = useSort<any>(rows, {
     name: (e) => e.name ?? "",
     role: (e) => e.role ?? "",
@@ -147,6 +161,14 @@ function EmployeesPage() {
           </Dialog>
         }
       />
+
+      {issue && (
+        <IssueFilterBanner
+          issue={issue}
+          count={rows.length}
+          onClear={() => navigate({ search: (prev: any) => ({ ...prev, issue: undefined }), replace: true })}
+        />
+      )}
 
       <div className="card-surface overflow-hidden">
         {q.isLoading ? (
