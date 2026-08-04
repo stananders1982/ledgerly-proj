@@ -231,6 +231,10 @@ function ActivationsPage() {
   const isDup = (r: any) => dupNames.has((r.lead_name ?? "").trim().toLowerCase());
 
   const issue = routeSearch.issue;
+  const retentionIds = useMemo(
+    () => new Set((employeesQ.data ?? []).filter((e) => e.team === "R").map((e) => e.id)),
+    [employeesQ.data],
+  );
   const issueMatch = React.useCallback(
     (r: any) => {
       const name = (r.lead_name ?? "").trim();
@@ -242,14 +246,14 @@ function ActivationsPage() {
         case "clients-duplicate":
           return dupNames.has(name.toLowerCase());
         case "clients-unallocated-ftd":
-          return !!r.qualified_at && !r.conversion_employee_id;
+          return !!r.qualified_at && !retentionIds.has(r.employee_id);
         case "clients-no-revenue":
           return !!name && !depositsByName.has(name.toLowerCase());
         default:
           return true;
       }
     },
-    [issue, dupNames, depositsByName],
+    [issue, dupNames, depositsByName, retentionIds],
   );
 
   const rows = useMemo(() => {

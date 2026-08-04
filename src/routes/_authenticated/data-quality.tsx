@@ -71,6 +71,9 @@ export function useDataQuality() {
     const revenue = (revQ.data ?? []) as any[];
     const acts = (actQ.data ?? []) as any[];
     const emps = ((empQ.data ?? []) as any[]).filter((e) => e.active !== false);
+    const retentionIds = new Set(
+      ((empQ.data ?? []) as any[]).filter((e) => e.team === "R").map((e) => e.id),
+    );
 
     const named = acts.filter((a) => (a.lead_name ?? "").trim());
     const nameCounts = new Map<string, number>();
@@ -122,9 +125,11 @@ export function useDataQuality() {
       },
       {
         key: "clients-unallocated-ftd",
-        label: "Valid FTDs with no conversion agent",
-        detail: "Qualified clients nobody is credited for — commission won't be paid.",
-        count: acts.filter((a) => a.qualified_at && !a.conversion_employee_id).length,
+        label: "Valid FTDs with no retention agent",
+        detail: "Qualified clients nobody is holding — no follow-up and no STD credit.",
+        count: acts.filter(
+          (a) => a.qualified_at && !retentionIds.has(a.employee_id as string),
+        ).length,
         to: "/activations",
         severity: "high",
       },

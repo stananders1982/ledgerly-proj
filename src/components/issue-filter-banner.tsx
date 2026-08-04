@@ -9,7 +9,7 @@ export const ISSUE_LABELS: Record<string, string> = {
   "revenue-no-method": "Income with no payment method",
   "revenue-no-agent": "Income with no agent",
   "clients-no-name": "Activations with no client name",
-  "clients-unallocated-ftd": "Valid FTDs with no conversion agent",
+  "clients-unallocated-ftd": "Valid FTDs with no retention agent",
   "clients-no-potential": "Clients with no potential set",
   "clients-duplicate": "Duplicate client names",
   "clients-no-revenue": "Clients with no deposit recorded",

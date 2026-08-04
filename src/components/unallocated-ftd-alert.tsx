@@ -1,7 +1,8 @@
 /**
- * App-wide alert: valid (qualified) FTDs that have no conversion agent
- * assigned. Checked across all time, independent of any page's date range,
- * so an unallocated FTD is never hidden by the period you're looking at.
+ * App-wide alert: valid (qualified) FTDs that have no retention agent holding
+ * them — either no agent at all, or an agent who isn't on the retention team.
+ * Checked across all time, independent of any page's date range, so an
+ * unallocated FTD is never hidden by the period you're looking at.
  */
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -13,15 +14,19 @@ export function UnallocatedFtdAlert() {
     queryKey: ["unallocated-ftds"],
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("daily_lead_activations")
-        .select("id,lead_name,qualified_at")
-        .not("qualified_at", "is", null)
-        .is("conversion_employee_id", null)
-        .order("qualified_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data ?? [];
+      const [acts, emps] = await Promise.all([
+        supabase
+          .from("daily_lead_activations")
+          .select("id,lead_name,qualified_at,employee_id")
+          .not("qualified_at", "is", null)
+          .order("qualified_at", { ascending: false }),
+        supabase.from("employees").select("id,team"),
+      ]);
+      if (acts.error) throw acts.error;
+      const retention = new Set(
+        (emps.data ?? []).filter((e) => e.team === "R").map((e) => e.id),
+      );
+      return (acts.data ?? []).filter((a) => !a.employee_id || !retention.has(a.employee_id));
     },
   });
 
@@ -43,9 +48,10 @@ export function UnallocatedFtdAlert() {
       <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
       <p className="min-w-0 flex-1 text-sm">
         <span className="font-semibold tabular-nums">{rows.length}</span> valid FTD
-        {rows.length === 1 ? " has" : "s have"} no conversion agent assigned
-        {names ? <span className="text-muted-foreground"> — {names}{rows.length > 3 ? "…" : ""}</span> : null}. No
-        commission will be paid until they're allocated.
+        {rows.length === 1 ? " has" : "s have"} no retention agent holding
+        {rows.length === 1 ? " it" : " them"}
+        {names ? <span className="text-muted-foreground"> — {names}{rows.length > 3 ? "…" : ""}</span> : null}. Assign a
+        Team R agent so the client is followed up and STDs are credited.
       </p>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
     </Link>
