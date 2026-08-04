@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Users, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { IssueFilterBanner } from "@/components/issue-filter-banner";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,9 @@ import { DataCard, DataCardList } from "@/components/data-card-list";
 import { exportCSV } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/leads")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    issue: typeof search.issue === "string" ? search.issue : undefined,
+  }),
   head: () => ({ meta: [{ title: "Leads — Ledgerly" }] }),
   component: LeadsPage,
 });
@@ -67,6 +71,8 @@ function LeadsPage() {
   const [customEnd, setCustomEnd] = useState<string>("");
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
   const [leadSearch, setLeadSearch] = useState<string>("");
+  const { issue } = Route.useSearch();
+  const routeNavigate = Route.useNavigate();
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
@@ -132,6 +138,7 @@ function LeadsPage() {
     const e = activeRange.end.getTime();
     const term = leadSearch.trim().toLowerCase();
     return allRows.filter((r) => {
+      if (issue === "leads-no-source") return !r.source_id;
       const names = (activationsByEntry.get(r.id) ?? [])
         .map((a) => (a.lead_name ?? "").toLowerCase())
         .join(" ");
@@ -146,7 +153,7 @@ function LeadsPage() {
       if (sourceFilter.length > 0 && !sourceFilter.includes(r.source_id ?? "")) return false;
       return matchesSearch;
     });
-  }, [allRows, activeRange, sourceFilter, leadSearch, activationsByEntry]);
+  }, [allRows, activeRange, sourceFilter, leadSearch, activationsByEntry, issue]);
 
   const navigate = useNavigate();
 

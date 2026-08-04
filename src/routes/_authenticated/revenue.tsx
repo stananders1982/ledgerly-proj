@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Download, TrendingUp } from "lucide-react";
 import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
+import { IssueFilterBanner } from "@/components/issue-filter-banner";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useCompanySettings } from "@/lib/settings";
 
 export const Route = createFileRoute("/_authenticated/revenue")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    issue: typeof search.issue === "string" ? search.issue : undefined,
+  }),
   head: () => ({ meta: [{ title: "Revenue — Ledgerly" }] }),
   component: RevenuePage,
 });
@@ -53,6 +57,8 @@ function RevenuePage() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [search, setSearch] = useState("");
+  const { issue } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const activeRange = useMemo(
 
     () => getRange(range, { start: customStart, end: customEnd }),
@@ -115,6 +121,9 @@ function RevenuePage() {
     const e = activeRange.end.getTime();
     const term = search.trim().toLowerCase();
     return list.filter((r: any) => {
+      if (issue === "revenue-no-method" && r.method) return false;
+      if (issue === "revenue-no-agent" && r.employee_id) return false;
+      if (issue) return true;
       if (!term) {
         const t = new Date(r.date + "T00:00:00").getTime();
         if (t < s || t > e) return false;
@@ -122,7 +131,7 @@ function RevenuePage() {
       }
       return (r.customer_name ?? "").toLowerCase().includes(term);
     });
-  }, [revQ.data, activeRange, search]);
+  }, [revQ.data, activeRange, search, issue]);
 
   const { sorted, sort, toggle } = useSort<any>(filtered, {
     date: (r) => r.date,
@@ -310,6 +319,14 @@ function RevenuePage() {
           </div>
         }
       />
+
+      {issue && (
+        <IssueFilterBanner
+          issue={issue}
+          count={filtered.length}
+          onClear={() => navigate({ search: (prev: any) => ({ ...prev, issue: undefined }), replace: true })}
+        />
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <DateRangePicker
