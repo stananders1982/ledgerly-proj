@@ -427,6 +427,16 @@ function ActivationsPage() {
         description="Every client with its balance, potential, agents and answer status."
       />
 
+      {issue && (
+        <IssueFilterBanner
+          issue={issue}
+          count={rows.length}
+          onClear={() => navigate({ search: (prev: any) => ({ ...prev, issue: undefined }), replace: true })}
+        />
+      )}
+
+
+
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <DateRangePicker
           value={range}
