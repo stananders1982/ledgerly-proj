@@ -241,6 +241,8 @@ function ActivationsPage() {
           return !!name && !r.potential;
         case "clients-duplicate":
           return dupNames.has(name.toLowerCase());
+        case "clients-unallocated-ftd":
+          return !!r.qualified_at && !r.conversion_employee_id;
         case "clients-no-revenue":
           return !!name && !depositsByName.has(name.toLowerCase());
         default:

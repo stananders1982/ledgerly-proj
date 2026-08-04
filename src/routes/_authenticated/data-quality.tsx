@@ -51,7 +51,9 @@ export function useDataQuality() {
     queryKey: ["dq-activations"],
     queryFn: async () =>
       (await fetchAll(() =>
-        supabase.from("daily_lead_activations").select("id,lead_name,potential,employee_id"),
+        supabase
+          .from("daily_lead_activations")
+          .select("id,lead_name,potential,employee_id,conversion_employee_id,qualified_at"),
       )) ?? [],
   });
   const empQ = useQuery({
@@ -115,6 +117,14 @@ export function useDataQuality() {
         label: "Activations with no client name",
         detail: "Unnamed activations can't be matched to deposits or STDs.",
         count: acts.filter((a) => !(a.lead_name ?? "").trim()).length,
+        to: "/activations",
+        severity: "high",
+      },
+      {
+        key: "clients-unallocated-ftd",
+        label: "Valid FTDs with no conversion agent",
+        detail: "Qualified clients nobody is credited for — commission won't be paid.",
+        count: acts.filter((a) => a.qualified_at && !a.conversion_employee_id).length,
         to: "/activations",
         severity: "high",
       },
