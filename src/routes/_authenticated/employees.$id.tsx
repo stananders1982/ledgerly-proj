@@ -281,9 +281,12 @@ function EmployeeDetailPage() {
       <div className="card-surface overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
           <div>
-            <h3 className="font-display text-base font-semibold">FTDs ({conversions.counted.length})</h3>
+            <h3 className="font-display text-base font-semibold">
+              Activations ({conversions.all.length}) — {conversions.counted.length} counted
+              {conversions.pending.length > 0 && ` · ${conversions.pending.length} pending`}
+            </h3>
             <p className="text-xs text-muted-foreground">
-              Answered leads with mid/high potential, or low potential with balance $251+.
+              Only counted FTDs are paid ({conversions.counted.length} × {fmtMoney(totals.ftdRate)}). Pending rows are excluded from commission.
             </p>
           </div>
           <Link to="/activations" search={{ client: undefined, name: undefined }} className="text-xs text-primary hover:underline">Manage</Link>
