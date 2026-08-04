@@ -580,6 +580,7 @@ function ActivationsPage() {
                 </th>
                 <th className="py-3 px-2 w-8"></th>
                 <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
+                <th className="py-3 px-4">Qualified</th>
                 <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
                 <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-3 px-4" />
