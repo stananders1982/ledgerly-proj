@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { depositsByName, effectiveBalance, qualifiesAsFtd, isStd } from "@/lib/rules";
+import { isStd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
 import { GoalBar } from "@/components/goal-bar";
@@ -104,12 +104,27 @@ function PerformancePage() {
     queryFn: async () => {
       const data = await fetchAll(() => sb
         .from("daily_lead_activations")
-        .select("id,employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,activation_date")
+        .select("id,employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,activation_date,qualified_at")
         .gte("activation_date", start)
         .lte("activation_date", end));
       return data ?? [];
     },
   });
+
+  // FTDs are credited in the month the lead became valid (qualified_at), which
+  // may be later than the activation month.
+  const ftdQ = useQuery({
+    queryKey: ["perf-ftds", start, end],
+    queryFn: async () => {
+      const data = await fetchAll(() => sb
+        .from("daily_lead_activations")
+        .select("id,conversion_employee_id,qualified_at")
+        .gte("qualified_at", start)
+        .lte("qualified_at", end));
+      return (data ?? []) as any[];
+    },
+  });
+
 
   // Every client this agent handles (any activation date) — used for STD, which is
   // scoped by the *deposit* date, not the activation date.
@@ -135,7 +150,7 @@ function PerformancePage() {
     const emps = empQ.data ?? [];
     const wd = workingDays(start, end);
 
-    const deposits = depositsByName(depositsQ.data ?? []);
+    
     const allDeposits = (depositsQ.data ?? []) as any[];
     const allActs = (allActQ.data ?? []) as any[];
 
@@ -179,15 +194,13 @@ function PerformancePage() {
         .filter((a) => a.employee_id === emp.id)
         .reduce((s, a) => s + Number(a.activated_count || 0), 0);
 
-      const mine = acts.filter((a) => a.conversion_employee_id === emp.id);
-      let ftds = 0;
-      let pendingFtds = 0;
-      for (const a of mine) {
-        const eff = effectiveBalance(a, deposits);
-        const ok = qualifiesAsFtd(a, eff, settings);
-        if (ok) ftds++;
-        else pendingFtds++;
-      }
+      // Counted FTDs: qualified inside the period (activation may be older).
+      const ftds = ((ftdQ.data ?? []) as any[]).filter((a) => a.conversion_employee_id === emp.id).length;
+      // Pending: activated in the period but not yet valid.
+      const pendingFtds = acts.filter(
+        (a) => a.conversion_employee_id === emp.id && !a.qualified_at,
+      ).length;
+
       // Per-FTD rate lives on the employee record.
       const ftdRate = Number(emp.ftd_commission ?? settings.ftdCommission);
       const ftdCommission = team === "C" ? ftds * ftdRate : 0;
@@ -228,7 +241,7 @@ function PerformancePage() {
     })
     .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()))
     .sort((a, b) => (TEAM_RANK[a.team] ?? 3) - (TEAM_RANK[b.team] ?? 3) || a.name.localeCompare(b.name));
-  }, [empQ.data, revQ.data, withQ.data, attQ.data, actQ.data, allActQ.data, depositsQ.data, start, end, search, settings]);
+  }, [empQ.data, revQ.data, withQ.data, attQ.data, actQ.data, ftdQ.data, allActQ.data, depositsQ.data, start, end, search, settings]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     name: (r) => r.name,

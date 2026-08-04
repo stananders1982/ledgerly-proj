@@ -117,18 +117,26 @@ function EmployeeDetailPage() {
   });
 
   // FTDs — leads this employee activated (as conversion agent).
-  // Counted when answered AND (mid/high potential OR effective balance >= 251).
+  // Counted in the month the lead *became valid* (qualified_at), which can be
+  // later than the activation month. Pending leads are listed by activation date.
   const conversionsQ = useQuery({
     enabled: isConversion,
     queryKey: ["employee-conversions", id, start, end],
     queryFn: async () => {
-      const data = await fetchAll(() => sb
+      const counted = await fetchAll(() => sb
         .from("daily_lead_activations")
-        .select("lead_name, potential, answered, balance, activation_date, daily_lead_entries(entry_date)")
+        .select("id, lead_name, potential, answered, balance, activation_date, qualified_at, daily_lead_entries(entry_date)")
         .eq("conversion_employee_id", id)
+        .gte("qualified_at", start)
+        .lte("qualified_at", end));
+      const pending = await fetchAll(() => sb
+        .from("daily_lead_activations")
+        .select("id, lead_name, potential, answered, balance, activation_date, qualified_at, daily_lead_entries(entry_date)")
+        .eq("conversion_employee_id", id)
+        .is("qualified_at", null)
         .gte("activation_date", start)
         .lte("activation_date", end));
-      return data ?? [];
+      return { counted: counted ?? [], pending: pending ?? [] };
     },
   });
 
@@ -145,13 +153,15 @@ function EmployeeDetailPage() {
 
   const conversions = useMemo(() => {
     const deposits = depositsByName(depositsQ.data ?? []);
-    const all = ((conversionsQ.data ?? []) as any[]).map((r) => {
+    const decorate = (r: any, qualifies: boolean) => {
       const bal = effectiveBalance(r, deposits);
-      const qualifies = qualifiesAsFtd(r, bal, settings);
-      return { ...r, effectiveBalance: bal, qualifies, reason: ftdPendingReason(r, bal, settings) };
-    });
-    return { all, counted: all.filter((r) => r.qualifies), pending: all.filter((r) => !r.qualifies) };
+      return { ...r, effectiveBalance: bal, qualifies, reason: qualifies ? "" : ftdPendingReason(r, bal, settings) };
+    };
+    const counted = ((conversionsQ.data?.counted ?? []) as any[]).map((r) => decorate(r, true));
+    const pending = ((conversionsQ.data?.pending ?? []) as any[]).map((r) => decorate(r, false));
+    return { all: [...counted, ...pending], counted, pending };
   }, [conversionsQ.data, depositsQ.data, settings]);
+
 
   const conversionRows = useMemo(() => [...conversions.counted, ...conversions.pending], [conversions]);
   const { pageItems: convPage, ...pgConv } = usePagination(conversionRows, 30);
@@ -286,7 +296,7 @@ function EmployeeDetailPage() {
               {conversions.pending.length > 0 && ` · ${conversions.pending.length} pending`}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Only counted FTDs are paid ({conversions.counted.length} × {fmtMoney(totals.ftdRate)}). Pending rows are excluded from commission.
+              Counted in the month the lead became valid ({conversions.counted.length} × {fmtMoney(totals.ftdRate)}) — including leads activated earlier. Pending rows are excluded from commission.
             </p>
           </div>
           <Link to="/activations" search={{ client: undefined, name: undefined }} className="text-xs text-primary hover:underline">Manage</Link>
@@ -298,7 +308,8 @@ function EmployeeDetailPage() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-card">
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="py-2 px-4">Date</th>
+                  <th className="py-2 px-4">Activated</th>
+                  <th className="py-2 px-4">Qualified</th>
                   <th className="py-2 px-4">Lead</th>
                   <th className="py-2 px-4">Potential</th>
                   <th className="py-2 px-4 text-right">Balance</th>
@@ -309,10 +320,21 @@ function EmployeeDetailPage() {
                 {convPage.map((c: any, i: number) => (
                   <tr key={`ftd-${i}`} className={cn("border-b border-border/50", c.qualifies ? "" : "text-muted-foreground")}>
                     <td className="py-2 px-4 text-muted-foreground">{fmtDate(c.activation_date ?? c.daily_lead_entries?.entry_date)}</td>
+                    <td className="py-2 px-4">
+                      {c.qualified_at ? (
+                        <>
+                          {fmtDate(c.qualified_at)}
+                          {String(c.qualified_at).slice(0, 7) !== String(c.activation_date ?? "").slice(0, 7) && (
+                            <span className="ml-1 text-xs text-muted-foreground">(late)</span>
+                          )}
+                        </>
+                      ) : "—"}
+                    </td>
                     <td className="py-2 px-4">{c.lead_name || "—"}</td>
                     <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
                     <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
                     <td className={cn("py-2 px-4", c.qualifies ? "text-primary" : "")}>{c.qualifies ? "Counted" : c.reason}</td>
+
                   </tr>
                 ))}
               </tbody>
