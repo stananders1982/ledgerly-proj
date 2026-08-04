@@ -386,7 +386,7 @@ function ActivationsPage() {
 
   // Quick status change from the client detail dialog.
   const setStatus = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: { answered?: boolean; potential?: Row["potential"] } }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: { answered?: boolean; potential?: Row["potential"]; activation_date?: string | null; qualified_at?: string | null } }) => {
       const { error } = await supabase.from("daily_lead_activations").update(patch).eq("id", id);
       if (error) throw error;
     },
