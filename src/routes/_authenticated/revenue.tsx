@@ -115,10 +115,12 @@ function RevenuePage() {
     const e = activeRange.end.getTime();
     const term = search.trim().toLowerCase();
     return list.filter((r: any) => {
-      const t = new Date(r.date + "T00:00:00").getTime();
-      if (t < s || t > e) return false;
-      if (term && !(r.customer_name ?? "").toLowerCase().includes(term)) return false;
-      return true;
+      if (!term) {
+        const t = new Date(r.date + "T00:00:00").getTime();
+        if (t < s || t > e) return false;
+        return true;
+      }
+      return (r.customer_name ?? "").toLowerCase().includes(term);
     });
   }, [revQ.data, activeRange, search]);
 
