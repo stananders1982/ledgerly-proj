@@ -230,9 +230,10 @@ function ActivationsPage() {
   const rows = useMemo(() => {
     const s = activeRange.start.getTime();
     const e = activeRange.end.getTime();
+    const searching = search.trim().length > 0;
     return (q.data ?? []).filter((r) => {
       const d = actDate(r);
-      if (d) {
+      if (d && !searching) {
         const t = new Date(d + "T00:00:00").getTime();
         if (t < s || t > e) return false;
       }

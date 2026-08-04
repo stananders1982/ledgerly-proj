@@ -98,8 +98,8 @@ function WithdrawalsPage() {
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return inRange;
-    return inRange.filter((r: any) => (r.customer_name ?? "").toLowerCase().includes(term));
-  }, [inRange, search]);
+    return (wQ.data ?? []).filter((r: any) => (r.customer_name ?? "").toLowerCase().includes(term));
+  }, [inRange, wQ.data, search]);
 
   const { sorted, sort, toggle } = useSort<any>(rows, {
     date: (r) => r.date,
