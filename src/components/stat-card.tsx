@@ -1,4 +1,5 @@
 import { ArrowDownRight, ArrowUpRight, type LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -7,8 +8,9 @@ interface Props {
   delta?: number;
   icon?: LucideIcon;
   tone?: "default" | "positive" | "negative";
-  hint?: string;
+  hint?: ReactNode;
 }
+
 
 export function StatCard({ label, value, delta, icon: Icon, tone = "default", hint }: Props) {
   const trendUp = (delta ?? 0) >= 0;
