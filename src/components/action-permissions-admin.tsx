@@ -51,6 +51,7 @@ export function ActionPermissionsAdmin({ userId: propUserId }: { userId?: string
 
   const setPerm = useMutation({
     mutationFn: async ({ key, allowed }: { key: ActionKey; allowed: boolean }) => {
+      if (!companyId) throw new Error("No company selected");
       const { error } = await supabase
         .from("action_permissions")
         .upsert(
