@@ -45,7 +45,9 @@ export function useDataQuality() {
   const revQ = useQuery({
     queryKey: ["dq-revenue"],
     queryFn: async () =>
-      (await fetchAll(() => supabase.from("revenue").select("id,method,customer_name,amount,employee_id"))) ?? [],
+      (await fetchAll(() =>
+        supabase.from("revenue").select("id,method,customer_name,amount,employee_id,activation_id"),
+      )) ?? [],
   });
   const actQ = useQuery({
     queryKey: ["dq-activations"],
@@ -53,7 +55,7 @@ export function useDataQuality() {
       (await fetchAll(() =>
         supabase
           .from("daily_lead_activations")
-          .select("id,lead_name,potential,employee_id,conversion_employee_id,qualified_at"),
+          .select("id,lead_name,potential,employee_id,conversion_employee_id,qualified_at,balance"),
       )) ?? [],
   });
   const empQ = useQuery({
@@ -61,6 +63,15 @@ export function useDataQuality() {
     queryFn: async () => {
       const { data } = await supabase.from("employees").select("id,name,team,salary,active");
       return data ?? [];
+    },
+  });
+  // Directory RPC works for non-admins too, so team-based checks stay correct
+  // for users who can't read the employees table directly.
+  const dirQ = useQuery({
+    queryKey: ["dq-emp-directory"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("list_employees_directory");
+      return (data ?? []) as any[];
     },
   });
 
@@ -71,9 +82,10 @@ export function useDataQuality() {
     const revenue = (revQ.data ?? []) as any[];
     const acts = (actQ.data ?? []) as any[];
     const emps = ((empQ.data ?? []) as any[]).filter((e) => e.active !== false);
-    const retentionIds = new Set(
-      ((empQ.data ?? []) as any[]).filter((e) => e.team === "R").map((e) => e.id),
-    );
+    const teamSource = ((empQ.data ?? []) as any[]).length
+      ? ((empQ.data ?? []) as any[])
+      : ((dirQ.data ?? []) as any[]);
+    const retentionIds = new Set(teamSource.filter((e) => e.team === "R").map((e) => e.id));
 
     const named = acts.filter((a) => (a.lead_name ?? "").trim());
     const nameCounts = new Map<string, number>();
@@ -86,8 +98,14 @@ export function useDataQuality() {
     const revenueNames = new Set(
       revenue.map((r) => (r.customer_name ?? "").trim().toLowerCase()).filter(Boolean),
     );
+    const revenueActivationIds = new Set(revenue.map((r) => r.activation_id).filter(Boolean));
+    // A client counts as funded when they hold an opening balance, or a deposit
+    // is linked to them by activation or by name.
     const clientsNoRevenue = named.filter(
-      (a) => !revenueNames.has(a.lead_name.trim().toLowerCase()),
+      (a) =>
+        Number(a.balance || 0) <= 0 &&
+        !revenueActivationIds.has(a.id) &&
+        !revenueNames.has(a.lead_name.trim().toLowerCase()),
     ).length;
 
     return [
@@ -174,7 +192,7 @@ export function useDataQuality() {
         severity: "medium",
       },
     ];
-  }, [leadsQ.data, revQ.data, actQ.data, empQ.data]);
+  }, [leadsQ.data, revQ.data, actQ.data, empQ.data, dirQ.data]);
 
   const open = issues.filter((i) => i.count > 0);
   const total = open.reduce((s, i) => s + i.count, 0);
