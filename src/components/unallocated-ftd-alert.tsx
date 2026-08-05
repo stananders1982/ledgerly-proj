@@ -20,11 +20,14 @@ export function UnallocatedFtdAlert() {
           .select("id,lead_name,qualified_at,employee_id")
           .not("qualified_at", "is", null)
           .order("qualified_at", { ascending: false }),
-        supabase.from("employees").select("id,team"),
+        // Directory RPC: readable by every signed-in user, unlike the
+        // employees table which is restricted for non-admins.
+        supabase.rpc("list_employees_directory"),
       ]);
       if (acts.error) throw acts.error;
+      if (emps.error) throw emps.error;
       const retention = new Set(
-        (emps.data ?? []).filter((e) => e.team === "R").map((e) => e.id),
+        (emps.data ?? []).filter((e: any) => e.team === "R").map((e: any) => e.id),
       );
       return (acts.data ?? []).filter((a) => !a.employee_id || !retention.has(a.employee_id));
     },
