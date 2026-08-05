@@ -325,9 +325,9 @@ function EditAccessDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Edit access — {user.email}</DialogTitle></DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex items-center justify-between rounded-md border p-3">
             <div>
               <div className="text-sm font-medium">Admin</div>
@@ -347,6 +347,11 @@ function EditAccessDialog({
                   </label>
                 ))}
               </div>
+            </div>
+          )}
+          {!isAdmin && (
+            <div className="rounded-md border p-4">
+              <ActionPermissionsAdmin userId={user.id} />
             </div>
           )}
         </div>
