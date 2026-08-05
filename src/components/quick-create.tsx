@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { requestQuickCreate, type QuickCreateKey } from "@/lib/quick-create";
+import { useCan, type ActionKey } from "@/lib/permissions";
 
 type Option = {
   key: QuickCreateKey;
@@ -30,22 +31,27 @@ type Option = {
   to: string;
   icon: typeof Plus;
   tone: string;
+  /** Pages without a create dialog just navigate. */
+  navigateOnly?: boolean;
+  /** Extra action permission required on top of the nav permission. */
+  action?: ActionKey;
 };
 
 const OPTIONS: Option[] = [
   { key: "revenue", navKey: "revenue", label: "Income", to: "/revenue", icon: TrendingUp, tone: "text-emerald-600 dark:text-emerald-400" },
   { key: "expenses", navKey: "expenses", label: "Expense", to: "/expenses", icon: Receipt, tone: "text-rose-600 dark:text-rose-400" },
   { key: "leads", navKey: "leads", label: "Lead entry", to: "/leads", icon: Users, tone: "text-sky-600 dark:text-sky-400" },
-  { key: "withdrawals", navKey: "withdrawals", label: "Withdrawal", to: "/withdrawals", icon: Banknote, tone: "text-amber-600 dark:text-amber-400" },
+  { key: "withdrawals", navKey: "withdrawals", label: "Withdrawal", to: "/withdrawals", icon: Banknote, tone: "text-amber-600 dark:text-amber-400", action: "approve_withdrawals" },
   { key: "tasks", navKey: "tasks", label: "Task", to: "/tasks", icon: ListTodo, tone: "text-teal-600 dark:text-teal-400" },
-  { key: "activations", navKey: "activations", label: "Clients", to: "/activations", icon: UserCheck, tone: "text-fuchsia-600 dark:text-fuchsia-400" },
-  { key: "attendance", navKey: "attendance", label: "Attendance", to: "/attendance", icon: CalendarCheck, tone: "text-indigo-600 dark:text-indigo-400" },
+  { key: "activations", navKey: "activations", label: "Clients", to: "/activations", icon: UserCheck, tone: "text-fuchsia-600 dark:text-fuchsia-400", navigateOnly: true },
+  { key: "attendance", navKey: "attendance", label: "Attendance", to: "/attendance", icon: CalendarCheck, tone: "text-indigo-600 dark:text-indigo-400", navigateOnly: true },
 ];
 
 export function QuickCreate() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const { isAdmin, navKeys, permsLoaded } = useAuth();
+  const can = useCan();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -63,12 +69,15 @@ export function QuickCreate() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  const allowed = OPTIONS.filter((o) => (isAdmin ? true : permsLoaded && navKeys.has(o.navKey)));
+  const allowed = OPTIONS.filter(
+    (o) =>
+      (isAdmin || (permsLoaded && navKeys.has(o.navKey))) && (!o.action || can(o.action)),
+  );
   if (allowed.length === 0) return null;
 
   const pick = (o: Option) => {
     setOpen(false);
-    requestQuickCreate(o.key);
+    if (!o.navigateOnly) requestQuickCreate(o.key);
     navigate({ to: o.to });
   };
 
