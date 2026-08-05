@@ -254,34 +254,59 @@ function LeadsPage() {
 
   // Unallocated activations are checked across ALL time, not just the selected
   // period — an FTD left without an agent stays flagged tomorrow and after.
-  const unallocatedBySource = useMemo(() => {
-    const map = new Map<string, { sourceName: string; count: number }>();
+  const unallocatedDetail = useMemo(() => {
     const scope = sourceFilter.length
       ? allRows.filter((r) => sourceFilter.includes(r.source_id ?? ""))
       : allRows;
+    const list: { key: string; sourceName: string; date: string | null; count: number }[] = [];
     for (const r of scope) {
       const splits = activationsByEntry.get(r.id) ?? [];
       const rowed = splits.reduce((s, a) => s + (a.activated_count ?? 0), 0);
       const diff = Math.max(0, Number(r.activated ?? 0) - rowed);
       if (diff > 0) {
-        const name = r.lead_sources?.name ?? "No source";
-        const existing = map.get(name);
-        if (existing) existing.count += diff;
-        else map.set(name, { sourceName: name, count: diff });
+        list.push({
+          key: r.id,
+          sourceName: r.lead_sources?.name ?? "No source",
+          date: (r as any).entry_date ?? null,
+          count: diff,
+        });
       }
     }
-    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+    return list.sort((a, b) => (a.date ?? "") < (b.date ?? "") ? 1 : (a.date ?? "") > (b.date ?? "") ? -1 : 0);
   }, [allRows, sourceFilter, activationsByEntry]);
 
-  const unallocatedHint = useMemo(() => {
-    const total = unallocatedBySource.reduce((s, x) => s + x.count, 0);
-    if (total <= 0) return undefined;
-    const parts = unallocatedBySource.map(
-      (s) => `${s.count} FTD${s.count === 1 ? "" : "s"} from ${s.sourceName}`,
+  const unallocatedTotal = useMemo(
+    () => unallocatedDetail.reduce((s, x) => s + x.count, 0),
+    [unallocatedDetail],
+  );
+
+  const unallocatedNode = useMemo(() => {
+    if (unallocatedTotal <= 0) return undefined;
+    const shown = unallocatedDetail.slice(0, 4);
+    return (
+      <div className="space-y-1">
+        <div className="text-xs font-medium text-destructive">
+          {unallocatedTotal} FTD{unallocatedTotal === 1 ? "" : "s"} not allocated
+        </div>
+        <ul className="space-y-0.5">
+          {shown.map((u) => (
+            <li key={u.key} className="flex items-baseline gap-1.5 text-xs text-muted-foreground">
+              <span className="font-semibold tabular-nums text-foreground">{u.count}</span>
+              <span className="truncate">{u.sourceName}</span>
+              <span className="ml-auto shrink-0 tabular-nums">{fmtDate(u.date)}</span>
+            </li>
+          ))}
+        </ul>
+        {unallocatedDetail.length > shown.length && (
+          <div className="text-xs text-muted-foreground">
+            +{unallocatedDetail.length - shown.length} more day
+            {unallocatedDetail.length - shown.length === 1 ? "" : "s"}
+          </div>
+        )}
+      </div>
     );
-    if (parts.length === 1) return `${parts[0]} is not allocated`;
-    return `${parts.join(", ")} are not allocated`;
-  }, [unallocatedBySource]);
+  }, [unallocatedDetail, unallocatedTotal]);
+
 
 
   // STD: any deposit recorded on/after the client's activation date. Counted in
