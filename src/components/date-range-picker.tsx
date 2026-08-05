@@ -24,7 +24,10 @@ export function getRange(
     case "week": {
       const s = new Date(start);
       s.setDate(s.getDate() - 6);
-      return { start: s, end, label: "Last 7 days" };
+      // Never spill into the previous month — clamp to the 1st.
+      const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
+      const clamped = s.getTime() < monthStart.getTime() ? monthStart : s;
+      return { start: clamped, end, label: "Last 7 days" };
     }
     case "month": {
       const s = new Date(start.getFullYear(), start.getMonth(), 1);
