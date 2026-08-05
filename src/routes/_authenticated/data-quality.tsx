@@ -192,7 +192,7 @@ export function useDataQuality() {
         severity: "medium",
       },
     ];
-  }, [leadsQ.data, revQ.data, actQ.data, empQ.data]);
+  }, [leadsQ.data, revQ.data, actQ.data, empQ.data, dirQ.data]);
 
   const open = issues.filter((i) => i.count > 0);
   const total = open.reduce((s, i) => s + i.count, 0);
