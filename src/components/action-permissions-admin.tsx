@@ -14,15 +14,20 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export function ActionPermissionsAdmin() {
-  const { isAdmin } = useAuth();
+export function ActionPermissionsAdmin({ userId: propUserId }: { userId?: string } = {}) {
+  const { isAdmin, companyId } = useAuth();
   const qc = useQueryClient();
-  const [userId, setUserId] = useState<string>("");
+  const [selectedUserId, setSelectedUserId] = useState<string>(propUserId ?? "");
+  const userId = propUserId ?? selectedUserId;
+
+  useEffect(() => {
+    if (propUserId) setSelectedUserId(propUserId);
+  }, [propUserId]);
 
   const usersQ = useQuery({
-    enabled: isAdmin,
+    enabled: isAdmin && !propUserId,
     queryKey: ["action-perms-users"],
     queryFn: async () => {
       const { data, error } = await supabase.from("profiles").select("id,full_name").order("full_name");
@@ -48,7 +53,10 @@ export function ActionPermissionsAdmin() {
     mutationFn: async ({ key, allowed }: { key: ActionKey; allowed: boolean }) => {
       const { error } = await supabase
         .from("action_permissions")
-        .upsert({ user_id: userId, action_key: key, allowed }, { onConflict: "user_id,action_key" });
+        .upsert(
+          { user_id: userId, company_id: companyId, action_key: key, allowed },
+          { onConflict: "user_id,action_key" },
+        );
       if (error) throw error;
     },
     onSuccess: () => {
@@ -64,30 +72,32 @@ export function ActionPermissionsAdmin() {
   const allowed = new Set((permsQ.data ?? []).filter((p) => p.allowed).map((p) => p.action_key));
 
   return (
-    <div className="card-surface grid gap-5 p-5">
+    <div className="grid gap-4">
       <div>
-        <h2 className="flex items-center gap-2 font-display text-base font-semibold">
+        <h2 className="flex items-center gap-2 font-display text-sm font-semibold">
           <ShieldCheck className="h-4 w-4 text-muted-foreground" /> Action permissions
         </h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Fine-grained control over what non-admin users can do. Admins always have every permission.
+          Fine-grained control over what this user can do. Admins always have every permission.
         </p>
       </div>
 
-      <div className="grid max-w-sm gap-1.5">
-        <Label className="text-xs">User</Label>
-        <Select value={userId} onValueChange={setUserId}>
-          <SelectTrigger><SelectValue placeholder="Select a user" /></SelectTrigger>
-          <SelectContent>
-            {(usersQ.data ?? []).map((u: any) => (
-              <SelectItem key={u.id} value={u.id}>{u.full_name || "Unnamed user"}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {!propUserId && (
+        <div className="grid max-w-sm gap-1.5">
+          <Label className="text-xs">User</Label>
+          <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+            <SelectTrigger><SelectValue placeholder="Select a user" /></SelectTrigger>
+            <SelectContent>
+              {(usersQ.data ?? []).map((u: any) => (
+                <SelectItem key={u.id} value={u.id}>{u.full_name || "Unnamed user"}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {userId && (
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           {ACTION_PERMISSIONS.map((a) => (
             <div key={a.key} className="flex items-start gap-3">
               <Switch
