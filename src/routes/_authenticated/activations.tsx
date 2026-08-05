@@ -248,7 +248,11 @@ function ActivationsPage() {
         case "clients-unallocated-ftd":
           return !!r.qualified_at && !retentionIds.has(r.employee_id);
         case "clients-no-revenue":
-          return !!name && !depositsByName.has(name.toLowerCase());
+          return (
+            !!name &&
+            Number(r.balance || 0) <= 0 &&
+            !depositsByName.has(name.toLowerCase())
+          );
         default:
           return true;
       }
