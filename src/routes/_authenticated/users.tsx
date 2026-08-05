@@ -19,6 +19,7 @@ import { ArrowUpDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { ActionPermissionsAdmin } from "@/components/action-permissions-admin";
 import { useAuth } from "@/lib/auth-context";
 import { NAV_ITEMS, MANAGEABLE_NAV_KEYS } from "@/lib/nav-items";
 import {
