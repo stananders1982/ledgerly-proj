@@ -4,20 +4,19 @@ Two tracks. Pick any subset; each item is independent.
 
 ## Track A — The "brain" (smarter data, less manual work)
 
-
-2. **Agent coaching insights**
+1. **Agent coaching insights**
    On each employee page, auto-generated observations comparing the agent to their own last 3 months and to the team median: conversion rate, STD rate, average deposit size, answer rate. Written as plain sentences ("STD rate dropped from 31% to 18% while clients received went up 40%").
 
-3. **Source quality intelligence**
+2. **Source quality intelligence**
    Beyond ROI: time-to-activation, deposit-per-lead, STD rate and refund/withdrawal rate per source. Ranks sources on *profit quality*, not volume, and flags sources whose quality is degrading month over month.
 
-4. **Anomaly detection & smart alerts**
+3. **Anomaly detection & smart alerts**
    Daily check for statistical outliers: revenue spike/drop vs. the trailing 30-day baseline, a source that stopped delivering, an agent with zero activity, withdrawal surge, expense above the usual range for its category. Shown as dismissible alerts and in the notification bell.
 
-5. **Forecast that learns**
+4. **Forecast that learns**
    Replace the flat 90-day cashflow projection with one based on trailing conversion rates, seasonality by weekday, recurring expenses/revenue, and pipeline (unqualified activations weighted by their qualification probability).
 
-6. **Natural-language ask box**
+5. **Natural-language ask box**
    A single input on the dashboard ("how much did Team C earn from KK-Leads last month?") that turns the question into a scoped query over the existing data and answers with a number plus a small table. Uses the built-in AI gateway, read-only, permission-scoped.
 
 7. **Daily / weekly digest**
