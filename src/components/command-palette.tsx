@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Banknote, CalendarCheck, CheckSquare, Receipt, TrendingUp, Target, UserPlus, Users, UserCog, Building2, Star } from "lucide-react";
+import { Banknote, CalendarCheck, CheckSquare, Receipt, TrendingUp, Target, Users, UserCog, Building2, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CommandDialog,
@@ -29,7 +29,6 @@ const QUICK_ACTIONS: {
   { label: "Add an expense", to: "/expenses", icon: Receipt, key: "expenses", create: "expenses" },
   { label: "Record a withdrawal", to: "/withdrawals", icon: Banknote, key: "withdrawals", create: "withdrawals" },
   { label: "Add a lead entry", to: "/leads", icon: Target, key: "leads", create: "leads" },
-  { label: "Activate a client", to: "/activations", icon: UserPlus, key: "activations", create: "activations" },
   { label: "Create a task", to: "/tasks", icon: CheckSquare, key: "tasks", create: "tasks" },
   { label: "Mark attendance", to: "/attendance", icon: CalendarCheck, key: "attendance" },
 ];
