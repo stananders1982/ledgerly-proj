@@ -111,6 +111,15 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         (a: any) => `${month(a.qualified_at)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
         () => 1,
       ),
+      // Of a month's own activations, how many qualified within that same month.
+      qualifiedSameMonthByMonthAndAgent: bucket(
+        (activations.data ?? []).filter(
+          (a: any) => a.qualified_at && month(a.qualified_at) === month(a.activation_date),
+        ),
+        (a: any) => `${month(a.activation_date)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
+        () => 1,
+      ),
+
       depositsByMonthAndSource: round(
         bucket(
           revenue.data,
