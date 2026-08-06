@@ -89,13 +89,25 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         (a: any) => nameOf(employees.data, a.conversion_employee_id),
         () => 1,
       ),
-      activationsByMonthAndAgent: bucket(
+      // Activation clock: counted in the month the lead was activated.
+      activationsByMonthActivatedAndAgent: bucket(
         activations.data,
         (a: any) => `${month(a.activation_date)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
         () => 1,
       ),
-      qualifiedFtdsByMonthAndAgent: bucket(
+      // Qualification clock: counted in the month the FTD became valid. This
+      // includes leads activated in earlier months, so it is normally larger
+      // than the activation count for the same month — they are not subsets.
+      qualifiedFtdsByMonthQualifiedAndAgent: bucket(
         (activations.data ?? []).filter((a: any) => a.qualified_at),
+        (a: any) => `${month(a.qualified_at)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
+        () => 1,
+      ),
+      // Of those qualified in a month, how many were activated in an earlier month.
+      qualifiedFromEarlierMonthsByMonthAndAgent: bucket(
+        (activations.data ?? []).filter(
+          (a: any) => a.qualified_at && month(a.qualified_at) !== month(a.activation_date),
+        ),
         (a: any) => `${month(a.qualified_at)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
         () => 1,
       ),
