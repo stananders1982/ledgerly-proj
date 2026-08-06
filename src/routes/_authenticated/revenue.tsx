@@ -26,7 +26,7 @@ import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { SearchInput } from "@/components/search-input";
-import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, FilterRow, TotalsRow } from "@/components/table-toolbox";
 import { useSort, SortTh } from "@/components/sortable-table";
 
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
@@ -451,6 +451,15 @@ function RevenuePage() {
                   />
                 ))}
               </tbody>
+              <TotalsRow
+                tb={tb}
+                rows={pageItems as any[]}
+                leading={1}
+                trailing={1}
+                totals={{ amount: (r: any) => Number(r.amount || 0) }}
+                format={(n) => fmtMoney(n)}
+                label="Page total"
+              />
             </table>
           </div>
           <TablePagination {...pg} />

@@ -26,7 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
-import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, FilterRow, TotalsRow } from "@/components/table-toolbox";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { useQuickCreate } from "@/lib/quick-create";
@@ -340,6 +340,15 @@ function ExpensesPage() {
                   </tr>
                 ))}
               </tbody>
+              <TotalsRow
+                tb={tb}
+                rows={pageItems as any[]}
+                leading={1}
+                trailing={1}
+                totals={{ amount: (e: any) => Number(e.amount || 0) }}
+                format={(n) => fmtMoney(n)}
+                label="Page total"
+              />
             </table>
           </div>
           <TablePagination {...pg} />
