@@ -267,7 +267,14 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
   );
 }
 
+function shortDate(iso: string) {
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 function Mini({ label, value, tone }: { label: string; value: string; tone?: string }) {
+
   return (
     <div className="min-w-0 rounded-lg border border-border p-3">
       <p className="truncate text-[11px] uppercase tracking-wider text-muted-foreground" title={label}>
