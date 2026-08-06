@@ -268,6 +268,10 @@ function ExpensesPage() {
         </div>
       )}
 
+      <div className="mb-2 flex justify-end">
+        <ColumnsMenu tb={tb} />
+      </div>
+
       <div className="card-surface overflow-hidden">
         {expQ.isLoading ? <TableSkeleton cols={6} />
         : (expQ.data?.length ?? 0) === 0 ? (
