@@ -540,68 +540,6 @@ function ActivationsPage() {
         <StatCard label="Answered" value={`${answeredCount} / ${rows.length}`} icon={PhoneCall} />
       </div>
 
-      <div className="mb-6 rounded-lg border border-border">
-        <div className="border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold">Conversions by agent</h2>
-          <p className="text-xs text-muted-foreground">{`Counts qualified FTDs: answered and (mid/high potential or balance of $${settings.ftdBalanceThreshold}+). Everything else is pending.`}</p>
-        </div>
-        {conversionsByAgent.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-muted-foreground">No conversions in this range.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="py-2 px-4 font-medium">Conversion agent</th>
-                <th className="py-2 px-4 font-medium">Conversions</th>
-                <th className="py-2 px-4 font-medium">Pending</th>
-                <th className="py-2 px-4 font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {conversionsByAgent.map((a) => (
-                <tr key={a.id} className="border-t border-border/50">
-                  <td className="py-2 px-4"><EmployeeLink id={a.id} name={a.name} /></td>
-                  <td className="py-2 px-4 font-medium num">{a.count}</td>
-                  <td className="py-2 px-4 num text-muted-foreground">
-                    {a.pending > 0 ? (
-                      <button
-                        type="button"
-                        className="underline underline-offset-2 hover:text-foreground"
-                        onClick={() => setPendingView({ title: `Pending FTDs — ${a.name}`, rows: a.pendingRows })}
-                      >
-                        {a.pending}
-                      </button>
-                    ) : (
-                      a.pending
-                    )}
-                  </td>
-                  <td className="py-2 px-4 num">{a.total}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-border bg-muted/30 font-semibold">
-                <td className="py-2 px-4">Total</td>
-                <td className="py-2 px-4 num">{conversionTotals.count}</td>
-                <td className="py-2 px-4 num text-muted-foreground">
-                  {conversionTotals.pending > 0 ? (
-                    <button
-                      type="button"
-                      className="underline underline-offset-2 hover:text-foreground"
-                      onClick={() => setPendingView({ title: "All pending FTDs", rows: conversionTotals.pendingRows })}
-                    >
-                      {conversionTotals.pending}
-                    </button>
-                  ) : (
-                    conversionTotals.pending
-                  )}
-                </td>
-                <td className="py-2 px-4 num">{conversionTotals.total}</td>
-              </tr>
-            </tfoot>
-          </table>
-        )}
-      </div>
 
 
       {selected.size > 0 && (
