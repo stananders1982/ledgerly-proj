@@ -51,7 +51,7 @@ export function AnomalyAlerts() {
       leads: (q.data.leads ?? []) as any,
       sourcesById: new Map(((q.data.sources ?? []) as any[]).map((s) => [s.id, s.name])),
       categoriesById: new Map(((q.data.categories ?? []) as any[]).map((c) => [c.id, c.name])),
-      employees: ((q.data.employees ?? []) as any[]).map((e) => ({ id: e.id, name: e.name, active: e.active })),
+      employees: ((q.data.employees ?? []) as any[]).map((e) => ({ id: e.id, name: e.name, active: e.active, team: e.team })),
     });
   }, [q.data]);
 
