@@ -70,7 +70,7 @@ export function ActivatedLeadsByEmployee({
   const employeesQ = useQuery({
     queryKey: ["employees-directory"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("employees").select("id, name").order("name");
+      const { data, error } = await supabase.rpc("list_employees_directory");
       if (error) throw error;
       return (data ?? []) as { id: string; name: string }[];
     },
