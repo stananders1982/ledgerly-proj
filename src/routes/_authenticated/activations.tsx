@@ -7,7 +7,7 @@ import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
-import { SearchInput } from "@/components/search-input";
+
 import { PageHeader } from "@/components/page-header";
 import { IssueFilterBanner } from "@/components/issue-filter-banner";
 import { Button } from "@/components/ui/button";
@@ -103,7 +103,7 @@ function ActivationsPage() {
   const [answeredFilter, setAnsweredFilter] = useState<"all" | "yes" | "no">("all");
   const [potentialFilter, setPotentialFilter] = useState<string>("all");
   const [stdFilter, setStdFilter] = useState<"all" | "yes" | "no">("all");
-  const [search, setSearch] = useState("");
+  
   const [dupOnly, setDupOnly] = useState(false);
   const [tagFilter, setTagFilter] = useState<string>("all");
 
@@ -139,7 +139,7 @@ function ActivationsPage() {
     if (match) {
       setViewing(match);
       setRange("year");
-      setSearch(match.lead_name ?? "");
+      
     }
     navigate({ search: { client: undefined, name: undefined }, replace: true });
   }, [routeSearch.client, routeSearch.name, q.data, navigate]);
@@ -274,15 +274,13 @@ function ActivationsPage() {
       }
       if (dupOnly && !dupNames.has((r.lead_name ?? "").trim().toLowerCase())) return false;
       if (tagFilter !== "all" && !(r.tags ?? []).includes(tagFilter)) return false;
-      const term = search.trim().toLowerCase();
-      if (term && !(r.lead_name ?? "").toLowerCase().includes(term)) return false;
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch],
+    [answeredFilter, potentialFilter, stdFilter, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch],
   );
 
-  /** Every client regardless of the selected date range (used by name search). */
+  /** Every client regardless of the selected date range (used by issue deep-links). */
   const rowsAllTime = useMemo(
     () => (q.data ?? []).filter(passesFilters),
     [q.data, passesFilters],
@@ -291,16 +289,16 @@ function ActivationsPage() {
   const rows = useMemo(() => {
     const s = activeRange.start.getTime();
     const e = activeRange.end.getTime();
-    const searching = search.trim().length > 0 || !!issue;
+    const bypassDate = !!issue;
     return rowsAllTime.filter((r) => {
       const d = actDate(r);
-      if (d && !searching) {
+      if (d && !bypassDate) {
         const t = new Date(d + "T00:00:00").getTime();
         if (t < s || t > e) return false;
       }
       return true;
     });
-  }, [rowsAllTime, activeRange, search, issue]);
+  }, [rowsAllTime, activeRange, issue]);
 
   const tb = useTableToolbox<any>(
     "activations",
@@ -490,8 +488,6 @@ function ActivationsPage() {
           customEnd={customEnd}
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
-        <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
-        
         <Select value={answeredFilter} onValueChange={(v) => setAnsweredFilter(v as any)}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
