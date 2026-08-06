@@ -628,6 +628,10 @@ function ActivationsPage() {
         </div>
       )}
 
+      <div className="mb-2 flex justify-end">
+        <ColumnsMenu tb={tb} />
+      </div>
+
       <div className="rounded-lg border border-border overflow-hidden">
         {q.isLoading ? (
           <TableSkeleton cols={9} />
