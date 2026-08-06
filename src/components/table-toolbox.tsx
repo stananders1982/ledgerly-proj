@@ -228,6 +228,11 @@ export function FilterRow<T>({
                 ))}
               </SelectContent>
             </Select>
+          ) : c.filter === "date" ? (
+            <DateFilter
+              value={tb.filters[c.key] ?? ""}
+              onChange={(v) => tb.setFilter(c.key, v)}
+            />
           ) : (
             <Input
               value={tb.filters[c.key] ?? ""}
@@ -236,6 +241,7 @@ export function FilterRow<T>({
               className="h-8 min-w-[6rem] text-xs normal-case"
             />
           )}
+
         </th>
       ))}
       {Array.from({ length: trailing }).map((_, i) => (
