@@ -194,10 +194,11 @@ function PerformancePage() {
         .filter((a) => a.employee_id === emp.id)
         .reduce((s, a) => s + Number(a.activated_count || 0), 0);
 
-      // FTD performance follows the activation clock selected above. One
-      // activation row is one FTD; activated_count is a legacy aggregate and
-      // must not inflate this metric.
-      const ftds = acts.filter((a) => a.conversion_employee_id === emp.id).length;
+      // FTD performance follows the activation clock selected above and only
+      // includes valid activations. Pending rows remain visible separately.
+      const ftds = acts.filter(
+        (a) => a.conversion_employee_id === emp.id && !!a.qualified_at,
+      ).length;
       // Commission remains qualification-based, so pending activations are not paid.
       const commissionableFtds = ((ftdQ.data ?? []) as any[]).filter(
         (a) => a.conversion_employee_id === emp.id,
