@@ -84,7 +84,7 @@ function ExpensesPage() {
   const tb = useTableToolbox<any>(
     "expenses",
     [
-      { key: "date", label: "Date", value: (e: any) => fmtDate(e.date) },
+      { key: "date", label: "Date", filter: "date", value: (e: any) => fmtDate(e.date) },
       { key: "category", label: "Category", filter: "select", value: (e: any) => e.expense_categories?.name ?? "" },
       { key: "affiliate", label: "Affiliate", filter: "select", value: (e: any) => e.affiliates?.name ?? "" },
       { key: "amount", label: "Amount", value: (e: any) => e.amount },
