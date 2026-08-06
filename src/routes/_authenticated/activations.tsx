@@ -343,36 +343,6 @@ function ActivationsPage() {
   const answeredCount = rows.filter((r) => r.answered).length;
   const highCount = rows.filter((r) => r.potential === "high").length;
 
-  // Conversions per conversion agent — shared FTD rule from @/lib/rules.
-  const conversionsByAgent = useMemo(() => {
-    const m = new Map<string, { count: number; pending: number; pendingRows: PendingRow[] }>();
-    for (const r of rows) {
-      const id = r.conversion_employee_id;
-      if (!id) continue;
-      const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
-      const bal = Number(r.balance || 0) + depositsFor(r.lead_name);
-      const qualifies = qualifiesAsFtd(r, bal, settings);
-      if (qualifies) e.count += 1;
-      else {
-        e.pending += 1;
-        e.pendingRows.push({ row: r, balance: bal, reasons: ftdPendingReasons(r, bal, settings), agent: employeeName(id) });
-      }
-      m.set(id, e);
-    }
-    return [...m.entries()]
-      .map(([id, v]) => ({ id, name: employeeName(id), ...v, total: v.count + v.pending }))
-      .sort((a, b) => b.count - a.count);
-  }, [rows, employeesQ.data, settings]);
-
-  const conversionTotals = useMemo(
-    () => ({
-      count: conversionsByAgent.reduce((s, a) => s + a.count, 0),
-      pending: conversionsByAgent.reduce((s, a) => s + a.pending, 0),
-      total: conversionsByAgent.reduce((s, a) => s + a.total, 0),
-      pendingRows: conversionsByAgent.flatMap((a) => a.pendingRows),
-    }),
-    [conversionsByAgent],
-  );
 
 
 
