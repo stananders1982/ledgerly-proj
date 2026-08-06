@@ -26,20 +26,72 @@ function advance(dateISO: string, freq: string) {
   return iso(d);
 }
 
+/** Occurrences of a recurring schedule that land inside the horizon. */
+function expand(rows: any[], startISO: string, endISO: string) {
+  const out: { date: string; amount: number; name: string }[] = [];
+  for (const r of rows) {
+    let d: string = r.next_due_date;
+    let guard = 0;
+    while (d && d <= endISO && guard < 200) {
+      if ((!r.end_date || d <= r.end_date) && d >= startISO) {
+        out.push({ date: d, amount: Number(r.amount || 0), name: r.name });
+      }
+      d = advance(d, String(r.frequency));
+      guard++;
+    }
+  }
+  return out;
+}
+
+function mean(xs: number[]) {
+  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+}
+
+/** Least-squares slope of y over its index. */
+function slope(ys: number[]) {
+  const n = ys.length;
+  if (n < 4) return 0;
+  const mx = (n - 1) / 2;
+  const my = mean(ys);
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (i - mx) * (ys[i] - my);
+    den += (i - mx) ** 2;
+  }
+  return den ? num / den : 0;
+}
+
 /**
- * 90-day cash-flow forecast: projected recurring expenses (from their schedules)
- * against projected revenue (trailing 90-day daily average).
+ * 90-day cash-flow forecast.
+ *
+ * Revenue is projected from the trailing window with a weekday seasonality
+ * factor and a dampened trend, rather than a single flat average, and known
+ * recurring revenue is layered on top of its own schedule. The shaded band is
+ * a confidence range built from how noisy the trailing days actually were.
  */
 export function CashflowForecast({ days = 90 }: { days?: number }) {
   const today = useMemo(() => new Date(), []);
+  const lookback = 90;
   const horizonEnd = useMemo(() => iso(addDays(today, days)), [today, days]);
-  const lookbackStart = useMemo(() => iso(addDays(today, -days)), [today, days]);
+  const lookbackStart = useMemo(() => iso(addDays(today, -lookback)), [today]);
 
   const recQ = useQuery({
     queryKey: ["forecast-recurring"],
     queryFn: async () => {
       const data = await fetchAll(() => sb
         .from("recurring_expenses")
+        .select("id,name,amount,frequency,next_due_date,end_date,active")
+        .eq("active", true));
+      return (data ?? []) as any[];
+    },
+  });
+
+  const recRevQ = useQuery({
+    queryKey: ["forecast-recurring-revenue"],
+    queryFn: async () => {
+      const data = await fetchAll(() => sb
+        .from("recurring_revenue")
         .select("id,name,amount,frequency,next_due_date,end_date,active")
         .eq("active", true));
       return (data ?? []) as any[];
@@ -59,53 +111,86 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
 
   const model = useMemo(() => {
     const start = iso(today);
-    // Projected recurring expense occurrences inside the horizon.
-    const occurrences: { date: string; amount: number; name: string }[] = [];
-    for (const r of recQ.data ?? []) {
-      let d: string = r.next_due_date;
-      let guard = 0;
-      while (d && d <= horizonEnd && guard < 200) {
-        if (!r.end_date || d <= r.end_date) {
-          if (d >= start) occurrences.push({ date: d, amount: Number(r.amount || 0), name: r.name });
-        }
-        d = advance(d, String(r.frequency));
-        guard++;
-      }
+
+    // --- Learn the shape of the last 90 days --------------------------------
+    const byDayHistory = new Map<string, number>();
+    for (const r of revQ.data ?? []) {
+      byDayHistory.set(r.date, (byDayHistory.get(r.date) ?? 0) + Number(r.amount || 0));
     }
+    const history: { date: Date; v: number }[] = [];
+    for (let i = lookback; i >= 1; i--) {
+      const d = addDays(today, -i);
+      history.push({ date: d, v: byDayHistory.get(iso(d)) ?? 0 });
+    }
+    const values = history.map((h) => h.v);
+    const baseline = mean(values);
 
-    const revTotal = (revQ.data ?? []).reduce((s, r) => s + Number(r.amount || 0), 0);
-    const dailyRevenue = revTotal / days;
+    // Weekday factor, clamped so a single big Tuesday can't dominate.
+    const weekday: number[] = Array.from({ length: 7 }, (_, wd) => {
+      const xs = history.filter((h) => h.date.getDay() === wd).map((h) => h.v);
+      if (!xs.length || baseline <= 0) return 1;
+      return Math.max(0.35, Math.min(1.9, mean(xs) / baseline));
+    });
 
-    const byDay = new Map<string, number>();
-    for (const o of occurrences) byDay.set(o.date, (byDay.get(o.date) ?? 0) + o.amount);
+    // Dampened trend: at most ±40% drift across the whole horizon.
+    const rawSlope = slope(values);
+    const maxDrift = baseline * 0.4;
+    const drift = baseline > 0 ? Math.max(-maxDrift, Math.min(maxDrift, rawSlope * days)) : 0;
 
+    const residuals = history.map((h, i) => h.v - baseline * weekday[history[i].date.getDay()]);
+    const noise = Math.sqrt(mean(residuals.map((r) => r * r)));
+
+    // --- Scheduled money in and out ----------------------------------------
+    const expenses = expand(recQ.data ?? [], start, horizonEnd);
+    const recurringRevenue = expand(recRevQ.data ?? [], start, horizonEnd);
+    const expByDay = new Map<string, number>();
+    for (const o of expenses) expByDay.set(o.date, (expByDay.get(o.date) ?? 0) + o.amount);
+    const recRevByDay = new Map<string, number>();
+    for (const o of recurringRevenue) recRevByDay.set(o.date, (recRevByDay.get(o.date) ?? 0) + o.amount);
+
+    // --- Project ------------------------------------------------------------
     let cum = 0;
-    const points: { date: string; net: number; expenses: number; revenue: number }[] = [];
+    let projectedRevenue = 0;
+    const points: { date: string; net: number; lo: number; band: number }[] = [];
     for (let i = 0; i <= days; i++) {
-      const d = iso(addDays(today, i));
-      const exp = byDay.get(d) ?? 0;
-      cum += dailyRevenue - exp;
-      points.push({ date: d, net: Math.round(cum), expenses: exp, revenue: dailyRevenue });
+      const d = addDays(today, i);
+      const key = iso(d);
+      const trendPart = days ? (drift * i) / days : 0;
+      const expected = Math.max(0, (baseline + trendPart) * weekday[d.getDay()]) + (recRevByDay.get(key) ?? 0);
+      const exp = expByDay.get(key) ?? 0;
+      projectedRevenue += expected;
+      cum += expected - exp;
+      // Errors accumulate with the square root of time, not linearly.
+      const spread = noise * Math.sqrt(i);
+      points.push({ date: key, net: Math.round(cum), lo: Math.round(cum - spread), band: Math.round(spread * 2) });
     }
 
-    const expTotal = occurrences.reduce((s, o) => s + o.amount, 0);
+    const expTotal = expenses.reduce((s, o) => s + o.amount, 0);
+    const upcoming = expenses.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
+
     return {
       points,
       expTotal,
-      revProjected: dailyRevenue * days,
-      net: dailyRevenue * days - expTotal,
-      dailyRevenue,
-      upcoming: occurrences.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6),
+      revProjected: projectedRevenue,
+      net: projectedRevenue - expTotal,
+      dailyRevenue: baseline,
+      recurringRevenueTotal: recurringRevenue.reduce((s, o) => s + o.amount, 0),
+      trendPerDay: baseline > 0 ? drift / Math.max(1, days) : 0,
+      confidence: baseline > 0 ? Math.max(0, Math.min(100, 100 - (noise / baseline) * 35)) : 0,
+      upcoming,
     };
-  }, [recQ.data, revQ.data, today, horizonEnd, days]);
+  }, [recQ.data, recRevQ.data, revQ.data, today, horizonEnd, days]);
+
+  const trendLabel =
+    model.trendPerDay > 0.5 ? "trending up" : model.trendPerDay < -0.5 ? "trending down" : "flat trend";
 
   return (
     <div className="card-surface p-5">
-      <div className="mb-3 flex items-baseline justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h3 className="font-display text-base font-semibold">Cash-flow forecast</h3>
           <p className="text-xs text-muted-foreground">
-            Next {days} days · recurring costs vs. projected income ({fmtMoney(model.dailyRevenue)}/day trailing average)
+            Next {days} days · learned from weekday patterns ({fmtMoney(model.dailyRevenue)}/day base, {trendLabel})
           </p>
         </div>
         <div className={cn("num text-right text-xl font-semibold", model.net >= 0 ? "text-emerald-500" : "text-rose-500")}>
@@ -139,17 +224,23 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
                 borderRadius: 8,
                 fontSize: 12,
               }}
-              formatter={(v: any) => fmtMoney(Number(v))}
+              formatter={(v: any, name: any) =>
+                name === "band" || name === "lo" ? [fmtMoney(Number(v)), name === "lo" ? "Low case" : "Range"] : fmtMoney(Number(v))
+              }
             />
+            {/* Confidence band drawn as an invisible floor plus a stacked range. */}
+            <Area type="monotone" dataKey="lo" stackId="band" stroke="none" fill="transparent" />
+            <Area type="monotone" dataKey="band" stackId="band" stroke="none" fill="hsl(var(--primary))" fillOpacity={0.12} />
             <Area type="monotone" dataKey="net" stroke="hsl(var(--primary))" fill="url(#cfFill)" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-4">
         <Mini label="Projected income" value={fmtMoney(model.revProjected)} tone="text-emerald-500" />
         <Mini label="Scheduled costs" value={fmtMoney(model.expTotal)} tone="text-rose-500" />
-        <Mini label="Break-even/day" value={fmtMoney(model.expTotal / days)} />
+        <Mini label="Contracted income" value={fmtMoney(model.recurringRevenueTotal)} />
+        <Mini label="Model confidence" value={`${model.confidence.toFixed(0)}%`} />
       </div>
 
       {model.upcoming.length > 0 && (

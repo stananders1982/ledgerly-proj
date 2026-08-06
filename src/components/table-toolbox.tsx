@@ -222,3 +222,57 @@ export function FilterRow<T>({
     </tr>
   );
 }
+
+/**
+ * Footer row that totals numeric columns for the rows currently in view.
+ * Pass a `total` function on the columns you want summed; the rest render blank.
+ */
+export function TotalsRow<T>({
+  tb,
+  rows,
+  totals,
+  format = (n) => n.toLocaleString(undefined, { maximumFractionDigits: 2 }),
+  leading = 0,
+  trailing = 0,
+  label = "Total",
+}: {
+  tb: TableToolbox<T>;
+  rows: T[];
+  /** Column key -> value extractor. Only these columns get a total. */
+  totals: Record<string, (row: T) => number>;
+  format?: (n: number, key: string) => string;
+  leading?: number;
+  trailing?: number;
+  label?: string;
+}) {
+  const visible = tb.cols.filter((c) => tb.show(c.key));
+  const firstVisible = visible[0]?.key;
+  return (
+    <tfoot>
+      <tr className="border-t border-border bg-muted/40 font-semibold">
+        {Array.from({ length: leading }).map((_, i) => (
+          <td key={`l${i}`} className="px-2 py-2" />
+        ))}
+        {visible.map((c) => {
+          const fn = totals[c.key];
+          if (!fn) {
+            return (
+              <td key={c.key} className="px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground">
+                {leading === 0 && c.key === firstVisible ? label : null}
+              </td>
+            );
+          }
+          const sum = rows.reduce((s, r) => s + (Number(fn(r)) || 0), 0);
+          return (
+            <td key={c.key} className="num px-4 py-2">
+              {format(sum, c.key)}
+            </td>
+          );
+        })}
+        {Array.from({ length: trailing }).map((_, i) => (
+          <td key={`t${i}`} className="px-2 py-2" />
+        ))}
+      </tr>
+    </tfoot>
+  );
+}
