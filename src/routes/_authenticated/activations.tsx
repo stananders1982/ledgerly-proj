@@ -75,7 +75,7 @@ type Row = {
   daily_lead_entries?: { entry_date: string; source_id: string | null; lead_sources?: { name: string } | null } | null;
 };
 
-type PendingRow = { row: Row; balance: number; reasons: string[]; agent: string };
+
 
 /** Date the lead was actually activated (falls back to the lead entry date). */
 const actDate = (r: Row) => r.activation_date ?? r.daily_lead_entries?.entry_date ?? null;
@@ -101,7 +101,7 @@ function ActivationsPage() {
   const [customEnd, setCustomEnd] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
   const [viewing, setViewing] = useState<Row | null>(null);
-  const [pendingView, setPendingView] = useState<{ title: string; rows: PendingRow[] } | null>(null);
+  
   const [answeredFilter, setAnsweredFilter] = useState<"all" | "yes" | "no">("all");
   const [potentialFilter, setPotentialFilter] = useState<string>("all");
   const [stdFilter, setStdFilter] = useState<"all" | "yes" | "no">("all");
@@ -343,36 +343,6 @@ function ActivationsPage() {
   const answeredCount = rows.filter((r) => r.answered).length;
   const highCount = rows.filter((r) => r.potential === "high").length;
 
-  // Conversions per conversion agent — shared FTD rule from @/lib/rules.
-  const conversionsByAgent = useMemo(() => {
-    const m = new Map<string, { count: number; pending: number; pendingRows: PendingRow[] }>();
-    for (const r of rows) {
-      const id = r.conversion_employee_id;
-      if (!id) continue;
-      const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
-      const bal = Number(r.balance || 0) + depositsFor(r.lead_name);
-      const qualifies = qualifiesAsFtd(r, bal, settings);
-      if (qualifies) e.count += 1;
-      else {
-        e.pending += 1;
-        e.pendingRows.push({ row: r, balance: bal, reasons: ftdPendingReasons(r, bal, settings), agent: employeeName(id) });
-      }
-      m.set(id, e);
-    }
-    return [...m.entries()]
-      .map(([id, v]) => ({ id, name: employeeName(id), ...v, total: v.count + v.pending }))
-      .sort((a, b) => b.count - a.count);
-  }, [rows, employeesQ.data, settings]);
-
-  const conversionTotals = useMemo(
-    () => ({
-      count: conversionsByAgent.reduce((s, a) => s + a.count, 0),
-      pending: conversionsByAgent.reduce((s, a) => s + a.pending, 0),
-      total: conversionsByAgent.reduce((s, a) => s + a.total, 0),
-      pendingRows: conversionsByAgent.flatMap((a) => a.pendingRows),
-    }),
-    [conversionsByAgent],
-  );
 
 
 
@@ -540,68 +510,6 @@ function ActivationsPage() {
         <StatCard label="Answered" value={`${answeredCount} / ${rows.length}`} icon={PhoneCall} />
       </div>
 
-      <div className="mb-6 rounded-lg border border-border">
-        <div className="border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold">Conversions by agent</h2>
-          <p className="text-xs text-muted-foreground">{`Counts qualified FTDs: answered and (mid/high potential or balance of $${settings.ftdBalanceThreshold}+). Everything else is pending.`}</p>
-        </div>
-        {conversionsByAgent.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-muted-foreground">No conversions in this range.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="py-2 px-4 font-medium">Conversion agent</th>
-                <th className="py-2 px-4 font-medium">Conversions</th>
-                <th className="py-2 px-4 font-medium">Pending</th>
-                <th className="py-2 px-4 font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {conversionsByAgent.map((a) => (
-                <tr key={a.id} className="border-t border-border/50">
-                  <td className="py-2 px-4"><EmployeeLink id={a.id} name={a.name} /></td>
-                  <td className="py-2 px-4 font-medium num">{a.count}</td>
-                  <td className="py-2 px-4 num text-muted-foreground">
-                    {a.pending > 0 ? (
-                      <button
-                        type="button"
-                        className="underline underline-offset-2 hover:text-foreground"
-                        onClick={() => setPendingView({ title: `Pending FTDs — ${a.name}`, rows: a.pendingRows })}
-                      >
-                        {a.pending}
-                      </button>
-                    ) : (
-                      a.pending
-                    )}
-                  </td>
-                  <td className="py-2 px-4 num">{a.total}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-border bg-muted/30 font-semibold">
-                <td className="py-2 px-4">Total</td>
-                <td className="py-2 px-4 num">{conversionTotals.count}</td>
-                <td className="py-2 px-4 num text-muted-foreground">
-                  {conversionTotals.pending > 0 ? (
-                    <button
-                      type="button"
-                      className="underline underline-offset-2 hover:text-foreground"
-                      onClick={() => setPendingView({ title: "All pending FTDs", rows: conversionTotals.pendingRows })}
-                    >
-                      {conversionTotals.pending}
-                    </button>
-                  ) : (
-                    conversionTotals.pending
-                  )}
-                </td>
-                <td className="py-2 px-4 num">{conversionTotals.total}</td>
-              </tr>
-            </tfoot>
-          </table>
-        )}
-      </div>
 
 
       {selected.size > 0 && (
@@ -776,45 +684,6 @@ function ActivationsPage() {
         )}
       </div>
 
-      <Dialog open={!!pendingView} onOpenChange={(o) => { if (!o) setPendingView(null); }}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{pendingView?.title}</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-auto scroll-slim">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="py-2 px-3 font-medium">Client</th>
-                  <th className="py-2 px-3 font-medium">Agent</th>
-                  <th className="py-2 px-3 font-medium">Activation date</th>
-                  <th className="py-2 px-3 font-medium">Balance</th>
-                  <th className="py-2 px-3 font-medium">Potential</th>
-                  <th className="py-2 px-3 font-medium">Answered</th>
-                  <th className="py-2 px-3 font-medium">Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(pendingView?.rows ?? []).map((p) => (
-                  <tr
-                    key={p.row.id}
-                    className="border-t border-border/50 cursor-pointer hover:bg-muted/30"
-                    onClick={() => { setPendingView(null); setViewing(p.row); }}
-                  >
-                    <td className="py-2 px-3">{p.row.lead_name || "—"}</td>
-                    <td className="py-2 px-3 text-muted-foreground">{p.agent}</td>
-                    <td className="py-2 px-3">{actDate(p.row) ? fmtDate(actDate(p.row)!) : "—"}</td>
-                    <td className="py-2 px-3 num">{fmtMoney(p.balance)}</td>
-                    <td className="py-2 px-3"><PotentialBadge value={p.row.potential} /></td>
-                    <td className="py-2 px-3"><AnsweredBadge answered={p.row.answered} /></td>
-                    <td className="py-2 px-3 text-xs text-muted-foreground">{p.reasons.join(" · ")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </DialogContent>
-      </Dialog>
 
 
       <Sheet open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null); }}>

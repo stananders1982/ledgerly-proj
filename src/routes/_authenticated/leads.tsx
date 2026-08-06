@@ -23,6 +23,7 @@ import { fmtDate, fmtMoney, fmtPct, todayISO } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
+import { ConversionsByAgent } from "@/components/conversions-by-agent";
 import { PricingBadge } from "./sources";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
@@ -724,6 +725,10 @@ function LeadsPage() {
         <StatCard label="Total cost" value={fmtMoney(stats.totalCost)} />
         <StatCard label="Saved (CPA)" value={fmtMoney(stats.cpaSavings)} tone="positive" />
       </section>
+
+      <ConversionsByAgent start={activeRange.start} end={activeRange.end} />
+
+
 
 
       <div className="card-surface p-4 mb-6">
