@@ -205,7 +205,12 @@ export function useTableToolbox<T>(
         if (!col?.value) return true;
         const v = str(col.value(r));
         if (col.filter === "select") return v === f;
-        if (col.filter === "date") return dateKey(v) === f;
+        if (col.filter === "date") {
+          const range = dateFilterRange(f);
+          if (!range) return true;
+          const k = dateKey(v);
+          return !!k && k >= range.start && k <= range.end;
+        }
         return v.toLowerCase().includes(f.toLowerCase());
 
       }),
