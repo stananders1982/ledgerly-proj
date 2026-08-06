@@ -85,9 +85,9 @@ export function ActivatedLeadsByEmployee({
           <table className="w-full text-sm">
             <thead>
               <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                <th className="py-2 px-3">Employee</th>
-                <th className="py-2 px-3">Activated leads</th>
-                <th className="py-2 px-3">Share</th>
+                <th className="py-2 px-3">AGENT</th>
+                <th className="py-2 px-3">FTDs</th>
+                <th className="py-2 px-3">SHARE</th>
               </tr>
             </thead>
             <tbody>
