@@ -38,6 +38,9 @@ import { useCompanySettings } from "@/lib/settings";
 import { CashflowForecast } from "@/components/cashflow-forecast";
 import { ActivityFeed } from "@/components/activity-feed";
 import { DataQualityCard } from "@/components/data-quality-card";
+import { AnomalyAlerts } from "@/components/anomaly-alerts";
+import { DailyDigest } from "@/components/daily-digest";
+import { AskBox } from "@/components/ask-box";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — Ledgerly" }] }),
@@ -342,6 +345,13 @@ function Dashboard() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
       </div>
+
+      <AnomalyAlerts />
+
+      <section className="mb-10 grid gap-4 lg:grid-cols-2">
+        <DailyDigest />
+        <AskBox />
+      </section>
 
 
       {/* Hero KPIs */}
