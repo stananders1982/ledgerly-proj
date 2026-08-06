@@ -281,9 +281,16 @@ function WithdrawalsPage() {
                 {pageItems.map((r: any) => (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(r); setOpen(true); }}>
+                    {tb.show("date") && (
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
+                    )}
+                    {tb.show("customer") && (
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
+                    )}
+                    {tb.show("amount") && (
                     <td className="py-3 px-4 text-destructive font-medium">−{fmtMoney(r.amount)}</td>
+                    )}
+                    {tb.show("agent") && (
                     <td className="py-3 px-4">
                       <EmployeeLink id={r.employee_id} name={getEmpName(r)} />
                       {r.employee_id_2 && (
@@ -292,7 +299,11 @@ function WithdrawalsPage() {
                         </span>
                       )}
                     </td>
+                    )}
+                    {tb.show("penalty") && (
                     <td className="py-3 px-4 text-destructive">−{fmtMoney(r.employee_penalty)}</td>
+                    )}
+                    {tb.show("source") && (
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       {r.affiliate_id ? (
                         <Link to="/affiliates/$id" params={{ id: r.affiliate_id }} className="text-primary hover:underline">
@@ -302,9 +313,12 @@ function WithdrawalsPage() {
                         <span className="text-muted-foreground">{r.affiliates?.name ?? "—"}</span>
                       )}
                     </td>
+                    )}
+                    {tb.show("sale") && (
                     <td className="py-3 px-4 text-muted-foreground">
                       {r.revenue ? `${r.revenue.customer_name} · ${fmtMoney(r.revenue.amount)}` : "—"}
                     </td>
+                    )}
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete withdrawal?" />
                     </td>
