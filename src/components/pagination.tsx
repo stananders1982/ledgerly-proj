@@ -1,13 +1,21 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export function usePagination<T>(items: T[], perPage = 30) {
+export function usePagination<T>(items: T[], defaultPerPage = 25) {
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(defaultPerPage);
 
   useEffect(() => {
     setPage(1);
-  }, [items.length]);
+  }, [items.length, perPage]);
 
   const totalItems = items.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
@@ -20,6 +28,7 @@ export function usePagination<T>(items: T[], perPage = 30) {
     page: safePage,
     setPage,
     perPage,
+    setPerPage,
     pageItems,
     totalPages,
     startItem: totalItems === 0 ? 0 : start + 1,
@@ -71,5 +80,34 @@ export function TablePagination({
         </Button>
       </div>
     </div>
+  );
+}
+
+export function PageSizeSelect({
+  value,
+  onChange,
+  options = [10, 25, 50],
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  options?: number[];
+}) {
+  return (
+    <Select
+      value={String(value)}
+      onValueChange={(v) => onChange(Number(v))}
+      aria-label="Rows per page"
+    >
+      <SelectTrigger className="h-8 w-[110px] text-xs">
+        <SelectValue placeholder="Rows" />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((o) => (
+          <SelectItem key={o} value={String(o)}>
+            {o} rows
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
