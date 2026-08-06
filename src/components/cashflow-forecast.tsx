@@ -254,7 +254,7 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
               >
                 <span className="truncate">{o.name}</span>
                 <span className="num shrink-0 text-right tabular-nums text-rose-500">{fmtMoney(o.amount)}</span>
-                <span className="num w-[5.5rem] shrink-0 text-right tabular-nums text-muted-foreground">{o.date}</span>
+                <span className="num w-[6.5rem] shrink-0 whitespace-nowrap text-right tabular-nums text-muted-foreground">{o.date}</span>
               </li>
             ))}
           </ul>
@@ -270,7 +270,7 @@ function Mini({ label, value, tone }: { label: string; value: string; tone?: str
       <p className="truncate text-[11px] uppercase tracking-wider text-muted-foreground" title={label}>
         {label}
       </p>
-      <p className={cn("num mt-1 truncate text-base font-semibold tabular-nums", tone)} title={value}>
+      <p className={cn("num mt-1 whitespace-nowrap text-base font-semibold tabular-nums", tone)} title={value}>
         {value}
       </p>
     </div>
