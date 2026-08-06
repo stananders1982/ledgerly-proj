@@ -111,8 +111,8 @@ function PerformancePage() {
     },
   });
 
-  // FTDs are credited in the month the lead became valid (qualified_at), which
-  // may be later than the activation month.
+  // Commissionable FTDs are credited in the month the lead became valid.
+  // The visible FTD metric itself uses the activation clock from actQ.
   const ftdQ = useQuery({
     queryKey: ["perf-ftds", start, end],
     queryFn: async () => {
@@ -194,8 +194,14 @@ function PerformancePage() {
         .filter((a) => a.employee_id === emp.id)
         .reduce((s, a) => s + Number(a.activated_count || 0), 0);
 
-      // Counted FTDs: qualified inside the period (activation may be older).
-      const ftds = ((ftdQ.data ?? []) as any[]).filter((a) => a.conversion_employee_id === emp.id).length;
+      // FTD performance follows the activation clock selected above. One
+      // activation row is one FTD; activated_count is a legacy aggregate and
+      // must not inflate this metric.
+      const ftds = acts.filter((a) => a.conversion_employee_id === emp.id).length;
+      // Commission remains qualification-based, so pending activations are not paid.
+      const commissionableFtds = ((ftdQ.data ?? []) as any[]).filter(
+        (a) => a.conversion_employee_id === emp.id,
+      ).length;
       // Pending: activated in the period but not yet valid.
       const pendingFtds = acts.filter(
         (a) => a.conversion_employee_id === emp.id && !a.qualified_at,
@@ -203,7 +209,7 @@ function PerformancePage() {
 
       // Per-FTD rate lives on the employee record.
       const ftdRate = Number(emp.ftd_commission ?? settings.ftdCommission);
-      const ftdCommission = team === "C" ? ftds * ftdRate : 0;
+      const ftdCommission = team === "C" ? commissionableFtds * ftdRate : 0;
 
       // STD is a retention metric only: clients this retention agent handles
       // whose *second* deposit landed in range.
