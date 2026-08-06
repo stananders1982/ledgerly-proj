@@ -4,8 +4,6 @@ Two tracks. Pick any subset; each item is independent.
 
 ## Track A — The "brain" (smarter data, less manual work)
 
-1. **Client scoring & risk engine**
-   A per-client score (0-100) from deposit count, deposit velocity, days since last deposit, potential, answered status, balance trend. Surfaces two lists on the dashboard: **Hot clients** (likely to deposit again) and **At-risk clients** (went quiet after FTD). Retention agents get a daily worklist instead of scrolling the Clients table.
 
 2. **Agent coaching insights**
    On each employee page, auto-generated observations comparing the agent to their own last 3 months and to the team median: conversion rate, STD rate, average deposit size, answer rate. Written as plain sentences ("STD rate dropped from 31% to 18% while clients received went up 40%").
