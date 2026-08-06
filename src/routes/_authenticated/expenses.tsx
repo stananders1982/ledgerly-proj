@@ -26,6 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { useQuickCreate } from "@/lib/quick-create";
@@ -194,6 +195,7 @@ function ExpensesPage() {
         description="Track every outflow and watch your category mix."
         actions={
           <div className="flex gap-2">
+            <ColumnsMenu tb={tb} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button variant="outline"><Download className="h-4 w-4" /> Export</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -306,13 +308,14 @@ function ExpensesPage() {
                       aria-label="Select all on page"
                     />
                   </th>
-                  <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Category" k="category" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Notes" k="notes" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  {tb.show("date") && <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("category") && <SortTh label="Category" k="category" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("affiliate") && <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("amount") && <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("notes") && <SortTh label="Notes" k="notes" sort={sort} toggle={toggle} className="py-3 px-4" />}
                   <th className="py-3 px-4"></th>
                 </tr>
+                <FilterRow tb={tb} leading={1} trailing={1} />
               </thead>
               <tbody>
                 {pageItems.map((e: any) => (
@@ -321,11 +324,11 @@ function ExpensesPage() {
                     <td className="py-3 px-4" onClick={(ev) => ev.stopPropagation()}>
                       <Checkbox checked={selected.has(e.id)} onCheckedChange={() => toggleSelected(e.id)} aria-label="Select expense" />
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>
-                    <td className="py-3 px-4"><Badge variant="outline">{e.expense_categories?.name ?? "—"}</Badge></td>
-                    <td className="py-3 px-4 text-muted-foreground">{e.affiliates?.name ?? "—"}</td>
-                    <td className="py-3 px-4 font-medium">{fmtMoney(e.amount)}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{e.notes || "—"}</td>
+                    {tb.show("date") && <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>}
+                    {tb.show("category") && <td className="py-3 px-4"><Badge variant="outline">{e.expense_categories?.name ?? "—"}</Badge></td>}
+                    {tb.show("affiliate") && <td className="py-3 px-4 text-muted-foreground">{e.affiliates?.name ?? "—"}</td>}
+                    {tb.show("amount") && <td className="py-3 px-4 font-medium">{fmtMoney(e.amount)}</td>}
+                    {tb.show("notes") && <td className="py-3 px-4 text-muted-foreground">{e.notes || "—"}</td>}
                     <td className="py-3 px-4 text-right" onClick={(ev) => ev.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(e.id)} label="Delete expense?" />
                     </td>
