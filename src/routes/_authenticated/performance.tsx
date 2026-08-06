@@ -18,6 +18,8 @@ import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
 import { GoalBar } from "@/components/goal-bar";
 import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Info, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 
 const sb = supabase as any;
 
@@ -325,13 +327,47 @@ function PerformancePage() {
               />
             ))}
           </DataCardList>
+          <TooltipProvider>
           <div className="hidden md:block overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Agent" k="name" sort={sort} toggle={toggle} />
                   <SortTh label="Dept" k="team" sort={sort} toggle={toggle} />
-                  <SortTh label="FTDs" k="ftds" sort={sort} toggle={toggle} />
+                  <th className="py-3 px-4">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggle("ftds");
+                          }}
+                          className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-foreground transition-colors"
+                        >
+                          FTDs
+                          <Info className="h-3 w-3 text-muted-foreground" />
+                          {sort?.key === "ftds" ? (
+                            sort.dir === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )
+                          ) : (
+                            <ChevronsUpDown className="h-3 w-3 opacity-40" />
+                          )}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p className="font-semibold mb-1">FTD counting rules</p>
+                        <ul className="list-disc pl-3 space-y-1">
+                          <li><strong>FTD</strong> = an activation that has a <em>qualified_at</em> date within the selected month.</li>
+                          <li><strong>Pending</strong> = activated this month but not yet qualified (no <em>qualified_at</em>).</li>
+                          <li>The FTD column uses the <em>activation_date</em> clock; commission uses the <em>qualified_at</em> clock.</li>
+                        </ul>
+                      </TooltipContent>
+                    </Tooltip>
+                  </th>
                   <SortTh label="STDs (% clients)" k="stds" sort={sort} toggle={toggle} />
                   <SortTh label="Clients" k="clients" sort={sort} toggle={toggle} />
                   <SortTh label="Revenue" k="attributed" sort={sort} toggle={toggle} />
@@ -419,6 +455,7 @@ function PerformancePage() {
             </table>
           </div>
           <TablePagination {...pg} />
+          </TooltipProvider>
           </>
         )}
       </div>
