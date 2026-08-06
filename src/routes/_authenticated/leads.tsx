@@ -23,6 +23,7 @@ import { fmtDate, fmtMoney, fmtPct, todayISO } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
+import { ConversionsByAgent } from "@/components/conversions-by-agent";
 import { PricingBadge } from "./sources";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
