@@ -20,11 +20,16 @@ export interface AnomalyInput {
   revenue: { date: string; amount: number; employee_id?: string | null }[];
   expenses: { date: string; amount: number; category_id?: string | null }[];
   withdrawals: { date: string; amount: number }[];
-  activations: { activation_date: string | null; created_at: string; employee_id?: string | null }[];
+  activations: {
+    activation_date: string | null;
+    created_at: string;
+    employee_id?: string | null;
+    conversion_employee_id?: string | null;
+  }[];
   leads: { entry_date: string; received: number; source_id: string | null }[];
   sourcesById: Map<string, string>;
   categoriesById: Map<string, string>;
-  employees: { id: string; name: string; active: boolean }[];
+  employees: { id: string; name: string; active: boolean; team?: string | null }[];
 }
 
 const DAY = 24 * 60 * 60 * 1000;
