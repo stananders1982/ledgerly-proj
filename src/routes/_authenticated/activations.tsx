@@ -491,7 +491,7 @@ function ActivationsPage() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
-        <ColumnsMenu tb={tb} />
+        
         <Select value={answeredFilter} onValueChange={(v) => setAnsweredFilter(v as any)}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -627,6 +627,10 @@ function ActivationsPage() {
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
         </div>
       )}
+
+      <div className="mb-2 flex justify-end">
+        <ColumnsMenu tb={tb} />
+      </div>
 
       <div className="rounded-lg border border-border overflow-hidden">
         {q.isLoading ? (

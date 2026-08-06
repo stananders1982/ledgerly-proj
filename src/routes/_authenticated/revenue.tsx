@@ -351,7 +351,7 @@ function RevenuePage() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
-        <ColumnsMenu tb={tb} />
+        
 
       </div>
 
@@ -385,6 +385,10 @@ function RevenuePage() {
         <Button size="sm" variant="outline" onClick={exportSelection}>Export selection</Button>
         <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${sel.count} selected record(s)?`} />
       </BulkBar>
+
+      <div className="mb-2 flex justify-end">
+        <ColumnsMenu tb={tb} />
+      </div>
 
       <div className="card-surface overflow-hidden">
         {revQ.isLoading ? <TableSkeleton cols={6} />

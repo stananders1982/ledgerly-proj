@@ -213,7 +213,7 @@ function WithdrawalsPage() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
-        <ColumnsMenu tb={tb} />
+        
       </div>
 
 
@@ -237,6 +237,10 @@ function WithdrawalsPage() {
           </div>
         </div>
       )}
+
+      <div className="mb-2 flex justify-end">
+        <ColumnsMenu tb={tb} />
+      </div>
 
       <div className="card-surface overflow-hidden">
         {wQ.isLoading ? <TableSkeleton cols={7} />

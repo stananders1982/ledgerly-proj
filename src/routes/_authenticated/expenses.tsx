@@ -195,7 +195,7 @@ function ExpensesPage() {
         description="Track every outflow and watch your category mix."
         actions={
           <div className="flex gap-2">
-            <ColumnsMenu tb={tb} />
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button variant="outline"><Download className="h-4 w-4" /> Export</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -267,6 +267,10 @@ function ExpensesPage() {
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
         </div>
       )}
+
+      <div className="mb-2 flex justify-end">
+        <ColumnsMenu tb={tb} />
+      </div>
 
       <div className="card-surface overflow-hidden">
         {expQ.isLoading ? <TableSkeleton cols={6} />
