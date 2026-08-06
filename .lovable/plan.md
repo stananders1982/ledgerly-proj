@@ -1,0 +1,60 @@
+# Next Improvements — Brain + UI
+
+Two tracks. Pick any subset; each item is independent.
+
+## Track A — The "brain" (smarter data, less manual work)
+
+1. **Client scoring & risk engine**
+   A per-client score (0-100) from deposit count, deposit velocity, days since last deposit, potential, answered status, balance trend. Surfaces two lists on the dashboard: **Hot clients** (likely to deposit again) and **At-risk clients** (went quiet after FTD). Retention agents get a daily worklist instead of scrolling the Clients table.
+
+2. **Agent coaching insights**
+   On each employee page, auto-generated observations comparing the agent to their own last 3 months and to the team median: conversion rate, STD rate, average deposit size, answer rate. Written as plain sentences ("STD rate dropped from 31% to 18% while clients received went up 40%").
+
+3. **Source quality intelligence**
+   Beyond ROI: time-to-activation, deposit-per-lead, STD rate and refund/withdrawal rate per source. Ranks sources on *profit quality*, not volume, and flags sources whose quality is degrading month over month.
+
+4. **Anomaly detection & smart alerts**
+   Daily check for statistical outliers: revenue spike/drop vs. the trailing 30-day baseline, a source that stopped delivering, an agent with zero activity, withdrawal surge, expense above the usual range for its category. Shown as dismissible alerts and in the notification bell.
+
+5. **Forecast that learns**
+   Replace the flat 90-day cashflow projection with one based on trailing conversion rates, seasonality by weekday, recurring expenses/revenue, and pipeline (unqualified activations weighted by their qualification probability).
+
+6. **Natural-language ask box**
+   A single input on the dashboard ("how much did Team C earn from KK-Leads last month?") that turns the question into a scoped query over the existing data and answers with a number plus a small table. Uses the built-in AI gateway, read-only, permission-scoped.
+
+7. **Daily / weekly digest**
+   An auto-generated morning summary: yesterday's FTDs, STDs, deposits, unallocated clients, tasks due, anomalies. Viewable in-app; optionally emailed.
+
+## Track B — UI and everyday usability
+
+8. **Command-first workflow**
+   Extend the command palette to actions, not just navigation: "record deposit", "add client", "mark absent", jump to any client/employee by name from anywhere.
+
+9. **Table upgrades**
+   Sticky header + sticky first column on wide tables, column resize and reorder, per-user persisted layouts, inline edit for the few fields that change constantly (balance, potential, answered, agent), and a footer row with column totals.
+
+10. **Client drawer instead of modal**
+    A side drawer with tabs (Overview / Deposits / Withdrawals / Timeline / Tasks / Files) that can stay open while you move down the list, plus prev/next arrows to walk records without closing.
+
+11. **Dashboard you can arrange**
+    Drag-to-reorder cards, hide the ones a given role never uses, and a compact "TV mode" for a wall screen showing today's FTDs, deposits and team leaderboard.
+
+12. **Mobile pass**
+    The core daily flows — record deposit, mark attendance, check today's numbers, update client status — as proper mobile layouts with card lists rather than horizontally scrolling tables.
+
+13. **Visual polish**
+    Consistent empty states with a primary action, skeletons everywhere instead of blank flashes, subtle transitions on row expand/drawer open, number roll-ups on KPI cards, and colour-coded deltas that read the same in light and dark mode.
+
+14. **Bulk everything**
+    Multi-select on Clients and Revenue with bulk assign agent, bulk tag, bulk set potential, bulk export selection.
+
+## Technical notes
+
+- Items 1, 3, 5 are pure derived-data work in `src/lib` (new `scoring.ts`, `forecast.ts`) plus presentation — no schema change.
+- Items 2, 4, 7 need a small `insights_snapshots` (or equivalent) table so daily baselines and dismissals persist; alerts reuse the existing `notifications` table.
+- Item 6 uses a server function with the Lovable AI gateway; it must map the question onto a fixed set of allowed aggregations and re-check the caller's permissions before returning rows.
+- Items 8-14 are frontend only: `table-toolbox.tsx`, `command-palette.tsx`, `stat-card.tsx`, and the route files already carry most of the structure needed.
+
+## Suggested first slice
+
+If you want one high-value batch: **1 (client scoring), 4 (anomaly alerts), 9 (table upgrades), 10 (client drawer)** — the two that change how the day is run, and the two that remove the most friction from the screens you use most.
