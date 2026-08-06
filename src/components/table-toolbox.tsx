@@ -59,6 +59,91 @@ function keyToDate(key: string): Date | undefined {
   return new Date(y, m - 1, d);
 }
 
+const toKey = (d: Date) => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const addDays = (d: Date, n: number) => {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+};
+
+/** Monday-based start of week. */
+const startOfWeek = (d: Date) => {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = (x.getDay() + 6) % 7;
+  return addDays(x, -day);
+};
+
+export const DATE_PRESETS = [
+  { value: "today", label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "this-week", label: "This week" },
+  { value: "past-week", label: "Past week" },
+  { value: "this-month", label: "This month" },
+  { value: "past-month", label: "Past month" },
+  { value: "custom", label: "Custom range" },
+] as const;
+
+/** Resolve a stored date-filter value into an inclusive [start, end] key range. */
+export function dateFilterRange(v: string): { start: string; end: string } | null {
+  if (!v) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (v.startsWith("custom:")) {
+    const [, s, e] = v.split(":");
+    if (!s && !e) return null;
+    const a = s || e;
+    const b = e || s;
+    return a <= b ? { start: a, end: b } : { start: b, end: a };
+  }
+  switch (v) {
+    case "today":
+      return { start: toKey(today), end: toKey(today) };
+    case "yesterday": {
+      const y = addDays(today, -1);
+      return { start: toKey(y), end: toKey(y) };
+    }
+    case "this-week":
+      return { start: toKey(startOfWeek(today)), end: toKey(today) };
+    case "past-week": {
+      const s = addDays(startOfWeek(today), -7);
+      return { start: toKey(s), end: toKey(addDays(s, 6)) };
+    }
+    case "this-month":
+      return {
+        start: toKey(new Date(today.getFullYear(), today.getMonth(), 1)),
+        end: toKey(today),
+      };
+    case "past-month": {
+      const s = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const e = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { start: toKey(s), end: toKey(e) };
+    }
+    default: {
+      // Legacy single-day keys (yyyy-mm-dd).
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return { start: v, end: v };
+      return null;
+    }
+  }
+}
+
+function dateFilterLabel(v: string): string {
+  if (!v) return "Any date";
+  if (v.startsWith("custom:")) {
+    const r = dateFilterRange(v);
+    if (!r) return "Custom range";
+    const f = (k: string) => keyToDate(k)?.toLocaleDateString() ?? k;
+    return r.start === r.end ? f(r.start) : `${f(r.start)} – ${f(r.end)}`;
+  }
+  const p = DATE_PRESETS.find((x) => x.value === v);
+  if (p) return p.label;
+  return keyToDate(v)?.toLocaleDateString() ?? "Any date";
+}
+
+
 
 export function useTableToolbox<T>(
   storageKey: string,
