@@ -59,6 +59,91 @@ function keyToDate(key: string): Date | undefined {
   return new Date(y, m - 1, d);
 }
 
+const toKey = (d: Date) => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const addDays = (d: Date, n: number) => {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+};
+
+/** Monday-based start of week. */
+const startOfWeek = (d: Date) => {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = (x.getDay() + 6) % 7;
+  return addDays(x, -day);
+};
+
+export const DATE_PRESETS = [
+  { value: "today", label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "this-week", label: "This week" },
+  { value: "past-week", label: "Past week" },
+  { value: "this-month", label: "This month" },
+  { value: "past-month", label: "Past month" },
+  { value: "custom", label: "Custom range" },
+] as const;
+
+/** Resolve a stored date-filter value into an inclusive [start, end] key range. */
+export function dateFilterRange(v: string): { start: string; end: string } | null {
+  if (!v) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (v.startsWith("custom:")) {
+    const [, s, e] = v.split(":");
+    if (!s && !e) return null;
+    const a = s || e;
+    const b = e || s;
+    return a <= b ? { start: a, end: b } : { start: b, end: a };
+  }
+  switch (v) {
+    case "today":
+      return { start: toKey(today), end: toKey(today) };
+    case "yesterday": {
+      const y = addDays(today, -1);
+      return { start: toKey(y), end: toKey(y) };
+    }
+    case "this-week":
+      return { start: toKey(startOfWeek(today)), end: toKey(today) };
+    case "past-week": {
+      const s = addDays(startOfWeek(today), -7);
+      return { start: toKey(s), end: toKey(addDays(s, 6)) };
+    }
+    case "this-month":
+      return {
+        start: toKey(new Date(today.getFullYear(), today.getMonth(), 1)),
+        end: toKey(today),
+      };
+    case "past-month": {
+      const s = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const e = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { start: toKey(s), end: toKey(e) };
+    }
+    default: {
+      // Legacy single-day keys (yyyy-mm-dd).
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return { start: v, end: v };
+      return null;
+    }
+  }
+}
+
+function dateFilterLabel(v: string): string {
+  if (!v) return "Any date";
+  if (v.startsWith("custom:")) {
+    const r = dateFilterRange(v);
+    if (!r) return "Custom range";
+    const f = (k: string) => keyToDate(k)?.toLocaleDateString() ?? k;
+    return r.start === r.end ? f(r.start) : `${f(r.start)} – ${f(r.end)}`;
+  }
+  const p = DATE_PRESETS.find((x) => x.value === v);
+  if (p) return p.label;
+  return keyToDate(v)?.toLocaleDateString() ?? "Any date";
+}
+
+
 
 export function useTableToolbox<T>(
   storageKey: string,
@@ -120,7 +205,12 @@ export function useTableToolbox<T>(
         if (!col?.value) return true;
         const v = str(col.value(r));
         if (col.filter === "select") return v === f;
-        if (col.filter === "date") return dateKey(v) === f;
+        if (col.filter === "date") {
+          const range = dateFilterRange(f);
+          if (!range) return true;
+          const k = dateKey(v);
+          return !!k && k >= range.start && k <= range.end;
+        }
         return v.toLowerCase().includes(f.toLowerCase());
 
       }),
@@ -190,7 +280,7 @@ export function ColumnsMenu<T>({ tb, className }: { tb: TableToolbox<T>; classNa
   );
 }
 
-/** Single-day picker used for date columns in the filter row. */
+/** Preset dropdown + custom range picker used for date columns. */
 export function DateFilter({
   value,
   onChange,
@@ -201,39 +291,70 @@ export function DateFilter({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const selected = keyToDate(value);
+  const isCustom = value.startsWith("custom:");
+  const range = isCustom ? dateFilterRange(value) : null;
+  const selectedRange = range
+    ? { from: keyToDate(range.start), to: keyToDate(range.end) }
+    : undefined;
+
   return (
     <div className="flex items-center gap-1">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              "h-8 min-w-[7.5rem] justify-start gap-1 px-2 text-xs font-normal normal-case",
-              !selected && "text-muted-foreground",
-              className,
-            )}
-          >
-            <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">
-              {selected ? selected.toLocaleDateString() : "Any date"}
-            </span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={selected}
-            onSelect={(d) => {
-              onChange(d ? dateKey(d) : "");
-              setOpen(false);
-            }}
-            initialFocus
-            className={cn("p-3 pointer-events-auto")}
-          />
-        </PopoverContent>
-      </Popover>
-      {selected && (
+      <Select
+        value={isCustom ? "custom" : value || ALL}
+        onValueChange={(v) => {
+          if (v === ALL) onChange("");
+          else if (v === "custom") {
+            onChange("custom::");
+            setOpen(true);
+          } else onChange(v);
+        }}
+      >
+        <SelectTrigger className={cn("h-8 min-w-[8rem] text-xs normal-case", className)}>
+          <SelectValue placeholder="Any date" />
+        </SelectTrigger>
+        <SelectContent className="max-h-72">
+          <SelectItem value={ALL}>Any date</SelectItem>
+          {DATE_PRESETS.map((p) => (
+            <SelectItem key={p.value} value={p.value}>
+              {p.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {isCustom && (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "h-8 min-w-[9rem] justify-start gap-1 px-2 text-xs font-normal normal-case",
+                !range && "text-muted-foreground",
+              )}
+            >
+              <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{range ? dateFilterLabel(value) : "Pick range"}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={selectedRange as never}
+              onSelect={(r: { from?: Date; to?: Date } | undefined) => {
+                const from = r?.from ? dateKey(r.from) : "";
+                const to = r?.to ? dateKey(r.to) : "";
+                onChange(`custom:${from}:${to}`);
+                if (from && to) setOpen(false);
+              }}
+              numberOfMonths={2}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+      )}
+
+      {value && (
         <Button
           variant="ghost"
           size="icon"
@@ -247,6 +368,7 @@ export function DateFilter({
     </div>
   );
 }
+
 
 
 /**
