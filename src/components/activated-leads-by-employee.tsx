@@ -87,7 +87,7 @@ export function ActivatedLeadsByEmployee({
       const t = new Date(d + "T00:00:00").getTime();
       if (t < s || t > e) continue;
       if (!a.employee_id) continue;
-      totals.set(a.employee_id, (totals.get(a.employee_id) ?? 0) + (a.activated_count ?? 0));
+      totals.set(a.employee_id, (totals.get(a.employee_id) ?? 0) + 1);
     }
     const nameOf = (id: string) =>
       (employeesQ.data ?? []).find((x) => x.id === id)?.name ?? "—";
