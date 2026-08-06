@@ -195,7 +195,7 @@ function ExpensesPage() {
         description="Track every outflow and watch your category mix."
         actions={
           <div className="flex gap-2">
-            <ColumnsMenu tb={tb} />
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button variant="outline"><Download className="h-4 w-4" /> Export</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
