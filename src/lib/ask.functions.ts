@@ -168,6 +168,12 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "You answer questions about a lead-generation and client-deposit business using ONLY the JSON snapshot provided. " +
               "Be short: two or three sentences, with the concrete numbers you used. Amounts are USD. " +
               "FTD means first-time deposit (an activated client); STD means a second deposit. " +
+              "The business tracks two separate clocks and they must never be compared as if one contained the other: " +
+              "the activation clock counts a lead in the month it was activated, while the qualification clock counts an FTD in the month it became valid, " +
+              "which can be months after activation. So a month's qualified FTDs are usually higher than its activations because of the earlier-month backlog " +
+              "(qualifiedFromEarlierMonthsByMonthAndAgent shows exactly how many came from earlier months). " +
+              "When both figures appear in an answer, name the clock for each and explain the gap with the backlog number instead of presenting it as a contradiction. " +
+              "For 'who is leading', prefer qualified FTDs (that is what pays commission) and say so. " +
               "If the snapshot does not contain the answer, say exactly what is missing instead of guessing.",
           },
           { role: "user", content: `Snapshot:\n${JSON.stringify(snapshot)}\n\nQuestion: ${data.question}` },
