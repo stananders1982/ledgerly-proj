@@ -39,7 +39,7 @@ export function CoachingInsights({ employeeId, month }: { employeeId: string; mo
         fetchAll(() =>
           sb
             .from("daily_lead_activations")
-            .select("activation_date,qualified_at,employee_id,conversion_employee_id,answered")
+            .select("id,activation_date,qualified_at,employee_id,conversion_employee_id,answered")
             .gte("activation_date", since),
         ),
       ]);
