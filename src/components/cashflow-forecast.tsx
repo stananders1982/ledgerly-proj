@@ -185,7 +185,7 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
     model.trendPerDay > 0.5 ? "trending up" : model.trendPerDay < -0.5 ? "trending down" : "flat trend";
 
   return (
-    <div className="card-surface p-5">
+    <div className="card-surface @container p-5">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h3 className="font-display text-base font-semibold">Cash-flow forecast</h3>
@@ -236,7 +236,7 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 @[42rem]:grid-cols-4">
         <Mini label="Projected income" value={fmtMoney(model.revProjected)} tone="text-emerald-500" />
         <Mini label="Scheduled costs" value={fmtMoney(model.expTotal)} tone="text-rose-500" />
         <Mini label="Contracted income" value={fmtMoney(model.recurringRevenueTotal)} />
@@ -250,27 +250,37 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
             {model.upcoming.map((o, i) => (
               <li
                 key={`${o.name}-${o.date}-${i}`}
-                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 py-1.5"
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 py-1.5"
               >
                 <span className="truncate">{o.name}</span>
-                <span className="num shrink-0 text-right tabular-nums text-rose-500">{fmtMoney(o.amount)}</span>
-                <span className="num w-[5.5rem] shrink-0 text-right tabular-nums text-muted-foreground">{o.date}</span>
+                <span className="flex items-baseline justify-end gap-2 whitespace-nowrap">
+                  <span className="num tabular-nums text-rose-500">{fmtMoney(o.amount)}</span>
+                  <span className="num text-xs tabular-nums text-muted-foreground">{shortDate(o.date)}</span>
+                </span>
               </li>
             ))}
           </ul>
+
         </div>
       )}
     </div>
   );
 }
 
+function shortDate(iso: string) {
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 function Mini({ label, value, tone }: { label: string; value: string; tone?: string }) {
+
   return (
     <div className="min-w-0 rounded-lg border border-border p-3">
-      <p className="truncate text-[11px] uppercase tracking-wider text-muted-foreground" title={label}>
+      <p className="text-[10px] leading-tight uppercase tracking-wider text-muted-foreground" title={label}>
         {label}
       </p>
-      <p className={cn("num mt-1 truncate text-base font-semibold tabular-nums", tone)} title={value}>
+      <p className={cn("num mt-1 truncate text-[15px] font-semibold tabular-nums", tone)} title={value}>
         {value}
       </p>
     </div>
