@@ -75,7 +75,7 @@ type Row = {
   daily_lead_entries?: { entry_date: string; source_id: string | null; lead_sources?: { name: string } | null } | null;
 };
 
-type PendingRow = { row: Row; balance: number; reasons: string[]; agent: string };
+
 
 /** Date the lead was actually activated (falls back to the lead entry date). */
 const actDate = (r: Row) => r.activation_date ?? r.daily_lead_entries?.entry_date ?? null;
