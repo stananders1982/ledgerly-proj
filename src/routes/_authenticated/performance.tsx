@@ -455,6 +455,7 @@ function PerformancePage() {
             </table>
           </div>
           <TablePagination {...pg} />
+          </TooltipProvider>
           </>
         )}
       </div>
