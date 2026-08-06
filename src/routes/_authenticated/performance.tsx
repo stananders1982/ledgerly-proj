@@ -327,6 +327,7 @@ function PerformancePage() {
               />
             ))}
           </DataCardList>
+          <TooltipProvider>
           <div className="hidden md:block overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>
