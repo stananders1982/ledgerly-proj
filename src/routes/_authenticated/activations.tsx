@@ -101,7 +101,7 @@ function ActivationsPage() {
   const [customEnd, setCustomEnd] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
   const [viewing, setViewing] = useState<Row | null>(null);
-  const [pendingView, setPendingView] = useState<{ title: string; rows: PendingRow[] } | null>(null);
+  
   const [answeredFilter, setAnsweredFilter] = useState<"all" | "yes" | "no">("all");
   const [potentialFilter, setPotentialFilter] = useState<string>("all");
   const [stdFilter, setStdFilter] = useState<"all" | "yes" | "no">("all");
