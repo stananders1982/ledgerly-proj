@@ -386,6 +386,10 @@ function RevenuePage() {
         <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${sel.count} selected record(s)?`} />
       </BulkBar>
 
+      <div className="mb-2 flex justify-end">
+        <ColumnsMenu tb={tb} />
+      </div>
+
       <div className="card-surface overflow-hidden">
         {revQ.isLoading ? <TableSkeleton cols={6} />
         : filtered.length === 0 ? (
