@@ -89,13 +89,25 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         (a: any) => nameOf(employees.data, a.conversion_employee_id),
         () => 1,
       ),
-      activationsByMonthAndAgent: bucket(
+      // Activation clock: counted in the month the lead was activated.
+      activationsByMonthActivatedAndAgent: bucket(
         activations.data,
         (a: any) => `${month(a.activation_date)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
         () => 1,
       ),
-      qualifiedFtdsByMonthAndAgent: bucket(
+      // Qualification clock: counted in the month the FTD became valid. This
+      // includes leads activated in earlier months, so it is normally larger
+      // than the activation count for the same month — they are not subsets.
+      qualifiedFtdsByMonthQualifiedAndAgent: bucket(
         (activations.data ?? []).filter((a: any) => a.qualified_at),
+        (a: any) => `${month(a.qualified_at)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
+        () => 1,
+      ),
+      // Of those qualified in a month, how many were activated in an earlier month.
+      qualifiedFromEarlierMonthsByMonthAndAgent: bucket(
+        (activations.data ?? []).filter(
+          (a: any) => a.qualified_at && month(a.qualified_at) !== month(a.activation_date),
+        ),
         (a: any) => `${month(a.qualified_at)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
         () => 1,
       ),
@@ -156,6 +168,12 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "You answer questions about a lead-generation and client-deposit business using ONLY the JSON snapshot provided. " +
               "Be short: two or three sentences, with the concrete numbers you used. Amounts are USD. " +
               "FTD means first-time deposit (an activated client); STD means a second deposit. " +
+              "The business tracks two separate clocks and they must never be compared as if one contained the other: " +
+              "the activation clock counts a lead in the month it was activated, while the qualification clock counts an FTD in the month it became valid, " +
+              "which can be months after activation. So a month's qualified FTDs are usually higher than its activations because of the earlier-month backlog " +
+              "(qualifiedFromEarlierMonthsByMonthAndAgent shows exactly how many came from earlier months). " +
+              "When both figures appear in an answer, name the clock for each and explain the gap with the backlog number instead of presenting it as a contradiction. " +
+              "For 'who is leading', prefer qualified FTDs (that is what pays commission) and say so. " +
               "If the snapshot does not contain the answer, say exactly what is missing instead of guessing.",
           },
           { role: "user", content: `Snapshot:\n${JSON.stringify(snapshot)}\n\nQuestion: ${data.question}` },
