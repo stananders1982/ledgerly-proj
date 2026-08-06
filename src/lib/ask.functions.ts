@@ -26,7 +26,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     since.setMonth(since.getMonth() - 6);
     const sinceIso = since.toISOString().slice(0, 10);
 
-    const [revenue, expenses, withdrawals, activations, leads, sources, employees, categories] =
+    const [revenue, expenses, withdrawals, activations, leads, sources, employees, categories, affiliates] =
       await Promise.all([
         supabase.from("revenue").select("date,amount,customer_name,employee_id,affiliate_id,method").gte("date", sinceIso),
         supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
@@ -36,6 +36,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         supabase.from("lead_sources").select("id,name,pricing_model,price"),
         supabase.from("employees").select("id,name,team,active"),
         supabase.from("expense_categories").select("id,name"),
+        supabase.from("affiliates").select("id,name"),
       ]);
 
     const month = (d: string | null) => (d ?? "").slice(0, 7);
@@ -101,7 +102,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       depositsByMonthAndSource: round(
         bucket(
           revenue.data,
-          (r: any) => `${month(r.date)} | ${nameOf(sourcesAsAffiliates, r.affiliate_id)}`,
+          (r: any) => `${month(r.date)} | ${nameOf(affiliates.data, r.affiliate_id)}`,
           (r: any) => Number(r.amount || 0),
         ),
       ),
