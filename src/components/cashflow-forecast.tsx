@@ -236,7 +236,7 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 @[42rem]:grid-cols-4">
         <Mini label="Projected income" value={fmtMoney(model.revProjected)} tone="text-emerald-500" />
         <Mini label="Scheduled costs" value={fmtMoney(model.expTotal)} tone="text-rose-500" />
         <Mini label="Contracted income" value={fmtMoney(model.recurringRevenueTotal)} />
@@ -277,10 +277,10 @@ function Mini({ label, value, tone }: { label: string; value: string; tone?: str
 
   return (
     <div className="min-w-0 rounded-lg border border-border p-3">
-      <p className="truncate text-[11px] uppercase tracking-wider text-muted-foreground" title={label}>
+      <p className="text-[10px] leading-tight uppercase tracking-wider text-muted-foreground" title={label}>
         {label}
       </p>
-      <p className={cn("num mt-1 whitespace-nowrap text-base font-semibold tabular-nums", tone)} title={value}>
+      <p className={cn("num mt-1 truncate text-[15px] font-semibold tabular-nums", tone)} title={value}>
         {value}
       </p>
     </div>
