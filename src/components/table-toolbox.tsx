@@ -119,9 +119,10 @@ export function useTableToolbox<T>(
         const col = cols.find((c) => c.key === key);
         if (!col?.value) return true;
         const v = str(col.value(r));
-        return col.filter === "select"
-          ? v === f
-          : v.toLowerCase().includes(f.toLowerCase());
+        if (col.filter === "select") return v === f;
+        if (col.filter === "date") return dateKey(v) === f;
+        return v.toLowerCase().includes(f.toLowerCase());
+
       }),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
