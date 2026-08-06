@@ -176,6 +176,15 @@ function ReportsPage() {
       .gte("date", pvWindow.start)
       .lte("date", pvWindow.end)),
   });
+  const pvActQ = useQuery({
+    enabled: tab === "playervalue",
+    queryKey: ["pv-acts", pvWindow.start, pvWindow.end],
+    queryFn: async () => await fetchAll(() => supabase
+      .from("daily_lead_activations")
+      .select("id,activation_date,employee_id,conversion_employee_id")
+      .gte("activation_date", pvWindow.start)
+      .lte("activation_date", pvWindow.end)),
+  });
   const affMapQ = useQuery({
     queryKey: ["pv-affs"],
     queryFn: async () => await fetchAll(() => supabase.from("affiliates").select("id,name")),
