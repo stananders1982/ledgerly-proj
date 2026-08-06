@@ -603,7 +603,6 @@ function LeadsPage() {
             onChange={(e) => setLeadSearch(e.target.value)}
             className="h-9 w-[200px]"
           />
-          <ColumnsMenu tb={tb} />
           <SavedViews
             id="leads"
             state={{ range, customStart, customEnd, sourceFilter, leadSearch }}
