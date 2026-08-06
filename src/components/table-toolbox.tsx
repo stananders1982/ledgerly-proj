@@ -39,7 +39,16 @@ function str(v: unknown) {
   return v === null || v === undefined ? "" : String(v);
 }
 
-export function useTableToolbox<T>(storageKey: string, cols: ColDef<T>[], rows: T[]) {
+export function useTableToolbox<T>(
+  storageKey: string,
+  cols: ColDef<T>[],
+  rows: T[],
+  opts?: {
+    /** Rows searched instead of `rows` when one of `allTimeKeys` has a filter. */
+    allTimeRows?: T[];
+    allTimeKeys?: string[];
+  },
+) {
   const lsKey = `table-cols:${storageKey}`;
   const [hidden, setHidden] = useState<string[]>(() => {
     if (typeof window === "undefined") return cols.filter((c) => c.defaultHidden).map((c) => c.key);
@@ -81,7 +90,10 @@ export function useTableToolbox<T>(storageKey: string, cols: ColDef<T>[], rows: 
   const filtered = useMemo(() => {
     const entries = Object.entries(filters);
     if (!entries.length) return rows;
-    return rows.filter((r) =>
+    const useAllTime =
+      opts?.allTimeRows && (opts.allTimeKeys ?? []).some((k) => filters[k]);
+    const base = useAllTime ? opts!.allTimeRows! : rows;
+    return base.filter((r) =>
       entries.every(([key, f]) => {
         const col = cols.find((c) => c.key === key);
         if (!col?.value) return true;
@@ -92,7 +104,7 @@ export function useTableToolbox<T>(storageKey: string, cols: ColDef<T>[], rows: 
       }),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, filters]);
+  }, [rows, filters, opts?.allTimeRows]);
 
   const optionsFor = (col: ColDef<T>) => {
     if (!col.value) return [];

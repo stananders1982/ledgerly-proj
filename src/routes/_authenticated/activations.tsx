@@ -261,17 +261,9 @@ function ActivationsPage() {
     [issue, dupNames, depositsByName, retentionIds],
   );
 
-  const rows = useMemo(() => {
-    const s = activeRange.start.getTime();
-    const e = activeRange.end.getTime();
-    const searching = search.trim().length > 0 || !!issue;
-    return (q.data ?? []).filter((r) => {
+  const passesFilters = useCallback(
+    (r: any) => {
       if (issue && !issueMatch(r)) return false;
-      const d = actDate(r);
-      if (d && !searching) {
-        const t = new Date(d + "T00:00:00").getTime();
-        if (t < s || t > e) return false;
-      }
       if (answeredFilter === "yes" && !r.answered) return false;
       if (answeredFilter === "no" && r.answered) return false;
       if (potentialFilter !== "all" && (r.potential ?? "") !== potentialFilter) return false;
@@ -285,8 +277,30 @@ function ActivationsPage() {
       const term = search.trim().toLowerCase();
       if (term && !(r.lead_name ?? "").toLowerCase().includes(term)) return false;
       return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch],
+  );
+
+  /** Every client regardless of the selected date range (used by name search). */
+  const rowsAllTime = useMemo(
+    () => (q.data ?? []).filter(passesFilters),
+    [q.data, passesFilters],
+  );
+
+  const rows = useMemo(() => {
+    const s = activeRange.start.getTime();
+    const e = activeRange.end.getTime();
+    const searching = search.trim().length > 0 || !!issue;
+    return rowsAllTime.filter((r) => {
+      const d = actDate(r);
+      if (d && !searching) {
+        const t = new Date(d + "T00:00:00").getTime();
+        if (t < s || t > e) return false;
+      }
+      return true;
     });
-  }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch]);
+  }, [rowsAllTime, activeRange, search, issue]);
 
   const tb = useTableToolbox<any>(
     "activations",
@@ -304,6 +318,7 @@ function ActivationsPage() {
       { key: "answered", label: "Answered", filter: "select", value: (r: any) => (r.answered ? "Yes" : "No") },
     ],
     rows,
+    { allTimeRows: rowsAllTime, allTimeKeys: ["lead"] },
   );
 
   const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
