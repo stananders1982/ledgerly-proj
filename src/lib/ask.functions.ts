@@ -111,6 +111,15 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         (a: any) => `${month(a.qualified_at)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
         () => 1,
       ),
+      // Of a month's own activations, how many qualified within that same month.
+      qualifiedSameMonthByMonthAndAgent: bucket(
+        (activations.data ?? []).filter(
+          (a: any) => a.qualified_at && month(a.qualified_at) === month(a.activation_date),
+        ),
+        (a: any) => `${month(a.activation_date)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
+        () => 1,
+      ),
+
       depositsByMonthAndSource: round(
         bucket(
           revenue.data,
@@ -168,13 +177,17 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "You answer questions about a lead-generation and client-deposit business using ONLY the JSON snapshot provided. " +
               "Be short: two or three sentences, with the concrete numbers you used. Amounts are USD. " +
               "FTD means first-time deposit (an activated client); STD means a second deposit. " +
-              "The business tracks two separate clocks and they must never be compared as if one contained the other: " +
-              "the activation clock counts a lead in the month it was activated, while the qualification clock counts an FTD in the month it became valid, " +
-              "which can be months after activation. So a month's qualified FTDs are usually higher than its activations because of the earlier-month backlog " +
-              "(qualifiedFromEarlierMonthsByMonthAndAgent shows exactly how many came from earlier months). " +
-              "When both figures appear in an answer, name the clock for each and explain the gap with the backlog number instead of presenting it as a contradiction. " +
-              "For 'who is leading', prefer qualified FTDs (that is what pays commission) and say so. " +
+              "DEFAULT RULE: 'FTDs', 'activations', 'conversions' and 'how many clients' always mean the ACTIVATION clock — " +
+              "leads activated in that period, from activationsByMonthActivatedAndAgent / totals.activations. " +
+              "For those questions answer with the activation number only; do NOT mention qualified FTDs, the qualification clock, " +
+              "or the earlier-months backlog at all. " +
+              "Use the qualification clock (qualifiedFtdsByMonthQualifiedAndAgent) ONLY when the question is about commission, payouts, " +
+              "or explicitly says qualified/valid FTDs, or explicitly asks for both clocks. In that case name each clock, and you may use " +
+              "qualifiedFromEarlierMonthsByMonthAndAgent (carried over from earlier months) and qualifiedSameMonthByMonthAndAgent " +
+              "(that month's own activations which already qualified) to explain the make-up. " +
+              "For 'who is leading', rank by activations by default; rank by qualified FTDs only when the question is about commission or pay, and say so. " +
               "If the snapshot does not contain the answer, say exactly what is missing instead of guessing.",
+
           },
           { role: "user", content: `Snapshot:\n${JSON.stringify(snapshot)}\n\nQuestion: ${data.question}` },
         ],
