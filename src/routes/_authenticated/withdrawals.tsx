@@ -25,7 +25,7 @@ import { StatCard } from "@/components/stat-card";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
-import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, FilterRow, TotalsRow } from "@/components/table-toolbox";
 import { withdrawalPenalty } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
@@ -238,7 +238,7 @@ function WithdrawalsPage() {
         </div>
       )}
 
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
         <ColumnsMenu tb={tb} />
       </div>
@@ -330,6 +330,17 @@ function WithdrawalsPage() {
                   </tr>
                 ))}
               </tbody>
+              <TotalsRow
+                tb={tb}
+                rows={pageItems as any[]}
+                trailing={1}
+                totals={{
+                  amount: (r: any) => Number(r.amount || 0),
+                  penalty: (r: any) => Number(r.employee_penalty || 0),
+                }}
+                format={(n) => `−${fmtMoney(n)}`}
+                label="Page total"
+              />
             </table>
           </div>
           <TablePagination {...pg} />

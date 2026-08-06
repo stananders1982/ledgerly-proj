@@ -26,7 +26,7 @@ import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { SearchInput } from "@/components/search-input";
-import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, FilterRow, TotalsRow } from "@/components/table-toolbox";
 import { useSort, SortTh } from "@/components/sortable-table";
 
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
@@ -42,7 +42,7 @@ import { useCompanySettings } from "@/lib/settings";
 
 export const Route = createFileRoute("/_authenticated/revenue")({
   validateSearch: (search: Record<string, unknown>) => ({
-    issue: typeof search.issue === "string" ? search.issue : undefined,
+    ...(typeof search.issue === "string" ? { issue: search.issue } : {}),
   }),
   head: () => ({ meta: [{ title: "Revenue — Ledgerly" }] }),
   component: RevenuePage,
@@ -386,7 +386,7 @@ function RevenuePage() {
         <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${sel.count} selected record(s)?`} />
       </BulkBar>
 
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
         <ColumnsMenu tb={tb} />
       </div>
@@ -451,6 +451,15 @@ function RevenuePage() {
                   />
                 ))}
               </tbody>
+              <TotalsRow
+                tb={tb}
+                rows={pageItems as any[]}
+                leading={1}
+                trailing={1}
+                totals={{ amount: (r: any) => Number(r.amount || 0) }}
+                format={(n) => fmtMoney(n)}
+                label="Page total"
+              />
             </table>
           </div>
           <TablePagination {...pg} />

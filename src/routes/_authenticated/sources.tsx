@@ -5,6 +5,7 @@ import { Plus, Tag } from "lucide-react";
 import { PricingModelBadge } from "@/components/status-badge";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { SourceQualityCard } from "@/components/source-quality-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -224,6 +225,10 @@ function SourcesPage() {
           </Dialog>
         }
       />
+
+      <div className="mb-6">
+        <SourceQualityCard />
+      </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
         <StatCard label="Expected activations" value={String(Math.round(totals.expectedActivations))} />

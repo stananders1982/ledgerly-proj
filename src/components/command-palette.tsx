@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Banknote, CalendarCheck, Receipt, TrendingUp, Users, UserCog, Building2, Star } from "lucide-react";
+import { Banknote, CalendarCheck, CheckSquare, Receipt, TrendingUp, Target, Users, UserCog, Building2, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CommandDialog,
@@ -16,11 +16,20 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { useFavorites } from "@/lib/favorites";
+import { requestQuickCreate, type QuickCreateKey } from "@/lib/quick-create";
 
-const QUICK_ACTIONS = [
-  { label: "Add income", to: "/revenue", icon: TrendingUp, key: "revenue" },
-  { label: "Add expense", to: "/expenses", icon: Receipt, key: "expenses" },
-  { label: "Record withdrawal", to: "/withdrawals", icon: Banknote, key: "withdrawals" },
+const QUICK_ACTIONS: {
+  label: string;
+  to: string;
+  icon: typeof TrendingUp;
+  key: string;
+  create?: QuickCreateKey;
+}[] = [
+  { label: "Record a deposit", to: "/revenue", icon: TrendingUp, key: "revenue", create: "revenue" },
+  { label: "Add an expense", to: "/expenses", icon: Receipt, key: "expenses", create: "expenses" },
+  { label: "Record a withdrawal", to: "/withdrawals", icon: Banknote, key: "withdrawals", create: "withdrawals" },
+  { label: "Add a lead entry", to: "/leads", icon: Target, key: "leads", create: "leads" },
+  { label: "Create a task", to: "/tasks", icon: CheckSquare, key: "tasks", create: "tasks" },
   { label: "Mark attendance", to: "/attendance", icon: CalendarCheck, key: "attendance" },
 ];
 
@@ -165,7 +174,14 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             <CommandSeparator />
             <CommandGroup heading="Quick actions">
               {actions.map((a) => (
-                <CommandItem key={a.label} value={a.label} onSelect={() => go(a.to)}>
+                <CommandItem
+                  key={a.label}
+                  value={`${a.label} new create`}
+                  onSelect={() => {
+                    if (a.create) requestQuickCreate(a.create);
+                    go(a.to);
+                  }}
+                >
                   <a.icon className="mr-2 h-4 w-4" />
                   {a.label}
                 </CommandItem>
