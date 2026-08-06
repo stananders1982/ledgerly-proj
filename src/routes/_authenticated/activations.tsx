@@ -25,6 +25,7 @@ import { CommentThread } from "@/components/comment-thread";
 import { AttachmentsPanel } from "@/components/attachments-panel";
 import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
+import { ActivatedLeadsByEmployee } from "@/components/activated-leads-by-employee";
 import { CheckCircle2, PhoneCall, Wallet, Copy } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
@@ -534,6 +535,12 @@ function ActivationsPage() {
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
         </div>
       )}
+
+      <ActivatedLeadsByEmployee
+        start={activeRange.start}
+        end={activeRange.end}
+        label={activeRange.label}
+      />
 
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
