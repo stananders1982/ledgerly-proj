@@ -238,6 +238,10 @@ function WithdrawalsPage() {
         </div>
       )}
 
+      <div className="mb-2 flex justify-end">
+        <ColumnsMenu tb={tb} />
+      </div>
+
       <div className="card-surface overflow-hidden">
         {wQ.isLoading ? <TableSkeleton cols={7} />
         : rows.length === 0 ? (
