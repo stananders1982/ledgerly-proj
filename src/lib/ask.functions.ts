@@ -75,17 +75,60 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       depositsByAgent: round(
         bucket(revenue.data, (r: any) => nameOf(employees.data, r.employee_id), (r: any) => Number(r.amount || 0)),
       ),
+      // "month | agent" keys so month-specific agent questions are answerable.
+      depositsByMonthAndAgent: round(
+        bucket(
+          revenue.data,
+          (r: any) => `${month(r.date)} | ${nameOf(employees.data, r.employee_id)}`,
+          (r: any) => Number(r.amount || 0),
+        ),
+      ),
       activationsByConversionAgent: bucket(
         activations.data,
         (a: any) => nameOf(employees.data, a.conversion_employee_id),
         () => 1,
       ),
+      activationsByMonthAndAgent: bucket(
+        activations.data,
+        (a: any) => `${month(a.activation_date)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
+        () => 1,
+      ),
+      qualifiedFtdsByMonthAndAgent: bucket(
+        (activations.data ?? []).filter((a: any) => a.qualified_at),
+        (a: any) => `${month(a.qualified_at)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
+        () => 1,
+      ),
+      depositsByMonthAndSource: round(
+        bucket(
+          revenue.data,
+          (r: any) => `${month(r.date)} | ${nameOf(sourcesAsAffiliates, r.affiliate_id)}`,
+          (r: any) => Number(r.amount || 0),
+        ),
+      ),
+      leadsByMonthAndSource: round(
+        bucket(
+          leads.data,
+          (l: any) => `${month(l.entry_date)} | ${nameOf(sources.data, l.source_id)}`,
+          (l: any) => Number(l.received || 0),
+        ),
+      ),
       expensesByCategory: round(
         bucket(expenses.data, (e: any) => nameOf(categories.data, e.category_id), (e: any) => Number(e.amount || 0)),
+      ),
+      expensesByMonthAndCategory: round(
+        bucket(
+          expenses.data,
+          (e: any) => `${month(e.date)} | ${nameOf(categories.data, e.category_id)}`,
+          (e: any) => Number(e.amount || 0),
+        ),
       ),
       depositsByMethod: round(
         bucket(revenue.data, (r: any) => r.method || "unspecified", (r: any) => Number(r.amount || 0)),
       ),
+      employeeTeams: Object.fromEntries(
+        (employees.data ?? []).map((e: any) => [e.name, e.team ?? "—"]),
+      ),
+
       totals: {
         deposits: Math.round((revenue.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0)),
         expenses: Math.round((expenses.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0)),
