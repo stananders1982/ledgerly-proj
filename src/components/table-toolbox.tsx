@@ -190,6 +190,65 @@ export function ColumnsMenu<T>({ tb, className }: { tb: TableToolbox<T>; classNa
   );
 }
 
+/** Single-day picker used for date columns in the filter row. */
+export function DateFilter({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = keyToDate(value);
+  return (
+    <div className="flex items-center gap-1">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "h-8 min-w-[7.5rem] justify-start gap-1 px-2 text-xs font-normal normal-case",
+              !selected && "text-muted-foreground",
+              className,
+            )}
+          >
+            <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">
+              {selected ? selected.toLocaleDateString() : "Any date"}
+            </span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={selected}
+            onSelect={(d) => {
+              onChange(d ? dateKey(d) : "");
+              setOpen(false);
+            }}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
+      {selected && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 shrink-0"
+          onClick={() => onChange("")}
+          aria-label="Clear date filter"
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+
 /**
  * Second header row with a search box / dropdown under each visible column.
  * `leading` / `trailing` add empty cells for checkbox and action columns.
