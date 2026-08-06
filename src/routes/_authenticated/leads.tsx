@@ -603,7 +603,6 @@ function LeadsPage() {
             onChange={(e) => setLeadSearch(e.target.value)}
             className="h-9 w-[200px]"
           />
-          <ColumnsMenu tb={tb} />
           <SavedViews
             id="leads"
             state={{ range, customStart, customEnd, sourceFilter, leadSearch }}
@@ -779,6 +778,10 @@ function LeadsPage() {
         <Button size="sm" variant="outline" onClick={exportSelection}>Export selection</Button>
         <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${sel.count} selected entr${sel.count === 1 ? "y" : "ies"}?`} />
       </BulkBar>
+
+      <div className="mb-2 flex justify-end">
+        <ColumnsMenu tb={tb} />
+      </div>
 
       <div className="card-surface overflow-hidden">
         {q.isLoading ? (
