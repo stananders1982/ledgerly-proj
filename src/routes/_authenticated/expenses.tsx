@@ -268,7 +268,7 @@ function ExpensesPage() {
         </div>
       )}
 
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
         <ColumnsMenu tb={tb} />
       </div>

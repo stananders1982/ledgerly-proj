@@ -663,7 +663,7 @@ function LeadsPage() {
 
       {leadSearch.trim() && (
         <div className="card-surface p-4 mb-6">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold">Matching leads</h3>
             <span className="text-xs text-muted-foreground">
               {matchingLeads.length} found · all time
@@ -727,7 +727,7 @@ function LeadsPage() {
 
 
       <div className="card-surface p-4 mb-6">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold">Activated leads by employee</h3>
           <span className="text-xs text-muted-foreground">{activeRange.label}</span>
         </div>
@@ -779,7 +779,7 @@ function LeadsPage() {
         <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${sel.count} selected entr${sel.count === 1 ? "y" : "ies"}?`} />
       </BulkBar>
 
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
         <ColumnsMenu tb={tb} />
       </div>
