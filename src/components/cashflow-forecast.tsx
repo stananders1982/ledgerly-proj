@@ -236,7 +236,7 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Mini label="Projected income" value={fmtMoney(model.revProjected)} tone="text-emerald-500" />
         <Mini label="Scheduled costs" value={fmtMoney(model.expTotal)} tone="text-rose-500" />
         <Mini label="Contracted income" value={fmtMoney(model.recurringRevenueTotal)} />
@@ -246,13 +246,15 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
       {model.upcoming.length > 0 && (
         <div className="mt-4">
           <p className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Next scheduled payments</p>
-          <ul className="space-y-1 text-sm">
+          <ul className="divide-y divide-border/60 text-sm">
             {model.upcoming.map((o, i) => (
-              <li key={`${o.name}-${o.date}-${i}`} className="flex items-center justify-between gap-3">
+              <li
+                key={`${o.name}-${o.date}-${i}`}
+                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 py-1.5"
+              >
                 <span className="truncate">{o.name}</span>
-                <span className="whitespace-nowrap text-muted-foreground">
-                  <span className="num mr-2 text-rose-500">{fmtMoney(o.amount)}</span>{o.date}
-                </span>
+                <span className="num shrink-0 text-right tabular-nums text-rose-500">{fmtMoney(o.amount)}</span>
+                <span className="num w-[5.5rem] shrink-0 text-right tabular-nums text-muted-foreground">{o.date}</span>
               </li>
             ))}
           </ul>
@@ -264,9 +266,14 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
 
 function Mini({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="rounded-lg border border-border p-3">
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={cn("num mt-1 text-base font-semibold", tone)}>{value}</p>
+    <div className="min-w-0 rounded-lg border border-border p-3">
+      <p className="truncate text-[11px] uppercase tracking-wider text-muted-foreground" title={label}>
+        {label}
+      </p>
+      <p className={cn("num mt-1 truncate text-base font-semibold tabular-nums", tone)} title={value}>
+        {value}
+      </p>
     </div>
   );
 }
+
