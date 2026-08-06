@@ -21,6 +21,8 @@ import { commissionAmount, commissionRate, commissionableAmount, type Commission
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 
+import { ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
+
 const sb = supabase as any;
 
 
