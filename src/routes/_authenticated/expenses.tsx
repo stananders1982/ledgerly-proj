@@ -80,13 +80,26 @@ function ExpensesPage() {
     });
   }, [expQ.data, activeRange]);
 
-  const { sorted, sort, toggle } = useSort<any>(filtered, {
+  const tb = useTableToolbox<any>(
+    "expenses",
+    [
+      { key: "date", label: "Date", value: (e: any) => fmtDate(e.date) },
+      { key: "category", label: "Category", filter: "select", value: (e: any) => e.expense_categories?.name ?? "" },
+      { key: "affiliate", label: "Affiliate", filter: "select", value: (e: any) => e.affiliates?.name ?? "" },
+      { key: "amount", label: "Amount", value: (e: any) => e.amount },
+      { key: "notes", label: "Notes", value: (e: any) => e.notes ?? "" },
+    ],
+    filtered,
+  );
+
+  const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
     date: (e) => e.date,
     category: (e) => e.expense_categories?.name ?? "",
     affiliate: (e) => e.affiliates?.name ?? "",
     amount: (e) => Number(e.amount ?? 0),
     notes: (e) => e.notes ?? "",
   });
+
   const { pageItems, ...pg } = usePagination(sorted, 30);
 
   const stats = useMemo(() => {
