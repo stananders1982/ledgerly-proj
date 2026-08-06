@@ -176,6 +176,15 @@ function ReportsPage() {
       .gte("date", pvWindow.start)
       .lte("date", pvWindow.end)),
   });
+  const pvActQ = useQuery({
+    enabled: tab === "playervalue",
+    queryKey: ["pv-acts", pvWindow.start, pvWindow.end],
+    queryFn: async () => await fetchAll(() => supabase
+      .from("daily_lead_activations")
+      .select("id,activation_date,employee_id,conversion_employee_id")
+      .gte("activation_date", pvWindow.start)
+      .lte("activation_date", pvWindow.end)),
+  });
   const affMapQ = useQuery({
     queryKey: ["pv-affs"],
     queryFn: async () => await fetchAll(() => supabase.from("affiliates").select("id,name")),
@@ -440,11 +449,16 @@ function ReportsPage() {
       if (r.employee_id) { const x = getE(r.employee_id); x.revenue += amt * (pct / 100); byEmp.set(r.employee_id, x); }
       if (r.employee_id_2) { const x = getE(r.employee_id_2); x.revenue += amt * ((100 - pct) / 100); byEmp.set(r.employee_id_2, x); }
     }
+    // Activations per employee: count for retention holder and conversion agent
+    for (const a of ((pvActQ.data ?? []) as any[])) {
+      const ids = new Set<string>([a.employee_id, a.conversion_employee_id].filter(Boolean));
+      for (const id of ids) { const x = getE(id); x.activated += 1; byEmp.set(id, x); }
+    }
     const toRows = (m: Map<string, Row>) => Array.from(m.values())
       .map((x) => ({ ...x, playerValue: x.activated ? x.revenue / x.activated : 0 }))
       .sort((a, b) => b.playerValue - a.playerValue);
     return { byAff: toRows(byAff), byEmp: toRows(byEmp) };
-  }, [pvLeadsQ.data, pvRevQ.data, affMapQ.data, data.employees]);
+  }, [pvLeadsQ.data, pvRevQ.data, pvActQ.data, affMapQ.data, data.employees]);
 
 
 
