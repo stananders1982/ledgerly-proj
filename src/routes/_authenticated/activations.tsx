@@ -28,6 +28,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { CheckCircle2, PhoneCall, Wallet, Copy } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { CLIENT_TAGS, TagBadges, TagPicker } from "@/components/client-tags";
@@ -287,7 +288,25 @@ function ActivationsPage() {
     });
   }, [q.data, activeRange, answeredFilter, potentialFilter, stdFilter, search, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch]);
 
-  const { sorted, sort, toggle } = useSort<any>(rows, {
+  const tb = useTableToolbox<any>(
+    "activations",
+    [
+      { key: "date", label: "Date", value: (r: any) => (actDate(r) ? fmtDate(actDate(r)!) : "") },
+      { key: "qualified", label: "Qualified", filter: "select", value: (r: any) => (r.qualified_at ? "Qualified" : "Pending") },
+      { key: "lead", label: "Lead name", value: (r: any) => r.lead_name ?? "" },
+      { key: "source", label: "Source", filter: "select", value: (r: any) => r.daily_lead_entries?.lead_sources?.name ?? "" },
+      { key: "balance", label: "Balance", filter: "none" },
+      { key: "potential", label: "Potential", filter: "select", value: (r: any) => r.potential ?? "" },
+      { key: "tags", label: "Tags", value: (r: any) => (r.tags ?? []).join(", ") },
+      { key: "std", label: "STD", filter: "none" },
+      { key: "conversion", label: "Conversion agent", filter: "select", value: (r: any) => employeeName(r.conversion_employee_id) ?? "" },
+      { key: "retention", label: "Retention agent", filter: "select", value: (r: any) => employeeName(r.employee_id) ?? "" },
+      { key: "answered", label: "Answered", filter: "select", value: (r: any) => (r.answered ? "Yes" : "No") },
+    ],
+    rows,
+  );
+
+  const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
     date: (r) => actDate(r) ?? "",
     lead: (r) => r.lead_name ?? "",
     source: (r) => r.daily_lead_entries?.lead_sources?.name ?? "",
@@ -457,6 +476,7 @@ function ActivationsPage() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
+        <ColumnsMenu tb={tb} />
         <Select value={answeredFilter} onValueChange={(v) => setAnsweredFilter(v as any)}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -636,18 +656,19 @@ function ActivationsPage() {
                   />
                 </th>
                 <th className="py-3 px-2 w-8"></th>
-                <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
-                <th className="py-3 px-4">Qualified</th>
-                <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-3 px-4" />
-                <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
-                <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-3 px-4" />
-                <SortTh label="Potential" k="potential" sort={sort} toggle={toggle} className="py-3 px-4" />
-                <th className="py-3 px-4">Tags</th>
-                <SortTh label="STD" k="std" sort={sort} toggle={toggle} className="py-3 px-4" />
-                <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-3 px-4" />
-                <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-3 px-4" />
-                <SortTh label="Answered" k="answered" sort={sort} toggle={toggle} className="py-3 px-4" />
+                {tb.show("date") && <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                {tb.show("qualified") && <th className="py-3 px-4">Qualified</th>}
+                {tb.show("lead") && <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                {tb.show("source") && <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                {tb.show("balance") && <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                {tb.show("potential") && <SortTh label="Potential" k="potential" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                {tb.show("tags") && <th className="py-3 px-4">Tags</th>}
+                {tb.show("std") && <SortTh label="STD" k="std" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                {tb.show("conversion") && <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                {tb.show("retention") && <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                {tb.show("answered") && <SortTh label="Answered" k="answered" sort={sort} toggle={toggle} className="py-3 px-4" />}
               </tr>
+              <FilterRow tb={tb} leading={2} />
             </thead>
             <tbody>
               {pageItems.map((r: any) => (
@@ -662,7 +683,10 @@ function ActivationsPage() {
                   <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                     <FavoriteStar type="client" id={r.id} label={r.lead_name} />
                   </td>
+                  {tb.show("date") && (
                   <td className="py-3 px-4">{actDate(r) ? fmtDate(actDate(r)!) : "—"}</td>
+                  )}
+                  {tb.show("qualified") && (
                   <td className="py-3 px-4">
                     {r.qualified_at ? (
                       <span className="text-primary">
@@ -675,6 +699,8 @@ function ActivationsPage() {
                       <span className="text-xs text-muted-foreground">Pending</span>
                     )}
                   </td>
+                  )}
+                  {tb.show("lead") && (
                   <td className="py-3 px-4 font-medium">
                     {r.lead_name || "—"}
                     {isDup(r) && (
@@ -683,7 +709,11 @@ function ActivationsPage() {
                       </Badge>
                     )}
                   </td>
+                  )}
+                  {tb.show("source") && (
                   <td className="py-3 px-4">{r.daily_lead_entries?.lead_sources?.name ?? "—"}</td>
+                  )}
+                  {tb.show("balance") && (
                   <td className="py-3 px-4">
                     {fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}
                     {depositsFor(r.lead_name) > 0 && (
@@ -692,18 +722,31 @@ function ActivationsPage() {
                       </span>
                     )}
                   </td>
+                  )}
 
+                  {tb.show("potential") && (
                   <td className="py-3 px-4"><PotentialBadge value={r.potential} /></td>
+                  )}
+                  {tb.show("tags") && (
                   <td className="py-3 px-4"><TagBadges tags={r.tags} /></td>
+                  )}
+                  {tb.show("std") && (
                   <td className="py-3 px-4"><StdBadge count={stdCountFor(r)} /></td>
+                  )}
+                  {tb.show("conversion") && (
                   <td className="py-3 px-4"><EmployeeLink id={r.conversion_employee_id} name={employeeName(r.conversion_employee_id)} /></td>
+                  )}
+                  {tb.show("retention") && (
                   <td className="py-3 px-4"><EmployeeLink id={r.employee_id} name={employeeName(r.employee_id)} /></td>
+                  )}
+                  {tb.show("answered") && (
                   <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={r.answered}
                       onCheckedChange={(c) => toggleAnswered.mutate({ id: r.id, answered: Boolean(c) })}
                     />
                   </td>
+                  )}
                 </tr>
               ))}
             </tbody>
