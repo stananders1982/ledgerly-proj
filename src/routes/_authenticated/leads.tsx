@@ -725,6 +725,10 @@ function LeadsPage() {
         <StatCard label="Saved (CPA)" value={fmtMoney(stats.cpaSavings)} tone="positive" />
       </section>
 
+      <ConversionsByAgent start={activeRange.start} end={activeRange.end} />
+
+
+
 
       <div className="card-surface p-4 mb-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
