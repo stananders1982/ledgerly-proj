@@ -27,7 +27,7 @@ import { usePagination, TablePagination } from "@/components/pagination";
 
 export const Route = createFileRoute("/_authenticated/employees/")({
   validateSearch: (search: Record<string, unknown>) => ({
-    issue: typeof search.issue === "string" ? search.issue : undefined,
+    ...(typeof search.issue === "string" ? { issue: search.issue } : {}),
   }),
   head: () => ({ meta: [{ title: "Employees — Ledgerly" }] }),
   component: EmployeesPage,

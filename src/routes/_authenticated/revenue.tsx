@@ -42,7 +42,7 @@ import { useCompanySettings } from "@/lib/settings";
 
 export const Route = createFileRoute("/_authenticated/revenue")({
   validateSearch: (search: Record<string, unknown>) => ({
-    issue: typeof search.issue === "string" ? search.issue : undefined,
+    ...(typeof search.issue === "string" ? { issue: search.issue } : {}),
   }),
   head: () => ({ meta: [{ title: "Revenue — Ledgerly" }] }),
   component: RevenuePage,
