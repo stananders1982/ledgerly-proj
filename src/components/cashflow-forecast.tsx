@@ -250,14 +250,17 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
             {model.upcoming.map((o, i) => (
               <li
                 key={`${o.name}-${o.date}-${i}`}
-                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 py-1.5"
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 py-1.5"
               >
                 <span className="truncate">{o.name}</span>
-                <span className="num shrink-0 text-right tabular-nums text-rose-500">{fmtMoney(o.amount)}</span>
-                <span className="num w-[6.5rem] shrink-0 whitespace-nowrap text-right tabular-nums text-muted-foreground">{o.date}</span>
+                <span className="flex items-baseline justify-end gap-2 whitespace-nowrap">
+                  <span className="num tabular-nums text-rose-500">{fmtMoney(o.amount)}</span>
+                  <span className="num text-xs tabular-nums text-muted-foreground">{shortDate(o.date)}</span>
+                </span>
               </li>
             ))}
           </ul>
+
         </div>
       )}
     </div>
