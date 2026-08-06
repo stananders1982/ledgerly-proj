@@ -28,6 +28,8 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { CheckCircle2, PhoneCall, Wallet, Copy } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
@@ -331,6 +333,7 @@ function ActivationsPage() {
     std: (r) => stdCountFor(r),
   });
   const { pageItems, ...pg } = usePagination(sorted);
+  const navIndex = viewing ? pageItems.findIndex((r) => r.id === viewing.id) : -1;
 
   const totalBalance = rows.reduce(
     (a, r) => a + Number(r.balance || 0) + depositsFor(r.lead_name),
@@ -814,7 +817,7 @@ function ActivationsPage() {
       </Dialog>
 
 
-      <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null); }}>
+      <Sheet open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null); }}>
         {viewing && (() => {
           const cur = (q.data ?? []).find((r) => r.id === viewing.id) ?? viewing;
           const deposits = depositRowsFor(cur.lead_name, cur.id);
@@ -824,15 +827,42 @@ function ActivationsPage() {
           const effective = Number(cur.balance || 0) + depositTotal;
           const qualifies = qualifiesAsFtd(cur, effective, settings);
           return (
-            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto scroll-slim">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
+            <SheetContent side="right" className="flex w-full flex-col gap-0 overflow-y-auto scroll-slim sm:max-w-xl">
+              <SheetHeader>
+                <div className="flex items-center justify-between pr-8">
+                  <span className="text-xs text-muted-foreground">
+                    {navIndex >= 0 ? `Client ${navIndex + 1} of ${pageItems.length} on this page` : "Client"}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      disabled={navIndex <= 0}
+                      onClick={() => { const p = pageItems[navIndex - 1]; if (p) setViewing(p); }}
+                      aria-label="Previous client"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      disabled={navIndex < 0 || navIndex >= pageItems.length - 1}
+                      onClick={() => { const n = pageItems[navIndex + 1]; if (n) setViewing(n); }}
+                      aria-label="Next client"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <SheetTitle className="flex items-center gap-2">
                   <FavoriteStar type="client" id={cur.id} label={cur.lead_name} />
                   {cur.lead_name || "Unnamed client"}
                   <PotentialBadge value={cur.potential} />
                   <AnsweredBadge answered={!!cur.answered} />
-                </DialogTitle>
-              </DialogHeader>
+                </SheetTitle>
+              </SheetHeader>
 
               <div className="grid gap-4 py-2">
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -1031,14 +1061,14 @@ function ActivationsPage() {
                 <CommentThread entityType="client" entityId={cur.id} />
               </div>
 
-              <DialogFooter>
+              <SheetFooter className="mt-4 flex-row justify-end gap-2">
                 <Button variant="outline" onClick={() => setViewing(null)}>Close</Button>
                 <Button onClick={() => { setViewing(null); setEditing(cur); }}>Edit client</Button>
-              </DialogFooter>
-            </DialogContent>
+              </SheetFooter>
+            </SheetContent>
           );
         })()}
-      </Dialog>
+      </Sheet>
 
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         {editing && (
