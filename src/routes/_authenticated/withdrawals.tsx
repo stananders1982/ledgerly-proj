@@ -24,7 +24,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
 import { withdrawalPenalty } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
@@ -128,7 +128,7 @@ function WithdrawalsPage() {
     source: (r) => r.affiliates?.name ?? "",
     sale: (r) => r.revenue?.customer_name ?? "",
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted);
 
   const stats = useMemo(() => {
     const list = inRange;
@@ -238,8 +238,9 @@ function WithdrawalsPage() {
         </div>
       )}
 
-      <div className="mb-2 flex justify-end">
+      <div className="mb-2 flex justify-end gap-2">
         <ColumnsMenu tb={tb} />
+        <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
       </div>
 
       <div className="card-surface overflow-hidden">

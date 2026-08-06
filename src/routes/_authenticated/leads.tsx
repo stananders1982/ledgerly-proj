@@ -26,7 +26,7 @@ import { StatCard } from "@/components/stat-card";
 import { PricingBadge } from "./sources";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
 import { isStd, isoDay } from "@/lib/rules";
 import { SavedViews } from "@/components/saved-views";
@@ -224,7 +224,7 @@ function LeadsPage() {
         : 0,
     notes: (r) => r.notes ?? "",
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted);
 
   // Activations are dated independently of the lead entry: an April lead
   // activated today belongs to today's period for FTD/commission purposes.
@@ -779,8 +779,9 @@ function LeadsPage() {
         <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${sel.count} selected entr${sel.count === 1 ? "y" : "ies"}?`} />
       </BulkBar>
 
-      <div className="mb-2 flex justify-end">
+      <div className="mb-2 flex justify-end gap-2">
         <ColumnsMenu tb={tb} />
+        <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
       </div>
 
       <div className="card-surface overflow-hidden">

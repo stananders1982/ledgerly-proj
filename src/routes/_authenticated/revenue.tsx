@@ -29,7 +29,7 @@ import { SearchInput } from "@/components/search-input";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
 import { useSort, SortTh } from "@/components/sortable-table";
 
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 
 
 import { useQuickCreate } from "@/lib/quick-create";
@@ -154,7 +154,7 @@ function RevenuePage() {
     employee: (r) => getEmployeeName(r.employee_id, r.employees) ?? "",
     affiliate: (r) => getAffiliateName(r.affiliate_id, r.affiliates) ?? "",
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted);
 
 
   const stats = useMemo(() => {
@@ -386,8 +386,9 @@ function RevenuePage() {
         <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${sel.count} selected record(s)?`} />
       </BulkBar>
 
-      <div className="mb-2 flex justify-end">
+      <div className="mb-2 flex justify-end gap-2">
         <ColumnsMenu tb={tb} />
+        <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
       </div>
 
       <div className="card-surface overflow-hidden">

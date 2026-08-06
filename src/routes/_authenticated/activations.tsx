@@ -27,7 +27,7 @@ import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { CheckCircle2, PhoneCall, Wallet, Copy } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
@@ -332,7 +332,7 @@ function ActivationsPage() {
     answered: (r) => !!r.answered,
     std: (r) => stdCountFor(r),
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted);
 
   const totalBalance = rows.reduce(
     (a, r) => a + Number(r.balance || 0) + depositsFor(r.lead_name),
@@ -628,8 +628,9 @@ function ActivationsPage() {
         </div>
       )}
 
-      <div className="mb-2 flex justify-end">
+      <div className="mb-2 flex justify-end gap-2">
         <ColumnsMenu tb={tb} />
+        <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
       </div>
 
       <div className="rounded-lg border border-border overflow-hidden">
