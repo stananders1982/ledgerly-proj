@@ -238,9 +238,9 @@ function WithdrawalsPage() {
         </div>
       )}
 
-      <div className="mb-2 flex justify-end gap-2">
-        <ColumnsMenu tb={tb} />
+      <div className="mb-2 flex items-center justify-between">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
+        <ColumnsMenu tb={tb} />
       </div>
 
       <div className="card-surface overflow-hidden">

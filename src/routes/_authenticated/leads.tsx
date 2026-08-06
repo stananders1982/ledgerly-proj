@@ -779,9 +779,9 @@ function LeadsPage() {
         <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${sel.count} selected entr${sel.count === 1 ? "y" : "ies"}?`} />
       </BulkBar>
 
-      <div className="mb-2 flex justify-end gap-2">
-        <ColumnsMenu tb={tb} />
+      <div className="mb-2 flex items-center justify-between">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
+        <ColumnsMenu tb={tb} />
       </div>
 
       <div className="card-surface overflow-hidden">

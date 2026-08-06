@@ -98,7 +98,7 @@ export function PageSizeSelect({
       onValueChange={(v) => onChange(Number(v))}
       aria-label="Rows per page"
     >
-      <SelectTrigger className="h-8 w-[110px] text-xs">
+      <SelectTrigger className="h-9 w-[120px] text-sm">
         <SelectValue placeholder="Rows" />
       </SelectTrigger>
       <SelectContent>
