@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Settings2 } from "lucide-react";
+import { CalendarIcon, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -24,7 +27,7 @@ export type ColDef<T> = {
   key: string;
   label: string;
   /** Filter control rendered under the header. Defaults to "text". */
-  filter?: "text" | "select" | "none";
+  filter?: "text" | "select" | "date" | "none";
   /** Value used for filtering and for building select options. */
   value?: (row: T) => unknown;
   /** Column can't be hidden (e.g. the primary name column). */
@@ -38,6 +41,24 @@ const ALL = "__all__";
 function str(v: unknown) {
   return v === null || v === undefined ? "" : String(v);
 }
+
+/** Normalise any displayable date value to a local `yyyy-mm-dd` key. */
+export function dateKey(v: unknown): string {
+  const s = str(v).trim();
+  if (!s || s === "—") return "";
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function keyToDate(key: string): Date | undefined {
+  if (!key) return undefined;
+  const [y, m, d] = key.split("-").map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+}
+
 
 export function useTableToolbox<T>(
   storageKey: string,
