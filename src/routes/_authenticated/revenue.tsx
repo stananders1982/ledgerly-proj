@@ -138,7 +138,7 @@ function RevenuePage() {
   const tb = useTableToolbox<any>(
     "revenue",
     [
-      { key: "date", label: "Date", value: (r: any) => fmtDate(r.date) },
+      { key: "date", label: "Date", filter: "date", value: (r: any) => fmtDate(r.date) },
       { key: "customer", label: "Customer", value: (r: any) => r.customer_name ?? "" },
       { key: "amount", label: "Amount", value: (r: any) => r.amount },
       { key: "employee", label: "Employee", filter: "select", value: (r: any) => getEmployeeName(r.employee_id, r.employees) ?? "" },

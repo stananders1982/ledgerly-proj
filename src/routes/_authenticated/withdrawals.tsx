@@ -108,7 +108,7 @@ function WithdrawalsPage() {
   const tb = useTableToolbox<any>(
     "withdrawals",
     [
-      { key: "date", label: "Date", value: (r: any) => fmtDate(r.date) },
+      { key: "date", label: "Date", filter: "date", value: (r: any) => fmtDate(r.date) },
       { key: "customer", label: "Customer", value: (r: any) => r.customer_name ?? "" },
       { key: "amount", label: "Amount", value: (r: any) => r.amount },
       { key: "agent", label: "Agent", filter: "select", value: (r: any) => getEmpName(r) },

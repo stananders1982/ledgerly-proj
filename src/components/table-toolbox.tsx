@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Settings2 } from "lucide-react";
+import { CalendarIcon, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -24,7 +27,7 @@ export type ColDef<T> = {
   key: string;
   label: string;
   /** Filter control rendered under the header. Defaults to "text". */
-  filter?: "text" | "select" | "none";
+  filter?: "text" | "select" | "date" | "none";
   /** Value used for filtering and for building select options. */
   value?: (row: T) => unknown;
   /** Column can't be hidden (e.g. the primary name column). */
@@ -38,6 +41,24 @@ const ALL = "__all__";
 function str(v: unknown) {
   return v === null || v === undefined ? "" : String(v);
 }
+
+/** Normalise any displayable date value to a local `yyyy-mm-dd` key. */
+export function dateKey(v: unknown): string {
+  const s = str(v).trim();
+  if (!s || s === "—") return "";
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function keyToDate(key: string): Date | undefined {
+  if (!key) return undefined;
+  const [y, m, d] = key.split("-").map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+}
+
 
 export function useTableToolbox<T>(
   storageKey: string,
@@ -98,9 +119,10 @@ export function useTableToolbox<T>(
         const col = cols.find((c) => c.key === key);
         if (!col?.value) return true;
         const v = str(col.value(r));
-        return col.filter === "select"
-          ? v === f
-          : v.toLowerCase().includes(f.toLowerCase());
+        if (col.filter === "select") return v === f;
+        if (col.filter === "date") return dateKey(v) === f;
+        return v.toLowerCase().includes(f.toLowerCase());
+
       }),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -168,6 +190,65 @@ export function ColumnsMenu<T>({ tb, className }: { tb: TableToolbox<T>; classNa
   );
 }
 
+/** Single-day picker used for date columns in the filter row. */
+export function DateFilter({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = keyToDate(value);
+  return (
+    <div className="flex items-center gap-1">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "h-8 min-w-[7.5rem] justify-start gap-1 px-2 text-xs font-normal normal-case",
+              !selected && "text-muted-foreground",
+              className,
+            )}
+          >
+            <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">
+              {selected ? selected.toLocaleDateString() : "Any date"}
+            </span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={selected}
+            onSelect={(d) => {
+              onChange(d ? dateKey(d) : "");
+              setOpen(false);
+            }}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
+      {selected && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 shrink-0"
+          onClick={() => onChange("")}
+          aria-label="Clear date filter"
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+
 /**
  * Second header row with a search box / dropdown under each visible column.
  * `leading` / `trailing` add empty cells for checkbox and action columns.
@@ -206,6 +287,11 @@ export function FilterRow<T>({
                 ))}
               </SelectContent>
             </Select>
+          ) : c.filter === "date" ? (
+            <DateFilter
+              value={tb.filters[c.key] ?? ""}
+              onChange={(v) => tb.setFilter(c.key, v)}
+            />
           ) : (
             <Input
               value={tb.filters[c.key] ?? ""}
@@ -214,6 +300,7 @@ export function FilterRow<T>({
               className="h-8 min-w-[6rem] text-xs normal-case"
             />
           )}
+
         </th>
       ))}
       {Array.from({ length: trailing }).map((_, i) => (

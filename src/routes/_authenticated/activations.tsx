@@ -305,7 +305,7 @@ function ActivationsPage() {
   const tb = useTableToolbox<any>(
     "activations",
     [
-      { key: "date", label: "Date", value: (r: any) => (actDate(r) ? fmtDate(actDate(r)!) : "") },
+      { key: "date", label: "Date", filter: "date", value: (r: any) => (actDate(r) ? fmtDate(actDate(r)!) : "") },
       { key: "qualified", label: "Qualified", filter: "select", value: (r: any) => (r.qualified_at ? "Qualified" : "Pending") },
       { key: "lead", label: "Lead name", value: (r: any) => r.lead_name ?? "" },
       { key: "source", label: "Source", filter: "select", value: (r: any) => r.daily_lead_entries?.lead_sources?.name ?? "" },

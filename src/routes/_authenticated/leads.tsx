@@ -185,7 +185,7 @@ function LeadsPage() {
   const tb = useTableToolbox<any>(
     "leads",
     [
-      { key: "date", label: "Date", value: (r: any) => fmtDate(r.entry_date) },
+      { key: "date", label: "Date", filter: "date", value: (r: any) => fmtDate(r.entry_date) },
       { key: "source", label: "Source", filter: "select", value: (r: any) => r.lead_sources?.name ?? "" },
       { key: "model", label: "Model", filter: "select", value: (r: any) => r.lead_sources?.pricing_model ?? "" },
       { key: "received", label: "Received", filter: "none" },
