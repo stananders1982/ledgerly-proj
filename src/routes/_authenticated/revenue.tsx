@@ -26,6 +26,7 @@ import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { SearchInput } from "@/components/search-input";
+import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
 import { useSort, SortTh } from "@/components/sortable-table";
 
 import { usePagination, TablePagination } from "@/components/pagination";
@@ -134,7 +135,19 @@ function RevenuePage() {
     });
   }, [revQ.data, activeRange, search, issue]);
 
-  const { sorted, sort, toggle } = useSort<any>(filtered, {
+  const tb = useTableToolbox<any>(
+    "revenue",
+    [
+      { key: "date", label: "Date", value: (r: any) => fmtDate(r.date) },
+      { key: "customer", label: "Customer", value: (r: any) => r.customer_name ?? "" },
+      { key: "amount", label: "Amount", value: (r: any) => r.amount },
+      { key: "employee", label: "Employee", filter: "select", value: (r: any) => getEmployeeName(r.employee_id, r.employees) ?? "" },
+      { key: "affiliate", label: "Affiliate", filter: "select", value: (r: any) => getAffiliateName(r.affiliate_id, r.affiliates) ?? "" },
+    ],
+    filtered,
+  );
+
+  const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
     date: (r) => r.date,
     customer: (r) => r.customer_name,
     amount: (r) => Number(r.amount ?? 0),
@@ -338,6 +351,7 @@ function RevenuePage() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
+        <ColumnsMenu tb={tb} />
 
       </div>
 
@@ -406,13 +420,14 @@ function RevenuePage() {
                       aria-label="Select all records on this page"
                     />
                   </th>
-                  <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Customer" k="customer" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Employee" k="employee" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  {tb.show("date") && <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("customer") && <SortTh label="Customer" k="customer" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("amount") && <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("employee") && <SortTh label="Employee" k="employee" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("affiliate") && <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />}
                   <th className="py-3 px-4"></th>
                 </tr>
+                <FilterRow tb={tb} leading={1} trailing={1} />
               </thead>
               <tbody>
                 {pageItems.map((r: any) => (
@@ -427,6 +442,7 @@ function RevenuePage() {
                     onDelete={() => del.mutate(r.id)}
                     selected={sel.selected.has(r.id)}
                     onToggleSelect={() => sel.toggle(r.id)}
+                    show={tb.show}
                   />
                 ))}
               </tbody>
@@ -450,6 +466,7 @@ function RevenueRow({
   onDelete,
   selected,
   onToggleSelect,
+  show,
 }: {
   revenue: any;
   employeeName?: string;
@@ -460,6 +477,7 @@ function RevenueRow({
   onDelete: () => void;
   selected?: boolean;
   onToggleSelect?: () => void;
+  show: (key: string) => boolean;
 }) {
   return (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
@@ -467,9 +485,16 @@ function RevenueRow({
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       <Checkbox checked={!!selected} onCheckedChange={() => onToggleSelect?.()} aria-label="Select record" />
                     </td>
+                    {show("date") && (
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
+                    )}
+                    {show("customer") && (
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
+                    )}
+                    {show("amount") && (
                     <td className="py-3 px-4 text-primary font-medium">{fmtMoney(r.amount)}</td>
+                    )}
+                    {show("employee") && (
                     <td className="py-3 px-4">
                       <EmployeeLink id={r.employee_id} name={employeeName} />
                       {r.employee_id_2 && (
@@ -478,6 +503,8 @@ function RevenueRow({
                         </span>
                       )}
                     </td>
+                    )}
+                    {show("affiliate") && (
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       {affiliateId ? (
                         <Link to="/affiliates/$id" params={{ id: affiliateId }} className="text-primary hover:underline">
@@ -487,6 +514,7 @@ function RevenueRow({
                         <span className="text-muted-foreground">{affiliateName || "—"}</span>
                       )}
                     </td>
+                    )}
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={onDelete} label="Delete revenue?" />
                     </td>

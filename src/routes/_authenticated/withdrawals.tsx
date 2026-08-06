@@ -25,6 +25,7 @@ import { StatCard } from "@/components/stat-card";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
 import { withdrawalPenalty } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
@@ -104,7 +105,21 @@ function WithdrawalsPage() {
     return (wQ.data ?? []).filter((r: any) => (r.customer_name ?? "").toLowerCase().includes(term));
   }, [inRange, wQ.data, search]);
 
-  const { sorted, sort, toggle } = useSort<any>(rows, {
+  const tb = useTableToolbox<any>(
+    "withdrawals",
+    [
+      { key: "date", label: "Date", value: (r: any) => fmtDate(r.date) },
+      { key: "customer", label: "Customer", value: (r: any) => r.customer_name ?? "" },
+      { key: "amount", label: "Amount", value: (r: any) => r.amount },
+      { key: "agent", label: "Agent", filter: "select", value: (r: any) => getEmpName(r) },
+      { key: "penalty", label: "Penalty (10%)", value: (r: any) => r.employee_penalty },
+      { key: "source", label: "Source", filter: "select", value: (r: any) => r.affiliates?.name ?? "" },
+      { key: "sale", label: "Linked sale", value: (r: any) => r.revenue?.customer_name ?? "" },
+    ],
+    rows,
+  );
+
+  const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
     date: (r) => r.date,
     customer: (r) => r.customer_name ?? "",
     amount: (r) => Number(r.amount ?? 0),
@@ -198,6 +213,7 @@ function WithdrawalsPage() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
+        <ColumnsMenu tb={tb} />
       </div>
 
 
@@ -250,23 +266,31 @@ function WithdrawalsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Customer" k="customer" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Agent" k="agent" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Penalty (10%)" k="penalty" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Linked sale" k="sale" sort={sort} toggle={toggle} className="py-3 px-4" />
+                  {tb.show("date") && <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("customer") && <SortTh label="Customer" k="customer" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("amount") && <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("agent") && <SortTh label="Agent" k="agent" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("penalty") && <SortTh label="Penalty (10%)" k="penalty" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("source") && <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("sale") && <SortTh label="Linked sale" k="sale" sort={sort} toggle={toggle} className="py-3 px-4" />}
                   <th className="py-3 px-4"></th>
                 </tr>
+                <FilterRow tb={tb} trailing={1} />
               </thead>
               <tbody>
                 {pageItems.map((r: any) => (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(r); setOpen(true); }}>
+                    {tb.show("date") && (
                     <td className="py-3 px-4 text-muted-foreground">{fmtDate(r.date)}</td>
+                    )}
+                    {tb.show("customer") && (
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
+                    )}
+                    {tb.show("amount") && (
                     <td className="py-3 px-4 text-destructive font-medium">−{fmtMoney(r.amount)}</td>
+                    )}
+                    {tb.show("agent") && (
                     <td className="py-3 px-4">
                       <EmployeeLink id={r.employee_id} name={getEmpName(r)} />
                       {r.employee_id_2 && (
@@ -275,7 +299,11 @@ function WithdrawalsPage() {
                         </span>
                       )}
                     </td>
+                    )}
+                    {tb.show("penalty") && (
                     <td className="py-3 px-4 text-destructive">−{fmtMoney(r.employee_penalty)}</td>
+                    )}
+                    {tb.show("source") && (
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       {r.affiliate_id ? (
                         <Link to="/affiliates/$id" params={{ id: r.affiliate_id }} className="text-primary hover:underline">
@@ -285,9 +313,12 @@ function WithdrawalsPage() {
                         <span className="text-muted-foreground">{r.affiliates?.name ?? "—"}</span>
                       )}
                     </td>
+                    )}
+                    {tb.show("sale") && (
                     <td className="py-3 px-4 text-muted-foreground">
                       {r.revenue ? `${r.revenue.customer_name} · ${fmtMoney(r.revenue.amount)}` : "—"}
                     </td>
+                    )}
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete withdrawal?" />
                     </td>
