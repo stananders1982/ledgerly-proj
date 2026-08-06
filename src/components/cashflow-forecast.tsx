@@ -185,7 +185,7 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
     model.trendPerDay > 0.5 ? "trending up" : model.trendPerDay < -0.5 ? "trending down" : "flat trend";
 
   return (
-    <div className="card-surface p-5">
+    <div className="card-surface @container p-5">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h3 className="font-display text-base font-semibold">Cash-flow forecast</h3>
