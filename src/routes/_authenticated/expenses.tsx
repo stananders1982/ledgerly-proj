@@ -25,7 +25,7 @@ import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -101,7 +101,7 @@ function ExpensesPage() {
     notes: (e) => e.notes ?? "",
   });
 
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted);
 
   const stats = useMemo(() => {
     const total = filtered.reduce((s: number, e: any) => s + Number(e.amount), 0);
@@ -268,8 +268,9 @@ function ExpensesPage() {
         </div>
       )}
 
-      <div className="mb-2 flex justify-end">
+      <div className="mb-2 flex justify-end gap-2">
         <ColumnsMenu tb={tb} />
+        <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
       </div>
 
       <div className="card-surface overflow-hidden">
