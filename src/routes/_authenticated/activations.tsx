@@ -491,7 +491,7 @@ function ActivationsPage() {
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
         <SearchInput value={search} onChange={setSearch} placeholder="Search client…" />
-        <ColumnsMenu tb={tb} />
+        
         <Select value={answeredFilter} onValueChange={(v) => setAnsweredFilter(v as any)}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
