@@ -20,11 +20,16 @@ export interface AnomalyInput {
   revenue: { date: string; amount: number; employee_id?: string | null }[];
   expenses: { date: string; amount: number; category_id?: string | null }[];
   withdrawals: { date: string; amount: number }[];
-  activations: { activation_date: string | null; created_at: string; employee_id?: string | null }[];
+  activations: {
+    activation_date: string | null;
+    created_at: string;
+    employee_id?: string | null;
+    conversion_employee_id?: string | null;
+  }[];
   leads: { entry_date: string; received: number; source_id: string | null }[];
   sourcesById: Map<string, string>;
   categoriesById: Map<string, string>;
-  employees: { id: string; name: string; active: boolean }[];
+  employees: { id: string; name: string; active: boolean; team?: string | null }[];
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -139,27 +144,43 @@ export function detectAnomalies(input: AnomalyInput, today = new Date()): Anomal
     }
   }
 
-  // ---- Active agents with no activity -------------------------------------
-  const busy = new Set<string>();
+  // ---- Idle agents, measured per team -------------------------------------
+  // Conversion (team C) is judged on activations they converted.
+  // Retention (team R) is judged on the clients they hold and the deposits
+  // credited to them. Anyone else (managers, other teams) is not an agent and
+  // is never flagged here.
   const since = isoDay(daysAgo(14, today));
+  const busyConversion = new Set<string>();
+  const busyRetention = new Set<string>();
   input.revenue.forEach((r) => {
-    if (r.employee_id && r.date >= since) busy.add(r.employee_id);
+    if (r.employee_id && r.date >= since) busyRetention.add(r.employee_id);
   });
   input.activations.forEach((a) => {
     const d = a.activation_date ?? a.created_at.slice(0, 10);
-    if (a.employee_id && d >= since) busy.add(a.employee_id);
+    if (d < since) return;
+    if (a.conversion_employee_id) busyConversion.add(a.conversion_employee_id);
+    if (a.employee_id) busyRetention.add(a.employee_id);
   });
-  const activeEmployees = input.employees.filter((e) => e.active);
-  const idle = activeEmployees.filter((e) => !busy.has(e.id));
-  if (idle.length && idle.length < activeEmployees.length) {
+
+  const teamOf = (e: { team?: string | null }) => (e.team ?? "").trim().toUpperCase();
+  const groups: { team: string; label: string; busy: Set<string>; metric: string }[] = [
+    { team: "C", label: "conversion", busy: busyConversion, metric: "no activations converted" },
+    { team: "R", label: "retention", busy: busyRetention, metric: "no client activity or deposits" },
+  ];
+
+  for (const g of groups) {
+    const roster = input.employees.filter((e) => e.active && teamOf(e) === g.team);
+    const idle = roster.filter((e) => !g.busy.has(e.id));
+    if (!idle.length || idle.length >= roster.length) continue;
     out.push({
-      id: `idle-${since}-${idle.map((e) => e.id).sort().join("").slice(0, 24)}`,
+      id: `idle-${g.team}-${since}-${idle.map((e) => e.id).sort().join("").slice(0, 24)}`,
       severity: "warning",
       title:
         idle.length === 1
-          ? `${idle[0].name} has no activity in 14 days`
-          : `${idle.length} agents with no activity in 14 days`,
+          ? `${idle[0].name} (${g.label}) has no activity in 14 days`
+          : `${idle.length} of ${roster.length} ${g.label} agents with no activity in 14 days`,
       detail:
+        `${g.metric} in the last 14 days: ` +
         idle.map((e) => e.name).slice(0, 6).join(", ") +
         (idle.length > 6 ? ` +${idle.length - 6} more` : ""),
       to: "/performance",

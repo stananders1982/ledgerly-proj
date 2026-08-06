@@ -31,7 +31,7 @@ export function AnomalyAlerts() {
           fetchAll(() => sb.from("revenue").select("date,amount,employee_id").gte("date", since)),
           fetchAll(() => sb.from("expenses").select("date,amount,category_id").gte("date", since)),
           fetchAll(() => sb.from("withdrawals").select("date,amount").gte("date", since)),
-          fetchAll(() => sb.from("daily_lead_activations").select("activation_date,created_at,employee_id").gte("activation_date", since)),
+          fetchAll(() => sb.from("daily_lead_activations").select("activation_date,created_at,employee_id,conversion_employee_id").gte("activation_date", since)),
           fetchAll(() => sb.from("daily_lead_entries").select("entry_date,received,source_id").gte("entry_date", since)),
           fetchAll(() => sb.from("lead_sources").select("id,name")),
           fetchAll(() => sb.from("expense_categories").select("id,name")),
@@ -51,7 +51,7 @@ export function AnomalyAlerts() {
       leads: (q.data.leads ?? []) as any,
       sourcesById: new Map(((q.data.sources ?? []) as any[]).map((s) => [s.id, s.name])),
       categoriesById: new Map(((q.data.categories ?? []) as any[]).map((c) => [c.id, c.name])),
-      employees: ((q.data.employees ?? []) as any[]).map((e) => ({ id: e.id, name: e.name, active: e.active })),
+      employees: ((q.data.employees ?? []) as any[]).map((e) => ({ id: e.id, name: e.name, active: e.active, team: e.team })),
     });
   }, [q.data]);
 
