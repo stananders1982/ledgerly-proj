@@ -731,42 +731,8 @@ function LeadsPage() {
 
 
 
-      <div className="card-surface p-4 mb-6">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold">Activated leads by employee</h3>
-          <span className="text-xs text-muted-foreground">{activeRange.label}</span>
-        </div>
-        {byEmployee.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No employee attributions yet. Open an entry and assign activated leads to employees.
-          </p>
-        ) : (
-          <div className="overflow-x-auto scroll-slim">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="py-2 px-3">Employee</th>
-                  <th className="py-2 px-3">Activated leads</th>
-                  <th className="py-2 px-3">Share</th>
-                </tr>
-              </thead>
-              <tbody>
-                {byEmployee.map((e) => {
-                  const totalAttributed = byEmployee.reduce((s, x) => s + x.count, 0);
-                  const pct = totalAttributed ? (e.count / totalAttributed) * 100 : 0;
-                  return (
-                    <tr key={e.id} className="border-b border-border/50">
-                      <td className="py-2 px-3 font-medium">{e.name}</td>
-                      <td className="py-2 px-3">{e.count}</td>
-                      <td className="py-2 px-3 text-muted-foreground">{fmtPct(pct)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+
+
 
       <BulkBar
         count={sel.count}
