@@ -18,6 +18,8 @@ import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
 import { GoalBar } from "@/components/goal-bar";
 import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 const sb = supabase as any;
 
