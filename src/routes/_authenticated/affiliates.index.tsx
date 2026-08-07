@@ -312,8 +312,14 @@ function AffiliatesPage() {
                   >
                     <td className="py-3 px-4 font-medium">
                       {r.name}
+                      {r.groupKey && (
+                        <span className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          {r.groupKey}
+                        </span>
+                      )}
                       {!r.active && <span className="ml-2 text-xs text-muted-foreground">inactive</span>}
                     </td>
+
                     <td className="py-3 px-4">{fmtMoney(r.price)}</td>
                     <td className="py-3 px-4">{r.pct}%</td>
                     <td className="py-3 px-4">{r.leads}</td>
