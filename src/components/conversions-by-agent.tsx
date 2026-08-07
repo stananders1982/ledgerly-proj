@@ -7,7 +7,7 @@ import { EmployeeLink } from "@/components/employee-link";
 import { AnsweredBadge, PotentialBadge } from "@/components/status-badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fmtDate, fmtMoney } from "@/lib/format";
-import { qualifiesAsFtd, ftdPendingReasons, depositIndex, effectiveBalanceIndexed } from "@/lib/rules";
+import { qualifiesAsFtd, ftdPendingReasons, depositIndex, effectiveBalanceIndexed, isAgentTeam } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 
 type ActRow = {
@@ -69,6 +69,12 @@ export function ConversionsByAgent({ start, end }: { start: Date; end: Date }) {
 
   const employeeName = (id?: string | null) =>
     (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
+
+  /** Managers (Team M) are never ranked as agents. */
+  const isAgentId = (id?: string | null) => {
+    const e = (employeesQ.data ?? []).find((x) => x.id === id);
+    return !e || isAgentTeam(e.team);
+  };
 
   // Prefer the direct client link; name matching only covers legacy rows.
   const deposits = useMemo(() => depositIndex((revenueQ.data ?? []) as any[]), [revenueQ.data]);
