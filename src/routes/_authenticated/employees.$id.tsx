@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Download, FileText } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { CoachingInsights } from "@/components/coaching-insights";
@@ -13,11 +14,15 @@ import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason } from "@/lib/rules";
+import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason, isStd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
+import { useAuth } from "@/lib/auth-context";
+import { useCan } from "@/lib/permissions";
+import { downloadPayslip, payslipTotals, monthLabel, loadLogoDataUrl, type PayslipInput } from "@/lib/payslip";
 import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
+
 
 /** Flat commission paid to the conversion agent per qualifying FTD. */
 
