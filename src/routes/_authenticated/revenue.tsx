@@ -124,7 +124,9 @@ function RevenuePage() {
     const term = search.trim().toLowerCase();
     return list.filter((r: any) => {
       if (issue === "revenue-no-method" && r.method) return false;
+      if (issue === "revenue-no-activation" && r.activation_id) return false;
       if (issue === "revenue-no-agent" && r.employee_id) return false;
+
       if (issue) return true;
       if (!term) {
         const t = new Date(r.date + "T00:00:00").getTime();
