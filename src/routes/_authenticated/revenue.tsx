@@ -100,6 +100,20 @@ function RevenuePage() {
       return (data ?? []) as any[];
     },
   });
+  // Phone numbers come from the leads table, matched by client name.
+  const leadPhonesQ = useQuery({
+    queryKey: ["lead-phones"],
+    queryFn: async () => {
+      const data = await fetchAll(() => supabase.from("leads").select("name, phone"));
+      const m: Record<string, string> = {};
+      for (const l of (data ?? []) as any[]) {
+        const k = String(l.name ?? "").trim().toLowerCase();
+        if (k && l.phone && !m[k]) m[k] = l.phone;
+      }
+      return m;
+    },
+  });
+
 
 
   const employeeNameById = useMemo(
