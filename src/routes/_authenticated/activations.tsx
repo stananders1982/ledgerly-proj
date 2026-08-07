@@ -191,18 +191,11 @@ function ActivationsPage() {
     },
   });
 
-  const depositsByName = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of revenueQ.data ?? []) {
-      const k = (r.customer_name ?? "").trim().toLowerCase();
-      if (!k) continue;
-      m.set(k, (m.get(k) ?? 0) + Number(r.amount || 0));
-    }
-    return m;
-  }, [revenueQ.data]);
+  // Deposits indexed by client link first; names only cover legacy rows.
+  const deposits = useMemo(() => depositIndex(revenueQ.data ?? []), [revenueQ.data]);
 
-  const depositsFor = (name?: string | null) =>
-    depositsByName.get((name ?? "").trim().toLowerCase()) ?? 0;
+  const depositsFor = (name?: string | null, activationId?: string | null) =>
+    depositTotalFor({ id: activationId ?? null, lead_name: name ?? null }, deposits);
 
   const matchName = (a?: string | null, b?: string | null) =>
     !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -211,6 +204,7 @@ function ActivationsPage() {
   const depositRowsFor = (name?: string | null, activationId?: string | null) =>
     (revenueQ.data ?? []).filter((r) =>
       r.activation_id ? r.activation_id === activationId : matchName(r.customer_name, name));
+
 
   const withdrawalRowsFor = (name?: string | null) =>
     (withdrawalsQ.data ?? []).filter((w) => matchName(w.customer_name, name));
