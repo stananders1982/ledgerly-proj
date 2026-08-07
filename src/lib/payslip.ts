@@ -359,10 +359,188 @@ export function buildPayslipDoc(p: PayslipInput): jsPDF {
   doc.setFontSize(8);
   doc.setTextColor(140);
   doc.text(
-    "Net payable = base salary + commission - attendance deductions - withdrawal penalties.",
+    "Net payable = salary after attendance deductions + commission after penalties.",
     14,
-    doc.internal.pageSize.getHeight() - 12,
+    doc.internal.pageSize.getHeight() - 18,
   );
+  drawFooters(doc, p);
+  return doc;
+}
+
+/**
+ * Team R payslip: page 1 is the summary and total payment, later pages list
+ * every deposit and withdrawal so the agent can verify each number. No client
+ * identity or payment-method name ever appears.
+ */
+function buildRetentionPayslipDoc(p: PayslipInput): jsPDF {
+  const tx = p.transactions!;
+  const t = payslipTotals(p);
+  const doc = new jsPDF();
+  const W = doc.internal.pageSize.getWidth();
+  const brand: [number, number, number] = [24, 24, 32];
+
+  drawHeader(doc, p);
+
+  autoTable(doc, {
+    startY: 38,
+    theme: "plain",
+    styles: { fontSize: 9, cellPadding: 1.5 },
+    body: [
+      ["Employee", p.employeeName],
+      ["Team", p.teamLabel],
+      ["Role", p.role || "-"],
+      ["Period", monthLabel(p.month)],
+      ["Generated", new Date().toLocaleString()],
+    ],
+    columnStyles: { 0: { textColor: [120, 120, 130], cellWidth: 34 }, 1: { fontStyle: "bold" } },
+  });
+
+  // ---- Section 2: summary and total payment (shown first) ----
+  const money = (n: number) => (n < 0 ? `-${fmtMoney(Math.abs(n))}` : fmtMoney(n));
+  const rows: { label: string; value: string; kind?: "spacer" | "sub" | "total" }[] = [
+    { label: "Base salary", value: fmtMoney(p.baseSalary) },
+    {
+      label: `Attendance deductions (${p.absentDays} of ${p.workingDays} days × ${fmtMoney(p.perDayRate)})`,
+      value: money(-p.absenceDeduction),
+    },
+    { label: "Net salary", value: fmtMoney(t.netSalary), kind: "sub" },
+    { label: "", value: "", kind: "spacer" },
+    { label: "Revenue commission", value: fmtMoney(tx.totals.commissionEarned) },
+    { label: "Method fee deductions", value: money(-tx.totals.feeDeducted) },
+    { label: "Withdrawal penalties", value: money(-p.withdrawalPenalty) },
+    { label: `STD bonus (${p.stdCount} × ${fmtMoney(p.stdRate)})`, value: fmtMoney(p.stdBonus) },
+    { label: "Net commission", value: money(t.netCommission), kind: "sub" },
+    { label: "", value: "", kind: "spacer" },
+    { label: "TOTAL PAYMENT", value: fmtMoney(t.netPayable), kind: "total" },
+  ];
+
+  autoTable(doc, {
+    startY: (doc as any).lastAutoTable.finalY + 8,
+    theme: "grid",
+    head: [["Item", "Amount"]],
+    body: rows.map((r) => [r.label, r.value]),
+    headStyles: { fillColor: [40, 40, 50] },
+    styles: { fontSize: 10, cellPadding: 2.5 },
+    columnStyles: { 0: { cellWidth: 120 }, 1: { halign: "right", fontStyle: "bold" } },
+    didParseCell: (data) => {
+      if (data.section !== "body") return;
+      const r = rows[data.row.index];
+      if (!r) return;
+      if (r.kind === "spacer") {
+        data.cell.styles.minCellHeight = 3;
+        data.cell.styles.fillColor = [255, 255, 255];
+      }
+      if (r.kind === "sub") data.cell.styles.fontStyle = "bold";
+      if (r.kind === "sub" && r.label === "Net commission" && t.netCommission < 0) {
+        data.cell.styles.textColor = [190, 40, 40];
+      }
+      if (r.kind === "total") {
+        data.cell.styles.fillColor = brand;
+        data.cell.styles.textColor = [255, 255, 255];
+        data.cell.styles.fontStyle = "bold";
+        data.cell.styles.fontSize = 13;
+        data.cell.styles.cellPadding = 4;
+      }
+    },
+  });
+
+  let y = (doc as any).lastAutoTable.finalY + 6;
+  doc.setFontSize(8);
+  doc.setTextColor(120);
+  doc.text(
+    `Based on ${tx.revenue.length} deposits and ${tx.withdrawals.length} withdrawals.`,
+    14,
+    y,
+  );
+  y += 5;
+  if (t.commissionDeficit < 0) {
+    doc.setTextColor(190, 40, 40);
+    doc.text(
+      `Commission deficit of ${fmtMoney(Math.abs(t.commissionDeficit))} carried to next month — salary is not reduced.`,
+      14,
+      y,
+    );
+  }
+
+  // ---- Section 1: transaction detail ----
+  doc.addPage();
+  doc.setTextColor(30, 30, 30);
+  doc.setFontSize(12);
+  doc.text("Revenue transactions", 14, 20);
+
+  autoTable(doc, {
+    startY: 25,
+    head: [["Date", "Amount", "Comm. %", "Commission", "Fee deducted", "Net commission"]],
+    body: tx.revenue.map((r) => [
+      fmtDay(r.date),
+      fmtMoney(r.amount),
+      `${r.commissionPct.toFixed(1)}%`,
+      fmtMoney(r.commissionEarned),
+      `-${fmtMoney(r.feeDeducted)}`,
+      fmtMoney(r.netCommission),
+    ]),
+    foot: [[
+      `Subtotal (${tx.revenue.length})`,
+      fmtMoney(tx.totals.deposits),
+      "",
+      fmtMoney(tx.totals.commissionEarned),
+      `-${fmtMoney(tx.totals.feeDeducted)}`,
+      fmtMoney(tx.totals.netCommission),
+    ]],
+    headStyles: { fillColor: [40, 40, 50] },
+    footStyles: { fillColor: [235, 235, 240], textColor: [30, 30, 30], fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [246, 246, 250] },
+    styles: { fontSize: 9 },
+    columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
+  });
+
+  // Long deposit lists get their own page break before the withdrawals table.
+  if (tx.revenue.length > 30) {
+    doc.addPage();
+    y = 20;
+  } else {
+    y = (doc as any).lastAutoTable.finalY + 12;
+  }
+  doc.setFontSize(12);
+  doc.setTextColor(30, 30, 30);
+  doc.text("Withdrawals", 14, y);
+
+  autoTable(doc, {
+    startY: y + 5,
+    head: [["Date", "Withdrawal", "Penalty %", "Penalty deducted"]],
+    body: tx.withdrawals.length
+      ? tx.withdrawals.map((w) => [
+          fmtDay(w.date),
+          fmtMoney(w.amount),
+          `${w.penaltyPct.toFixed(1)}%`,
+          `-${fmtMoney(w.penalty)}`,
+        ])
+      : [["—", "—", "—", "—"]],
+    foot: [[
+      `Subtotal (${tx.withdrawals.length})`,
+      fmtMoney(tx.totals.withdrawals),
+      "",
+      `-${fmtMoney(tx.totals.penalty)}`,
+    ]],
+    headStyles: { fillColor: [90, 40, 45] },
+    footStyles: { fillColor: [235, 235, 240], textColor: [30, 30, 30], fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [250, 246, 246] },
+    styles: { fontSize: 9 },
+    columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" } },
+  });
+
+  doc.setFontSize(8);
+  doc.setTextColor(140);
+  doc.text(
+    `Amounts shown are this agent's split-adjusted share. Page width: ${Math.round(W)}mm.`.replace(
+      / Page width:.*$/,
+      "",
+    ),
+    14,
+    (doc as any).lastAutoTable.finalY + 8,
+  );
+
+  drawFooters(doc, p);
   return doc;
 }
 
