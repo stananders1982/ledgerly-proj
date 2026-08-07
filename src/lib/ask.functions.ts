@@ -226,7 +226,13 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "or explicitly says qualified/valid FTDs, or explicitly asks for both clocks. In that case name each clock, and you may use " +
               "qualifiedFromEarlierMonthsByMonthAndAgent (carried over from earlier months) and qualifiedSameMonthByMonthAndAgent " +
               "(that month's own activations which already qualified) to explain the make-up. " +
+              "TEAMS: employeeTeams maps each agent to C (conversion), R (retention) or M (manager). " +
+              "A question about retention concerns ONLY team R agents, and retention performance means REPEAT deposits — " +
+              "retentionDepositsByMonthAndAgent / retentionDepositCountByMonthAndAgent, which exclude each client's first deposit (the FTD). " +
+              "Never rank retention by total deposits (depositsByMonthAndAgent), since that includes FTD money that belongs to conversion. " +
+              "A question about conversion concerns ONLY team C agents. Exclude managers from agent rankings. " +
               "For 'who is leading', rank by activations by default; rank by qualified FTDs only when the question is about commission or pay, and say so. " +
+
               "If the snapshot does not contain the answer, say exactly what is missing instead of guessing.",
 
           },
