@@ -19,7 +19,13 @@ import { fmtMoney } from "@/lib/format";
 import { GoalBar } from "@/components/goal-bar";
 import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Info, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
+import { Info, ArrowUp, ArrowDown, ChevronsUpDown, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
+import { useCan } from "@/lib/permissions";
+import { loadLogoDataUrl, payslipBlob, payslipFilename, payslipTotals, type PayslipInput } from "@/lib/payslip";
+
 
 const sb = supabase as any;
 
