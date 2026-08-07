@@ -874,6 +874,7 @@ export type Database = {
           profile_id: string | null
           role: string | null
           salary: number
+          std_bonus: number
           target_ftds: number | null
           target_revenue: number | null
           target_stds: number | null
@@ -898,6 +899,7 @@ export type Database = {
           profile_id?: string | null
           role?: string | null
           salary?: number
+          std_bonus?: number
           target_ftds?: number | null
           target_revenue?: number | null
           target_stds?: number | null
@@ -922,6 +924,7 @@ export type Database = {
           profile_id?: string | null
           role?: string | null
           salary?: number
+          std_bonus?: number
           target_ftds?: number | null
           target_revenue?: number | null
           target_stds?: number | null
@@ -1285,6 +1288,64 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payslips: {
+        Row: {
+          company_id: string
+          created_at: string
+          employee_id: string
+          generated_by: string | null
+          gross_commission: number
+          id: string
+          month: string
+          net_payable: number
+          user_email: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          employee_id: string
+          generated_by?: string | null
+          gross_commission?: number
+          id?: string
+          month: string
+          net_payable?: number
+          user_email?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          employee_id?: string
+          generated_by?: string | null
+          gross_commission?: number
+          id?: string
+          month?: string
+          net_payable?: number
+          user_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslips_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_directory"
             referencedColumns: ["id"]
           },
         ]

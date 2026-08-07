@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Download, FileText } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { CoachingInsights } from "@/components/coaching-insights";
@@ -13,11 +14,15 @@ import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason } from "@/lib/rules";
+import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason, isStd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
+import { useAuth } from "@/lib/auth-context";
+import { useCan } from "@/lib/permissions";
+import { downloadPayslip, payslipTotals, monthLabel, loadLogoDataUrl, type PayslipInput } from "@/lib/payslip";
 import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
+
 
 /** Flat commission paid to the conversion agent per qualifying FTD. */
 
@@ -49,6 +54,10 @@ function workingDays(startISO: string, endISO: string) {
 
 function EmployeeDetailPage() {
   const settings = useCompanySettings();
+  const { company, companyId, user } = useAuth();
+  const can = useCan();
+  const qc = useQueryClient();
+
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
@@ -151,6 +160,41 @@ function EmployeeDetailPage() {
     },
   });
 
+  // STD (retention only): every client this agent handles + every dated deposit.
+  const stdSourceQ = useQuery({
+    enabled: isRetention,
+    queryKey: ["employee-std-source", id],
+    queryFn: async () => {
+      const acts = await fetchAll(() => sb
+        .from("daily_lead_activations")
+        .select("id, lead_name, activation_date")
+        .eq("employee_id", id));
+      const deps = await fetchAll(() => sb
+        .from("revenue")
+        .select("id, activation_id, customer_name, amount, date"));
+      return { acts: acts ?? [], deps: deps ?? [] };
+    },
+  });
+
+  const stdCount = useMemo(() => {
+    if (!isRetention || !stdSourceQ.data) return 0;
+    const { acts, deps } = stdSourceQ.data as { acts: any[]; deps: any[] };
+    return acts.filter((a) => isStd(a, deps, { start, end })).length;
+  }, [isRetention, stdSourceQ.data, start, end]);
+
+  // Payslips previously generated for this employee.
+  const payslipsQ = useQuery({
+    queryKey: ["payslips", id],
+    queryFn: async () =>
+      (await sb
+        .from("payslips")
+        .select("id, month, gross_commission, net_payable, user_email, created_at")
+        .eq("employee_id", id)
+        .order("created_at", { ascending: false })
+        .limit(24)).data ?? [],
+  });
+
+
 
   const conversions = useMemo(() => {
     const deposits = depositIndex(depositsQ.data ?? []);
@@ -216,13 +260,18 @@ function EmployeeDetailPage() {
     const ftdRate = Number(emp?.ftd_commission ?? settings.ftdCommission);
     const ftdCommission = ftdCount * ftdRate;
 
-    const payout = salary + (isRetention ? commission - penalty : 0) + ftdCommission;
+    // STD bonus is a retention-only incentive, configured per employee.
+    const stdRate = Number(emp?.std_bonus ?? 0);
+    const stdBonus = isRetention ? stdCount * stdRate : 0;
+
+    const payout = salary + (isRetention ? commission - penalty + stdBonus : 0) + ftdCommission;
 
     const clients = (clientsQ.data ?? []).reduce((s: number, r: any) => s + Number(r.activated_count || 0), 0);
     const revenuePerClient = clients > 0 ? attributed / clients : 0;
 
-    return { attributed, commBase, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission, ftdRate };
-  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention, settings]);
+    return { attributed, commBase, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission, ftdRate, stdRate, stdBonus };
+  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention, settings, stdCount]);
+
 
   if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
   if (!emp) return (
@@ -232,19 +281,66 @@ function EmployeeDetailPage() {
     </div>
   );
 
+  const payslipInput = (logoDataUrl: string | null): PayslipInput => ({
+    companyName: company?.name ?? "Company",
+    logoDataUrl,
+    employeeName: emp.name,
+    teamLabel,
+    role: emp.role,
+    month,
+    baseSalary: Number(emp.salary ?? 0),
+    workingDays: totals.wd,
+    absentDays: totals.absent,
+    perDayRate: totals.perDay,
+    absenceDeduction: totals.deduction,
+    ftdCount: totals.ftdCount,
+    ftdRate: totals.ftdRate,
+    ftdCommission: isConversion ? totals.ftdCommission : 0,
+    revenueBase: isRetention ? totals.commBase : 0,
+    commissionPct: isRetention ? totals.rate : 0,
+    revenueCommission: isRetention ? totals.commission : 0,
+    stdCount: isRetention ? stdCount : 0,
+    stdRate: totals.stdRate,
+    stdBonus: totals.stdBonus,
+    withdrawalPenalty: isRetention ? totals.penalty : 0,
+  });
+
+  const handlePayslip = async () => {
+    if (!can("export_data")) return toast.error("You don't have permission to export data.");
+    const logo = await loadLogoDataUrl(settings.logoUrl);
+    const input = payslipInput(logo);
+    downloadPayslip(input);
+    const t = payslipTotals(input);
+    if (companyId) {
+      await sb.from("payslips").insert({
+        company_id: companyId,
+        employee_id: emp.id,
+        month,
+        gross_commission: t.grossCommission,
+        net_payable: t.netPayable,
+        generated_by: user?.id ?? null,
+        user_email: user?.email ?? null,
+      });
+      qc.invalidateQueries({ queryKey: ["payslips", id] });
+    }
+    toast.success(`Payslip for ${monthLabel(month)} downloaded`);
+  };
+
   return (
     <div>
       <PageHeader
         title={emp.name}
         description={`${emp.active ? "Active" : "Inactive"} · ${teamLabel} · Base salary ${fmtMoney(emp.salary)}`}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Label className="text-xs text-muted-foreground">Month</Label>
             <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-[160px]" />
+            <Button onClick={handlePayslip}><Download className="h-4 w-4" /> Download payslip</Button>
             <Button variant="outline" asChild><Link to="/employees"><ArrowLeft className="h-4 w-4" /> Back</Link></Button>
           </div>
         }
       />
+
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {isRetention && (
@@ -433,6 +529,9 @@ function EmployeeDetailPage() {
           {isRetention && (
             <>
               <Row label={`Commission (${totals.rate}% on ${fmtMoney(totals.commBase)})`} value={`+${fmtMoney(totals.commission)}`} positive />
+              {totals.stdRate > 0 && (
+                <Row label={`STD bonus (${stdCount} × ${fmtMoney(totals.stdRate)})`} value={`+${fmtMoney(totals.stdBonus)}`} positive />
+              )}
               <Row label="Withdrawal penalty (10%)" value={`−${fmtMoney(totals.penalty)}`} negative />
             </>
           )}
@@ -450,7 +549,43 @@ function EmployeeDetailPage() {
           </div>
         )}
       </div>
+
+      <div className="card-surface overflow-hidden mt-6">
+        <div className="px-5 py-3 border-b border-border flex items-center gap-2">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <h3 className="font-display text-base font-semibold">Payslip history</h3>
+        </div>
+        {((payslipsQ.data ?? []) as any[]).length === 0 ? (
+          <div className="p-6 text-sm text-muted-foreground">No payslips generated yet for this employee.</div>
+        ) : (
+          <div className="overflow-x-auto scroll-slim max-h-[320px]">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-card">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-2 px-4">Period</th>
+                  <th className="py-2 px-4">Downloaded</th>
+                  <th className="py-2 px-4">By</th>
+                  <th className="py-2 px-4 text-right">Gross commission</th>
+                  <th className="py-2 px-4 text-right">Net payable</th>
+                </tr>
+              </thead>
+              <tbody>
+                {((payslipsQ.data ?? []) as any[]).map((p) => (
+                  <tr key={p.id} className="border-b border-border/50">
+                    <td className="py-2 px-4 font-medium">{monthLabel(p.month)}</td>
+                    <td className="py-2 px-4 text-muted-foreground">{new Date(p.created_at).toLocaleString()}</td>
+                    <td className="py-2 px-4 text-muted-foreground">{p.user_email || "—"}</td>
+                    <td className="py-2 px-4 text-right">{fmtMoney(p.gross_commission)}</td>
+                    <td className="py-2 px-4 text-right font-medium">{fmtMoney(p.net_payable)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
+
   );
 }
 

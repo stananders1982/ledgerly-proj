@@ -19,7 +19,13 @@ import { fmtMoney } from "@/lib/format";
 import { GoalBar } from "@/components/goal-bar";
 import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Info, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
+import { Info, ArrowUp, ArrowDown, ChevronsUpDown, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
+import { useCan } from "@/lib/permissions";
+import { loadLogoDataUrl, payslipBlob, payslipFilename, payslipTotals, type PayslipInput } from "@/lib/payslip";
+
 
 const sb = supabase as any;
 
@@ -63,6 +69,9 @@ const TEAM_LABEL: Record<string, string> = { C: "Conversion", R: "Retention", M:
 
 function PerformancePage() {
   const settings = useCompanySettings();
+  const { company, companyId, user } = useAuth();
+  const can = useCan();
+
   const navigate = useNavigate();
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [search, setSearch] = useState("");
@@ -220,11 +229,16 @@ function PerformancePage() {
       const stds = myClients.filter((a) => isStd(a, allDeposits, { start, end })).length;
 
 
-      const payout = salary + (team === "R" ? commission - penalty : 0) + ftdCommission;
+      // Retention-only STD incentive, configured per employee.
+      const stdRate = Number(emp.std_bonus ?? 0);
+      const stdBonus = team === "R" ? stds * stdRate : 0;
+
+      const payout = salary + (team === "R" ? commission - penalty + stdBonus : 0) + ftdCommission;
 
       return {
         id: emp.id,
         name: emp.name,
+        role: emp.role ?? null,
         team,
         teamLabel: TEAM_LABEL[team] ?? team,
         active: !!emp.active,
@@ -233,20 +247,30 @@ function PerformancePage() {
         targetRevenue: emp.target_revenue == null ? null : Number(emp.target_revenue),
         ftds: team === "C" ? ftds : 0,
         pendingFtds: team === "C" ? pendingFtds : 0,
+        commissionableFtds: team === "C" ? commissionableFtds : 0,
         stds: team === "R" ? stds : 0,
         // Share of this agent's clients (in range) that made a second deposit.
         stdPct: team === "R" && clients > 0 ? (stds / clients) * 100 : 0,
         clients,
         attributed: team === "R" ? attributed : 0,
+        commBase: team === "R" ? commBase : 0,
         commission,
         rate,
         withdrawn: team === "R" ? withdrawn : 0,
         penalty: team === "R" ? penalty : 0,
         absent,
+        workingDays: wd,
+        perDay,
+        deduction,
+        baseSalary: Number(emp.salary ?? 0),
         salary,
+        ftdRate,
         ftdCommission,
+        stdRate,
+        stdBonus,
         payout,
       };
+
     })
     .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()))
     .sort((a, b) => (TEAM_RANK[a.team] ?? 3) - (TEAM_RANK[b.team] ?? 3) || a.name.localeCompare(b.name));
@@ -282,6 +306,74 @@ function PerformancePage() {
 
   const loading = empQ.isLoading || revQ.isLoading || actQ.isLoading;
 
+  const [zipping, setZipping] = useState(false);
+
+  const exportAllPayslips = async () => {
+    if (!can("export_data")) return toast.error("You don't have permission to export data.");
+    const targets = rows.filter((r) => r.active);
+    if (!targets.length) return toast.error("No active agents for this month");
+    setZipping(true);
+    try {
+      const [{ default: JSZip }, logo] = await Promise.all([
+        import("jszip"),
+        loadLogoDataUrl(settings.logoUrl),
+      ]);
+      const zip = new JSZip();
+      const logRows: any[] = [];
+      for (const r of targets) {
+        const input: PayslipInput = {
+          companyName: company?.name ?? "Company",
+          logoDataUrl: logo,
+          employeeName: r.name,
+          teamLabel: r.teamLabel,
+          role: r.role,
+          month,
+          baseSalary: r.baseSalary,
+          workingDays: r.workingDays,
+          absentDays: r.absent,
+          perDayRate: r.perDay,
+          absenceDeduction: r.deduction,
+          ftdCount: r.commissionableFtds,
+          ftdRate: r.ftdRate,
+          ftdCommission: r.ftdCommission,
+          revenueBase: r.commBase,
+          commissionPct: r.team === "R" ? r.rate : 0,
+          revenueCommission: r.commission,
+          stdCount: r.stds,
+          stdRate: r.stdRate,
+          stdBonus: r.stdBonus,
+          withdrawalPenalty: r.penalty,
+        };
+        zip.file(payslipFilename(input), payslipBlob(input));
+        const t = payslipTotals(input);
+        if (companyId) {
+          logRows.push({
+            company_id: companyId,
+            employee_id: r.id,
+            month,
+            gross_commission: t.grossCommission,
+            net_payable: t.netPayable,
+            generated_by: user?.id ?? null,
+            user_email: user?.email ?? null,
+          });
+        }
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `payslips-${month}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      if (logRows.length) await sb.from("payslips").insert(logRows);
+      toast.success(`${targets.length} payslips exported`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to export payslips");
+    } finally {
+      setZipping(false);
+    }
+  };
+
   return (
     <div>
       <PageHeader
@@ -292,9 +384,13 @@ function PerformancePage() {
             <SearchInput value={search} onChange={setSearch} placeholder="Search agents…" className="w-full sm:w-56" />
             <Label className="text-xs text-muted-foreground">Month</Label>
             <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-[160px] max-w-full" />
+            <Button onClick={exportAllPayslips} disabled={zipping || loading}>
+              <Download className="h-4 w-4" /> {zipping ? "Preparing…" : "Export all payslips"}
+            </Button>
           </div>
         }
       />
+
 
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Total FTDs" value={String(totals.ftds)} tone="positive" />
