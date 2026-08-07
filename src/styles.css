@@ -292,10 +292,11 @@
 @utility aurora-bg {
   position: relative;
   isolation: isolate;
+  overflow-x: clip;
   &::before {
     content: "";
     position: absolute;
-    inset: -20% -10% auto -10%;
+    inset: -20% 0 auto 0;
     height: 420px;
     z-index: -1;
     background:
