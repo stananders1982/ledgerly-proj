@@ -459,7 +459,7 @@ function ReportsPage() {
     }
     // Activations per employee: count for retention holder and conversion agent
     for (const a of ((pvActQ.data ?? []) as any[])) {
-      const ids = new Set<string>([a.employee_id, a.conversion_employee_id].filter(Boolean));
+      const ids = new Set<string>([a.employee_id, a.conversion_employee_id].filter((x) => isAgentId(x)));
       for (const id of ids) { const x = getE(id); x.activated += 1; byEmp.set(id, x); }
     }
     const toRows = (m: Map<string, Row>) => Array.from(m.values())
