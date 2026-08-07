@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { isStd } from "@/lib/rules";
+import { isStd, isAgentTeam } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
 import { GoalBar } from "@/components/goal-bar";
@@ -158,7 +158,8 @@ function PerformancePage() {
   });
 
   const rows = useMemo(() => {
-    const emps = empQ.data ?? [];
+    // Managers (Team M) never appear in the scoreboard, rankings or totals.
+    const emps = (empQ.data ?? []).filter((e: any) => isAgentTeam(e.team));
     const wd = workingDays(start, end);
 
     
