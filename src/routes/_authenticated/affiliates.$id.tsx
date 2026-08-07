@@ -326,6 +326,15 @@ function AffiliateStatementPage() {
             {weekTotals.cost - totals.paid < 0 ? "−" : ""}{fmtMoney(Math.abs(weekTotals.cost - totals.paid))}
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Guarantee delivery</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold">
+            {deliveryPct(weekTotals) == null ? "—" : `${deliveryPct(weekTotals)}%`}
+          </CardContent>
+        </Card>
+      </section>
+
+
 
 
       <div className="card-surface overflow-hidden mb-6">
