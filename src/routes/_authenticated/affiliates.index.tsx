@@ -236,8 +236,8 @@ function AffiliatesPage() {
           <CardContent className="text-2xl font-semibold text-amber-500">{fmtMoney(totals.paid)}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Building2 className="h-4 w-4" /> Balance outstanding</CardTitle></CardHeader>
-          <CardContent className={cn("text-2xl font-semibold", totals.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(totals.balance)}</CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Building2 className="h-4 w-4" /> {totals.balance < 0 ? "Credit with affiliates" : "Balance outstanding"}</CardTitle></CardHeader>
+          <CardContent className={cn("text-2xl font-semibold", totals.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(Math.abs(totals.balance))}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><PiggyBank className="h-4 w-4" /> Guarantee savings</CardTitle></CardHeader>
