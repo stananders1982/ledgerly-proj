@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronRight, LogOut, Search, Sparkles } from "lucide-react";
+import { ChevronRight, LifeBuoy, LogOut, Search, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -12,6 +12,7 @@ import { CompanySwitcher } from "@/components/company-switcher";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NAV_GROUPS, NAV_ITEMS, type NavGroup } from "@/lib/nav-items";
+import { useOnboardingWizard } from "@/components/onboarding-wizard";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "sidebar_groups_open";
@@ -31,6 +32,7 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+  const { openWizard } = useOnboardingWizard();
 
   useEffect(() => {
     setOpenMap(loadOpenState());
@@ -141,6 +143,9 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
 
       <SidebarFooter className="space-y-1">
         <ThemeToggle collapsed={collapsed} />
+        <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={openWizard}>
+          <LifeBuoy className="h-4 w-4" /> {!collapsed && "Setup guide"}
+        </Button>
         <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={() => signOut()}>
           <LogOut className="h-4 w-4" /> {!collapsed && "Sign out"}
         </Button>

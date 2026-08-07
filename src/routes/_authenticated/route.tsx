@@ -26,6 +26,7 @@ import { QuickCreate } from "@/components/quick-create";
 import { TaskReminders } from "@/components/task-reminders";
 import { UnallocatedFtdAlert } from "@/components/unallocated-ftd-alert";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { OnboardingProvider } from "@/components/onboarding-wizard";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -61,6 +62,7 @@ function ProtectedLayout() {
 
   return (
     <SidebarProvider>
+      <OnboardingProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar onSearchClick={() => palette.setOpen(true)} />
         <CommandPalette open={palette.open} onOpenChange={palette.setOpen} />
@@ -117,6 +119,7 @@ function ProtectedLayout() {
           <TaskReminders />
         </div>
       </div>
+      </OnboardingProvider>
     </SidebarProvider>
   );
 }
