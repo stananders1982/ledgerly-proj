@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Download, TrendingUp } from "lucide-react";
+import { Plus, Download, TrendingUp, Search, AlertTriangle } from "lucide-react";
 import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
 import { IssueFilterBanner } from "@/components/issue-filter-banner";
@@ -16,6 +16,8 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -594,6 +596,8 @@ function RevenueDialog({
   const hasSplit = !!form.employee_id_2;
   const [activationId, setActivationId] = useState(rev?.activation_id ?? "");
   const [manual, setManual] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const phoneOf = (name?: string | null) => phoneByName[String(name ?? "").trim().toLowerCase()] ?? "";
   const picked = activations.find((x: any) => x.id === activationId);
   const detailsHidden = !!picked && !manual;
 
@@ -654,7 +658,7 @@ function RevenueDialog({
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
               <Command
-                filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}
+                filter={(value: string, search: string) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}
               >
                 <CommandInput placeholder="Search name or phone…" />
                 <CommandList>
