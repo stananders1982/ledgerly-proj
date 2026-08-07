@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { depositsByName, effectiveBalance, qualifiesAsFtd, ftdPendingReason } from "@/lib/rules";
+import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 
@@ -146,16 +146,16 @@ function EmployeeDetailPage() {
     enabled: isConversion,
     queryKey: ["revenue-by-name"],
     queryFn: async () => {
-      const data = await fetchAll(() => sb.from("revenue").select("customer_name, amount"));
-      return (data ?? []) as { customer_name: string | null; amount: number }[];
+      const data = await fetchAll(() => sb.from("revenue").select("activation_id, customer_name, amount"));
+      return (data ?? []) as { activation_id: string | null; customer_name: string | null; amount: number }[];
     },
   });
 
 
   const conversions = useMemo(() => {
-    const deposits = depositsByName(depositsQ.data ?? []);
+    const deposits = depositIndex(depositsQ.data ?? []);
     const decorate = (r: any, qualifies: boolean) => {
-      const bal = effectiveBalance(r, deposits);
+      const bal = effectiveBalanceIndexed(r, deposits);
       return { ...r, effectiveBalance: bal, qualifies, reason: qualifies ? "" : ftdPendingReason(r, bal, settings) };
     };
     const counted = ((conversionsQ.data?.counted ?? []) as any[]).map((r) => decorate(r, true));
