@@ -43,10 +43,62 @@ export function depositsByName(
   return m;
 }
 
+export type DepositIndex = {
+  /** Deposits linked directly to a client record (preferred). */
+  byActivation: Map<string, number>;
+  /** Legacy deposits with no client link, matched by name only. */
+  byName: Map<string, number>;
+};
+
+/**
+ * Index deposits by activation id first, keeping a name-keyed bucket only for
+ * legacy rows that were never linked — so nothing is counted twice.
+ */
+export function depositIndex(
+  rows: {
+    activation_id?: string | null;
+    customer_name?: string | null;
+    amount?: number | string | null;
+  }[],
+): DepositIndex {
+  const byActivation = new Map<string, number>();
+  const byName = new Map<string, number>();
+  for (const r of rows) {
+    const amt = Number(r.amount || 0);
+    if (r.activation_id) {
+      byActivation.set(r.activation_id, (byActivation.get(r.activation_id) ?? 0) + amt);
+      continue;
+    }
+    const k = nameKey(r.customer_name);
+    if (!k) continue;
+    byName.set(k, (byName.get(k) ?? 0) + amt);
+  }
+  return { byActivation, byName };
+}
+
+/** Total deposits for a client, preferring the direct link over the name. */
+export function depositTotalFor(
+  row: { id?: string | null; lead_name?: string | null },
+  index: DepositIndex,
+): number {
+  const linked = row.id ? (index.byActivation.get(row.id) ?? 0) : 0;
+  const legacy = index.byName.get(nameKey(row.lead_name)) ?? 0;
+  return linked + legacy;
+}
+
 /** Base balance plus every deposit recorded for that client name. */
 export function effectiveBalance(row: ActivationLike, deposits: Map<string, number>): number {
   return Number(row.balance || 0) + (deposits.get(nameKey(row.lead_name)) ?? 0);
 }
+
+/** Balance using the activation-first deposit index. */
+export function effectiveBalanceIndexed(
+  row: ActivationLike & { id?: string | null },
+  index: DepositIndex,
+): number {
+  return Number(row.balance || 0) + depositTotalFor(row, index);
+}
+
 
 /**
  * FTD rule: the lead must have answered, and either be mid/high potential or

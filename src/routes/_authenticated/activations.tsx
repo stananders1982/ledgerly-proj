@@ -32,7 +32,7 @@ import { usePagination, TablePagination, PageSizeSelect } from "@/components/pag
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
-import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate } from "@/lib/rules";
+import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate, depositIndex, depositTotalFor } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { CLIENT_TAGS, TagBadges, TagPicker } from "@/components/client-tags";
 import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
@@ -191,18 +191,11 @@ function ActivationsPage() {
     },
   });
 
-  const depositsByName = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of revenueQ.data ?? []) {
-      const k = (r.customer_name ?? "").trim().toLowerCase();
-      if (!k) continue;
-      m.set(k, (m.get(k) ?? 0) + Number(r.amount || 0));
-    }
-    return m;
-  }, [revenueQ.data]);
+  // Deposits indexed by client link first; names only cover legacy rows.
+  const deposits = useMemo(() => depositIndex(revenueQ.data ?? []), [revenueQ.data]);
 
-  const depositsFor = (name?: string | null) =>
-    depositsByName.get((name ?? "").trim().toLowerCase()) ?? 0;
+  const depositsFor = (name?: string | null, activationId?: string | null) =>
+    depositTotalFor({ id: activationId ?? null, lead_name: name ?? null }, deposits);
 
   const matchName = (a?: string | null, b?: string | null) =>
     !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -211,6 +204,7 @@ function ActivationsPage() {
   const depositRowsFor = (name?: string | null, activationId?: string | null) =>
     (revenueQ.data ?? []).filter((r) =>
       r.activation_id ? r.activation_id === activationId : matchName(r.customer_name, name));
+
 
   const withdrawalRowsFor = (name?: string | null) =>
     (withdrawalsQ.data ?? []).filter((w) => matchName(w.customer_name, name));
@@ -255,13 +249,13 @@ function ActivationsPage() {
           return (
             !!name &&
             Number(r.balance || 0) <= 0 &&
-            !depositsByName.has(name.toLowerCase())
+            depositsFor(r.lead_name, r.id) <= 0
           );
         default:
           return true;
       }
     },
-    [issue, dupNames, depositsByName, retentionIds],
+    [issue, dupNames, deposits, retentionIds],
   );
 
   const passesFilters = useCallback(
@@ -326,7 +320,7 @@ function ActivationsPage() {
     date: (r) => actDate(r) ?? "",
     lead: (r) => r.lead_name ?? "",
     source: (r) => r.daily_lead_entries?.lead_sources?.name ?? "",
-    balance: (r) => Number(r.balance || 0) + depositsFor(r.lead_name),
+    balance: (r) => Number(r.balance || 0) + depositsFor(r.lead_name, r.id),
     potential: (r) => ({ low: 1, mid: 2, high: 3 } as any)[r.potential ?? ""] ?? 0,
     conversion: (r) => r.conversion_employee_id ?? "",
     retention: (r) => r.employee_id ?? "",
@@ -337,7 +331,7 @@ function ActivationsPage() {
   const navIndex = viewing ? pageItems.findIndex((r) => r.id === viewing.id) : -1;
 
   const totalBalance = rows.reduce(
-    (a, r) => a + Number(r.balance || 0) + depositsFor(r.lead_name),
+    (a, r) => a + Number(r.balance || 0) + depositsFor(r.lead_name, r.id),
     0,
   );
 
@@ -562,7 +556,7 @@ function ActivationsPage() {
                 subtitle={actDate(r) ? fmtDate(actDate(r)!) : undefined}
                 onClick={() => setViewing(r)}
                 fields={[
-                  { label: "Balance", value: <span className="num">{fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}</span> },
+                  { label: "Balance", value: <span className="num">{fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name, r.id))}</span> },
                   { label: "Potential", value: <PotentialBadge value={r.potential} /> },
                   { label: "Tags", value: <TagBadges tags={r.tags} /> },
                   { label: "Source", value: r.daily_lead_entries?.lead_sources?.name ?? "—" },
@@ -649,10 +643,10 @@ function ActivationsPage() {
                   )}
                   {tb.show("balance") && (
                   <td className="py-3 px-4">
-                    {fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name))}
-                    {depositsFor(r.lead_name) > 0 && (
+                    {fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name, r.id))}
+                    {depositsFor(r.lead_name, r.id) > 0 && (
                       <span className="ml-2 text-xs text-muted-foreground">
-                        (base {fmtMoney(Number(r.balance || 0))} + {fmtMoney(depositsFor(r.lead_name))})
+                        (base {fmtMoney(Number(r.balance || 0))} + {fmtMoney(depositsFor(r.lead_name, r.id))})
                       </span>
                     )}
                   </td>

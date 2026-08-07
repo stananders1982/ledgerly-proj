@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Download, TrendingUp } from "lucide-react";
+import { Plus, Download, TrendingUp, Search, AlertTriangle } from "lucide-react";
 import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
 import { IssueFilterBanner } from "@/components/issue-filter-banner";
@@ -16,6 +16,8 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -100,6 +102,20 @@ function RevenuePage() {
       return (data ?? []) as any[];
     },
   });
+  // Phone numbers come from the leads table, matched by client name.
+  const leadPhonesQ = useQuery({
+    queryKey: ["lead-phones"],
+    queryFn: async () => {
+      const data = await fetchAll(() => supabase.from("leads").select("name, phone"));
+      const m: Record<string, string> = {};
+      for (const l of (data ?? []) as any[]) {
+        const k = String(l.name ?? "").trim().toLowerCase();
+        if (k && l.phone && !m[k]) m[k] = l.phone;
+      }
+      return m;
+    },
+  });
+
 
 
   const employeeNameById = useMemo(
@@ -124,7 +140,9 @@ function RevenuePage() {
     const term = search.trim().toLowerCase();
     return list.filter((r: any) => {
       if (issue === "revenue-no-method" && r.method) return false;
+      if (issue === "revenue-no-activation" && r.activation_id) return false;
       if (issue === "revenue-no-agent" && r.employee_id) return false;
+
       if (issue) return true;
       if (!term) {
         const t = new Date(r.date + "T00:00:00").getTime();
@@ -328,7 +346,7 @@ function RevenuePage() {
             </DropdownMenu>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
               <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New revenue</Button></DialogTrigger>
-              <RevenueDialog key={editing?.id ?? "new"} rev={editing} employees={empQ.data ?? []} affiliates={affQ.data ?? []} activations={activationsQ.data ?? []} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+              <RevenueDialog key={editing?.id ?? "new"} rev={editing} employees={empQ.data ?? []} affiliates={affQ.data ?? []} activations={activationsQ.data ?? []} phoneByName={leadPhonesQ.data ?? {}} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
             </Dialog>
           </div>
         }
@@ -558,8 +576,9 @@ function BreakdownCard({ title, rows }: { title: string; rows: [string, number][
 }
 
 function RevenueDialog({
-  rev, employees, affiliates, activations, onSubmit, loading,
-}: { rev: any; employees: any[]; affiliates: any[]; activations: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+  rev, employees, affiliates, activations, phoneByName, onSubmit, loading,
+}: { rev: any; employees: any[]; affiliates: any[]; activations: any[]; phoneByName: Record<string, string>; onSubmit: (v: any) => void; loading: boolean }) {
+
   const [form, setForm] = useState(() => ({
     id: rev?.id,
     customer_name: rev?.customer_name ?? "",
@@ -577,6 +596,8 @@ function RevenueDialog({
   const hasSplit = !!form.employee_id_2;
   const [activationId, setActivationId] = useState(rev?.activation_id ?? "");
   const [manual, setManual] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const phoneOf = (name?: string | null) => phoneByName[String(name ?? "").trim().toLowerCase()] ?? "";
   const picked = activations.find((x: any) => x.id === activationId);
   const detailsHidden = !!picked && !manual;
 
@@ -617,20 +638,56 @@ function RevenueDialog({
     <DialogContent className="max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{rev?.id ? "Edit revenue" : "Record revenue"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
-        <Field label="Pick from activated leads (optional)">
-          <Select value={activationId || "_none"} onValueChange={pickActivation}>
-            <SelectTrigger><SelectValue placeholder={activations.length ? "Search activated lead" : "No activated leads yet"} /></SelectTrigger>
-            <SelectContent className="max-h-72">
-              <SelectItem value="_none">None</SelectItem>
-              {activations.map((a: any) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.lead_name}
-                  {a.daily_lead_entries?.lead_sources?.name ? ` · ${a.daily_lead_entries.lead_sources.name}` : ""}
-                  {a.daily_lead_entries?.entry_date ? ` · ${a.daily_lead_entries.entry_date}` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Field label="Client (required — links the deposit to a client record)">
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                className="w-full justify-between font-normal"
+              >
+                <span className="truncate">
+                  {picked
+                    ? `${picked.lead_name}${phoneOf(picked.lead_name) ? ` · ${phoneOf(picked.lead_name)}` : ""}`
+                    : activations.length
+                      ? "Search client by name or phone"
+                      : "No clients yet"}
+                </span>
+                <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command
+                filter={(value: string, search: string) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}
+              >
+                <CommandInput placeholder="Search name or phone…" />
+                <CommandList>
+                  <CommandEmpty>No matching client.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value="none no client link"
+                      onSelect={() => { pickActivation("_none"); setPickerOpen(false); }}
+                    >
+                      No client link
+                    </CommandItem>
+                    {activations.map((a: any) => (
+                      <CommandItem
+                        key={a.id}
+                        value={`${a.lead_name ?? ""} ${phoneOf(a.lead_name)} ${a.id}`}
+                        onSelect={() => { pickActivation(a.id); setPickerOpen(false); }}
+                      >
+                        <span className="truncate">
+                          {a.lead_name}
+                          {phoneOf(a.lead_name) ? ` · ${phoneOf(a.lead_name)}` : ""}
+                          {a.daily_lead_entries?.entry_date ? ` · ${a.daily_lead_entries.entry_date}` : ""}
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </Field>
 
         {detailsHidden ? (
@@ -657,6 +714,14 @@ function RevenueDialog({
             {nameMatch.activation_date ? ` · activated ${nameMatch.activation_date}` : ""} — this deposit will be linked to that client on save.
           </div>
         )}
+
+        {!activationId && !nameMatch && !needsNewClient && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>This deposit is not linked to a client — matching will use name only.</span>
+          </div>
+        )}
+
 
         {needsNewClient && (
           <div className="rounded-lg border border-dashed border-border bg-muted/20 p-3 grid gap-3">
