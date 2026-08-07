@@ -51,7 +51,7 @@ export const ACTION_PERMISSIONS: { key: ActionKey; label: string; hint: string }
 ];
 
 /** Pages every admin always keeps — they cannot be switched off. */
-export const LOCKED_NAV_KEYS = ["dashboard", "settings", "users", "permissions"];
+export const LOCKED_NAV_KEYS = ["settings", "users", "permissions"];
 
 export type RoleOption = { key: string; label: string; builtin: boolean };
 
