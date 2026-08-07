@@ -30,7 +30,7 @@ import {
   deleteAppUser,
 } from "@/lib/admin-users.functions";
 
-export const Route = createFileRoute("/_authenticated/users")({
+export const Route = createFileRoute("/_authenticated/users/")({
   head: () => ({ meta: [{ title: "Users — Ledgerly" }] }),
   component: UsersPage,
 });
