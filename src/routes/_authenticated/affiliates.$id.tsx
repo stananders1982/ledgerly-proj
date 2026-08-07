@@ -408,6 +408,50 @@ function AffiliateStatementPage() {
         )}
       </div>
 
+      <div className="card-surface overflow-hidden mb-6">
+        <div className="p-4 border-b border-border">
+          <h3 className="font-display text-base font-semibold">Revenue by month</h3>
+          <p className="text-xs text-muted-foreground mt-1">Deposits from clients attributed to this affiliate.</p>
+        </div>
+        {revenueMonthly.length === 0 ? (
+          <div className="p-8 text-sm text-muted-foreground">No revenue in this period.</div>
+        ) : (
+          <>
+          <div className="overflow-x-auto scroll-slim">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-3 px-4">Month</th>
+                  <th className="py-3 px-4">Deposits</th>
+                  <th className="py-3 px-4">Clients</th>
+                  <th className="py-3 px-4">Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {revMonthPage.map((m) => (
+                  <tr key={m.month} className="border-b border-border/50 transition-colors hover:bg-accent/30">
+                    <td className="py-3 px-4 font-medium">{m.month}</td>
+                    <td className="py-3 px-4">{m.deposits}</td>
+                    <td className="py-3 px-4">{m.clients}</td>
+                    <td className="py-3 px-4 font-medium text-emerald-500">{fmtMoney(m.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-border font-medium">
+                  <td className="py-3 px-4">Total</td>
+                  <td className="py-3 px-4">{revenueMonthly.reduce((s, m) => s + m.deposits, 0)}</td>
+                  <td className="py-3 px-4"></td>
+                  <td className="py-3 px-4 text-emerald-500">{fmtMoney(totals.revenue)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <TablePagination {...pgRevMonth} />
+          </>
+        )}
+      </div>
+
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card-surface overflow-hidden">
