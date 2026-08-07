@@ -51,11 +51,50 @@ function AffiliateStatementPage() {
   const affQ = useQuery({
     queryKey: ["affiliate", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("affiliates").select("id,name,active").eq("id", id).single();
+      const { data, error } = await supabase
+        .from("affiliates")
+        .select("id,name,active,cpa_rate,guarantee_value")
+        .eq("id", id)
+        .single();
       if (error) throw error;
-      return data as { id: string; name: string; active: boolean };
+      return data as { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number };
     },
   });
+
+  const srcQ = useQuery({
+    queryKey: ["affiliate-sources-one", affQ.data?.name],
+    enabled: !!affQ.data?.name,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("lead_sources").select("id,name");
+      if (error) throw error;
+      return ((data ?? []) as { id: string; name: string }[]).filter(
+        (s) => s.name.trim().toLowerCase() === affQ.data!.name.trim().toLowerCase(),
+      );
+    },
+  });
+
+  const entriesQ = useQuery({
+    queryKey: ["affiliate-entries-one", id],
+    queryFn: async () => {
+      const data = await fetchAll(() =>
+        supabase.from("daily_lead_entries").select("entry_date,received,reported,source_id"),
+      );
+      return (data ?? []) as LeadEntryLike[];
+    },
+  });
+
+  const weeks = useMemo(() => {
+    if (!affQ.data) return [];
+    const ids = new Set((srcQ.data ?? []).map((s) => s.id));
+    const mine = (entriesQ.data ?? []).filter(
+      (e) => e.source_id && ids.has(e.source_id) && inRange(e.entry_date),
+    );
+    return weeklyGuarantee(affQ.data, mine);
+  }, [affQ.data, srcQ.data, entriesQ.data, activeRange]);
+
+  const weekTotals = useMemo(() => sumWeeks(weeks), [weeks]);
+  const { pageItems: weekPage, ...pgWeeks } = usePagination(weeks, 30);
+
 
   const revQ = useQuery({
     queryKey: ["affiliate-revenue", id],
