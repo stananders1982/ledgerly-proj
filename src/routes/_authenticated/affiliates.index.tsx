@@ -304,7 +304,7 @@ function AffiliatesPage() {
                     <td className="py-3 px-4">{r.reported}</td>
                     <td className="py-3 px-4">{fmtMoney(r.owed)}</td>
                     <td className="py-3 px-4 text-amber-500">−{fmtMoney(r.paid)}</td>
-                    <td className={cn("py-3 px-4 font-medium", r.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(r.balance)}</td>
+                    <td className={cn("py-3 px-4 font-medium", r.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(Math.abs(r.balance))}{r.balance < 0 && <span className="ml-1 text-xs text-muted-foreground">credit</span>}</td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">
                       {isAdmin && (
                         <Button
