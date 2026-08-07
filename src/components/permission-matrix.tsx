@@ -62,8 +62,7 @@ export function PermissionMatrix({ kind }: { kind: MatrixKind }) {
     return kind === "nav" ? defaultNavAllowed(roleKey, rowKey) : defaultActionAllowed(roleKey, rowKey);
   };
 
-  const isLocked = (role: RoleOption, row: RowDef) =>
-    role.key === "admin" || (kind === "nav" && row.key === "dashboard");
+  const isLocked = (role: RoleOption, _row: RowDef) => role.key === "admin";
 
   const toggle = useMutation({
     mutationFn: async (v: { roleKey: string; rowKey: string; allowed: boolean }) => {
