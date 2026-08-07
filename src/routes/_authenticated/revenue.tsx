@@ -574,8 +574,9 @@ function BreakdownCard({ title, rows }: { title: string; rows: [string, number][
 }
 
 function RevenueDialog({
-  rev, employees, affiliates, activations, onSubmit, loading,
-}: { rev: any; employees: any[]; affiliates: any[]; activations: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+  rev, employees, affiliates, activations, phoneByName, onSubmit, loading,
+}: { rev: any; employees: any[]; affiliates: any[]; activations: any[]; phoneByName: Record<string, string>; onSubmit: (v: any) => void; loading: boolean }) {
+
   const [form, setForm] = useState(() => ({
     id: rev?.id,
     customer_name: rev?.customer_name ?? "",
