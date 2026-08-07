@@ -454,8 +454,8 @@ function ReportsPage() {
       const pct = Number(r.split_pct ?? 100);
       const affId = r.affiliate_id ?? r.leads?.affiliate_id;
       if (affId) { const x = getA(affId); x.revenue += amt; byAff.set(affId, x); }
-      if (r.employee_id) { const x = getE(r.employee_id); x.revenue += amt * (pct / 100); byEmp.set(r.employee_id, x); }
-      if (r.employee_id_2) { const x = getE(r.employee_id_2); x.revenue += amt * ((100 - pct) / 100); byEmp.set(r.employee_id_2, x); }
+      if (isAgentId(r.employee_id)) { const x = getE(r.employee_id); x.revenue += amt * (pct / 100); byEmp.set(r.employee_id, x); }
+      if (isAgentId(r.employee_id_2)) { const x = getE(r.employee_id_2); x.revenue += amt * ((100 - pct) / 100); byEmp.set(r.employee_id_2, x); }
     }
     // Activations per employee: count for retention holder and conversion agent
     for (const a of ((pvActQ.data ?? []) as any[])) {
