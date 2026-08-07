@@ -198,6 +198,41 @@ function AffiliateStatementPage() {
         title={affQ.data?.name ?? "Affiliate"}
         description={affQ.data?.active ? "Monthly statement and transaction history." : "Inactive affiliate"}
         actions={
+          <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (!weeks.length) return toast.error("Nothing to export");
+              exportPDF(
+                `Weekly guarantee — ${affQ.data?.name ?? "Affiliate"}`,
+                [
+                  ...weeks.map((w) => ({
+                    Week: `${w.weekStart} → ${w.weekEnd}`,
+                    Leads: w.leads,
+                    Guaranteed: w.guaranteed,
+                    Reported: w.reported,
+                    Payable: w.payable,
+                    Cost: fmtMoney(w.cost),
+                    Savings: fmtMoney(w.savings),
+                    Shortfall: w.shortfall,
+                  })),
+                  {
+                    Week: "TOTAL",
+                    Leads: weekTotals.leads,
+                    Guaranteed: weekTotals.guaranteed,
+                    Reported: weekTotals.reported,
+                    Payable: weekTotals.payable,
+                    Cost: fmtMoney(weekTotals.cost),
+                    Savings: fmtMoney(weekTotals.savings),
+                    Shortfall: weekTotals.shortfall,
+                  },
+                ],
+                "affiliate-guarantee",
+              );
+            }}
+          >
+            <Download className="h-4 w-4" /> Guarantee PDF
+          </Button>
           <Button
             variant="outline"
             onClick={() => {
@@ -226,7 +261,9 @@ function AffiliateStatementPage() {
           >
             <Download className="h-4 w-4" /> Statement PDF
           </Button>
+          </div>
         }
+
       />
 
       <div className="mb-4">
