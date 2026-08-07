@@ -18,7 +18,7 @@ import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason
 import { useCompanySettings } from "@/lib/settings";
 import { useAuth } from "@/lib/auth-context";
 import { useCan } from "@/lib/permissions";
-import { downloadPayslip, payslipTotals, monthLabel, loadLogoDataUrl, type PayslipInput } from "@/lib/payslip";
+import { downloadPayslip, payslipTotals, monthLabel, loadLogoDataUrl, buildRetentionTransactions, type PayslipInput } from "@/lib/payslip";
 import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 
 const sb = supabase as any;
@@ -303,6 +303,17 @@ function EmployeeDetailPage() {
     stdRate: totals.stdRate,
     stdBonus: totals.stdBonus,
     withdrawalPenalty: isRetention ? totals.penalty : 0,
+    // Retention agents get the full, privacy-safe transaction breakdown.
+    transactions: isRetention
+      ? buildRetentionTransactions({
+          employeeId: emp.id,
+          revenue: (revQ.data ?? []) as any[],
+          withdrawals: (withQ.data ?? []) as any[],
+          commissionPct: totals.rate,
+          settings,
+          defaultPenaltyPct: settings.withdrawalPenaltyPct,
+        })
+      : undefined,
   });
 
   const handlePayslip = async () => {
