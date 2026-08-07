@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { activationDate, depositMatchesActivation, stdDepositsFor } from "@/lib/rules";
 
 /**
  * Natural-language question answering over the caller's own business data.
@@ -28,10 +29,10 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
 
     const [revenue, expenses, withdrawals, activations, leads, sources, employees, categories, affiliates] =
       await Promise.all([
-        supabase.from("revenue").select("date,amount,customer_name,employee_id,affiliate_id,method").gte("date", sinceIso),
+        supabase.from("revenue").select("date,amount,customer_name,employee_id,affiliate_id,method,activation_id").gte("date", sinceIso),
         supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
         supabase.from("withdrawals").select("date,amount,employee_id").gte("date", sinceIso),
-        supabase.from("daily_lead_activations").select("activation_date,qualified_at,employee_id,conversion_employee_id,entry_id").gte("activation_date", sinceIso),
+        supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id").gte("activation_date", sinceIso),
         supabase.from("daily_lead_entries").select("entry_date,received,activated,reported,cost,source_id").gte("entry_date", sinceIso),
         supabase.from("lead_sources").select("id,name,pricing_model,price"),
         supabase.from("employees").select("id,name,team,active"),
@@ -56,28 +57,28 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const round = (o: Record<string, number>) =>
       Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Math.round(v)]));
 
-    // A client's first deposit in the window is the FTD; everything after is
-    // retention work (STD and beyond).
-    const firstDepositDate = new Map<string, string>();
-    for (const r of (revenue.data ?? []) as any[]) {
-      const k = (r.customer_name ?? "").trim().toLowerCase();
-      if (!k) continue;
-      const prev = firstDepositDate.get(k);
-      if (!prev || String(r.date) < prev) firstDepositDate.set(k, String(r.date));
+    // Retention work uses the SAME rule as the app's performance page:
+    // a client belongs to the retention agent on their activation row, the
+    // activation balance is the FTD, and the first deposit on/after the
+    // activation date (same calendar month) is the STD.
+    const actRows = (activations.data ?? []) as any[];
+    const revRows = (revenue.data ?? []) as any[];
+    const stdRows: { date: string; amount: number; agent: string }[] = [];
+    const retentionRows: { date: string; amount: number; agent: string }[] = [];
+    for (const a of actRows) {
+      const agent = nameOf(employees.data, a.employee_id);
+      const mine = revRows.filter((r) => depositMatchesActivation(r, a));
+      for (const d of mine) {
+        if (!d.date) continue;
+        const act = activationDate(a);
+        if (act && String(d.date) < act) continue;
+        retentionRows.push({ date: String(d.date), amount: Number(d.amount || 0), agent });
+      }
+      for (const s of stdDepositsFor(a, mine as any)) {
+        stdRows.push({ date: String(s.date), amount: Number(s.amount || 0), agent });
+      }
     }
-    const seenFirst = new Set<string>();
-    const repeatDeposits = ((revenue.data ?? []) as any[])
-      .slice()
-      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
-      .filter((r) => {
-        const k = (r.customer_name ?? "").trim().toLowerCase();
-        if (!k) return false;
-        if (!seenFirst.has(k)) {
-          seenFirst.add(k);
-          return false;
-        }
-        return true;
-      });
+
 
 
     const snapshot = {
@@ -174,20 +175,21 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       employeeTeams: Object.fromEntries(
         (employees.data ?? []).map((e: any) => [e.name, e.team ?? "—"]),
       ),
-      // Retention work only: deposits that are NOT a client's first deposit,
-      // credited to the agent on the deposit. Keys are "month | agent".
+      // Retention: deposits on clients assigned to a retention agent, credited
+      // to that agent. Keys are "month | agent".
       retentionDepositsByMonthAndAgent: round(
-        bucket(
-          repeatDeposits,
-          (r: any) => `${month(r.date)} | ${nameOf(employees.data, r.employee_id)}`,
-          (r: any) => Number(r.amount || 0),
-        ),
+        bucket(retentionRows, (r) => `${month(r.date)} | ${r.agent}`, (r) => r.amount),
       ),
-      // Count of repeat deposits (STD and beyond) per month and agent.
       retentionDepositCountByMonthAndAgent: bucket(
-        repeatDeposits,
-        (r: any) => `${month(r.date)} | ${nameOf(employees.data, r.employee_id)}`,
+        retentionRows,
+        (r) => `${month(r.date)} | ${r.agent}`,
         () => 1,
+      ),
+      // STDs exactly as the app counts them (second deposit, same month as the
+      // activation). This is the retention scoreboard.
+      stdCountByMonthAndAgent: bucket(stdRows, (r) => `${month(r.date)} | ${r.agent}`, () => 1),
+      stdAmountByMonthAndAgent: round(
+        bucket(stdRows, (r) => `${month(r.date)} | ${r.agent}`, (r) => r.amount),
       ),
 
 
@@ -227,8 +229,12 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "qualifiedFromEarlierMonthsByMonthAndAgent (carried over from earlier months) and qualifiedSameMonthByMonthAndAgent " +
               "(that month's own activations which already qualified) to explain the make-up. " +
               "TEAMS: employeeTeams maps each agent to C (conversion), R (retention) or M (manager). " +
-              "A question about retention concerns ONLY team R agents, and retention performance means REPEAT deposits — " +
-              "retentionDepositsByMonthAndAgent / retentionDepositCountByMonthAndAgent, which exclude each client's first deposit (the FTD). " +
+              "A question about retention concerns ONLY team R agents. Rank retention leaders by STDs — " +
+              "stdCountByMonthAndAgent (with stdAmountByMonthAndAgent for money), which is exactly the STD number shown on the " +
+              "Employee Performance page: the client's second deposit, in the same calendar month as the activation. " +
+              "If every team R agent has 0 STDs that month, say so plainly instead of naming a leader by money. " +
+              "retentionDepositsByMonthAndAgent / retentionDepositCountByMonthAndAgent are the deposits on each retention agent's " +
+              "assigned clients — use them only as supporting context, never as the retention ranking. " +
               "Never rank retention by total deposits (depositsByMonthAndAgent), since that includes FTD money that belongs to conversion. " +
               "A question about conversion concerns ONLY team C agents. Exclude managers from agent rankings. " +
               "For 'who is leading', rank by activations by default; rank by qualified FTDs only when the question is about commission or pay, and say so. " +
