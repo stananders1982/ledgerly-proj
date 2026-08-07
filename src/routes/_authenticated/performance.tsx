@@ -220,11 +220,16 @@ function PerformancePage() {
       const stds = myClients.filter((a) => isStd(a, allDeposits, { start, end })).length;
 
 
-      const payout = salary + (team === "R" ? commission - penalty : 0) + ftdCommission;
+      // Retention-only STD incentive, configured per employee.
+      const stdRate = Number(emp.std_bonus ?? 0);
+      const stdBonus = team === "R" ? stds * stdRate : 0;
+
+      const payout = salary + (team === "R" ? commission - penalty + stdBonus : 0) + ftdCommission;
 
       return {
         id: emp.id,
         name: emp.name,
+        role: emp.role ?? null,
         team,
         teamLabel: TEAM_LABEL[team] ?? team,
         active: !!emp.active,
@@ -233,20 +238,30 @@ function PerformancePage() {
         targetRevenue: emp.target_revenue == null ? null : Number(emp.target_revenue),
         ftds: team === "C" ? ftds : 0,
         pendingFtds: team === "C" ? pendingFtds : 0,
+        commissionableFtds: team === "C" ? commissionableFtds : 0,
         stds: team === "R" ? stds : 0,
         // Share of this agent's clients (in range) that made a second deposit.
         stdPct: team === "R" && clients > 0 ? (stds / clients) * 100 : 0,
         clients,
         attributed: team === "R" ? attributed : 0,
+        commBase: team === "R" ? commBase : 0,
         commission,
         rate,
         withdrawn: team === "R" ? withdrawn : 0,
         penalty: team === "R" ? penalty : 0,
         absent,
+        workingDays: wd,
+        perDay,
+        deduction,
+        baseSalary: Number(emp.salary ?? 0),
         salary,
+        ftdRate,
         ftdCommission,
+        stdRate,
+        stdBonus,
         payout,
       };
+
     })
     .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()))
     .sort((a, b) => (TEAM_RANK[a.team] ?? 3) - (TEAM_RANK[b.team] ?? 3) || a.name.localeCompare(b.name));
