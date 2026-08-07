@@ -238,3 +238,17 @@ export function isStd(
 export function isoDay(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+/* ------------------------------------------------------------------ */
+/* Teams                                                               */
+/* ------------------------------------------------------------------ */
+
+/** Team code for an employee: R = retention, C = conversion, M = manager. */
+export function normalizeTeam(team?: string | null): string {
+  return String(team ?? "R").toUpperCase();
+}
+
+/** STD is a retention metric — only Team R agents are scored on it. */
+export function scoresStd(team?: string | null): boolean {
+  return normalizeTeam(team) === "R";
+}
