@@ -174,20 +174,21 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       employeeTeams: Object.fromEntries(
         (employees.data ?? []).map((e: any) => [e.name, e.team ?? "—"]),
       ),
-      // Retention work only: deposits that are NOT a client's first deposit,
-      // credited to the agent on the deposit. Keys are "month | agent".
+      // Retention: deposits on clients assigned to a retention agent, credited
+      // to that agent. Keys are "month | agent".
       retentionDepositsByMonthAndAgent: round(
-        bucket(
-          repeatDeposits,
-          (r: any) => `${month(r.date)} | ${nameOf(employees.data, r.employee_id)}`,
-          (r: any) => Number(r.amount || 0),
-        ),
+        bucket(retentionRows, (r) => `${month(r.date)} | ${r.agent}`, (r) => r.amount),
       ),
-      // Count of repeat deposits (STD and beyond) per month and agent.
       retentionDepositCountByMonthAndAgent: bucket(
-        repeatDeposits,
-        (r: any) => `${month(r.date)} | ${nameOf(employees.data, r.employee_id)}`,
+        retentionRows,
+        (r) => `${month(r.date)} | ${r.agent}`,
         () => 1,
+      ),
+      // STDs exactly as the app counts them (second deposit, same month as the
+      // activation). This is the retention scoreboard.
+      stdCountByMonthAndAgent: bucket(stdRows, (r) => `${month(r.date)} | ${r.agent}`, () => 1),
+      stdAmountByMonthAndAgent: round(
+        bucket(stdRows, (r) => `${month(r.date)} | ${r.agent}`, (r) => r.amount),
       ),
 
 
