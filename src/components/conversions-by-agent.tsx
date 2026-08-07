@@ -7,7 +7,7 @@ import { EmployeeLink } from "@/components/employee-link";
 import { AnsweredBadge, PotentialBadge } from "@/components/status-badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fmtDate, fmtMoney } from "@/lib/format";
-import { qualifiesAsFtd, ftdPendingReasons } from "@/lib/rules";
+import { qualifiesAsFtd, ftdPendingReasons, depositIndex, effectiveBalanceIndexed } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 
 type ActRow = {
