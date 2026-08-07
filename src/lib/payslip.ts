@@ -475,7 +475,7 @@ function buildRetentionPayslipDoc(p: PayslipInput): jsPDF {
       fmtMoney(r.amount),
       `${r.commissionPct.toFixed(1)}%`,
       fmtMoney(r.commissionEarned),
-      `-${fmtMoney(r.feeDeducted)}`,
+      r.feeDeducted ? `-${fmtMoney(r.feeDeducted)}` : "—",
       fmtMoney(r.netCommission),
     ]),
     foot: [[
@@ -483,7 +483,7 @@ function buildRetentionPayslipDoc(p: PayslipInput): jsPDF {
       fmtMoney(tx.totals.deposits),
       "",
       fmtMoney(tx.totals.commissionEarned),
-      `-${fmtMoney(tx.totals.feeDeducted)}`,
+      tx.totals.feeDeducted ? `-${fmtMoney(tx.totals.feeDeducted)}` : "—",
       fmtMoney(tx.totals.netCommission),
     ]],
     headStyles: { fillColor: [40, 40, 50] },
@@ -493,12 +493,12 @@ function buildRetentionPayslipDoc(p: PayslipInput): jsPDF {
     columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
   });
 
-  // Long deposit lists get their own page break before the withdrawals table.
-  if (tx.revenue.length > 30) {
+  // Keep the withdrawals heading with its table instead of stranding it at a page end.
+  y = (doc as any).lastAutoTable.finalY + 12;
+  const needed = 20 + Math.min(tx.withdrawals.length + 1, 8) * 8;
+  if (y + needed > doc.internal.pageSize.getHeight() - 25) {
     doc.addPage();
     y = 20;
-  } else {
-    y = (doc as any).lastAutoTable.finalY + 12;
   }
   doc.setFontSize(12);
   doc.setTextColor(30, 30, 30);
@@ -512,14 +512,14 @@ function buildRetentionPayslipDoc(p: PayslipInput): jsPDF {
           fmtDay(w.date),
           fmtMoney(w.amount),
           `${w.penaltyPct.toFixed(1)}%`,
-          `-${fmtMoney(w.penalty)}`,
+          w.penalty ? `-${fmtMoney(w.penalty)}` : "—",
         ])
       : [["—", "—", "—", "—"]],
     foot: [[
       `Subtotal (${tx.withdrawals.length})`,
       fmtMoney(tx.totals.withdrawals),
       "",
-      `-${fmtMoney(tx.totals.penalty)}`,
+      tx.totals.penalty ? `-${fmtMoney(tx.totals.penalty)}` : "—",
     ]],
     headStyles: { fillColor: [90, 40, 45] },
     footStyles: { fillColor: [235, 235, 240], textColor: [30, 30, 30], fontStyle: "bold" },
