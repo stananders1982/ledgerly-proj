@@ -140,7 +140,7 @@ export function ApiKeysAdmin() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" asChild>
-            <Link to="/settings/api-docs">
+            <Link to="/api-docs">
               <BookOpen className="h-4 w-4" /> API docs
             </Link>
           </Button>

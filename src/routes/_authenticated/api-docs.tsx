@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/_authenticated/settings/api-docs")({
+export const Route = createFileRoute("/_authenticated/api-docs")({
   head: () => ({
     meta: [
       { title: "API Documentation — Ledgerly" },
