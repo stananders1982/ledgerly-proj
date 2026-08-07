@@ -376,7 +376,6 @@ function buildRetentionPayslipDoc(p: PayslipInput): jsPDF {
   const tx = p.transactions!;
   const t = payslipTotals(p);
   const doc = new jsPDF();
-  const W = doc.internal.pageSize.getWidth();
   const brand: [number, number, number] = [24, 24, 32];
 
   drawHeader(doc, p);
@@ -532,10 +531,7 @@ function buildRetentionPayslipDoc(p: PayslipInput): jsPDF {
   doc.setFontSize(8);
   doc.setTextColor(140);
   doc.text(
-    `Amounts shown are this agent's split-adjusted share. Page width: ${Math.round(W)}mm.`.replace(
-      / Page width:.*$/,
-      "",
-    ),
+    "Amounts shown are this agent's split-adjusted share of each deposit.",
     14,
     (doc as any).lastAutoTable.finalY + 8,
   );
