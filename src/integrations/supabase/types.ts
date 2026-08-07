@@ -660,18 +660,21 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          role_key: string
           updated_at: string
           user_id: string
         }
         Insert: {
           company_id: string
           created_at?: string
+          role_key?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           company_id?: string
           created_at?: string
+          role_key?: string
           updated_at?: string
           user_id?: string
         }
@@ -726,6 +729,38 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      custom_roles: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_lead_activations: {
         Row: {
@@ -1748,6 +1783,47 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          action_key: string | null
+          allowed: boolean
+          company_id: string
+          created_at: string
+          id: string
+          nav_key: string | null
+          role_key: string
+          updated_at: string
+        }
+        Insert: {
+          action_key?: string | null
+          allowed?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          nav_key?: string | null
+          role_key: string
+          updated_at?: string
+        }
+        Update: {
+          action_key?: string | null
+          allowed?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          nav_key?: string | null
+          role_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       super_admins: {
         Row: {
           created_at: string
@@ -1852,6 +1928,47 @@ export type Database = {
             columns: ["revenue_id"]
             isOneToOne: false
             referencedRelation: "revenue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_permission_overrides: {
+        Row: {
+          action_key: string | null
+          allowed: boolean
+          company_id: string
+          created_at: string
+          id: string
+          nav_key: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_key?: string | null
+          allowed: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          nav_key?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_key?: string | null
+          allowed?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          nav_key?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permission_overrides_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -2053,6 +2170,15 @@ export type Database = {
       }
       can_do: { Args: { _action: string }; Returns: boolean }
       current_company_id: { Args: never; Returns: string }
+      effective_permission: {
+        Args: {
+          _action_key: string
+          _company_id: string
+          _nav_key: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       ftd_balance_threshold: { Args: { _company_id: string }; Returns: number }
       generate_due_recurring_expenses: { Args: never; Returns: number }
       generate_due_recurring_revenue: { Args: never; Returns: number }
@@ -2082,6 +2208,14 @@ export type Database = {
         }[]
       }
       mfa_satisfied: { Args: never; Returns: boolean }
+      my_permissions: {
+        Args: never
+        Returns: {
+          action_key: string
+          allowed: boolean
+          nav_key: string
+        }[]
+      }
       recompute_affiliate_period: {
         Args: { _affiliate_id: string; _ref: string }
         Returns: undefined
