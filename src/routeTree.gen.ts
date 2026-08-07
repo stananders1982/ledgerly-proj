@@ -14,7 +14,6 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedWithdrawalsRouteImport } from './routes/_authenticated/withdrawals'
-import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSourcesRouteImport } from './routes/_authenticated/sources'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -33,6 +32,7 @@ import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authentic
 import { Route as AuthenticatedApiDocsRouteImport } from './routes/_authenticated/api-docs'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedActivationsRouteImport } from './routes/_authenticated/activations'
+import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users.index'
 import { Route as AuthenticatedEmployeesIndexRouteImport } from './routes/_authenticated/employees.index'
 import { Route as AuthenticatedAffiliatesIndexRouteImport } from './routes/_authenticated/affiliates.index'
 import { Route as AuthenticatedUsersPermissionsRouteImport } from './routes/_authenticated/users.permissions'
@@ -68,11 +68,6 @@ const AuthenticatedWithdrawalsRoute =
     path: '/withdrawals',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -166,6 +161,11 @@ const AuthenticatedActivationsRoute =
     path: '/activations',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedUsersIndexRoute = AuthenticatedUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEmployeesIndexRoute =
   AuthenticatedEmployeesIndexRouteImport.update({
     id: '/employees/',
@@ -180,9 +180,9 @@ const AuthenticatedAffiliatesIndexRoute =
   } as any)
 const AuthenticatedUsersPermissionsRoute =
   AuthenticatedUsersPermissionsRouteImport.update({
-    id: '/permissions',
-    path: '/permissions',
-    getParentRoute: () => AuthenticatedUsersRoute,
+    id: '/users/permissions',
+    path: '/users/permissions',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedEmployeesIdRoute =
   AuthenticatedEmployeesIdRouteImport.update({
@@ -240,13 +240,13 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/sources': typeof AuthenticatedSourcesRoute
   '/tasks': typeof AuthenticatedTasksRoute
-  '/users': typeof AuthenticatedUsersRouteWithChildren
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/users/permissions': typeof AuthenticatedUsersPermissionsRoute
   '/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/employees/': typeof AuthenticatedEmployeesIndexRoute
+  '/users/': typeof AuthenticatedUsersIndexRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
@@ -273,7 +273,6 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/sources': typeof AuthenticatedSourcesRoute
   '/tasks': typeof AuthenticatedTasksRoute
-  '/users': typeof AuthenticatedUsersRouteWithChildren
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/': typeof AuthenticatedIndexRoute
   '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
@@ -281,6 +280,7 @@ export interface FileRoutesByTo {
   '/users/permissions': typeof AuthenticatedUsersPermissionsRoute
   '/affiliates': typeof AuthenticatedAffiliatesIndexRoute
   '/employees': typeof AuthenticatedEmployeesIndexRoute
+  '/users': typeof AuthenticatedUsersIndexRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
@@ -309,7 +309,6 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/sources': typeof AuthenticatedSourcesRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
-  '/_authenticated/users': typeof AuthenticatedUsersRouteWithChildren
   '/_authenticated/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
@@ -317,6 +316,7 @@ export interface FileRoutesById {
   '/_authenticated/users/permissions': typeof AuthenticatedUsersPermissionsRoute
   '/_authenticated/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/_authenticated/employees/': typeof AuthenticatedEmployeesIndexRoute
+  '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
@@ -346,13 +346,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sources'
     | '/tasks'
-    | '/users'
     | '/withdrawals'
     | '/affiliates/$id'
     | '/employees/$id'
     | '/users/permissions'
     | '/affiliates/'
     | '/employees/'
+    | '/users/'
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
     | '/api/public/v1/leads'
@@ -379,7 +379,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sources'
     | '/tasks'
-    | '/users'
     | '/withdrawals'
     | '/'
     | '/affiliates/$id'
@@ -387,6 +386,7 @@ export interface FileRouteTypes {
     | '/users/permissions'
     | '/affiliates'
     | '/employees'
+    | '/users'
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
     | '/api/public/v1/leads'
@@ -414,7 +414,6 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/sources'
     | '/_authenticated/tasks'
-    | '/_authenticated/users'
     | '/_authenticated/withdrawals'
     | '/_authenticated/'
     | '/_authenticated/affiliates/$id'
@@ -422,6 +421,7 @@ export interface FileRouteTypes {
     | '/_authenticated/users/permissions'
     | '/_authenticated/affiliates/'
     | '/_authenticated/employees/'
+    | '/_authenticated/users/'
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
     | '/api/public/v1/leads'
@@ -473,13 +473,6 @@ declare module '@tanstack/react-router' {
       path: '/withdrawals'
       fullPath: '/withdrawals'
       preLoaderRoute: typeof AuthenticatedWithdrawalsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/users': {
-      id: '/_authenticated/users'
-      path: '/users'
-      fullPath: '/users'
-      preLoaderRoute: typeof AuthenticatedUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tasks': {
@@ -608,6 +601,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedActivationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/users/': {
+      id: '/_authenticated/users/'
+      path: '/users'
+      fullPath: '/users/'
+      preLoaderRoute: typeof AuthenticatedUsersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/employees/': {
       id: '/_authenticated/employees/'
       path: '/employees'
@@ -624,10 +624,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/users/permissions': {
       id: '/_authenticated/users/permissions'
-      path: '/permissions'
+      path: '/users/permissions'
       fullPath: '/users/permissions'
       preLoaderRoute: typeof AuthenticatedUsersPermissionsRouteImport
-      parentRoute: typeof AuthenticatedUsersRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/employees/$id': {
       id: '/_authenticated/employees/$id'
@@ -674,17 +674,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedUsersRouteChildren {
-  AuthenticatedUsersPermissionsRoute: typeof AuthenticatedUsersPermissionsRoute
-}
-
-const AuthenticatedUsersRouteChildren: AuthenticatedUsersRouteChildren = {
-  AuthenticatedUsersPermissionsRoute: AuthenticatedUsersPermissionsRoute,
-}
-
-const AuthenticatedUsersRouteWithChildren =
-  AuthenticatedUsersRoute._addFileChildren(AuthenticatedUsersRouteChildren)
-
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedActivationsRoute: typeof AuthenticatedActivationsRoute
   AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
@@ -704,13 +693,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSourcesRoute: typeof AuthenticatedSourcesRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
-  AuthenticatedUsersRoute: typeof AuthenticatedUsersRouteWithChildren
   AuthenticatedWithdrawalsRoute: typeof AuthenticatedWithdrawalsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAffiliatesIdRoute: typeof AuthenticatedAffiliatesIdRoute
   AuthenticatedEmployeesIdRoute: typeof AuthenticatedEmployeesIdRoute
+  AuthenticatedUsersPermissionsRoute: typeof AuthenticatedUsersPermissionsRoute
   AuthenticatedAffiliatesIndexRoute: typeof AuthenticatedAffiliatesIndexRoute
   AuthenticatedEmployeesIndexRoute: typeof AuthenticatedEmployeesIndexRoute
+  AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -732,13 +722,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSourcesRoute: AuthenticatedSourcesRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
-  AuthenticatedUsersRoute: AuthenticatedUsersRouteWithChildren,
   AuthenticatedWithdrawalsRoute: AuthenticatedWithdrawalsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAffiliatesIdRoute: AuthenticatedAffiliatesIdRoute,
   AuthenticatedEmployeesIdRoute: AuthenticatedEmployeesIdRoute,
+  AuthenticatedUsersPermissionsRoute: AuthenticatedUsersPermissionsRoute,
   AuthenticatedAffiliatesIndexRoute: AuthenticatedAffiliatesIndexRoute,
   AuthenticatedEmployeesIndexRoute: AuthenticatedEmployeesIndexRoute,
+  AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -756,3 +747,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

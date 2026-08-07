@@ -92,13 +92,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const uid = session.user.id;
     Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", uid),
-      supabase.from("nav_permissions").select("nav_key").eq("user_id", uid),
+      supabase.rpc("my_permissions"),
       supabase.from("company_users").select("company_id").eq("user_id", uid).maybeSingle(),
       supabase.from("super_admins").select("user_id").eq("user_id", uid).maybeSingle(),
       supabase.from("companies").select("id, name, slug, active").order("name"),
     ]).then(([rolesRes, permsRes, memberRes, superRes, companiesRes]) => {
       setIsAdmin(!!rolesRes.data?.some((r) => r.role === "admin"));
-      setNavKeys(new Set((permsRes.data ?? []).map((p: any) => p.nav_key as string)));
+      setNavKeys(
+        new Set(
+          ((permsRes.data ?? []) as any[])
+            .filter((p) => p.allowed && p.nav_key)
+            .map((p) => p.nav_key as string),
+        ),
+      );
       setPermsLoaded(true);
       setCompanyId(memberRes.data?.company_id ?? null);
       setIsSuperAdmin(!!superRes.data);
