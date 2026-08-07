@@ -464,7 +464,7 @@ function AffiliateStatementPage() {
                     <tr key={`${t.type}-${t.id}`} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                       <td className="py-3 px-4">{t.date}</td>
                       <td className="py-3 px-4">
-                        <span className={cn("rounded border px-1.5 py-0.5 text-xs font-medium", t.type === "Revenue" ? "border-emerald-500/30 text-emerald-500" : t.type === "Paid to affiliate" ? "border-amber-500/30 text-amber-500" : "border-rose-500/30 text-rose-500")}>{t.type}</span>
+                        <span className={cn("rounded border px-1.5 py-0.5 text-xs font-medium", t.type === "Paid to affiliate" ? "border-amber-500/30 text-amber-500" : "border-rose-500/30 text-rose-500")}>{t.type}</span>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{t.label}</td>
                       <td className={cn("py-3 px-4 font-medium", t.amount >= 0 ? "text-emerald-500" : "text-rose-500")}>{t.amount >= 0 ? "" : "−"}{fmtMoney(Math.abs(t.amount))}</td>
