@@ -67,7 +67,7 @@ export function DateRangePicker({
 }) {
   return (
     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-      <Tabs value={value} onValueChange={(v) => onChange(v as RangeKey)} className="max-w-full overflow-x-auto scroll-slim">
+      <Tabs value={value} onValueChange={(v) => onChange(v as RangeKey)} className="w-full min-w-0 max-w-full overflow-x-auto scroll-slim sm:w-auto">
         <TabsList className="w-max">
           <TabsTrigger value="today">Today</TabsTrigger>
           <TabsTrigger value="week">Week</TabsTrigger>
@@ -79,10 +79,10 @@ export function DateRangePicker({
       </Tabs>
 
       {value === "custom" && (
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <Input
             type="date"
-            className="h-9 w-[150px]"
+            className="h-11 w-[150px] sm:h-9"
             value={customStart ?? ""}
             onChange={(e) => onCustomChange?.(e.target.value, customEnd ?? e.target.value)}
           />
