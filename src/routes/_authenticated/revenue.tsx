@@ -634,20 +634,56 @@ function RevenueDialog({
     <DialogContent className="max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{rev?.id ? "Edit revenue" : "Record revenue"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
-        <Field label="Pick from activated leads (optional)">
-          <Select value={activationId || "_none"} onValueChange={pickActivation}>
-            <SelectTrigger><SelectValue placeholder={activations.length ? "Search activated lead" : "No activated leads yet"} /></SelectTrigger>
-            <SelectContent className="max-h-72">
-              <SelectItem value="_none">None</SelectItem>
-              {activations.map((a: any) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.lead_name}
-                  {a.daily_lead_entries?.lead_sources?.name ? ` · ${a.daily_lead_entries.lead_sources.name}` : ""}
-                  {a.daily_lead_entries?.entry_date ? ` · ${a.daily_lead_entries.entry_date}` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Field label="Client (required — links the deposit to a client record)">
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                className="w-full justify-between font-normal"
+              >
+                <span className="truncate">
+                  {picked
+                    ? `${picked.lead_name}${phoneOf(picked.lead_name) ? ` · ${phoneOf(picked.lead_name)}` : ""}`
+                    : activations.length
+                      ? "Search client by name or phone"
+                      : "No clients yet"}
+                </span>
+                <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command
+                filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}
+              >
+                <CommandInput placeholder="Search name or phone…" />
+                <CommandList>
+                  <CommandEmpty>No matching client.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value="none no client link"
+                      onSelect={() => { pickActivation("_none"); setPickerOpen(false); }}
+                    >
+                      No client link
+                    </CommandItem>
+                    {activations.map((a: any) => (
+                      <CommandItem
+                        key={a.id}
+                        value={`${a.lead_name ?? ""} ${phoneOf(a.lead_name)} ${a.id}`}
+                        onSelect={() => { pickActivation(a.id); setPickerOpen(false); }}
+                      >
+                        <span className="truncate">
+                          {a.lead_name}
+                          {phoneOf(a.lead_name) ? ` · ${phoneOf(a.lead_name)}` : ""}
+                          {a.daily_lead_entries?.entry_date ? ` · ${a.daily_lead_entries.entry_date}` : ""}
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </Field>
 
         {detailsHidden ? (
@@ -674,6 +710,14 @@ function RevenueDialog({
             {nameMatch.activation_date ? ` · activated ${nameMatch.activation_date}` : ""} — this deposit will be linked to that client on save.
           </div>
         )}
+
+        {!activationId && !nameMatch && !needsNewClient && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>This deposit is not linked to a client — matching will use name only.</span>
+          </div>
+        )}
+
 
         {needsNewClient && (
           <div className="rounded-lg border border-dashed border-border bg-muted/20 p-3 grid gap-3">
