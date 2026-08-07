@@ -37,12 +37,14 @@ function PermissionsPage() {
 
   const setRole = useMutation({
     mutationFn: async (v: { userId: string; roleKey: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("company_users")
         .update({ role_key: v.roleKey })
         .eq("company_id", companyId!)
-        .eq("user_id", v.userId);
+        .eq("user_id", v.userId)
+        .select("user_id");
       if (error) throw error;
+      if (!data?.length) throw new Error("Role not changed — you may not have permission to edit this member.");
     },
     onSuccess: () => {
       toast.success("Role updated");
