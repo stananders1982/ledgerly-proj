@@ -108,7 +108,7 @@ export function ConversionsByAgent({ start, end }: { start: Date; end: Date }) {
       .map(([id, v]) => ({ id, name: employeeName(id), ...v, total: v.count + v.pending }))
       .sort((a, b) => b.count - a.count);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, employeesQ.data, depositsByName, settings]);
+  }, [rows, employeesQ.data, deposits, settings]);
 
   const totals = useMemo(
     () => ({
