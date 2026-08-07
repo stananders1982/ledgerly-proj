@@ -56,6 +56,30 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const round = (o: Record<string, number>) =>
       Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Math.round(v)]));
 
+    // A client's first deposit in the window is the FTD; everything after is
+    // retention work (STD and beyond).
+    const firstDepositDate = new Map<string, string>();
+    for (const r of (revenue.data ?? []) as any[]) {
+      const k = (r.customer_name ?? "").trim().toLowerCase();
+      if (!k) continue;
+      const prev = firstDepositDate.get(k);
+      if (!prev || String(r.date) < prev) firstDepositDate.set(k, String(r.date));
+    }
+    const seenFirst = new Set<string>();
+    const repeatDeposits = ((revenue.data ?? []) as any[])
+      .slice()
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+      .filter((r) => {
+        const k = (r.customer_name ?? "").trim().toLowerCase();
+        if (!k) return false;
+        if (!seenFirst.has(k)) {
+          seenFirst.add(k);
+          return false;
+        }
+        return true;
+      });
+
+
     const snapshot = {
       today: new Date().toISOString().slice(0, 10),
       window: `${sinceIso} to today`,
@@ -150,6 +174,23 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       employeeTeams: Object.fromEntries(
         (employees.data ?? []).map((e: any) => [e.name, e.team ?? "—"]),
       ),
+      // Retention work only: deposits that are NOT a client's first deposit,
+      // credited to the agent on the deposit. Keys are "month | agent".
+      retentionDepositsByMonthAndAgent: round(
+        bucket(
+          repeatDeposits,
+          (r: any) => `${month(r.date)} | ${nameOf(employees.data, r.employee_id)}`,
+          (r: any) => Number(r.amount || 0),
+        ),
+      ),
+      // Count of repeat deposits (STD and beyond) per month and agent.
+      retentionDepositCountByMonthAndAgent: bucket(
+        repeatDeposits,
+        (r: any) => `${month(r.date)} | ${nameOf(employees.data, r.employee_id)}`,
+        () => 1,
+      ),
+
+
 
       totals: {
         deposits: Math.round((revenue.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0)),
@@ -185,7 +226,13 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "or explicitly says qualified/valid FTDs, or explicitly asks for both clocks. In that case name each clock, and you may use " +
               "qualifiedFromEarlierMonthsByMonthAndAgent (carried over from earlier months) and qualifiedSameMonthByMonthAndAgent " +
               "(that month's own activations which already qualified) to explain the make-up. " +
+              "TEAMS: employeeTeams maps each agent to C (conversion), R (retention) or M (manager). " +
+              "A question about retention concerns ONLY team R agents, and retention performance means REPEAT deposits — " +
+              "retentionDepositsByMonthAndAgent / retentionDepositCountByMonthAndAgent, which exclude each client's first deposit (the FTD). " +
+              "Never rank retention by total deposits (depositsByMonthAndAgent), since that includes FTD money that belongs to conversion. " +
+              "A question about conversion concerns ONLY team C agents. Exclude managers from agent rankings. " +
               "For 'who is leading', rank by activations by default; rank by qualified FTDs only when the question is about commission or pay, and say so. " +
+
               "If the snapshot does not contain the answer, say exactly what is missing instead of guessing.",
 
           },
