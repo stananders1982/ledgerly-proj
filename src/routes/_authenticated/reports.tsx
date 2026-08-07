@@ -1010,7 +1010,7 @@ function ReportsPage() {
             ]}
             rows={sources.filter((s) => s.model === "CPA").map((s) => ({ ...s, unreported: s.activated - s.reported }))}
           />
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 mt-4">
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 mt-4">
             <StatCard label="Total Savings" value={fmtMoney(data.cpaSavings)} tone="positive" />
             <StatCard label="Monthly Savings (est.)" value={fmtMoney(data.cpaSavings * forecast.factor)} />
             <StatCard label="Yearly Savings (est.)" value={fmtMoney(data.cpaSavings * forecast.factor * 12)} />
@@ -1071,7 +1071,7 @@ function ReportsPage() {
             ]}
             rows={recurringRpt}
           />
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 mt-4">
+          <div className="grid gap-3 grid-cols-2 mt-4">
             <StatCard label="Monthly Fixed Costs" value={fmtMoney(recurringTotals.monthly)} />
             <StatCard label="Yearly Fixed Costs" value={fmtMoney(recurringTotals.yearly)} />
           </div>

@@ -243,7 +243,7 @@ function AffiliatesPage() {
         />
       </div>
 
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><Scale className="h-4 w-4" /> Owed ({activeRange.label})</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold">{fmtMoney(totals.owed)}</CardContent>

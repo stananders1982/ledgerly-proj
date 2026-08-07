@@ -355,7 +355,7 @@ function Dashboard() {
 
 
       {/* Hero KPIs */}
-      <section className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mb-10">
+      <section className="grid gap-3 grid-cols-2 sm:gap-4 xl:grid-cols-4 mb-10">
         <HeroCard
           label="Net profit"
           value={fmtMoney(m.profit)}

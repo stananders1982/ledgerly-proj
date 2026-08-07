@@ -128,7 +128,7 @@ function LogsPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
         <StatCard label="Events" value={String(counts.total)} />
         <StatCard label="Errors" value={String(counts.errors)} />
         <StatCard label="Warnings" value={String(counts.warnings)} />

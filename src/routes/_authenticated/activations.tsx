@@ -505,7 +505,7 @@ function ActivationsPage() {
         </Select>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3 mb-6">
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 mb-6">
         <StatCard label="Clients" value={String(rows.length)} icon={CheckCircle2} />
         <StatCard label="Total balance" value={fmtMoney(totalBalance)} icon={Wallet} />
         <StatCard label="Answered" value={`${answeredCount} / ${rows.length}`} icon={PhoneCall} />
@@ -703,7 +703,10 @@ function ActivationsPage() {
           const effective = Number(cur.balance || 0) + depositTotal;
           const qualifies = qualifiesAsFtd(cur, effective, settings);
           return (
-            <SheetContent side="right" className="flex w-full flex-col gap-0 overflow-y-auto scroll-slim sm:max-w-xl">
+            <SheetContent
+              side="right"
+              className="inset-x-0 bottom-0 left-0 top-auto flex h-[92vh] w-full flex-col gap-0 overflow-y-auto rounded-t-2xl border-l-0 border-t p-4 scroll-slim data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:max-w-xl sm:rounded-none sm:border-l sm:border-t-0 sm:p-6 sm:data-[state=closed]:slide-out-to-right sm:data-[state=open]:slide-in-from-right"
+            >
               <SheetHeader>
                 <div className="flex items-center justify-between pr-8">
                   <span className="text-xs text-muted-foreground">
