@@ -126,6 +126,14 @@ export function useDataQuality() {
         severity: "high",
       },
       {
+        key: "revenue-no-activation",
+        label: "Deposits with no client link",
+        detail: "These fall back to fragile name matching for FTD, STD and balances.",
+        count: revenue.filter((r) => !r.activation_id).length,
+        to: "/revenue",
+        severity: "high",
+      },
+      {
         key: "revenue-no-agent",
         label: "Income with no agent",
         detail: "These deposits never reach anyone's performance figures.",
@@ -133,6 +141,7 @@ export function useDataQuality() {
         to: "/revenue",
         severity: "medium",
       },
+
       {
         key: "clients-no-name",
         label: "Activations with no client name",
