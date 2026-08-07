@@ -229,8 +229,12 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "qualifiedFromEarlierMonthsByMonthAndAgent (carried over from earlier months) and qualifiedSameMonthByMonthAndAgent " +
               "(that month's own activations which already qualified) to explain the make-up. " +
               "TEAMS: employeeTeams maps each agent to C (conversion), R (retention) or M (manager). " +
-              "A question about retention concerns ONLY team R agents, and retention performance means REPEAT deposits — " +
-              "retentionDepositsByMonthAndAgent / retentionDepositCountByMonthAndAgent, which exclude each client's first deposit (the FTD). " +
+              "A question about retention concerns ONLY team R agents. Rank retention leaders by STDs — " +
+              "stdCountByMonthAndAgent (with stdAmountByMonthAndAgent for money), which is exactly the STD number shown on the " +
+              "Employee Performance page: the client's second deposit, in the same calendar month as the activation. " +
+              "If every team R agent has 0 STDs that month, say so plainly instead of naming a leader by money. " +
+              "retentionDepositsByMonthAndAgent / retentionDepositCountByMonthAndAgent are the deposits on each retention agent's " +
+              "assigned clients — use them only as supporting context, never as the retention ranking. " +
               "Never rank retention by total deposits (depositsByMonthAndAgent), since that includes FTD money that belongs to conversion. " +
               "A question about conversion concerns ONLY team C agents. Exclude managers from agent rankings. " +
               "For 'who is leading', rank by activations by default; rank by qualified FTDs only when the question is about commission or pay, and say so. " +
