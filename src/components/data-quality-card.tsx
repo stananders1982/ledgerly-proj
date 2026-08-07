@@ -6,7 +6,7 @@ import { AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { useDataQuality } from "@/routes/_authenticated/data-quality";
 
 export function DataQualityCard() {
-  const { open, total, isLoading } = useDataQuality();
+  const { issues, open, total, isLoading } = useDataQuality();
 
   return (
     <div className="glass-surface glass-hover p-5">
@@ -28,8 +28,14 @@ export function DataQualityCard() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Checking…</p>
       ) : open.length === 0 ? (
-        <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
-          <CheckCircle2 className="h-4 w-4" /> Everything looks clean.
+        <div className="flex flex-col items-center justify-center gap-2 py-4 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15">
+            <CheckCircle2 className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Everything looks clean</p>
+            <p className="text-xs text-muted-foreground">All {issues.length} checks passed</p>
+          </div>
         </div>
       ) : (
         <>
