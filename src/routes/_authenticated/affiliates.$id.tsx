@@ -345,11 +345,23 @@ function AffiliateStatementPage() {
 
       <div className="card-surface overflow-hidden mb-6">
         <div className="p-4 border-b border-border">
-          <h3 className="font-display text-base font-semibold">Weekly conversion guarantee</h3>
+          <h3 className="font-display text-base font-semibold">
+            {Number(affQ.data?.guarantee_value || 0) > 0 ? "Weekly conversion guarantee" : "Weekly settlement (flat)"}
+          </h3>
           <p className="text-xs text-muted-foreground mt-1">
-            {fmtMoney(Number(affQ.data?.cpa_rate || 0))} per conversion · {Number(affQ.data?.guarantee_value || 0)}% guaranteed.
-            Each Mon–Sun week settles on its own; conversions above the guarantee are free.
+            {Number(affQ.data?.guarantee_value || 0) > 0 ? (
+              <>
+                {fmtMoney(Number(affQ.data?.cpa_rate || 0))} per conversion · {Number(affQ.data?.guarantee_value || 0)}% guaranteed.
+                Each Mon–Sun week settles on its own; conversions above the guarantee are free.
+              </>
+            ) : (
+              <>
+                {fmtMoney(Number(affQ.data?.cpa_rate || 0))} per conversion · no guarantee. Every reported
+                conversion is payable; each Mon–Sun week settles on its own.
+              </>
+            )}
           </p>
+
         </div>
         {weeks.length === 0 ? (
           <div className="p-8 text-sm text-muted-foreground">No lead entries in this period.</div>
