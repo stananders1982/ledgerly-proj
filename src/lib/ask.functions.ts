@@ -150,6 +150,23 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       employeeTeams: Object.fromEntries(
         (employees.data ?? []).map((e: any) => [e.name, e.team ?? "—"]),
       ),
+      // Retention work only: deposits that are NOT a client's first deposit,
+      // credited to the agent on the deposit. Keys are "month | agent".
+      retentionDepositsByMonthAndAgent: round(
+        bucket(
+          repeatDeposits,
+          (r: any) => `${month(r.date)} | ${nameOf(employees.data, r.employee_id)}`,
+          (r: any) => Number(r.amount || 0),
+        ),
+      ),
+      // Count of repeat deposits (STD and beyond) per month and agent.
+      retentionDepositCountByMonthAndAgent: bucket(
+        repeatDeposits,
+        (r: any) => `${month(r.date)} | ${nameOf(employees.data, r.employee_id)}`,
+        () => 1,
+      ),
+
+
 
       totals: {
         deposits: Math.round((revenue.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0)),
