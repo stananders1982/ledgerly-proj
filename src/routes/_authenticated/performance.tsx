@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { useCan } from "@/lib/permissions";
-import { loadLogoDataUrl, payslipBlob, payslipFilename, payslipTotals, type PayslipInput } from "@/lib/payslip";
+import { loadLogoDataUrl, payslipBlob, payslipFilename, payslipTotals, buildRetentionTransactions, type PayslipInput } from "@/lib/payslip";
 
 
 const sb = supabase as any;
@@ -344,6 +344,19 @@ function PerformancePage() {
           stdRate: r.stdRate,
           stdBonus: r.stdBonus,
           withdrawalPenalty: r.penalty,
+          // Retention agents get the full, privacy-safe transaction breakdown.
+          transactions: r.team === "R"
+            ? buildRetentionTransactions({
+                employeeId: r.id,
+                revenue: ((revQ.data ?? []) as any[]).filter(
+                  (x) => x.employee_id === r.id || x.employee_id_2 === r.id,
+                ),
+                withdrawals: ((withQ.data ?? []) as any[]).filter((x) => x.employee_id === r.id),
+                commissionPct: r.rate,
+                settings,
+                defaultPenaltyPct: settings.withdrawalPenaltyPct,
+              })
+            : undefined,
         };
         zip.file(payslipFilename(input), payslipBlob(input));
         const t = payslipTotals(input);
