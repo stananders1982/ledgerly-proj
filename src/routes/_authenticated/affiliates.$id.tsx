@@ -14,7 +14,9 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { deliveryPct, sumWeeks, weeklyGuarantee, type LeadEntryLike } from "@/lib/affiliate-balance";
+import { deliveryPct, sumWeeks, weeklyGuarantee, type LeadEntryLike, type WeekRow } from "@/lib/affiliate-balance";
+
+type AffRow = { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number; group_key: string | null };
 
 
 export const Route = createFileRoute("/_authenticated/affiliates/$id")({
@@ -50,27 +52,43 @@ function AffiliateStatementPage() {
     return t >= activeRange.start.getTime() && t <= activeRange.end.getTime();
   };
 
-  const affQ = useQuery({
-    queryKey: ["affiliate", id],
+  // An affiliate can share a billing group with other sources (e.g. one flat and
+  // one with a guarantee). Payments and balance are shared across the group.
+  const groupQ = useQuery({
+    queryKey: ["affiliate-group", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("affiliates")
-        .select("id,name,active,cpa_rate,guarantee_value")
+        .select("id,name,active,cpa_rate,guarantee_value,group_key")
         .eq("id", id)
         .single();
       if (error) throw error;
-      return data as { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number };
+      const self = data as AffRow;
+      if (!self.group_key?.trim()) return { self, members: [self] };
+      const { data: rest, error: e2 } = await supabase
+        .from("affiliates")
+        .select("id,name,active,cpa_rate,guarantee_value,group_key")
+        .eq("group_key", self.group_key)
+        .order("name");
+      if (e2) throw e2;
+      const members = ((rest ?? []) as AffRow[]).length ? ((rest ?? []) as AffRow[]) : [self];
+      return { self, members };
     },
   });
+  const affQ = { data: groupQ.data?.self };
+  const members = useMemo(() => groupQ.data?.members ?? [], [groupQ.data]);
+  const memberIds = useMemo(() => members.map((m) => m.id), [members]);
+  const groupLabel = groupQ.data?.self.group_key?.trim() || null;
 
   const srcQ = useQuery({
-    queryKey: ["affiliate-sources-one", affQ.data?.name],
-    enabled: !!affQ.data?.name,
+    queryKey: ["affiliate-sources-one", memberIds.join(",")],
+    enabled: memberIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase.from("lead_sources").select("id,name");
       if (error) throw error;
-      return ((data ?? []) as { id: string; name: string }[]).filter(
-        (s) => s.name.trim().toLowerCase() === affQ.data!.name.trim().toLowerCase(),
+      const names = new Set(members.map((m) => m.name.trim().toLowerCase()));
+      return ((data ?? []) as { id: string; name: string }[]).filter((s) =>
+        names.has(s.name.trim().toLowerCase()),
       );
     },
   });
@@ -86,49 +104,70 @@ function AffiliateStatementPage() {
   });
 
   const weeks = useMemo(() => {
-    if (!affQ.data) return [];
-    const ids = new Set((srcQ.data ?? []).map((s) => s.id));
-    const mine = (entriesQ.data ?? []).filter(
-      (e) => e.source_id && ids.has(e.source_id) && inRange(e.entry_date),
-    );
-    return weeklyGuarantee(affQ.data, mine);
-  }, [affQ.data, srcQ.data, entriesQ.data, activeRange]);
+    if (!members.length) return [];
+    const srcByName = new Map<string, string>();
+    for (const s of srcQ.data ?? []) srcByName.set(s.name.trim().toLowerCase(), s.id);
+    // Each member settles on its own terms; weeks are then merged for the group.
+    const merged = new Map<string, WeekRow>();
+    for (const m of members) {
+      const srcId = srcByName.get(m.name.trim().toLowerCase());
+      const mine = (entriesQ.data ?? []).filter(
+        (e) => e.source_id && e.source_id === srcId && inRange(e.entry_date),
+      );
+      for (const w of weeklyGuarantee(m, mine)) {
+        const prev = merged.get(w.weekStart);
+        if (!prev) { merged.set(w.weekStart, { ...w }); continue; }
+        prev.leads += w.leads;
+        prev.guaranteed += w.guaranteed;
+        prev.reported += w.reported;
+        prev.payable += w.payable;
+        prev.cost += w.cost;
+        prev.savings += w.savings;
+        prev.shortfall += w.shortfall;
+        prev.status = prev.savings > 0 ? "over" : prev.shortfall > 0 ? "short" : "met";
+      }
+    }
+    return [...merged.values()].sort((a, b) => b.weekStart.localeCompare(a.weekStart));
+  }, [members, srcQ.data, entriesQ.data, activeRange]);
 
   const weekTotals = useMemo(() => sumWeeks(weeks), [weeks]);
   const { pageItems: weekPage, ...pgWeeks } = usePagination(weeks, 30);
 
 
   const revQ = useQuery({
-    queryKey: ["affiliate-revenue", id],
+    queryKey: ["affiliate-revenue", memberIds.join(",")],
+    enabled: memberIds.length > 0,
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("revenue")
         .select("id,date,amount,customer_name,created_at")
-        .eq("affiliate_id", id)
+        .in("affiliate_id", memberIds)
         .order("date", { ascending: false }));
       return (data ?? []) as { id: string; date: string; amount: number; customer_name: string | null; created_at: string }[];
     },
   });
 
   const withQ = useQuery({
-    queryKey: ["affiliate-withdrawals", id],
+    queryKey: ["affiliate-withdrawals", memberIds.join(",")],
+    enabled: memberIds.length > 0,
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("withdrawals")
         .select("id,date,amount,notes,created_at")
-        .eq("affiliate_id", id)
+        .in("affiliate_id", memberIds)
         .order("date", { ascending: false }));
       return (data ?? []) as { id: string; date: string; amount: number; notes: string | null; created_at: string }[];
     },
   });
 
   const expQ = useQuery({
-    queryKey: ["affiliate-expenses", id],
+    queryKey: ["affiliate-expenses", memberIds.join(",")],
+    enabled: memberIds.length > 0,
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("expenses")
         .select("id,date,amount,notes,created_at")
-        .eq("affiliate_id", id)
+        .in("affiliate_id", memberIds)
         .order("date", { ascending: false }));
       return (data ?? []) as { id: string; date: string; amount: number; notes: string | null; created_at: string }[];
     },
