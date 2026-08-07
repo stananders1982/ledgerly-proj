@@ -348,14 +348,14 @@ function Dashboard() {
 
       <AnomalyAlerts />
 
-      <section className="mb-10 grid gap-4 lg:grid-cols-2">
+      <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
         <DailyDigest />
         <AskBox />
       </section>
 
 
       {/* Hero KPIs */}
-      <section className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mb-10">
+      <section className="grid gap-3 grid-cols-2 sm:gap-4 xl:grid-cols-4 mb-10 [&>*]:min-w-0">
         <HeroCard
           label="Net profit"
           value={fmtMoney(m.profit)}
@@ -439,8 +439,8 @@ function Dashboard() {
       </section>
 
       {/* Charts */}
-      <section className="mb-10 grid gap-4 lg:grid-cols-3">
-        <div className="glass-surface glass-hover p-5 lg:col-span-2">
+      <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-3">
+        <div className="glass-surface glass-hover min-w-0 overflow-hidden p-4 sm:p-5 lg:col-span-2">
           <ChartHeader title="Revenue vs expenses" subtitle={rangeLabel} icon={Activity} />
           <div className="h-64 mt-2">
             <ResponsiveContainer>
@@ -466,7 +466,7 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="glass-surface glass-hover p-5">
+        <div className="glass-surface glass-hover min-w-0 overflow-hidden p-4 sm:p-5">
           <ChartHeader title="Lead funnel" subtitle={rangeLabel} icon={Zap} />
           <div className="mt-4 space-y-3">
             <FunnelStep label="Received" value={m.received} max={m.received} tone="blue" />
@@ -481,8 +481,8 @@ function Dashboard() {
         </div>
       </section>
 
-      <section className="mb-10 grid gap-4 lg:grid-cols-3">
-        <div className="glass-surface glass-hover p-5 lg:col-span-2">
+      <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-3">
+        <div className="glass-surface glass-hover min-w-0 overflow-hidden p-4 sm:p-5 lg:col-span-2">
           <ChartHeader title="Lead source performance" subtitle={`Activated vs received — ${rangeLabel.toLowerCase()}`} icon={Users} />
           <div className="h-64 mt-2">
             {m.sourceRows.length ? (
@@ -588,7 +588,7 @@ function HeroCard({
       </div>
     </>
   );
-  const className = cn("glass-surface glass-hover p-5 flex flex-col gap-3 overflow-hidden relative", t.glow, primary && "md:col-span-2 xl:col-span-1");
+  const className = cn("glass-surface glass-hover p-4 sm:p-5 flex flex-col gap-3 min-w-0 overflow-hidden relative", t.glow, primary && "md:col-span-2 xl:col-span-1");
   return to ? (
     <Link to={to} className={cn(className, "block cursor-pointer")}>{content}</Link>
   ) : (
@@ -599,7 +599,7 @@ function HeroCard({
 function EngineBlock({ title, accent, icon: Icon, children }: { title: string; accent: Tone; icon: typeof Users; children: ReactNode }) {
   const t = toneStyles[accent];
   return (
-    <div className="glass-surface glass-hover p-5">
+    <div className="glass-surface glass-hover min-w-0 overflow-hidden p-4 sm:p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-display text-sm uppercase tracking-[0.18em] text-muted-foreground">{title}</h3>
         <div className={cn("h-7 w-7 rounded-md flex items-center justify-center", t.ring)}>
@@ -803,7 +803,7 @@ function buildInsights(m: any): LocalInsight[] {
 
 function AIInsights({ insights }: { insights: LocalInsight[] }) {
   return (
-    <div className="glass-surface glass-hover p-5 glow-purple">
+    <div className="glass-surface glass-hover min-w-0 overflow-hidden p-4 sm:p-5 glow-purple">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-display text-base font-semibold flex items-center gap-2">

@@ -217,7 +217,7 @@ function DataQualityPage() {
         description="Gaps and duplicates that quietly distort your reports — fix them at the source."
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
         <StatCard label="Records needing attention" value={String(total)} icon={AlertTriangle} />
         <StatCard label="Checks failing" value={`${open.length} of ${issues.length}`} icon={ShieldAlert} />
         <StatCard label="Checks passing" value={String(clean)} icon={CheckCircle2} />

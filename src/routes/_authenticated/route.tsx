@@ -25,6 +25,7 @@ import { KeyboardShortcutsPanel, useKeyboardShortcutsPanel } from "@/components/
 import { QuickCreate } from "@/components/quick-create";
 import { TaskReminders } from "@/components/task-reminders";
 import { UnallocatedFtdAlert } from "@/components/unallocated-ftd-alert";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -107,10 +108,11 @@ function ProtectedLayout() {
               </DropdownMenu>
             </div>
           </header>
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1400px] w-full mx-auto">
+          <main className="flex-1 p-4 pb-24 sm:p-6 md:pb-6 lg:p-8 max-w-[1400px] w-full mx-auto">
             <UnallocatedFtdAlert />
             <Outlet />
           </main>
+          <MobileBottomNav />
           <QuickCreate />
           <TaskReminders />
         </div>

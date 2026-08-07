@@ -15,9 +15,9 @@ interface Props {
 export function StatCard({ label, value, delta, icon: Icon, tone = "default", hint }: Props) {
   const trendUp = (delta ?? 0) >= 0;
   return (
-    <div className="card-surface p-5 flex flex-col gap-3 relative overflow-hidden">
+    <div className="card-surface p-4 sm:p-5 flex flex-col gap-2 sm:gap-3 relative overflow-hidden">
       <div className="flex items-start justify-between">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="text-[11px] sm:text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
         {Icon && (
           <div className="h-8 w-8 rounded-md bg-accent/60 flex items-center justify-center text-primary">
             <Icon className="h-4 w-4" />
@@ -26,7 +26,7 @@ export function StatCard({ label, value, delta, icon: Icon, tone = "default", hi
       </div>
       <div
         className={cn(
-          "font-display text-3xl font-semibold tracking-tight",
+          "font-display text-2xl sm:text-3xl font-semibold tracking-tight break-words",
           tone === "positive" && "text-primary",
           tone === "negative" && "text-destructive",
         )}

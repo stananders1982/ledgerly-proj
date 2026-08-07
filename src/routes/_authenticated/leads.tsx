@@ -597,12 +597,12 @@ function LeadsPage() {
           customEnd={customEnd}
           onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
         />
-        <div className="flex items-center gap-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
           <Input
             placeholder="Search lead name…"
             value={leadSearch}
             onChange={(e) => setLeadSearch(e.target.value)}
-            className="h-9 w-[200px]"
+            className="h-11 w-full sm:h-9 sm:w-[200px]"
           />
           <SavedViews
             id="leads"
@@ -617,7 +617,7 @@ function LeadsPage() {
           />
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="h-9 w-[220px] justify-between font-normal">
+              <Button variant="outline" className="h-11 w-full justify-between font-normal sm:h-9 sm:w-[220px]">
                 <span className="truncate">
                   {sourceFilter.length === 0
                     ? "All affiliates"

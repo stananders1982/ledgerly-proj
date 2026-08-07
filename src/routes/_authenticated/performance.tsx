@@ -288,10 +288,10 @@ function PerformancePage() {
         title="Employee Performance"
         description="Monthly results per agent — conversion first, then retention."
         actions={
-          <div className="flex items-center gap-2">
-            <SearchInput value={search} onChange={setSearch} placeholder="Search agents…" className="w-56" />
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
+            <SearchInput value={search} onChange={setSearch} placeholder="Search agents…" className="w-full sm:w-56" />
             <Label className="text-xs text-muted-foreground">Month</Label>
-            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-[160px]" />
+            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-[160px] max-w-full" />
           </div>
         }
       />

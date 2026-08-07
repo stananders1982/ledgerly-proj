@@ -671,7 +671,7 @@ function ReportsPage() {
         title="Report Center"
         description={`Period: ${start} → ${end}`}
         actions={
-          <div className="flex gap-2 print:hidden">
+          <div className="flex flex-wrap gap-2 print:hidden">
             <Button variant="outline" size="sm" onClick={savePreset}><Bookmark className="h-4 w-4 mr-1" /> Save preset</Button>
             <Button variant="outline" size="sm" onClick={() => exportCurrent("pdf")}><FileText className="h-4 w-4 mr-1" /> PDF</Button>
             <Button variant="outline" size="sm" onClick={() => exportCurrent("xlsx")}><FileSpreadsheet className="h-4 w-4 mr-1" /> Excel</Button>
@@ -1010,7 +1010,7 @@ function ReportsPage() {
             ]}
             rows={sources.filter((s) => s.model === "CPA").map((s) => ({ ...s, unreported: s.activated - s.reported }))}
           />
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 mt-4">
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 mt-4">
             <StatCard label="Total Savings" value={fmtMoney(data.cpaSavings)} tone="positive" />
             <StatCard label="Monthly Savings (est.)" value={fmtMoney(data.cpaSavings * forecast.factor)} />
             <StatCard label="Yearly Savings (est.)" value={fmtMoney(data.cpaSavings * forecast.factor * 12)} />
@@ -1071,7 +1071,7 @@ function ReportsPage() {
             ]}
             rows={recurringRpt}
           />
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 mt-4">
+          <div className="grid gap-3 grid-cols-2 mt-4">
             <StatCard label="Monthly Fixed Costs" value={fmtMoney(recurringTotals.monthly)} />
             <StatCard label="Yearly Fixed Costs" value={fmtMoney(recurringTotals.yearly)} />
           </div>
