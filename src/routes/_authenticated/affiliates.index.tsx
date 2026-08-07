@@ -66,10 +66,10 @@ function AffiliatesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("affiliates")
-        .select("id,name,active,cpa_rate,guarantee_value,guarantee_period")
+        .select("id,name,active,cpa_rate,guarantee_value,guarantee_period,group_key")
         .order("name");
       if (error) throw error;
-      return (data ?? []) as (AffRow & { guarantee_period: string })[];
+      return (data ?? []) as (AffRow & { guarantee_period: string; group_key: string | null })[];
     },
   });
 
@@ -126,26 +126,40 @@ function AffiliatesPage() {
       paidByAff.set(e.affiliate_id, (paidByAff.get(e.affiliate_id) ?? 0) + Number(e.amount || 0));
     }
 
-    return (affQ.data ?? [])
-      .map((a) => {
-        const weeks = weeklyGuarantee(a, entriesByAff.get(a.id) ?? []);
-        const t = sumWeeks(weeks);
-        const paid = paidByAff.get(a.id) ?? 0;
-        return {
-          id: a.id,
-          name: a.name,
-          active: a.active,
-          price: Number(a.cpa_rate || 0),
-          pct: Number(a.guarantee_value || 0),
-          leads: t.leads,
-          guaranteed: t.guaranteed,
-          reported: t.reported,
-          owed: t.cost,
-          savings: t.savings,
-          shortfall: t.shortfall,
-          paid,
-          balance: t.cost - paid,
-        };
+    const base = (affQ.data ?? []).map((a) => {
+      const weeks = weeklyGuarantee(a, entriesByAff.get(a.id) ?? []);
+      const t = sumWeeks(weeks);
+      return {
+        id: a.id,
+        name: a.name,
+        active: a.active,
+        groupKey: (a as { group_key?: string | null }).group_key?.trim() || null,
+        price: Number(a.cpa_rate || 0),
+        pct: Number(a.guarantee_value || 0),
+        leads: t.leads,
+        guaranteed: t.guaranteed,
+        reported: t.reported,
+        owed: t.cost,
+        savings: t.savings,
+        shortfall: t.shortfall,
+        paid: paidByAff.get(a.id) ?? 0,
+      };
+    });
+
+    // Affiliates sharing a billing group share their payments and balance.
+    const groupCost = new Map<string, number>();
+    const groupPaid = new Map<string, number>();
+    for (const r of base) {
+      const k = r.groupKey ?? r.id;
+      groupCost.set(k, (groupCost.get(k) ?? 0) + r.owed);
+      groupPaid.set(k, (groupPaid.get(k) ?? 0) + r.paid);
+    }
+
+    return base
+      .map((r) => {
+        const k = r.groupKey ?? r.id;
+        const gPaid = groupPaid.get(k) ?? 0;
+        return { ...r, groupId: k, paid: gPaid, balance: (groupCost.get(k) ?? 0) - gPaid };
       })
       .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()));
   }, [affQ.data, srcQ.data, entriesQ.data, expQ.data, search]);
@@ -166,20 +180,22 @@ function AffiliatesPage() {
   const totals = useMemo(
     () => ({
       owed: rows.reduce((s, r) => s + r.owed, 0),
-      paid: rows.reduce((s, r) => s + r.paid, 0),
-      balance: rows.reduce((s, r) => s + r.balance, 0),
+      // Grouped affiliates share one payment pool — count each group once.
+      paid: [...new Map(rows.map((r) => [r.groupId, r.paid])).values()].reduce((s, v) => s + v, 0),
+      balance: [...new Map(rows.map((r) => [r.groupId, r.balance])).values()].reduce((s, v) => s + v, 0),
       savings: rows.reduce((s, r) => s + r.savings, 0),
     }),
     [rows],
   );
 
-  const [editing, setEditing] = useState<(AffRow & { guarantee_period?: string }) | null>(null);
-  const [form, setForm] = useState({ cpa_rate: "0", guarantee_value: "0", active: true });
+  const [editing, setEditing] = useState<(AffRow & { guarantee_period?: string; group_key?: string | null }) | null>(null);
+  const [form, setForm] = useState({ cpa_rate: "0", guarantee_value: "0", group_key: "", active: true });
   useEffect(() => {
     if (editing) {
       setForm({
         cpa_rate: String(Number(editing.cpa_rate || 0)),
         guarantee_value: String(Number(editing.guarantee_value || 0)),
+        group_key: editing.group_key ?? "",
         active: editing.active,
       });
     }
@@ -195,6 +211,7 @@ function AffiliatesPage() {
           guarantee_value: Number(form.guarantee_value) || 0,
           guarantee_type: Number(form.guarantee_value) > 0 ? "conversion_rate" : "none",
           guarantee_period: "weekly",
+          group_key: form.group_key.trim() || null,
           active: form.active,
         })
         .eq("id", editing.id);
@@ -295,8 +312,14 @@ function AffiliatesPage() {
                   >
                     <td className="py-3 px-4 font-medium">
                       {r.name}
+                      {r.groupKey && (
+                        <span className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          {r.groupKey}
+                        </span>
+                      )}
                       {!r.active && <span className="ml-2 text-xs text-muted-foreground">inactive</span>}
                     </td>
+
                     <td className="py-3 px-4">{fmtMoney(r.price)}</td>
                     <td className="py-3 px-4">{r.pct}%</td>
                     <td className="py-3 px-4">{r.leads}</td>
@@ -354,6 +377,18 @@ function AffiliatesPage() {
               Settled weekly (Mon–Sun): guaranteed conversions = leads received × rate. You pay for reported
               conversions up to the guarantee; anything above it is free.
             </p>
+            <div className="space-y-1.5">
+              <Label>Billing group (optional)</Label>
+              <Input
+                placeholder="e.g. FTDhub"
+                value={form.group_key}
+                onChange={(e) => setForm((f) => ({ ...f, group_key: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Affiliates with the same billing group are one partner: their payouts and balance are shared,
+                while each source keeps its own price and guarantee.
+              </p>
+            </div>
             <div className="flex items-center justify-between rounded-md border border-border p-3">
               <div>
                 <div className="text-sm font-medium">Active</div>

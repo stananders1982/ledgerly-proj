@@ -216,6 +216,7 @@ export type Database = {
           cpa_rate: number
           created_at: string
           email: string | null
+          group_key: string | null
           guarantee_period: string
           guarantee_type: string
           guarantee_value: number
@@ -229,6 +230,7 @@ export type Database = {
           cpa_rate?: number
           created_at?: string
           email?: string | null
+          group_key?: string | null
           guarantee_period?: string
           guarantee_type?: string
           guarantee_value?: number
@@ -242,6 +244,7 @@ export type Database = {
           cpa_rate?: number
           created_at?: string
           email?: string | null
+          group_key?: string | null
           guarantee_period?: string
           guarantee_type?: string
           guarantee_value?: number
