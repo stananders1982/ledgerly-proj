@@ -264,7 +264,7 @@ function AffiliatesPage() {
                   { label: "Reported", value: <span className="num">{r.reported}</span> },
                   { label: "Owed", value: <span className="num">{fmtMoney(r.owed)}</span> },
                   { label: "Paid", value: <span className="num text-warning">−{fmtMoney(r.paid)}</span> },
-                  { label: "Balance", value: <span className={cn("num font-medium", r.balance > 0 ? "text-destructive" : "text-success")}>{fmtMoney(r.balance)}</span> },
+                  { label: r.balance < 0 ? "Credit" : "Balance", value: <span className={cn("num font-medium", r.balance > 0 ? "text-destructive" : "text-success")}>{fmtMoney(Math.abs(r.balance))}</span> },
                 ]}
                 actions={<Link to="/affiliates/$id" params={{ id: r.id }} className="text-primary hover:underline text-xs">Statement</Link>}
               />
