@@ -105,7 +105,8 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       }
     }
     for (const a of actRows) {
-      const agent = nameOf(employees.data, a.employee_id);
+      const agent = agentNameOf(a.employee_id);
+      if (!agent) continue;
       const mine = revRows.filter((r) => depositMatchesActivation(r, a));
       for (const s of stdDepositsFor(a, mine as any)) {
         stdRows.push({ date: String(s.date), amount: Number(s.amount || 0), agent });
