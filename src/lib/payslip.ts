@@ -216,12 +216,15 @@ export async function loadLogoDataUrl(url?: string | null): Promise<string | nul
   }
 }
 
-export function buildPayslipDoc(p: PayslipInput): jsPDF {
-  const t = payslipTotals(p);
-  const doc = new jsPDF();
-  const W = doc.internal.pageSize.getWidth();
+/** DD/MM/YYYY from an ISO date, without timezone drift. */
+function fmtDay(iso: string) {
+  const [y, m, d] = String(iso).slice(0, 10).split("-");
+  return d && m && y ? `${d}/${m}/${y}` : String(iso);
+}
 
-  // Header band
+/** Dark header band with logo, company name and period. */
+function drawHeader(doc: jsPDF, p: PayslipInput) {
+  const W = doc.internal.pageSize.getWidth();
   doc.setFillColor(24, 24, 32);
   doc.rect(0, 0, W, 30, "F");
   if (p.logoDataUrl) {
@@ -241,9 +244,37 @@ export function buildPayslipDoc(p: PayslipInput): jsPDF {
   doc.setFontSize(11);
   doc.setTextColor(255, 255, 255);
   doc.text(monthLabel(p.month), W - 14, 18, { align: "right" });
+  doc.setTextColor(30, 30, 30);
+}
+
+/** "Page X of Y", generation date and confidentiality notice on every page. */
+function drawFooters(doc: jsPDF, p: PayslipInput) {
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(140);
+    doc.text(`Confidential — for ${p.employeeName} only`, 14, H - 10);
+    doc.text(p.companyName || "Company", W / 2, H - 10, { align: "center" });
+    doc.text(`Page ${i} of ${total} · Generated ${new Date().toLocaleDateString()}`, W - 14, H - 10, {
+      align: "right",
+    });
+  }
+}
+
+export function buildPayslipDoc(p: PayslipInput): jsPDF {
+  // Retention agents get the full transaction breakdown.
+  if (p.transactions) return buildRetentionPayslipDoc(p);
+
+  const t = payslipTotals(p);
+  const doc = new jsPDF();
+  const W = doc.internal.pageSize.getWidth();
+
+  drawHeader(doc, p);
 
   // Employee meta
-  doc.setTextColor(30, 30, 30);
   autoTable(doc, {
     startY: 38,
     theme: "plain",
