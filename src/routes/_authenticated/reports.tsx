@@ -387,7 +387,8 @@ function ReportsPage() {
     }
 
     const byEmp = new Map<string, { name: string; team: string; revenue: number; commBase: number; leads: number; activated: number; std: number; salary: number; tiers: CommissionTiers }>();
-    for (const e of data.employees as any[]) byEmp.set(e.id, {
+    // Managers (Team M) are excluded from the employee report entirely.
+    for (const e of (data.employees as any[]).filter((x) => isAgentTeam(x.team))) byEmp.set(e.id, {
       name: e.name,
       team: String(e.team ?? "R").toUpperCase(),
       revenue: 0, commBase: 0, leads: 0, activated: 0,
