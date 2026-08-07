@@ -56,28 +56,28 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const round = (o: Record<string, number>) =>
       Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Math.round(v)]));
 
-    // A client's first deposit in the window is the FTD; everything after is
-    // retention work (STD and beyond).
-    const firstDepositDate = new Map<string, string>();
-    for (const r of (revenue.data ?? []) as any[]) {
-      const k = (r.customer_name ?? "").trim().toLowerCase();
-      if (!k) continue;
-      const prev = firstDepositDate.get(k);
-      if (!prev || String(r.date) < prev) firstDepositDate.set(k, String(r.date));
+    // Retention work uses the SAME rule as the app's performance page:
+    // a client belongs to the retention agent on their activation row, the
+    // activation balance is the FTD, and the first deposit on/after the
+    // activation date (same calendar month) is the STD.
+    const actRows = (activations.data ?? []) as any[];
+    const revRows = (revenue.data ?? []) as any[];
+    const stdRows: { date: string; amount: number; agent: string }[] = [];
+    const retentionRows: { date: string; amount: number; agent: string }[] = [];
+    for (const a of actRows) {
+      const agent = nameOf(employees.data, a.employee_id);
+      const mine = revRows.filter((r) => depositMatchesActivation(r, a));
+      for (const d of mine) {
+        if (!d.date) continue;
+        const act = activationDate(a);
+        if (act && String(d.date) < act) continue;
+        retentionRows.push({ date: String(d.date), amount: Number(d.amount || 0), agent });
+      }
+      for (const s of stdDepositsFor(a, mine as any)) {
+        stdRows.push({ date: String(s.date), amount: Number(s.amount || 0), agent });
+      }
     }
-    const seenFirst = new Set<string>();
-    const repeatDeposits = ((revenue.data ?? []) as any[])
-      .slice()
-      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
-      .filter((r) => {
-        const k = (r.customer_name ?? "").trim().toLowerCase();
-        if (!k) return false;
-        if (!seenFirst.has(k)) {
-          seenFirst.add(k);
-          return false;
-        }
-        return true;
-      });
+
 
 
     const snapshot = {
