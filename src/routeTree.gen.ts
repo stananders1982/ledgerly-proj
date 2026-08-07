@@ -30,12 +30,17 @@ import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDataQualityRouteImport } from './routes/_authenticated/data-quality'
 import { Route as AuthenticatedCompaniesRouteImport } from './routes/_authenticated/companies'
 import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authenticated/attendance'
+import { Route as AuthenticatedApiDocsRouteImport } from './routes/_authenticated/api-docs'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedActivationsRouteImport } from './routes/_authenticated/activations'
 import { Route as AuthenticatedEmployeesIndexRouteImport } from './routes/_authenticated/employees.index'
 import { Route as AuthenticatedAffiliatesIndexRouteImport } from './routes/_authenticated/affiliates.index'
 import { Route as AuthenticatedEmployeesIdRouteImport } from './routes/_authenticated/employees.$id'
 import { Route as AuthenticatedAffiliatesIdRouteImport } from './routes/_authenticated/affiliates.$id'
+import { Route as ApiPublicV1LeadsRouteImport } from './routes/api/public/v1/leads'
+import { Route as ApiPublicV1DepositsRouteImport } from './routes/api/public/v1/deposits'
+import { Route as ApiPublicV1ActivationsRouteImport } from './routes/api/public/v1/activations'
+import { Route as ApiPublicV1ReportsSummaryRouteImport } from './routes/api/public/v1/reports/summary'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -144,6 +149,11 @@ const AuthenticatedAttendanceRoute = AuthenticatedAttendanceRouteImport.update({
   path: '/attendance',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedApiDocsRoute = AuthenticatedApiDocsRouteImport.update({
+  id: '/api-docs',
+  path: '/api-docs',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedActivityRoute = AuthenticatedActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
@@ -179,6 +189,27 @@ const AuthenticatedAffiliatesIdRoute =
     path: '/affiliates/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicV1LeadsRoute = ApiPublicV1LeadsRouteImport.update({
+  id: '/api/public/v1/leads',
+  path: '/api/public/v1/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1DepositsRoute = ApiPublicV1DepositsRouteImport.update({
+  id: '/api/public/v1/deposits',
+  path: '/api/public/v1/deposits',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1ActivationsRoute = ApiPublicV1ActivationsRouteImport.update({
+  id: '/api/public/v1/activations',
+  path: '/api/public/v1/activations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1ReportsSummaryRoute =
+  ApiPublicV1ReportsSummaryRouteImport.update({
+    id: '/api/public/v1/reports/summary',
+    path: '/api/public/v1/reports/summary',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -186,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/activations': typeof AuthenticatedActivationsRoute
   '/activity': typeof AuthenticatedActivityRoute
+  '/api-docs': typeof AuthenticatedApiDocsRoute
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/companies': typeof AuthenticatedCompaniesRoute
   '/data-quality': typeof AuthenticatedDataQualityRoute
@@ -207,12 +239,17 @@ export interface FileRoutesByFullPath {
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/employees/': typeof AuthenticatedEmployeesIndexRoute
+  '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
+  '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
+  '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
+  '/api/public/v1/reports/summary': typeof ApiPublicV1ReportsSummaryRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/activations': typeof AuthenticatedActivationsRoute
   '/activity': typeof AuthenticatedActivityRoute
+  '/api-docs': typeof AuthenticatedApiDocsRoute
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/companies': typeof AuthenticatedCompaniesRoute
   '/data-quality': typeof AuthenticatedDataQualityRoute
@@ -235,6 +272,10 @@ export interface FileRoutesByTo {
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/affiliates': typeof AuthenticatedAffiliatesIndexRoute
   '/employees': typeof AuthenticatedEmployeesIndexRoute
+  '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
+  '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
+  '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
+  '/api/public/v1/reports/summary': typeof ApiPublicV1ReportsSummaryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -243,6 +284,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/activations': typeof AuthenticatedActivationsRoute
   '/_authenticated/activity': typeof AuthenticatedActivityRoute
+  '/_authenticated/api-docs': typeof AuthenticatedApiDocsRoute
   '/_authenticated/attendance': typeof AuthenticatedAttendanceRoute
   '/_authenticated/companies': typeof AuthenticatedCompaniesRoute
   '/_authenticated/data-quality': typeof AuthenticatedDataQualityRoute
@@ -265,6 +307,10 @@ export interface FileRoutesById {
   '/_authenticated/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/_authenticated/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/_authenticated/employees/': typeof AuthenticatedEmployeesIndexRoute
+  '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
+  '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
+  '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
+  '/api/public/v1/reports/summary': typeof ApiPublicV1ReportsSummaryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -274,6 +320,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/activations'
     | '/activity'
+    | '/api-docs'
     | '/attendance'
     | '/companies'
     | '/data-quality'
@@ -295,12 +342,17 @@ export interface FileRouteTypes {
     | '/employees/$id'
     | '/affiliates/'
     | '/employees/'
+    | '/api/public/v1/activations'
+    | '/api/public/v1/deposits'
+    | '/api/public/v1/leads'
+    | '/api/public/v1/reports/summary'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
     | '/reset-password'
     | '/activations'
     | '/activity'
+    | '/api-docs'
     | '/attendance'
     | '/companies'
     | '/data-quality'
@@ -323,6 +375,10 @@ export interface FileRouteTypes {
     | '/employees/$id'
     | '/affiliates'
     | '/employees'
+    | '/api/public/v1/activations'
+    | '/api/public/v1/deposits'
+    | '/api/public/v1/leads'
+    | '/api/public/v1/reports/summary'
   id:
     | '__root__'
     | '/_authenticated'
@@ -330,6 +386,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/activations'
     | '/_authenticated/activity'
+    | '/_authenticated/api-docs'
     | '/_authenticated/attendance'
     | '/_authenticated/companies'
     | '/_authenticated/data-quality'
@@ -352,12 +409,20 @@ export interface FileRouteTypes {
     | '/_authenticated/employees/$id'
     | '/_authenticated/affiliates/'
     | '/_authenticated/employees/'
+    | '/api/public/v1/activations'
+    | '/api/public/v1/deposits'
+    | '/api/public/v1/leads'
+    | '/api/public/v1/reports/summary'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicV1ActivationsRoute: typeof ApiPublicV1ActivationsRoute
+  ApiPublicV1DepositsRoute: typeof ApiPublicV1DepositsRoute
+  ApiPublicV1LeadsRoute: typeof ApiPublicV1LeadsRoute
+  ApiPublicV1ReportsSummaryRoute: typeof ApiPublicV1ReportsSummaryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -509,6 +574,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAttendanceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/api-docs': {
+      id: '/_authenticated/api-docs'
+      path: '/api-docs'
+      fullPath: '/api-docs'
+      preLoaderRoute: typeof AuthenticatedApiDocsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/activity': {
       id: '/_authenticated/activity'
       path: '/activity'
@@ -551,12 +623,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAffiliatesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/v1/leads': {
+      id: '/api/public/v1/leads'
+      path: '/api/public/v1/leads'
+      fullPath: '/api/public/v1/leads'
+      preLoaderRoute: typeof ApiPublicV1LeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/deposits': {
+      id: '/api/public/v1/deposits'
+      path: '/api/public/v1/deposits'
+      fullPath: '/api/public/v1/deposits'
+      preLoaderRoute: typeof ApiPublicV1DepositsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/activations': {
+      id: '/api/public/v1/activations'
+      path: '/api/public/v1/activations'
+      fullPath: '/api/public/v1/activations'
+      preLoaderRoute: typeof ApiPublicV1ActivationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/reports/summary': {
+      id: '/api/public/v1/reports/summary'
+      path: '/api/public/v1/reports/summary'
+      fullPath: '/api/public/v1/reports/summary'
+      preLoaderRoute: typeof ApiPublicV1ReportsSummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedActivationsRoute: typeof AuthenticatedActivationsRoute
   AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
+  AuthenticatedApiDocsRoute: typeof AuthenticatedApiDocsRoute
   AuthenticatedAttendanceRoute: typeof AuthenticatedAttendanceRoute
   AuthenticatedCompaniesRoute: typeof AuthenticatedCompaniesRoute
   AuthenticatedDataQualityRoute: typeof AuthenticatedDataQualityRoute
@@ -584,6 +685,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedActivationsRoute: AuthenticatedActivationsRoute,
   AuthenticatedActivityRoute: AuthenticatedActivityRoute,
+  AuthenticatedApiDocsRoute: AuthenticatedApiDocsRoute,
   AuthenticatedAttendanceRoute: AuthenticatedAttendanceRoute,
   AuthenticatedCompaniesRoute: AuthenticatedCompaniesRoute,
   AuthenticatedDataQualityRoute: AuthenticatedDataQualityRoute,
@@ -615,6 +717,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicV1ActivationsRoute: ApiPublicV1ActivationsRoute,
+  ApiPublicV1DepositsRoute: ApiPublicV1DepositsRoute,
+  ApiPublicV1LeadsRoute: ApiPublicV1LeadsRoute,
+  ApiPublicV1ReportsSummaryRoute: ApiPublicV1ReportsSummaryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

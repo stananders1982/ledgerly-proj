@@ -262,6 +262,56 @@ export type Database = {
           },
         ]
       }
+      api_keys: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          permissions: string[]
+          revoked_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name: string
+          permissions?: string[]
+          revoked_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          permissions?: string[]
+          revoked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_logs: {
         Row: {
           company_id: string | null
