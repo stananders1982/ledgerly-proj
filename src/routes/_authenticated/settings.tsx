@@ -290,6 +290,10 @@ function SettingsPage() {
       </div>
 
       <div className="mt-6">
+        <ApiKeysAdmin />
+      </div>
+
+      <div className="mt-6">
         <BackupExport />
       </div>
     </div>
