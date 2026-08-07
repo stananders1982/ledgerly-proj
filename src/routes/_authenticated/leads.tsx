@@ -29,7 +29,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
-import { isStd, isoDay } from "@/lib/rules";
+import { isStd, isoDay, isAgentTeam } from "@/lib/rules";
 import { SavedViews } from "@/components/saved-views";
 import { CsvImportDialog } from "@/components/csv-import";
 
@@ -248,8 +248,13 @@ function LeadsPage() {
     (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
 
   const byEmployee = useMemo(() => {
+    // Managers (Team M) are never ranked as agents.
+    const managerIds = new Set(
+      (employeesQ.data ?? []).filter((e: any) => !isAgentTeam(e.team)).map((e) => e.id),
+    );
     const totals = new Map<string, number>();
     for (const a of activationsInRange) {
+      if (managerIds.has(a.employee_id)) continue;
       totals.set(a.employee_id, (totals.get(a.employee_id) ?? 0) + a.activated_count);
     }
     return Array.from(totals.entries())
