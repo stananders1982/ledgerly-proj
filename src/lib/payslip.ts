@@ -488,6 +488,9 @@ function buildRetentionPayslipDoc(p: PayslipInput): jsPDF {
     ]],
     headStyles: { fillColor: [40, 40, 50] },
     footStyles: { fillColor: [235, 235, 240], textColor: [30, 30, 30], fontStyle: "bold" },
+    didParseCell: (data) => {
+      if (data.section === "foot" && data.column.index > 0) data.cell.styles.halign = "right";
+    },
     alternateRowStyles: { fillColor: [246, 246, 250] },
     styles: { fontSize: 9 },
     columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
@@ -523,6 +526,9 @@ function buildRetentionPayslipDoc(p: PayslipInput): jsPDF {
     ]],
     headStyles: { fillColor: [90, 40, 45] },
     footStyles: { fillColor: [235, 235, 240], textColor: [30, 30, 30], fontStyle: "bold" },
+    didParseCell: (data) => {
+      if (data.section === "foot" && data.column.index > 0) data.cell.styles.halign = "right";
+    },
     alternateRowStyles: { fillColor: [250, 246, 246] },
     styles: { fontSize: 9 },
     columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" } },
