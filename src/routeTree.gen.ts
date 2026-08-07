@@ -34,6 +34,7 @@ import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedActivationsRouteImport } from './routes/_authenticated/activations'
 import { Route as AuthenticatedEmployeesIndexRouteImport } from './routes/_authenticated/employees.index'
 import { Route as AuthenticatedAffiliatesIndexRouteImport } from './routes/_authenticated/affiliates.index'
+import { Route as AuthenticatedSettingsApiDocsRouteImport } from './routes/_authenticated/settings.api-docs'
 import { Route as AuthenticatedEmployeesIdRouteImport } from './routes/_authenticated/employees.$id'
 import { Route as AuthenticatedAffiliatesIdRouteImport } from './routes/_authenticated/affiliates.$id'
 import { Route as ApiPublicV1LeadsRouteImport } from './routes/api/public/v1/leads'
@@ -171,6 +172,12 @@ const AuthenticatedAffiliatesIndexRoute =
     path: '/affiliates/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSettingsApiDocsRoute =
+  AuthenticatedSettingsApiDocsRouteImport.update({
+    id: '/api-docs',
+    path: '/api-docs',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedEmployeesIdRoute =
   AuthenticatedEmployeesIdRouteImport.update({
     id: '/employees/$id',
@@ -223,13 +230,14 @@ export interface FileRoutesByFullPath {
   '/recurring': typeof AuthenticatedRecurringRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/revenue': typeof AuthenticatedRevenueRoute
-  '/settings': typeof AuthenticatedSettingsRoute
+  '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/sources': typeof AuthenticatedSourcesRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/users': typeof AuthenticatedUsersRoute
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
+  '/settings/api-docs': typeof AuthenticatedSettingsApiDocsRoute
   '/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/employees/': typeof AuthenticatedEmployeesIndexRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
@@ -254,7 +262,7 @@ export interface FileRoutesByTo {
   '/recurring': typeof AuthenticatedRecurringRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/revenue': typeof AuthenticatedRevenueRoute
-  '/settings': typeof AuthenticatedSettingsRoute
+  '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/sources': typeof AuthenticatedSourcesRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/users': typeof AuthenticatedUsersRoute
@@ -262,6 +270,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
+  '/settings/api-docs': typeof AuthenticatedSettingsApiDocsRoute
   '/affiliates': typeof AuthenticatedAffiliatesIndexRoute
   '/employees': typeof AuthenticatedEmployeesIndexRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
@@ -288,7 +297,7 @@ export interface FileRoutesById {
   '/_authenticated/recurring': typeof AuthenticatedRecurringRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/revenue': typeof AuthenticatedRevenueRoute
-  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_authenticated/sources': typeof AuthenticatedSourcesRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
@@ -296,6 +305,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/_authenticated/employees/$id': typeof AuthenticatedEmployeesIdRoute
+  '/_authenticated/settings/api-docs': typeof AuthenticatedSettingsApiDocsRoute
   '/_authenticated/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/_authenticated/employees/': typeof AuthenticatedEmployeesIndexRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
@@ -330,6 +340,7 @@ export interface FileRouteTypes {
     | '/withdrawals'
     | '/affiliates/$id'
     | '/employees/$id'
+    | '/settings/api-docs'
     | '/affiliates/'
     | '/employees/'
     | '/api/public/v1/activations'
@@ -362,6 +373,7 @@ export interface FileRouteTypes {
     | '/'
     | '/affiliates/$id'
     | '/employees/$id'
+    | '/settings/api-docs'
     | '/affiliates'
     | '/employees'
     | '/api/public/v1/activations'
@@ -395,6 +407,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/affiliates/$id'
     | '/_authenticated/employees/$id'
+    | '/_authenticated/settings/api-docs'
     | '/_authenticated/affiliates/'
     | '/_authenticated/employees/'
     | '/api/public/v1/activations'
@@ -590,6 +603,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAffiliatesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/settings/api-docs': {
+      id: '/_authenticated/settings/api-docs'
+      path: '/api-docs'
+      fullPath: '/settings/api-docs'
+      preLoaderRoute: typeof AuthenticatedSettingsApiDocsRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/employees/$id': {
       id: '/_authenticated/employees/$id'
       path: '/employees/$id'
@@ -635,6 +655,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedSettingsRouteChildren {
+  AuthenticatedSettingsApiDocsRoute: typeof AuthenticatedSettingsApiDocsRoute
+}
+
+const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
+  AuthenticatedSettingsApiDocsRoute: AuthenticatedSettingsApiDocsRoute,
+}
+
+const AuthenticatedSettingsRouteWithChildren =
+  AuthenticatedSettingsRoute._addFileChildren(
+    AuthenticatedSettingsRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedActivationsRoute: typeof AuthenticatedActivationsRoute
   AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
@@ -650,7 +683,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRecurringRoute: typeof AuthenticatedRecurringRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedRevenueRoute: typeof AuthenticatedRevenueRoute
-  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedSourcesRoute: typeof AuthenticatedSourcesRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
@@ -677,7 +710,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRecurringRoute: AuthenticatedRecurringRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedRevenueRoute: AuthenticatedRevenueRoute,
-  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
   AuthenticatedSourcesRoute: AuthenticatedSourcesRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
