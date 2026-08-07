@@ -252,3 +252,20 @@ export function normalizeTeam(team?: string | null): string {
 export function scoresStd(team?: string | null): boolean {
   return normalizeTeam(team) === "R";
 }
+
+/**
+ * Teams that are scored as agents. Managers (M) are excluded from every
+ * performance, ranking, commission and financial-report view — they still
+ * appear in the roster, on their own detail page, and as a fixed salary cost.
+ */
+export const AGENT_TEAMS = ["C", "R"] as const;
+
+/** True when the employee belongs to a scored agent team (C or R). */
+export function isAgentTeam(team?: string | null): boolean {
+  return (AGENT_TEAMS as readonly string[]).includes(normalizeTeam(team));
+}
+
+/** True when the employee is a manager (Team M). */
+export function isManagerTeam(team?: string | null): boolean {
+  return normalizeTeam(team) === "M";
+}
