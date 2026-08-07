@@ -430,7 +430,11 @@ function ReportsPage() {
     const affs = ((affMapQ.data ?? []) as any[]);
     const affNames = new Map<string, string>(affs.map((a) => [a.id, a.name]));
     const affByLowerName = new Map<string, string>(affs.map((a) => [String(a.name).trim().toLowerCase(), a.id]));
-    const empNames = new Map<string, string>((data.employees as any[]).map((e) => [e.id, e.name]));
+    // Rankings exclude managers (Team M).
+    const empNames = new Map<string, string>(
+      (data.employees as any[]).filter((e) => isAgentTeam(e.team)).map((e) => [e.id, e.name]),
+    );
+    const isAgentId = (id?: string | null) => !!id && empNames.has(id);
     type Row = { id: string; name: string; activated: number; revenue: number };
     const byAff = new Map<string, Row>();
     const byEmp = new Map<string, Row>();
