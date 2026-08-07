@@ -54,6 +54,10 @@ function workingDays(startISO: string, endISO: string) {
 
 function EmployeeDetailPage() {
   const settings = useCompanySettings();
+  const { company, companyId, user } = useAuth();
+  const can = useCan();
+  const qc = useQueryClient();
+
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
