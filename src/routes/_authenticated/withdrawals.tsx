@@ -138,15 +138,15 @@ function WithdrawalsPage() {
 
     const byEmp = new Map<string, number>();
     list.forEach((r: any) => {
-      const totalPenalty = Number(r.employee_penalty) || 0;
+      const totalAmount = Number(r.amount) || 0;
       const pct = Number(r.split_pct ?? 100) / 100;
       if (r.employee_id) {
         const n = r.employees?.name ?? empNameById.get(r.employee_id) ?? "?";
-        byEmp.set(n, (byEmp.get(n) ?? 0) + totalPenalty * (r.employee_id_2 ? pct : 1));
+        byEmp.set(n, (byEmp.get(n) ?? 0) + totalAmount * (r.employee_id_2 ? pct : 1));
       }
       if (r.employee_id_2) {
         const n = r.employee2?.name ?? empNameById.get(r.employee_id_2) ?? "?";
-        byEmp.set(n, (byEmp.get(n) ?? 0) + totalPenalty * (1 - pct));
+        byEmp.set(n, (byEmp.get(n) ?? 0) + totalAmount * (1 - pct));
       }
     });
     return { total, allTotal, count: list.length, penalty, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]) };
@@ -227,7 +227,7 @@ function WithdrawalsPage() {
 
       {stats.byEmp.length > 0 && (
         <div className="card-surface p-5 mb-6">
-          <h3 className="font-display text-base font-semibold mb-3">Penalty per agent</h3>
+          <h3 className="font-display text-base font-semibold mb-3">Total withdrawals per agent</h3>
           <div className="space-y-2">
             {stats.byEmp.map(([k, v]) => (
               <div key={k} className="flex justify-between text-sm">
