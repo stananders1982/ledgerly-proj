@@ -134,31 +134,32 @@ function AffiliateStatementPage() {
   const { pageItems: weekPage, ...pgWeeks } = usePagination(weeks, 30);
 
 
+  // Revenue and withdrawals stay per source — performance is measured per
+  // affiliate source, only payments/balance are shared across a billing group.
   const revQ = useQuery({
-    queryKey: ["affiliate-revenue", memberIds.join(",")],
-    enabled: memberIds.length > 0,
+    queryKey: ["affiliate-revenue", id],
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("revenue")
         .select("id,date,amount,customer_name,created_at")
-        .in("affiliate_id", memberIds)
+        .eq("affiliate_id", id)
         .order("date", { ascending: false }));
       return (data ?? []) as { id: string; date: string; amount: number; customer_name: string | null; created_at: string }[];
     },
   });
 
   const withQ = useQuery({
-    queryKey: ["affiliate-withdrawals", memberIds.join(",")],
-    enabled: memberIds.length > 0,
+    queryKey: ["affiliate-withdrawals", id],
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("withdrawals")
         .select("id,date,amount,notes,created_at")
-        .in("affiliate_id", memberIds)
+        .eq("affiliate_id", id)
         .order("date", { ascending: false }));
       return (data ?? []) as { id: string; date: string; amount: number; notes: string | null; created_at: string }[];
     },
   });
+
 
   const expQ = useQuery({
     queryKey: ["affiliate-expenses", memberIds.join(",")],
