@@ -251,7 +251,13 @@ function AffiliateStatementPage() {
       </div>
       <PageHeader
         title={affQ.data?.name ?? "Affiliate"}
-        description={affQ.data?.active ? "Monthly statement and transaction history." : "Inactive affiliate"}
+        description={
+          members.length > 1
+            ? `Billing group "${groupLabel}" — combined statement for ${members.map((m) => m.name).join(" + ")}.`
+            : affQ.data?.active
+              ? "Monthly statement and transaction history."
+              : "Inactive affiliate"
+        }
         actions={
           <div className="flex flex-wrap gap-2">
           <Button
@@ -385,20 +391,24 @@ function AffiliateStatementPage() {
       <div className="card-surface overflow-hidden mb-6">
         <div className="p-4 border-b border-border">
           <h3 className="font-display text-base font-semibold">
-            {Number(affQ.data?.guarantee_value || 0) > 0 ? "Weekly conversion guarantee" : "Weekly settlement (flat)"}
+            {members.length > 1
+              ? "Weekly settlement (billing group)"
+              : Number(affQ.data?.guarantee_value || 0) > 0
+                ? "Weekly conversion guarantee"
+                : "Weekly settlement (flat)"}
           </h3>
           <p className="text-xs text-muted-foreground mt-1">
-            {Number(affQ.data?.guarantee_value || 0) > 0 ? (
-              <>
-                {fmtMoney(Number(affQ.data?.cpa_rate || 0))} per conversion · {Number(affQ.data?.guarantee_value || 0)}% guaranteed.
-                Each Mon–Sun week settles on its own; conversions above the guarantee are free.
-              </>
-            ) : (
-              <>
-                {fmtMoney(Number(affQ.data?.cpa_rate || 0))} per conversion · no guarantee. Every reported
-                conversion is payable; each Mon–Sun week settles on its own.
-              </>
-            )}
+            {members
+              .map(
+                (m) =>
+                  `${m.name}: ${fmtMoney(Number(m.cpa_rate || 0))} per conversion · ${
+                    Number(m.guarantee_value || 0) > 0
+                      ? `${Number(m.guarantee_value)}% guaranteed`
+                      : "flat, no guarantee"
+                  }`,
+              )
+              .join(" — ")}
+            . Each Mon–Sun week settles on its own; with a guarantee, conversions above it are free.
           </p>
 
         </div>
