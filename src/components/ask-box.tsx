@@ -14,13 +14,17 @@ const SUGGESTIONS = [
 ];
 
 /** Ask a question about the business in plain language. */
-export function AskBox() {
+export function AskBox({
+  startIso,
+  endIso,
+  rangeLabel,
+}: { startIso?: string; endIso?: string; rangeLabel?: string } = {}) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const ask = useServerFn(askBusinessQuestion);
 
   const run = useMutation({
-    mutationFn: async (q: string) => ask({ data: { question: q } }),
+    mutationFn: async (q: string) => ask({ data: { question: q, startIso, endIso } }),
     onSuccess: (res) => setAnswer(res.answer),
     onError: (e: any) => setAnswer(e?.message ?? "Something went wrong."),
   });
@@ -38,7 +42,9 @@ export function AskBox() {
       <h3 className="font-display text-base font-semibold flex items-center gap-2">
         <MessageCircleQuestion className="h-4 w-4 text-primary" /> Ask your data
       </h3>
-      <p className="mt-0.5 text-xs text-muted-foreground">Plain-language questions about the last 6 months.</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        {rangeLabel ? `Plain-language questions about ${rangeLabel}.` : "Plain-language questions about the last 6 months."}
+      </p>
 
       <form
         className="mt-3 flex gap-2"

@@ -42,15 +42,23 @@ export function prettyEntity(entity: string) {
 }
 
 /** Recent business activity across the workspace. */
-export function ActivityFeed({ limit = 10 }: { limit?: number }) {
+export function ActivityFeed({
+  limit = 10,
+  sinceIso,
+  untilIso,
+}: { limit?: number; sinceIso?: string; untilIso?: string }) {
   const q = useQuery({
-    queryKey: ["activity-feed", limit],
+    queryKey: ["activity-feed", limit, sinceIso, untilIso],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("activity_log")
         .select("id,action,entity_type,entity_label,user_email,created_at")
         .order("created_at", { ascending: false })
         .limit(limit);
+      // Scope to the dashboard period when one is supplied.
+      if (sinceIso) query = query.gte("created_at", `${sinceIso}T00:00:00`);
+      if (untilIso) query = query.lte("created_at", `${untilIso}T23:59:59.999`);
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as ActivityRow[];
     },

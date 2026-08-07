@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
+import { DashboardRangePicker, useDashRange } from "@/components/dashboard-range-picker";
 
 import {
   Activity,
@@ -62,9 +62,8 @@ const toneStyles: Record<Tone, { glow: string; ring: string; text: string; strok
 function Dashboard() {
   const qc = useQueryClient();
   const settings = useCompanySettings();
-  const [rangeKey, setRangeKey] = useState<RangeKey>("month");
-  const [customStart, setCustomStart] = useState<string>("");
-  const [customEnd, setCustomEnd] = useState<string>("");
+  const dash = useDashRange();
+  const rangeKey = dash.state.key;
 
   const iso = (d: Date) => {
     const y = d.getFullYear();
@@ -72,10 +71,10 @@ function Dashboard() {
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   };
-  const range = getRange(rangeKey, { start: customStart, end: customEnd });
-  const startIso = iso(range.start);
-  const endIso = iso(range.end);
-  const rangeLabel = range.label;
+  const range = { start: dash.start, end: dash.end };
+  const startIso = dash.startIso;
+  const endIso = dash.endIso;
+  const rangeLabel = dash.label;
 
   // Auto-generate any due recurring expenses so dashboard reflects them
   useEffect(() => {
@@ -114,13 +113,11 @@ function Dashboard() {
     queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,salary,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active,created_at").eq("active", true)),
   });
   // Previous period of the same length, for period-over-period deltas.
-  const prevRange = useMemo(() => {
-    const msPerDay = 86_400_000;
-    const span = Math.max(1, Math.round((range.end.getTime() - range.start.getTime()) / msPerDay) + 1);
-    const end = new Date(range.start); end.setDate(end.getDate() - 1);
-    const start = new Date(end); start.setDate(start.getDate() - (span - 1));
-    return { start: iso(start), end: iso(end) };
-  }, [startIso, endIso]);
+  // Equivalent previous period for the selected preset (this month vs last month).
+  const prevRange = useMemo(
+    () => ({ start: dash.prevStartIso, end: dash.prevEndIso }),
+    [dash.prevStartIso, dash.prevEndIso],
+  );
 
   const prevRevQ = useQuery({
     queryKey: ["dash-rev-prev", prevRange.start, prevRange.end],
@@ -184,10 +181,11 @@ function Dashboard() {
     const days = Math.max(1, Math.round((range.end.getTime() - range.start.getTime()) / msPerDay) + 1);
     const monthMultiplier =
       rangeKey === "today" ? 1 / 30 :
-      rangeKey === "week" ? 7 / 30 :
-      rangeKey === "month" ? 1 :
-      rangeKey === "quarter" ? 3 :
-      rangeKey === "year" ? 12 :
+      rangeKey === "this_week" ? 7 / 30 :
+      rangeKey === "this_month" || rangeKey === "last_month" ? 1 :
+      rangeKey === "last_3_months" ? 3 :
+      rangeKey === "last_6_months" ? 6 :
+      rangeKey === "this_year" ? 12 :
       days / 30;
 
     const income = rangeRev.reduce((s: number, r: any) => s + Number(r.amount), 0);
@@ -337,20 +335,14 @@ function Dashboard() {
             {new Date().toLocaleString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
           </p>
         </div>
-        <DateRangePicker
-          value={rangeKey}
-          onChange={setRangeKey}
-          customStart={customStart}
-          customEnd={customEnd}
-          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
-        />
+        <DashboardRangePicker value={dash.state} onChange={dash.setState} label={rangeLabel} />
       </div>
 
-      <AnomalyAlerts />
+      <AnomalyAlerts key={`${startIso}:${endIso}`} />
 
       <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
         <DailyDigest />
-        <AskBox />
+        <AskBox startIso={startIso} endIso={endIso} rangeLabel={rangeLabel} />
       </section>
 
 
@@ -508,7 +500,7 @@ function Dashboard() {
 
         <DataQualityCard />
 
-        <ActivityFeed />
+        <ActivityFeed sinceIso={startIso} untilIso={endIso} />
 
       </section>
 

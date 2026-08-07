@@ -12,11 +12,12 @@ import { depositMatchesActivation, stdDepositsFor } from "@/lib/rules";
  */
 export const askBusinessQuestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { question: string }) => {
+  .inputValidator((input: { question: string; startIso?: string; endIso?: string }) => {
     const question = String(input?.question ?? "").trim();
     if (!question) throw new Error("Ask a question first.");
     if (question.length > 500) throw new Error("Question is too long.");
-    return { question };
+    const day = (v: unknown) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "")) ? String(v) : undefined);
+    return { question, startIso: day(input?.startIso), endIso: day(input?.endIso) };
   })
   .handler(async ({ data, context }) => {
     const apiKey = process.env["LOVABLE_API_KEY"];
@@ -25,7 +26,13 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const supabase = context.supabase;
     const since = new Date();
     since.setMonth(since.getMonth() - 6);
-    const sinceIso = since.toISOString().slice(0, 10);
+    // Always keep 6 months of history for comparisons, but stretch back further
+    // when the dashboard period starts earlier than that.
+    const defaultSince = since.toISOString().slice(0, 10);
+    const sinceIso = data.startIso && data.startIso < defaultSince ? data.startIso : defaultSince;
+    const focusPeriod = data.startIso
+      ? { start: data.startIso, end: data.endIso ?? new Date().toISOString().slice(0, 10) }
+      : null;
 
     const [revenue, expenses, withdrawals, activations, leads, sources, employees, categories, affiliates] =
       await Promise.all([
@@ -95,6 +102,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const snapshot = {
       today: new Date().toISOString().slice(0, 10),
       window: `${sinceIso} to today`,
+      selectedPeriod: focusPeriod,
       currency: "USD",
       monthly: {
         deposits: round(bucket(revenue.data, (r: any) => month(r.date), (r: any) => Number(r.amount || 0))),
@@ -230,6 +238,8 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
             content: [{ type: "input_text", text:
               "You answer questions about a lead-generation and client-deposit business using ONLY the JSON snapshot provided. " +
               "Be short: two or three sentences, with the concrete numbers you used. Amounts are USD. " +
+              "When snapshot.selectedPeriod is not null, the user is looking at that dashboard period: answer about it by default " +
+              "unless the question names a different period, and say which dates you used. " + +
               "FTD means first-time deposit (an activated client); STD means a second deposit. " +
               "DEFAULT RULE: 'FTDs', 'activations', 'conversions' and 'how many clients' always mean the ACTIVATION clock — " +
               "leads activated in that period, from activationsByMonthActivatedAndAgent / totals.activations. " +
