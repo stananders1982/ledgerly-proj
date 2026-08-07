@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { sourceCost } from "@/lib/affiliate-balance";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Tag } from "lucide-react";
@@ -115,14 +116,10 @@ function SourcesPage() {
       const deficit = activated - expectedActivations;
       const reportingRate = activated ? (reported / activated) * 100 : 0;
 
-      let cost = 0;
-      let savings = 0;
-      if (s.pricing_model === "CPL") {
-        cost = total * price;
-      } else {
-        cost = reported * price;
-        savings = Math.max(0, activated - reported) * price;
-      }
+      const { cost, savings } = sourceCost(
+        { pricing_model: s.pricing_model, price },
+        { leads: total, activated, reported },
+      );
 
       const revenue = rev
         .filter((r: any) => r.leads?.source_id === s.id)

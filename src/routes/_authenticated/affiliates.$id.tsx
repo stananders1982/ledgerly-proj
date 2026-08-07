@@ -14,7 +14,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { deliveryPct, sumWeeks, weeklyGuarantee, type LeadEntryLike, type WeekRow } from "@/lib/affiliate-balance";
+import { deliveryPct, sumWeeks, weeklyGuarantee, mergeWeekRows, affiliateNet, type LeadEntryLike, type WeekRow } from "@/lib/affiliate-balance";
 
 type AffRow = { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number; group_key: string | null };
 
@@ -108,26 +108,15 @@ function AffiliateStatementPage() {
     const srcByName = new Map<string, string>();
     for (const s of srcQ.data ?? []) srcByName.set(s.name.trim().toLowerCase(), s.id);
     // Each member settles on its own terms; weeks are then merged for the group.
-    const merged = new Map<string, WeekRow>();
-    for (const m of members) {
-      const srcId = srcByName.get(m.name.trim().toLowerCase());
-      const mine = (entriesQ.data ?? []).filter(
-        (e) => e.source_id && e.source_id === srcId && inRange(e.entry_date),
-      );
-      for (const w of weeklyGuarantee(m, mine)) {
-        const prev = merged.get(w.weekStart);
-        if (!prev) { merged.set(w.weekStart, { ...w }); continue; }
-        prev.leads += w.leads;
-        prev.guaranteed += w.guaranteed;
-        prev.reported += w.reported;
-        prev.payable += w.payable;
-        prev.cost += w.cost;
-        prev.savings += w.savings;
-        prev.shortfall += w.shortfall;
-        prev.status = prev.savings > 0 ? "over" : prev.shortfall > 0 ? "short" : "met";
-      }
-    }
-    return [...merged.values()].sort((a, b) => b.weekStart.localeCompare(a.weekStart));
+    return mergeWeekRows(
+      members.map((m) => {
+        const srcId = srcByName.get(m.name.trim().toLowerCase());
+        const mine = (entriesQ.data ?? []).filter(
+          (e) => e.source_id && e.source_id === srcId && inRange(e.entry_date),
+        );
+        return weeklyGuarantee(m, mine);
+      }),
+    );
   }, [members, srcQ.data, entriesQ.data, activeRange]);
 
   const weekTotals = useMemo(() => sumWeeks(weeks), [weeks]);
@@ -196,7 +185,7 @@ function AffiliateStatementPage() {
       map.set(k, m);
     }
     return [...map.entries()]
-      .map(([month, v]) => ({ month, ...v, net: v.revenue - v.withdrawals - v.paid }))
+      .map(([month, v]) => ({ month, ...v, net: affiliateNet(v) }))
       .sort((a, b) => b.month.localeCompare(a.month));
   }, [revQ.data, withQ.data, expQ.data, activeRange]);
 
