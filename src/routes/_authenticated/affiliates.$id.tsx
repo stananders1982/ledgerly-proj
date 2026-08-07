@@ -14,6 +14,8 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { deliveryPct, sumWeeks, weeklyGuarantee, type LeadEntryLike } from "@/lib/affiliate-balance";
+
 
 export const Route = createFileRoute("/_authenticated/affiliates/$id")({
   head: () => ({
