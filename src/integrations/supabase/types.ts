@@ -503,6 +503,47 @@ export type Database = {
         }
         Relationships: []
       }
+      company_onboarding: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          step_affiliate: string
+          step_agent: string
+          step_basics: string
+          step_source: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          step_affiliate?: string
+          step_agent?: string
+          step_basics?: string
+          step_source?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          step_affiliate?: string
+          step_agent?: string
+          step_basics?: string
+          step_source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_onboarding_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_settings: {
         Row: {
           brand_color: string | null
@@ -517,6 +558,7 @@ export type Database = {
           method_fee_card_pct: number
           method_fee_crypto_pct: number
           method_fee_wire_pct: number
+          timezone: string
           updated_at: string
           withdrawal_penalty_pct: number
         }
@@ -533,6 +575,7 @@ export type Database = {
           method_fee_card_pct?: number
           method_fee_crypto_pct?: number
           method_fee_wire_pct?: number
+          timezone?: string
           updated_at?: string
           withdrawal_penalty_pct?: number
         }
@@ -549,6 +592,7 @@ export type Database = {
           method_fee_card_pct?: number
           method_fee_crypto_pct?: number
           method_fee_wire_pct?: number
+          timezone?: string
           updated_at?: string
           withdrawal_penalty_pct?: number
         }
