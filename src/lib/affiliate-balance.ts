@@ -4,7 +4,7 @@
  * Every affiliate has an activation price (CPA) and a guaranteed conversion
  * rate. Each Mon–Sun week settles on its own:
  *
- *   guaranteed = leads received x guarantee %
+ *   guaranteed = leads received x guarantee %  (0% => flat: pay every reported)
  *   payable    = min(reported, guaranteed)
  *   cost       = payable x price
  *   savings    = max(0, reported - guaranteed) x price
@@ -96,11 +96,13 @@ export function weeklyGuarantee(
 
   return [...buckets.entries()]
     .map(([weekStart, b]) => {
-      const guaranteed = round2(b.leads * (pct / 100));
-      const payable = Math.min(b.reported, guaranteed);
+      // No guarantee % configured => flat source: pay for every reported conversion.
+      const flat = !(pct > 0);
+      const guaranteed = flat ? 0 : round2(b.leads * (pct / 100));
+      const payable = flat ? b.reported : Math.min(b.reported, guaranteed);
       const cost = round2(payable * price);
-      const extra = Math.max(0, b.reported - guaranteed);
-      const shortfall = round2(Math.max(0, guaranteed - b.reported));
+      const extra = flat ? 0 : Math.max(0, b.reported - guaranteed);
+      const shortfall = flat ? 0 : round2(Math.max(0, guaranteed - b.reported));
       return {
         weekStart,
         weekEnd: weekEndOf(weekStart),
@@ -111,7 +113,7 @@ export function weeklyGuarantee(
         cost,
         savings: round2(extra * price),
         shortfall,
-        status: extra > 0 ? ("over" as const) : shortfall > 0 ? ("short" as const) : ("met" as const),
+        status: flat ? ("met" as const) : extra > 0 ? ("over" as const) : shortfall > 0 ? ("short" as const) : ("met" as const),
       };
     })
     .sort((a, b) => b.weekStart.localeCompare(a.weekStart));

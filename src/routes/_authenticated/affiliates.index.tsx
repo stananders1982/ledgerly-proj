@@ -257,7 +257,7 @@ function AffiliatesPage() {
               <DataCard
                 key={r.id}
                 title={r.name}
-                subtitle={r.active ? `${fmtMoney(r.price)} / conversion · ${r.pct}% guarantee` : "Inactive"}
+                subtitle={r.active ? `${fmtMoney(r.price)} / conversion · ${r.pct > 0 ? `${r.pct}% guarantee` : "flat, no guarantee"}` : "Inactive"}
                 fields={[
                   { label: "Leads", value: <span className="num">{r.leads}</span> },
                   { label: "Guaranteed", value: <span className="num">{r.guaranteed}</span> },
