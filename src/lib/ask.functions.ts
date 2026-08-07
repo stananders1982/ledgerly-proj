@@ -64,7 +64,6 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const actRows = (activations.data ?? []) as any[];
     const revRows = (revenue.data ?? []) as any[];
     const stdRows: { date: string; amount: number; agent: string }[] = [];
-    const retentionRows: { date: string; amount: number; agent: string }[] = [];
     const performanceRevenueRows: { date: string; amount: number; agent: string }[] = [];
     const employeeById = new Map((employees.data ?? []).map((employee: any) => [employee.id, employee]));
 
@@ -86,12 +85,6 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     for (const a of actRows) {
       const agent = nameOf(employees.data, a.employee_id);
       const mine = revRows.filter((r) => depositMatchesActivation(r, a));
-      for (const d of mine) {
-        if (!d.date) continue;
-        const act = activationDate(a);
-        if (act && String(d.date) < act) continue;
-        retentionRows.push({ date: String(d.date), amount: Number(d.amount || 0), agent });
-      }
       for (const s of stdDepositsFor(a, mine as any)) {
         stdRows.push({ date: String(s.date), amount: Number(s.amount || 0), agent });
       }
