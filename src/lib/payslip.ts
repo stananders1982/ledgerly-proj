@@ -109,7 +109,7 @@ export function buildPayslipDoc(p: PayslipInput): jsPDF {
     body: [
       ["Employee", p.employeeName],
       ["Team", p.teamLabel],
-      ["Role", p.role || "—"],
+      ["Role", p.role || "-"],
       ["Period", monthLabel(p.month)],
       ["Generated", new Date().toLocaleString()],
     ],
@@ -147,9 +147,9 @@ export function buildPayslipDoc(p: PayslipInput): jsPDF {
       [
         "Attendance deduction",
         `${p.absentDays} absent of ${p.workingDays} working days × ${fmtMoney(p.perDayRate)}`,
-        `−${fmtMoney(p.absenceDeduction)}`,
+        `-${fmtMoney(p.absenceDeduction)}`,
       ],
-      ["Withdrawal penalties", "", `−${fmtMoney(p.withdrawalPenalty)}`],
+      ["Withdrawal penalties", "", `-${fmtMoney(p.withdrawalPenalty)}`],
     ],
     headStyles: { fillColor: [90, 40, 45] },
     styles: { fontSize: 9 },
@@ -161,7 +161,7 @@ export function buildPayslipDoc(p: PayslipInput): jsPDF {
     theme: "grid",
     body: [
       ["Total gross commission", fmtMoney(t.grossCommission)],
-      ["Total deductions", `−${fmtMoney(t.totalDeductions)}`],
+      ["Total deductions", `-${fmtMoney(t.totalDeductions)}`],
       ["Net payable", fmtMoney(t.netPayable)],
     ],
     styles: { fontSize: 10 },
@@ -179,7 +179,7 @@ export function buildPayslipDoc(p: PayslipInput): jsPDF {
   doc.setFontSize(8);
   doc.setTextColor(140);
   doc.text(
-    "Net payable = base salary + commission − attendance deductions − withdrawal penalties.",
+    "Net payable = base salary + commission - attendance deductions - withdrawal penalties.",
     14,
     doc.internal.pageSize.getHeight() - 12,
   );
