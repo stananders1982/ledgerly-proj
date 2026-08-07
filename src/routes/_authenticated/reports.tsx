@@ -671,7 +671,7 @@ function ReportsPage() {
         title="Report Center"
         description={`Period: ${start} → ${end}`}
         actions={
-          <div className="flex gap-2 print:hidden">
+          <div className="flex flex-wrap gap-2 print:hidden">
             <Button variant="outline" size="sm" onClick={savePreset}><Bookmark className="h-4 w-4 mr-1" /> Save preset</Button>
             <Button variant="outline" size="sm" onClick={() => exportCurrent("pdf")}><FileText className="h-4 w-4 mr-1" /> PDF</Button>
             <Button variant="outline" size="sm" onClick={() => exportCurrent("xlsx")}><FileSpreadsheet className="h-4 w-4 mr-1" /> Excel</Button>
