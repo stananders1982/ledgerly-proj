@@ -51,6 +51,21 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const nameOf = (rows: any[] | null, id: string | null | undefined) =>
       rows?.find((r) => r.id === id)?.name ?? "unassigned";
 
+    // Managers (Team M) are never part of agent-level metrics; they still
+    // count inside company-wide totals.
+    const managerIds = new Set(
+      (employees.data ?? [])
+        .filter((e: any) => String(e.team ?? "R").toUpperCase() === "M")
+        .map((e: any) => e.id),
+    );
+    /** "" means "skip this row" — bucket() ignores empty keys. */
+    const agentNameOf = (id: string | null | undefined) =>
+      id && managerIds.has(id) ? "" : nameOf(employees.data, id);
+    const agentKey = (m: string, id: string | null | undefined) => {
+      const n = agentNameOf(id);
+      return n ? `${m} | ${n}` : "";
+    };
+
     const bucket = <T,>(rows: T[] | null, key: (r: T) => string, val: (r: T) => number) => {
       const m = new Map<string, number>();
       for (const r of rows ?? []) {
