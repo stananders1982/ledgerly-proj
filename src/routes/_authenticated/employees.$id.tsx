@@ -256,13 +256,18 @@ function EmployeeDetailPage() {
     const ftdRate = Number(emp?.ftd_commission ?? settings.ftdCommission);
     const ftdCommission = ftdCount * ftdRate;
 
-    const payout = salary + (isRetention ? commission - penalty : 0) + ftdCommission;
+    // STD bonus is a retention-only incentive, configured per employee.
+    const stdRate = Number(emp?.std_bonus ?? 0);
+    const stdBonus = isRetention ? stdCount * stdRate : 0;
+
+    const payout = salary + (isRetention ? commission - penalty + stdBonus : 0) + ftdCommission;
 
     const clients = (clientsQ.data ?? []).reduce((s: number, r: any) => s + Number(r.activated_count || 0), 0);
     const revenuePerClient = clients > 0 ? attributed / clients : 0;
 
-    return { attributed, commBase, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission, ftdRate };
-  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention, settings]);
+    return { attributed, commBase, withdrawn, penalty, commission, rate, wd, present, absent, unmarked, perDay, deduction, salary, payout, clients, revenuePerClient, ftdCount, ftdCommission, ftdRate, stdRate, stdBonus };
+  }, [revQ.data, withQ.data, attQ.data, clientsQ.data, conversions, emp, id, start, end, isConversion, isRetention, settings, stdCount]);
+
 
   if (empQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
   if (!emp) return (
