@@ -313,7 +313,7 @@ function AffiliateStatementPage() {
 
       <section className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Owed ({activeRange.label})</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Reported Cost ({activeRange.label})</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold">{fmtMoney(weekTotals.cost)}</CardContent>
         </Card>
         <Card>
@@ -322,17 +322,11 @@ function AffiliateStatementPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Balance outstanding</CardTitle></CardHeader>
-          <CardContent className={cn("text-2xl font-semibold", weekTotals.cost - totals.paid > 0 ? "text-rose-500" : "text-emerald-500")}>
-            {fmtMoney(weekTotals.cost - totals.paid)}
+          <CardContent className={cn("text-2xl font-semibold", weekTotals.cost - totals.paid >= 0 ? "text-emerald-500" : "text-rose-500")}>
+            {weekTotals.cost - totals.paid < 0 ? "−" : ""}{fmtMoney(Math.abs(weekTotals.cost - totals.paid))}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Guarantee delivery</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold">
-            {deliveryPct(weekTotals) == null ? "—" : `${deliveryPct(weekTotals)}%`}
-          </CardContent>
-        </Card>
-      </section>
+
 
       <div className="card-surface overflow-hidden mb-6">
         <div className="p-4 border-b border-border">
