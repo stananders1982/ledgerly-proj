@@ -25,6 +25,7 @@ import { KeyboardShortcutsPanel, useKeyboardShortcutsPanel } from "@/components/
 import { QuickCreate } from "@/components/quick-create";
 import { TaskReminders } from "@/components/task-reminders";
 import { UnallocatedFtdAlert } from "@/components/unallocated-ftd-alert";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
