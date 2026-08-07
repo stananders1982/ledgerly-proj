@@ -180,12 +180,28 @@ function AffiliateStatementPage() {
   const { pageItems: monthlyPage, ...pgMonthly } = usePagination(sorted, 30);
 
   const transactions = useMemo(() => {
-    const rev = (revQ.data ?? []).filter((x) => inRange(x.date)).map((r) => ({ type: "Revenue" as const, date: r.date, amount: Number(r.amount || 0), label: r.customer_name || "Revenue", id: r.id }));
     const withs = (withQ.data ?? []).filter((x) => inRange(x.date)).map((w) => ({ type: "Withdrawal" as const, date: w.date, amount: -Number(w.amount || 0), label: w.notes || "Withdrawal", id: w.id }));
     const exps = (expQ.data ?? []).filter((x) => inRange(x.date)).map((e) => ({ type: "Paid to affiliate" as const, date: e.date, amount: -Number(e.amount || 0), label: e.notes || "Affiliate payout", id: e.id }));
-    return [...rev, ...withs, ...exps].sort((a, b) => b.date.localeCompare(a.date));
-  }, [revQ.data, withQ.data, expQ.data, activeRange]);
+    return [...withs, ...exps].sort((a, b) => b.date.localeCompare(a.date));
+  }, [withQ.data, expQ.data, activeRange]);
   const { pageItems: txPage, ...pgTx } = usePagination(transactions, 30);
+
+  const revenueMonthly = useMemo(() => {
+    const map = new Map<string, { amount: number; deposits: number; clients: Set<string> }>();
+    for (const r of (revQ.data ?? []).filter((x) => inRange(x.date))) {
+      const k = monthKey(r.date);
+      const m = map.get(k) ?? { amount: 0, deposits: 0, clients: new Set<string>() };
+      m.amount += Number(r.amount || 0);
+      m.deposits += 1;
+      if (r.customer_name) m.clients.add(r.customer_name.trim().toLowerCase());
+      map.set(k, m);
+    }
+    return [...map.entries()]
+      .map(([month, v]) => ({ month, amount: v.amount, deposits: v.deposits, clients: v.clients.size }))
+      .sort((a, b) => b.month.localeCompare(a.month));
+  }, [revQ.data, activeRange]);
+  const { pageItems: revMonthPage, ...pgRevMonth } = usePagination(revenueMonthly, 30);
+
 
   return (
     <div>
@@ -297,7 +313,7 @@ function AffiliateStatementPage() {
 
       <section className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Owed ({activeRange.label})</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Reported Cost ({activeRange.label})</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold">{fmtMoney(weekTotals.cost)}</CardContent>
         </Card>
         <Card>
@@ -306,8 +322,8 @@ function AffiliateStatementPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Balance outstanding</CardTitle></CardHeader>
-          <CardContent className={cn("text-2xl font-semibold", weekTotals.cost - totals.paid > 0 ? "text-rose-500" : "text-emerald-500")}>
-            {fmtMoney(weekTotals.cost - totals.paid)}
+          <CardContent className={cn("text-2xl font-semibold", weekTotals.cost - totals.paid >= 0 ? "text-emerald-500" : "text-rose-500")}>
+            {weekTotals.cost - totals.paid < 0 ? "−" : ""}{fmtMoney(Math.abs(weekTotals.cost - totals.paid))}
           </CardContent>
         </Card>
         <Card>
@@ -317,6 +333,9 @@ function AffiliateStatementPage() {
           </CardContent>
         </Card>
       </section>
+
+
+
 
       <div className="card-surface overflow-hidden mb-6">
         <div className="p-4 border-b border-border">
@@ -389,6 +408,50 @@ function AffiliateStatementPage() {
         )}
       </div>
 
+      <div className="card-surface overflow-hidden mb-6">
+        <div className="p-4 border-b border-border">
+          <h3 className="font-display text-base font-semibold">Revenue by month</h3>
+          <p className="text-xs text-muted-foreground mt-1">Deposits from clients attributed to this affiliate.</p>
+        </div>
+        {revenueMonthly.length === 0 ? (
+          <div className="p-8 text-sm text-muted-foreground">No revenue in this period.</div>
+        ) : (
+          <>
+          <div className="overflow-x-auto scroll-slim">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-3 px-4">Month</th>
+                  <th className="py-3 px-4">Deposits</th>
+                  <th className="py-3 px-4">Clients</th>
+                  <th className="py-3 px-4">Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {revMonthPage.map((m) => (
+                  <tr key={m.month} className="border-b border-border/50 transition-colors hover:bg-accent/30">
+                    <td className="py-3 px-4 font-medium">{m.month}</td>
+                    <td className="py-3 px-4">{m.deposits}</td>
+                    <td className="py-3 px-4">{m.clients}</td>
+                    <td className="py-3 px-4 font-medium text-emerald-500">{fmtMoney(m.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-border font-medium">
+                  <td className="py-3 px-4">Total</td>
+                  <td className="py-3 px-4">{revenueMonthly.reduce((s, m) => s + m.deposits, 0)}</td>
+                  <td className="py-3 px-4"></td>
+                  <td className="py-3 px-4 text-emerald-500">{fmtMoney(totals.revenue)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <TablePagination {...pgRevMonth} />
+          </>
+        )}
+      </div>
+
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card-surface overflow-hidden">
@@ -448,7 +511,7 @@ function AffiliateStatementPage() {
                     <tr key={`${t.type}-${t.id}`} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                       <td className="py-3 px-4">{t.date}</td>
                       <td className="py-3 px-4">
-                        <span className={cn("rounded border px-1.5 py-0.5 text-xs font-medium", t.type === "Revenue" ? "border-emerald-500/30 text-emerald-500" : t.type === "Paid to affiliate" ? "border-amber-500/30 text-amber-500" : "border-rose-500/30 text-rose-500")}>{t.type}</span>
+                        <span className={cn("rounded border px-1.5 py-0.5 text-xs font-medium", t.type === "Paid to affiliate" ? "border-amber-500/30 text-amber-500" : "border-rose-500/30 text-rose-500")}>{t.type}</span>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{t.label}</td>
                       <td className={cn("py-3 px-4 font-medium", t.amount >= 0 ? "text-emerald-500" : "text-rose-500")}>{t.amount >= 0 ? "" : "−"}{fmtMoney(Math.abs(t.amount))}</td>
