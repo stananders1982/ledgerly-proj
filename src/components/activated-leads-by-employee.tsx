@@ -12,6 +12,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { isAgentTeam } from "@/lib/rules";
 
 type SourceInfo = { name: string } | null;
 type EntryInfo = {
@@ -72,7 +73,7 @@ export function ActivatedLeadsByEmployee({
     queryFn: async () => {
       const { data, error } = await supabase.rpc("list_employees_directory");
       if (error) throw error;
-      return (data ?? []) as { id: string; name: string }[];
+      return (data ?? []) as { id: string; name: string; team?: string | null }[];
     },
   });
 
@@ -80,13 +81,17 @@ export function ActivatedLeadsByEmployee({
   const e = useMemo(() => new Date(end).setHours(23, 59, 59, 999), [end]);
 
   const byEmployee = useMemo(() => {
+    // Managers (Team M) are never ranked as agents.
+    const managerIds = new Set(
+      (employeesQ.data ?? []).filter((x) => !isAgentTeam(x.team)).map((x) => x.id),
+    );
     const totals = new Map<string, number>();
     for (const a of activationsQ.data ?? []) {
       const d = actDate(a);
       if (!d) continue;
       const t = new Date(d + "T00:00:00").getTime();
       if (t < s || t > e) continue;
-      if (!a.employee_id) continue;
+      if (!a.employee_id || managerIds.has(a.employee_id)) continue;
       totals.set(a.employee_id, (totals.get(a.employee_id) ?? 0) + 1);
     }
     const nameOf = (id: string) =>

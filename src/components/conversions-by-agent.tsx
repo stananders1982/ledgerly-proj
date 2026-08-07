@@ -94,7 +94,7 @@ export function ConversionsByAgent({ start, end }: { start: Date; end: Date }) {
     const m = new Map<string, { count: number; pending: number; pendingRows: PendingRow[] }>();
     for (const r of rows) {
       const id = r.conversion_employee_id;
-      if (!id) continue;
+      if (!id || !isAgentId(id)) continue;
       const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
       const bal = effectiveBalanceIndexed(r as any, deposits);
 
