@@ -70,15 +70,8 @@ export function ConversionsByAgent({ start, end }: { start: Date; end: Date }) {
   const employeeName = (id?: string | null) =>
     (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
 
-  const depositsByName = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of revenueQ.data ?? []) {
-      const k = (r.customer_name ?? "").trim().toLowerCase();
-      if (!k) continue;
-      m.set(k, (m.get(k) ?? 0) + Number(r.amount || 0));
-    }
-    return m;
-  }, [revenueQ.data]);
+  // Prefer the direct client link; name matching only covers legacy rows.
+  const deposits = useMemo(() => depositIndex((revenueQ.data ?? []) as any[]), [revenueQ.data]);
 
   const rows = useMemo(() => {
     const s = start.getTime();
@@ -97,9 +90,8 @@ export function ConversionsByAgent({ start, end }: { start: Date; end: Date }) {
       const id = r.conversion_employee_id;
       if (!id) continue;
       const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
-      const bal =
-        Number(r.balance || 0) +
-        (depositsByName.get((r.lead_name ?? "").trim().toLowerCase()) ?? 0);
+      const bal = effectiveBalanceIndexed(r as any, deposits);
+
       if (qualifiesAsFtd(r as any, bal, settings)) e.count += 1;
       else {
         e.pending += 1;
