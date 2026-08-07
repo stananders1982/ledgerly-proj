@@ -36,6 +36,7 @@ import { Route as AuthenticatedEmployeesIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedAffiliatesIndexRouteImport } from './routes/_authenticated/affiliates.index'
 import { Route as AuthenticatedEmployeesIdRouteImport } from './routes/_authenticated/employees.$id'
 import { Route as AuthenticatedAffiliatesIdRouteImport } from './routes/_authenticated/affiliates.$id'
+import { Route as ApiPublicV1LeadsRouteImport } from './routes/api/public/v1/leads'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -179,6 +180,11 @@ const AuthenticatedAffiliatesIdRoute =
     path: '/affiliates/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicV1LeadsRoute = ApiPublicV1LeadsRouteImport.update({
+  id: '/api/public/v1/leads',
+  path: '/api/public/v1/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/employees/': typeof AuthenticatedEmployeesIndexRoute
+  '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/affiliates': typeof AuthenticatedAffiliatesIndexRoute
   '/employees': typeof AuthenticatedEmployeesIndexRoute
+  '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -265,6 +273,7 @@ export interface FileRoutesById {
   '/_authenticated/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/_authenticated/affiliates/': typeof AuthenticatedAffiliatesIndexRoute
   '/_authenticated/employees/': typeof AuthenticatedEmployeesIndexRoute
+  '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
     | '/employees/$id'
     | '/affiliates/'
     | '/employees/'
+    | '/api/public/v1/leads'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/employees/$id'
     | '/affiliates'
     | '/employees'
+    | '/api/public/v1/leads'
   id:
     | '__root__'
     | '/_authenticated'
@@ -352,12 +363,14 @@ export interface FileRouteTypes {
     | '/_authenticated/employees/$id'
     | '/_authenticated/affiliates/'
     | '/_authenticated/employees/'
+    | '/api/public/v1/leads'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicV1LeadsRoute: typeof ApiPublicV1LeadsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -551,6 +564,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAffiliatesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/v1/leads': {
+      id: '/api/public/v1/leads'
+      path: '/api/public/v1/leads'
+      fullPath: '/api/public/v1/leads'
+      preLoaderRoute: typeof ApiPublicV1LeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -615,6 +635,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicV1LeadsRoute: ApiPublicV1LeadsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
