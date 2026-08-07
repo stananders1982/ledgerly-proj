@@ -180,12 +180,28 @@ function AffiliateStatementPage() {
   const { pageItems: monthlyPage, ...pgMonthly } = usePagination(sorted, 30);
 
   const transactions = useMemo(() => {
-    const rev = (revQ.data ?? []).filter((x) => inRange(x.date)).map((r) => ({ type: "Revenue" as const, date: r.date, amount: Number(r.amount || 0), label: r.customer_name || "Revenue", id: r.id }));
     const withs = (withQ.data ?? []).filter((x) => inRange(x.date)).map((w) => ({ type: "Withdrawal" as const, date: w.date, amount: -Number(w.amount || 0), label: w.notes || "Withdrawal", id: w.id }));
     const exps = (expQ.data ?? []).filter((x) => inRange(x.date)).map((e) => ({ type: "Paid to affiliate" as const, date: e.date, amount: -Number(e.amount || 0), label: e.notes || "Affiliate payout", id: e.id }));
-    return [...rev, ...withs, ...exps].sort((a, b) => b.date.localeCompare(a.date));
-  }, [revQ.data, withQ.data, expQ.data, activeRange]);
+    return [...withs, ...exps].sort((a, b) => b.date.localeCompare(a.date));
+  }, [withQ.data, expQ.data, activeRange]);
   const { pageItems: txPage, ...pgTx } = usePagination(transactions, 30);
+
+  const revenueMonthly = useMemo(() => {
+    const map = new Map<string, { amount: number; deposits: number; clients: Set<string> }>();
+    for (const r of (revQ.data ?? []).filter((x) => inRange(x.date))) {
+      const k = monthKey(r.date);
+      const m = map.get(k) ?? { amount: 0, deposits: 0, clients: new Set<string>() };
+      m.amount += Number(r.amount || 0);
+      m.deposits += 1;
+      if (r.customer_name) m.clients.add(r.customer_name.trim().toLowerCase());
+      map.set(k, m);
+    }
+    return [...map.entries()]
+      .map(([month, v]) => ({ month, amount: v.amount, deposits: v.deposits, clients: v.clients.size }))
+      .sort((a, b) => b.month.localeCompare(a.month));
+  }, [revQ.data, activeRange]);
+  const { pageItems: revMonthPage, ...pgRevMonth } = usePagination(revenueMonthly, 30);
+
 
   return (
     <div>
