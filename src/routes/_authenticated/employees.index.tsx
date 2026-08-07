@@ -308,6 +308,13 @@ function EmpDialog({
               onChange={(e) => setForm({ ...form, ftd_commission: Number(e.target.value) })} />
           </Field>
         )}
+        {form.team === "R" && (
+          <Field label="STD bonus ($ per second deposit)">
+            <Input type="number" min={0} step="0.01" value={form.std_bonus}
+              onChange={(e) => setForm({ ...form, std_bonus: Number(e.target.value) })} />
+          </Field>
+        )}
+
         <Field label="Base salary">
           <Input type="number" min={0} step="0.01" value={form.salary}
             onChange={(e) => setForm({ ...form, salary: Number(e.target.value) })} />
