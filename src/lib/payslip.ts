@@ -7,6 +7,43 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { fmtMoney } from "@/lib/format";
+import { methodFeePct } from "@/lib/commission";
+import type { CompanySettings } from "@/lib/settings";
+
+/** One deposit line on a retention payslip — never carries client identity. */
+export type PayslipRevenueTxn = {
+  /** ISO date (YYYY-MM-DD). */
+  date: string;
+  /** This agent's split-adjusted share of the deposit. */
+  amount: number;
+  commissionPct: number;
+  /** amount × commission % (before the deposit-method fee). */
+  commissionEarned: number;
+  /** Portion of the commission removed by the deposit-method fee. */
+  feeDeducted: number;
+  netCommission: number;
+};
+
+/** One withdrawal line on a retention payslip — never carries client identity. */
+export type PayslipWithdrawalTxn = {
+  date: string;
+  amount: number;
+  penaltyPct: number;
+  penalty: number;
+};
+
+export type PayslipTransactions = {
+  revenue: PayslipRevenueTxn[];
+  withdrawals: PayslipWithdrawalTxn[];
+  totals: {
+    deposits: number;
+    commissionEarned: number;
+    feeDeducted: number;
+    netCommission: number;
+    withdrawals: number;
+    penalty: number;
+  };
+};
 
 export type PayslipInput = {
   companyName: string;
@@ -32,17 +69,122 @@ export type PayslipInput = {
   stdRate: number;
   stdBonus: number;
   withdrawalPenalty: number;
+  /** Team R only — renders the detailed transaction layout when present. */
+  transactions?: PayslipTransactions;
 };
 
-export type PayslipTotals = { grossCommission: number; totalDeductions: number; netPayable: number };
+export type PayslipTotals = {
+  grossCommission: number;
+  totalDeductions: number;
+  netPayable: number;
+  /** Salary after attendance deductions. Never reduced by commission. */
+  netSalary: number;
+  /** Commission after withdrawal penalties; negative means a deficit. */
+  netCommission: number;
+  /** Negative amount carried to next month when penalties exceed commission. */
+  commissionDeficit: number;
+};
 
 export function payslipTotals(p: PayslipInput): PayslipTotals {
   const grossCommission = (p.ftdCommission || 0) + (p.revenueCommission || 0) + (p.stdBonus || 0);
   const totalDeductions = (p.absenceDeduction || 0) + (p.withdrawalPenalty || 0);
+  const netSalary = Math.max(0, (p.baseSalary || 0) - (p.absenceDeduction || 0));
+  const netCommission = grossCommission - (p.withdrawalPenalty || 0);
   return {
     grossCommission,
     totalDeductions,
-    netPayable: (p.baseSalary || 0) + grossCommission - totalDeductions,
+    netSalary,
+    netCommission,
+    // A commission deficit is carried forward — it never eats into the salary.
+    commissionDeficit: Math.min(0, netCommission),
+    netPayable: netSalary + Math.max(0, netCommission),
+  };
+}
+
+type RevenueSource = {
+  date: string;
+  amount: number | string;
+  method?: string | null;
+  employee_id?: string | null;
+  employee_id_2?: string | null;
+  split_pct?: number | string | null;
+};
+
+type WithdrawalSource = {
+  date: string;
+  amount: number | string;
+  employee_penalty?: number | string | null;
+};
+
+/**
+ * Builds the privacy-safe transaction detail for a retention payslip: every
+ * deposit and withdrawal reduced to date + amounts, split-adjusted for this
+ * agent. No client name, id or payment-method name is ever carried over.
+ */
+export function buildRetentionTransactions(opts: {
+  employeeId: string;
+  revenue: RevenueSource[];
+  withdrawals: WithdrawalSource[];
+  /** Tiered commission rate applied to this month's revenue. */
+  commissionPct: number;
+  settings?: CompanySettings;
+  /** Fallback when a withdrawal has no stored penalty. */
+  defaultPenaltyPct?: number;
+}): PayslipTransactions {
+  const { employeeId, commissionPct, settings } = opts;
+  const rate = (Number(commissionPct) || 0) / 100;
+
+  const revenue: PayslipRevenueTxn[] = [];
+  for (const r of opts.revenue ?? []) {
+    const pct = Number(r.split_pct ?? 100);
+    const full = Number(r.amount) || 0;
+    const share =
+      r.employee_id === employeeId
+        ? full * (pct / 100)
+        : r.employee_id_2 === employeeId
+          ? full * ((100 - pct) / 100)
+          : 0;
+    if (!share) continue;
+    const feeShare = share * (methodFeePct(r.method, settings) / 100);
+    const commissionEarned = share * rate;
+    const feeDeducted = feeShare * rate;
+    revenue.push({
+      date: String(r.date),
+      amount: share,
+      commissionPct: Number(commissionPct) || 0,
+      commissionEarned,
+      feeDeducted,
+      netCommission: commissionEarned - feeDeducted,
+    });
+  }
+  revenue.sort((a, b) => a.date.localeCompare(b.date));
+
+  const withdrawals: PayslipWithdrawalTxn[] = (opts.withdrawals ?? [])
+    .map((w) => {
+      const amount = Number(w.amount) || 0;
+      const stored = Number(w.employee_penalty ?? 0);
+      const penalty = stored || amount * ((opts.defaultPenaltyPct ?? 10) / 100);
+      return {
+        date: String(w.date),
+        amount,
+        penaltyPct: amount > 0 ? (penalty / amount) * 100 : 0,
+        penalty,
+      };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const sum = <T,>(rows: T[], f: (r: T) => number) => rows.reduce((s, r) => s + f(r), 0);
+  return {
+    revenue,
+    withdrawals,
+    totals: {
+      deposits: sum(revenue, (r) => r.amount),
+      commissionEarned: sum(revenue, (r) => r.commissionEarned),
+      feeDeducted: sum(revenue, (r) => r.feeDeducted),
+      netCommission: sum(revenue, (r) => r.netCommission),
+      withdrawals: sum(withdrawals, (w) => w.amount),
+      penalty: sum(withdrawals, (w) => w.penalty),
+    },
   };
 }
 
