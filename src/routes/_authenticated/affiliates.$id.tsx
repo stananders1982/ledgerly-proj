@@ -321,11 +321,17 @@ function AffiliateStatementPage() {
           <CardContent className="text-2xl font-semibold text-amber-500">{fmtMoney(totals.paid)}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Balance outstanding</CardTitle></CardHeader>
-          <CardContent className={cn("text-2xl font-semibold", weekTotals.cost - totals.paid >= 0 ? "text-emerald-500" : "text-rose-500")}>
-            {weekTotals.cost - totals.paid < 0 ? "−" : ""}{fmtMoney(Math.abs(weekTotals.cost - totals.paid))}
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">
+            {totals.paid > weekTotals.cost ? "Credit with affiliate" : "Balance outstanding"}
+          </CardTitle></CardHeader>
+          <CardContent className={cn("text-2xl font-semibold", totals.paid > weekTotals.cost ? "text-emerald-500" : "text-rose-500")}>
+            {fmtMoney(Math.abs(weekTotals.cost - totals.paid))}
+          </CardContent>
+          <CardContent className="pt-0 text-xs text-muted-foreground">
+            {totals.paid > weekTotals.cost ? "Paid ahead of reported cost" : "Still owed to the affiliate"}
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Guarantee delivery</CardTitle></CardHeader>
           <CardContent className="text-2xl font-semibold">
