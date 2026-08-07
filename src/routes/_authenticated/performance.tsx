@@ -69,6 +69,9 @@ const TEAM_LABEL: Record<string, string> = { C: "Conversion", R: "Retention", M:
 
 function PerformancePage() {
   const settings = useCompanySettings();
+  const { company, companyId, user } = useAuth();
+  const can = useCan();
+
   const navigate = useNavigate();
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [search, setSearch] = useState("");
