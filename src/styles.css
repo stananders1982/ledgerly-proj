@@ -170,6 +170,8 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01";
+    overflow-x: clip;
+    max-width: 100%;
   }
   h1,
   h2,
@@ -292,10 +294,11 @@
 @utility aurora-bg {
   position: relative;
   isolation: isolate;
+  overflow-x: clip;
   &::before {
     content: "";
     position: absolute;
-    inset: -20% -10% auto -10%;
+    inset: -20% 0 auto 0;
     height: 420px;
     z-index: -1;
     background:
