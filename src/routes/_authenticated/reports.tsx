@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePagination, TablePagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { TargetBadge } from "@/routes/_authenticated/sources";
-import { isStd } from "@/lib/rules";
+import { isStd, isAgentTeam } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 
@@ -221,8 +221,11 @@ function ReportsPage() {
     const income = revenue.reduce((s, r) => s + Number(r.amount), 0);
     const otherExp = expenses.reduce((s, r) => s + Number(r.amount), 0);
     const activeEmp = employees.filter((e) => e.active);
+    // Salaries include managers (fixed cost); commission never does.
     const salaries = activeEmp.reduce((s, e) => s + Number(e.salary), 0);
-    const commissions = activeEmp.reduce((s, e) => s + (income * Number(e.commission_pct)) / 100, 0);
+    const commissions = activeEmp
+      .filter((e) => isAgentTeam(e.team))
+      .reduce((s, e) => s + (income * Number(e.commission_pct)) / 100, 0);
     const leadCost = cplCost + cpaPayable;
     const totalExpenses = leadCost + marketingCost + otherExp + salaries + commissions;
     const profit = income - totalExpenses;
@@ -384,7 +387,8 @@ function ReportsPage() {
     }
 
     const byEmp = new Map<string, { name: string; team: string; revenue: number; commBase: number; leads: number; activated: number; std: number; salary: number; tiers: CommissionTiers }>();
-    for (const e of data.employees as any[]) byEmp.set(e.id, {
+    // Managers (Team M) are excluded from the employee report entirely.
+    for (const e of (data.employees as any[]).filter((x) => isAgentTeam(x.team))) byEmp.set(e.id, {
       name: e.name,
       team: String(e.team ?? "R").toUpperCase(),
       revenue: 0, commBase: 0, leads: 0, activated: 0,
@@ -426,7 +430,11 @@ function ReportsPage() {
     const affs = ((affMapQ.data ?? []) as any[]);
     const affNames = new Map<string, string>(affs.map((a) => [a.id, a.name]));
     const affByLowerName = new Map<string, string>(affs.map((a) => [String(a.name).trim().toLowerCase(), a.id]));
-    const empNames = new Map<string, string>((data.employees as any[]).map((e) => [e.id, e.name]));
+    // Rankings exclude managers (Team M).
+    const empNames = new Map<string, string>(
+      (data.employees as any[]).filter((e) => isAgentTeam(e.team)).map((e) => [e.id, e.name]),
+    );
+    const isAgentId = (id?: string | null) => !!id && empNames.has(id);
     type Row = { id: string; name: string; activated: number; revenue: number };
     const byAff = new Map<string, Row>();
     const byEmp = new Map<string, Row>();
@@ -446,12 +454,12 @@ function ReportsPage() {
       const pct = Number(r.split_pct ?? 100);
       const affId = r.affiliate_id ?? r.leads?.affiliate_id;
       if (affId) { const x = getA(affId); x.revenue += amt; byAff.set(affId, x); }
-      if (r.employee_id) { const x = getE(r.employee_id); x.revenue += amt * (pct / 100); byEmp.set(r.employee_id, x); }
-      if (r.employee_id_2) { const x = getE(r.employee_id_2); x.revenue += amt * ((100 - pct) / 100); byEmp.set(r.employee_id_2, x); }
+      if (isAgentId(r.employee_id)) { const x = getE(r.employee_id); x.revenue += amt * (pct / 100); byEmp.set(r.employee_id, x); }
+      if (isAgentId(r.employee_id_2)) { const x = getE(r.employee_id_2); x.revenue += amt * ((100 - pct) / 100); byEmp.set(r.employee_id_2, x); }
     }
     // Activations per employee: count for retention holder and conversion agent
     for (const a of ((pvActQ.data ?? []) as any[])) {
-      const ids = new Set<string>([a.employee_id, a.conversion_employee_id].filter(Boolean));
+      const ids = new Set<string>([a.employee_id, a.conversion_employee_id].filter((x) => isAgentId(x)));
       for (const id of ids) { const x = getE(id); x.activated += 1; byEmp.set(id, x); }
     }
     const toRows = (m: Map<string, Row>) => Array.from(m.values())

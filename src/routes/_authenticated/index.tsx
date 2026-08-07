@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { isAgentTeam } from "@/lib/rules";
 import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -110,7 +111,7 @@ function Dashboard() {
   });
   const empQ = useQuery({
     queryKey: ["dash-emp"],
-    queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,salary,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active,created_at").eq("active", true)),
+    queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,team,salary,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active,created_at").eq("active", true)),
   });
   // Previous period of the same length, for period-over-period deltas.
   // Equivalent previous period for the selected preset (this month vs last month).
@@ -207,7 +208,8 @@ function Dashboard() {
         perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt);
       }
     }
-    const commissions = employees.reduce((s, e) => {
+    // Managers (Team M) earn no commission; their salary stays in `salaries`.
+    const commissions = employees.filter((e) => isAgentTeam(e.team)).reduce((s, e) => {
       const rev = perEmp.get(e.id) ?? 0;
       return s + commissionAmount(rev, e);
     }, 0);

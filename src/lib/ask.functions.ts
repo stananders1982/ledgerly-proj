@@ -51,6 +51,21 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const nameOf = (rows: any[] | null, id: string | null | undefined) =>
       rows?.find((r) => r.id === id)?.name ?? "unassigned";
 
+    // Managers (Team M) are never part of agent-level metrics; they still
+    // count inside company-wide totals.
+    const managerIds = new Set(
+      (employees.data ?? [])
+        .filter((e: any) => String(e.team ?? "R").toUpperCase() === "M")
+        .map((e: any) => e.id),
+    );
+    /** "" means "skip this row" — bucket() ignores empty keys. */
+    const agentNameOf = (id: string | null | undefined) =>
+      id && managerIds.has(id) ? "" : nameOf(employees.data, id);
+    const agentKey = (m: string, id: string | null | undefined) => {
+      const n = agentNameOf(id);
+      return n ? `${m} | ${n}` : "";
+    };
+
     const bucket = <T,>(rows: T[] | null, key: (r: T) => string, val: (r: T) => number) => {
       const m = new Map<string, number>();
       for (const r of rows ?? []) {
@@ -90,7 +105,8 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       }
     }
     for (const a of actRows) {
-      const agent = nameOf(employees.data, a.employee_id);
+      const agent = agentNameOf(a.employee_id);
+      if (!agent) continue;
       const mine = revRows.filter((r) => depositMatchesActivation(r, a));
       for (const s of stdDepositsFor(a, mine as any)) {
         stdRows.push({ date: String(s.date), amount: Number(s.amount || 0), agent });
@@ -118,25 +134,25 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         bucket(leads.data, (l: any) => nameOf(sources.data, l.source_id), (l: any) => Number(l.cost || 0)),
       ),
       depositsByAgent: round(
-        bucket(revenue.data, (r: any) => nameOf(employees.data, r.employee_id), (r: any) => Number(r.amount || 0)),
+        bucket(revenue.data, (r: any) => agentNameOf(r.employee_id), (r: any) => Number(r.amount || 0)),
       ),
       // "month | agent" keys so month-specific agent questions are answerable.
       depositsByMonthAndAgent: round(
         bucket(
           revenue.data,
-          (r: any) => `${month(r.date)} | ${nameOf(employees.data, r.employee_id)}`,
+          (r: any) => agentKey(month(r.date), r.employee_id),
           (r: any) => Number(r.amount || 0),
         ),
       ),
       activationsByConversionAgent: bucket(
         activations.data,
-        (a: any) => nameOf(employees.data, a.conversion_employee_id),
+        (a: any) => agentNameOf(a.conversion_employee_id),
         () => 1,
       ),
       // Activation clock: counted in the month the lead was activated.
       activationsByMonthActivatedAndAgent: bucket(
         activations.data,
-        (a: any) => `${month(a.activation_date)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
+        (a: any) => agentKey(month(a.activation_date), a.conversion_employee_id),
         () => 1,
       ),
       // Qualification clock: counted in the month the FTD became valid. This
@@ -144,7 +160,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       // than the activation count for the same month — they are not subsets.
       qualifiedFtdsByMonthQualifiedAndAgent: bucket(
         (activations.data ?? []).filter((a: any) => a.qualified_at),
-        (a: any) => `${month(a.qualified_at)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
+        (a: any) => agentKey(month(a.qualified_at), a.conversion_employee_id),
         () => 1,
       ),
       // Of those qualified in a month, how many were activated in an earlier month.
@@ -152,7 +168,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         (activations.data ?? []).filter(
           (a: any) => a.qualified_at && month(a.qualified_at) !== month(a.activation_date),
         ),
-        (a: any) => `${month(a.qualified_at)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
+        (a: any) => agentKey(month(a.qualified_at), a.conversion_employee_id),
         () => 1,
       ),
       // Of a month's own activations, how many qualified within that same month.
@@ -160,7 +176,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         (activations.data ?? []).filter(
           (a: any) => a.qualified_at && month(a.qualified_at) === month(a.activation_date),
         ),
-        (a: any) => `${month(a.activation_date)} | ${nameOf(employees.data, a.conversion_employee_id)}`,
+        (a: any) => agentKey(month(a.activation_date), a.conversion_employee_id),
         () => 1,
       ),
 
@@ -192,7 +208,9 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         bucket(revenue.data, (r: any) => r.method || "unspecified", (r: any) => Number(r.amount || 0)),
       ),
       employeeTeams: Object.fromEntries(
-        (employees.data ?? []).map((e: any) => [e.name, e.team ?? "—"]),
+        (employees.data ?? [])
+          .filter((e: any) => !managerIds.has(e.id))
+          .map((e: any) => [e.name, e.team ?? "—"]),
       ),
       // Retention: deposits on clients assigned to a retention agent, credited
       // to that agent. Keys are "month | agent".

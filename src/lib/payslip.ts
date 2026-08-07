@@ -140,34 +140,41 @@ export function buildPayslipDoc(p: PayslipInput): jsPDF {
     columnStyles: { 2: { halign: "right" } },
   });
 
+  const deductions: string[][] = [
+    [
+      "Attendance deduction",
+      `${p.absentDays} absent of ${p.workingDays} working days × ${fmtMoney(p.perDayRate)}`,
+      `-${fmtMoney(p.absenceDeduction)}`,
+    ],
+  ];
+  if (p.withdrawalPenalty) {
+    deductions.push(["Withdrawal penalties", "", `-${fmtMoney(p.withdrawalPenalty)}`]);
+  }
+
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 6,
     head: [["Deductions", "Basis", "Amount"]],
-    body: [
-      [
-        "Attendance deduction",
-        `${p.absentDays} absent of ${p.workingDays} working days × ${fmtMoney(p.perDayRate)}`,
-        `-${fmtMoney(p.absenceDeduction)}`,
-      ],
-      ["Withdrawal penalties", "", `-${fmtMoney(p.withdrawalPenalty)}`],
-    ],
+    body: deductions,
     headStyles: { fillColor: [90, 40, 45] },
     styles: { fontSize: 9 },
     columnStyles: { 2: { halign: "right" } },
   });
 
+  // Managers have no commission at all — their payslip stays salary-only.
+  const summary: string[][] = [];
+  if (t.grossCommission) summary.push(["Total gross commission", fmtMoney(t.grossCommission)]);
+  summary.push(["Total deductions", `-${fmtMoney(t.totalDeductions)}`]);
+  summary.push(["Net payable", fmtMoney(t.netPayable)]);
+  const netRowIndex = summary.length - 1;
+
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 6,
     theme: "grid",
-    body: [
-      ["Total gross commission", fmtMoney(t.grossCommission)],
-      ["Total deductions", `-${fmtMoney(t.totalDeductions)}`],
-      ["Net payable", fmtMoney(t.netPayable)],
-    ],
+    body: summary,
     styles: { fontSize: 10 },
     columnStyles: { 0: { cellWidth: 120 }, 1: { halign: "right", fontStyle: "bold" } },
     didParseCell: (data) => {
-      if (data.row.index === 2) {
+      if (data.row.index === netRowIndex) {
         data.cell.styles.fillColor = [24, 24, 32];
         data.cell.styles.textColor = [255, 255, 255];
         data.cell.styles.fontStyle = "bold";
