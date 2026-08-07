@@ -254,7 +254,8 @@ function AffiliateStatementPage() {
         title={affQ.data?.name ?? "Affiliate"}
         description={
           members.length > 1
-            ? `Billing group "${groupLabel}" — combined statement for ${members.map((m) => m.name).join(" + ")}.`
+            ? `Billing group "${groupLabel}" — balance shared with ${members.filter((m) => m.id !== id).map((m) => m.name).join(" + ")}; revenue shown for this source only.`
+
             : affQ.data?.active
               ? "Monthly statement and transaction history."
               : "Inactive affiliate"
