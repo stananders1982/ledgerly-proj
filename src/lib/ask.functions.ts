@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { activationDate, depositMatchesActivation, stdDepositsFor } from "@/lib/rules";
+import { depositMatchesActivation, stdDepositsFor } from "@/lib/rules";
 
 /**
  * Natural-language question answering over the caller's own business data.
@@ -29,7 +29,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
 
     const [revenue, expenses, withdrawals, activations, leads, sources, employees, categories, affiliates] =
       await Promise.all([
-        supabase.from("revenue").select("date,amount,customer_name,employee_id,affiliate_id,method,activation_id").gte("date", sinceIso),
+        supabase.from("revenue").select("date,amount,customer_name,employee_id,employee_id_2,split_pct,affiliate_id,method,activation_id").gte("date", sinceIso),
         supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
         supabase.from("withdrawals").select("date,amount,employee_id").gte("date", sinceIso),
         supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id").gte("activation_date", sinceIso),
@@ -64,16 +64,27 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const actRows = (activations.data ?? []) as any[];
     const revRows = (revenue.data ?? []) as any[];
     const stdRows: { date: string; amount: number; agent: string }[] = [];
-    const retentionRows: { date: string; amount: number; agent: string }[] = [];
+    const performanceRevenueRows: { date: string; amount: number; agent: string }[] = [];
+    const employeeById = new Map((employees.data ?? []).map((employee: any) => [employee.id, employee]));
+
+    // Match Employee Performance exactly: revenue is credited to the employees
+    // selected on the deposit, respecting the configured split percentage.
+    for (const row of revRows) {
+      if (!row.date) continue;
+      const amount = Number(row.amount || 0);
+      const splitPct = Number(row.split_pct ?? 100);
+      const primary = employeeById.get(row.employee_id) as any;
+      const secondary = employeeById.get(row.employee_id_2) as any;
+      if (String(primary?.team ?? "R").toUpperCase() === "R") {
+        performanceRevenueRows.push({ date: String(row.date), amount: amount * (splitPct / 100), agent: primary.name });
+      }
+      if (secondary && String(secondary.team ?? "R").toUpperCase() === "R") {
+        performanceRevenueRows.push({ date: String(row.date), amount: amount * ((100 - splitPct) / 100), agent: secondary.name });
+      }
+    }
     for (const a of actRows) {
       const agent = nameOf(employees.data, a.employee_id);
       const mine = revRows.filter((r) => depositMatchesActivation(r, a));
-      for (const d of mine) {
-        if (!d.date) continue;
-        const act = activationDate(a);
-        if (act && String(d.date) < act) continue;
-        retentionRows.push({ date: String(d.date), amount: Number(d.amount || 0), agent });
-      }
       for (const s of stdDepositsFor(a, mine as any)) {
         stdRows.push({ date: String(s.date), amount: Number(s.amount || 0), agent });
       }
@@ -178,10 +189,10 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       // Retention: deposits on clients assigned to a retention agent, credited
       // to that agent. Keys are "month | agent".
       retentionDepositsByMonthAndAgent: round(
-        bucket(retentionRows, (r) => `${month(r.date)} | ${r.agent}`, (r) => r.amount),
+        bucket(performanceRevenueRows, (r) => `${month(r.date)} | ${r.agent}`, (r) => r.amount),
       ),
       retentionDepositCountByMonthAndAgent: bucket(
-        retentionRows,
+        performanceRevenueRows,
         (r) => `${month(r.date)} | ${r.agent}`,
         () => 1,
       ),
@@ -204,7 +215,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       },
     };
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -212,11 +223,11 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         "X-Lovable-AIG-SDK": "fetch",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.6-flash",
-        messages: [
+        model: "openai/gpt-5.6-sol",
+        input: [
           {
             role: "system",
-            content:
+            content: [{ type: "input_text", text:
               "You answer questions about a lead-generation and client-deposit business using ONLY the JSON snapshot provided. " +
               "Be short: two or three sentences, with the concrete numbers you used. Amounts are USD. " +
               "FTD means first-time deposit (an activated client); STD means a second deposit. " +
@@ -231,17 +242,17 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "TEAMS: employeeTeams maps each agent to C (conversion), R (retention) or M (manager). " +
               "A question about retention concerns ONLY team R agents. Rank retention leaders by their MONTHLY REVENUE — " +
               "retentionDepositsByMonthAndAgent, which is the revenue shown for that agent on the Employee Performance page " +
-              "(all deposits from the clients assigned to them). Highest revenue is the leader. " +
+              "(deposit revenue attributed to that employee, with split percentages applied). Highest revenue is the leader. " +
               "stdCountByMonthAndAgent / stdAmountByMonthAndAgent are the STD counts; mention them only as extra colour or when the " +
               "question asks about STDs, never as the ranking. " +
               "Do not rank retention by depositsByMonthAndAgent (deposits credited to whoever recorded them). " +
               "A question about conversion concerns ONLY team C agents. Exclude managers from agent rankings. " +
               "For 'who is leading', rank by activations by default; rank by qualified FTDs only when the question is about commission or pay, and say so. " +
 
-              "If the snapshot does not contain the answer, say exactly what is missing instead of guessing.",
+              "If the snapshot does not contain the answer, say exactly what is missing instead of guessing." }],
 
           },
-          { role: "user", content: `Snapshot:\n${JSON.stringify(snapshot)}\n\nQuestion: ${data.question}` },
+          { role: "user", content: [{ type: "input_text", text: `Snapshot:\n${JSON.stringify(snapshot)}\n\nQuestion: ${data.question}` }] },
         ],
       }),
     });
@@ -251,6 +262,10 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     if (!res.ok) throw new Error(`AI request failed (${res.status}).`);
 
     const json = (await res.json()) as any;
-    const answer = json?.choices?.[0]?.message?.content?.trim();
+    const answer = String(
+      json?.output_text ??
+      json?.output?.flatMap((item: any) => item?.content ?? []).find((item: any) => item?.type === "output_text")?.text ??
+      "",
+    ).trim();
     return { answer: answer || "No answer came back — try rephrasing the question." };
   });
