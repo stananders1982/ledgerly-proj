@@ -529,6 +529,9 @@ function EmployeeDetailPage() {
           {isRetention && (
             <>
               <Row label={`Commission (${totals.rate}% on ${fmtMoney(totals.commBase)})`} value={`+${fmtMoney(totals.commission)}`} positive />
+              {totals.stdRate > 0 && (
+                <Row label={`STD bonus (${stdCount} × ${fmtMoney(totals.stdRate)})`} value={`+${fmtMoney(totals.stdBonus)}`} positive />
+              )}
               <Row label="Withdrawal penalty (10%)" value={`−${fmtMoney(totals.penalty)}`} negative />
             </>
           )}
@@ -546,7 +549,43 @@ function EmployeeDetailPage() {
           </div>
         )}
       </div>
+
+      <div className="card-surface overflow-hidden mt-6">
+        <div className="px-5 py-3 border-b border-border flex items-center gap-2">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <h3 className="font-display text-base font-semibold">Payslip history</h3>
+        </div>
+        {((payslipsQ.data ?? []) as any[]).length === 0 ? (
+          <div className="p-6 text-sm text-muted-foreground">No payslips generated yet for this employee.</div>
+        ) : (
+          <div className="overflow-x-auto scroll-slim max-h-[320px]">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-card">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-2 px-4">Period</th>
+                  <th className="py-2 px-4">Downloaded</th>
+                  <th className="py-2 px-4">By</th>
+                  <th className="py-2 px-4 text-right">Gross commission</th>
+                  <th className="py-2 px-4 text-right">Net payable</th>
+                </tr>
+              </thead>
+              <tbody>
+                {((payslipsQ.data ?? []) as any[]).map((p) => (
+                  <tr key={p.id} className="border-b border-border/50">
+                    <td className="py-2 px-4 font-medium">{monthLabel(p.month)}</td>
+                    <td className="py-2 px-4 text-muted-foreground">{new Date(p.created_at).toLocaleString()}</td>
+                    <td className="py-2 px-4 text-muted-foreground">{p.user_email || "—"}</td>
+                    <td className="py-2 px-4 text-right">{fmtMoney(p.gross_commission)}</td>
+                    <td className="py-2 px-4 text-right font-medium">{fmtMoney(p.net_payable)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
+
   );
 }
 
