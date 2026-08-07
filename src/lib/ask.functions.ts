@@ -238,6 +238,8 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
             content: [{ type: "input_text", text:
               "You answer questions about a lead-generation and client-deposit business using ONLY the JSON snapshot provided. " +
               "Be short: two or three sentences, with the concrete numbers you used. Amounts are USD. " +
+              "When snapshot.selectedPeriod is not null, the user is looking at that dashboard period: answer about it by default " +
+              "unless the question names a different period, and say which dates you used. " + +
               "FTD means first-time deposit (an activated client); STD means a second deposit. " +
               "DEFAULT RULE: 'FTDs', 'activations', 'conversions' and 'how many clients' always mean the ACTIVATION clock — " +
               "leads activated in that period, from activationsByMonthActivatedAndAgent / totals.activations. " +
