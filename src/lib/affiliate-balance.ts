@@ -139,3 +139,52 @@ export function deliveryPct(totals: { reported: number; guaranteed: number }): n
   if (!totals.guaranteed) return null;
   return round2((totals.reported / totals.guaranteed) * 100);
 }
+
+/**
+ * Merge weekly settlement rows from every member of a billing group. Members
+ * keep their own terms (one flat, one guaranteed); only the money is shared.
+ */
+export function mergeWeekRows(perMember: WeekRow[][]): WeekRow[] {
+  const merged = new Map<string, WeekRow>();
+  for (const rows of perMember) {
+    for (const w of rows) {
+      const prev = merged.get(w.weekStart);
+      if (!prev) {
+        merged.set(w.weekStart, { ...w });
+        continue;
+      }
+      prev.leads += w.leads;
+      prev.guaranteed = round2(prev.guaranteed + w.guaranteed);
+      prev.reported += w.reported;
+      prev.payable = round2(prev.payable + w.payable);
+      prev.cost = round2(prev.cost + w.cost);
+      prev.savings = round2(prev.savings + w.savings);
+      prev.shortfall = round2(prev.shortfall + w.shortfall);
+      prev.status = prev.savings > 0 ? "over" : prev.shortfall > 0 ? "short" : "met";
+    }
+  }
+  return [...merged.values()].sort((a, b) => b.weekStart.localeCompare(a.weekStart));
+}
+
+/** What a source costs us, by pricing model. CPA pays only reported conversions. */
+export function sourceCost(
+  source: { pricing_model?: string | null; price?: number | string | null },
+  stats: { leads?: number; activated?: number; reported?: number },
+): { cost: number; savings: number } {
+  const price = Number(source.price || 0);
+  const leads = Number(stats.leads || 0);
+  const activated = Number(stats.activated || 0);
+  const reported = Number(stats.reported || 0);
+  if ((source.pricing_model ?? "CPL").toUpperCase() === "CPL") {
+    return { cost: round2(leads * price), savings: 0 };
+  }
+  return {
+    cost: round2(reported * price),
+    savings: round2(Math.max(0, activated - reported) * price),
+  };
+}
+
+/** Net balance for an affiliate: client deposits less withdrawals and payouts. */
+export function affiliateNet(m: { revenue: number; withdrawals: number; paid: number }): number {
+  return round2(Number(m.revenue || 0) - Number(m.withdrawals || 0) - Number(m.paid || 0));
+}
