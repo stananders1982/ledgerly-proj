@@ -371,6 +371,18 @@ function AffiliatesPage() {
               Settled weekly (Mon–Sun): guaranteed conversions = leads received × rate. You pay for reported
               conversions up to the guarantee; anything above it is free.
             </p>
+            <div className="space-y-1.5">
+              <Label>Billing group (optional)</Label>
+              <Input
+                placeholder="e.g. FTDhub"
+                value={form.group_key}
+                onChange={(e) => setForm((f) => ({ ...f, group_key: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Affiliates with the same billing group are one partner: their payouts and balance are shared,
+                while each source keeps its own price and guarantee.
+              </p>
+            </div>
             <div className="flex items-center justify-between rounded-md border border-border p-3">
               <div>
                 <div className="text-sm font-medium">Active</div>
