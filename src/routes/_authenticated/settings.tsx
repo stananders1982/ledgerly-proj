@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-context";
 import { BackupExport } from "@/components/backup-export";
 import { CustomFieldsAdmin } from "@/components/custom-fields-admin";
 import { ActionPermissionsAdmin } from "@/components/action-permissions-admin";
+import { ApiKeysAdmin } from "@/components/api-keys-admin";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/settings")({
