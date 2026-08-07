@@ -295,6 +295,101 @@ function AffiliateStatementPage() {
         </Card>
       </section>
 
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Owed ({activeRange.label})</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold">{fmtMoney(weekTotals.cost)}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Paid to affiliate</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold text-amber-500">{fmtMoney(totals.paid)}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Balance outstanding</CardTitle></CardHeader>
+          <CardContent className={cn("text-2xl font-semibold", weekTotals.cost - totals.paid > 0 ? "text-rose-500" : "text-emerald-500")}>
+            {fmtMoney(weekTotals.cost - totals.paid)}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Guarantee delivery</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold">
+            {deliveryPct(weekTotals) == null ? "—" : `${deliveryPct(weekTotals)}%`}
+          </CardContent>
+        </Card>
+      </section>
+
+      <div className="card-surface overflow-hidden mb-6">
+        <div className="p-4 border-b border-border">
+          <h3 className="font-display text-base font-semibold">Weekly conversion guarantee</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            {fmtMoney(Number(affQ.data?.cpa_rate || 0))} per conversion · {Number(affQ.data?.guarantee_value || 0)}% guaranteed.
+            Each Mon–Sun week settles on its own; conversions above the guarantee are free.
+          </p>
+        </div>
+        {weeks.length === 0 ? (
+          <div className="p-8 text-sm text-muted-foreground">No lead entries in this period.</div>
+        ) : (
+          <>
+          <div className="overflow-x-auto scroll-slim">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-3 px-4">Week</th>
+                  <th className="py-3 px-4">Leads</th>
+                  <th className="py-3 px-4">Guaranteed</th>
+                  <th className="py-3 px-4">Reported</th>
+                  <th className="py-3 px-4">Payable</th>
+                  <th className="py-3 px-4">Cost</th>
+                  <th className="py-3 px-4">Savings</th>
+                  <th className="py-3 px-4">Shortfall</th>
+                  <th className="py-3 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {weekPage.map((w) => (
+                  <tr key={w.weekStart} className="border-b border-border/50 transition-colors hover:bg-accent/30">
+                    <td className="py-3 px-4 font-medium whitespace-nowrap">{w.weekStart} → {w.weekEnd}</td>
+                    <td className="py-3 px-4">{w.leads}</td>
+                    <td className="py-3 px-4">{w.guaranteed}</td>
+                    <td className="py-3 px-4">{w.reported}</td>
+                    <td className="py-3 px-4">{w.payable}</td>
+                    <td className="py-3 px-4">{fmtMoney(w.cost)}</td>
+                    <td className="py-3 px-4 text-emerald-500">{w.savings ? fmtMoney(w.savings) : "—"}</td>
+                    <td className="py-3 px-4 text-rose-500">{w.shortfall || "—"}</td>
+                    <td className="py-3 px-4">
+                      <span className={cn(
+                        "rounded border px-1.5 py-0.5 text-xs font-medium",
+                        w.status === "over" ? "border-emerald-500/30 text-emerald-500" :
+                        w.status === "short" ? "border-rose-500/30 text-rose-500" :
+                        "border-border text-muted-foreground",
+                      )}>
+                        {w.status === "over" ? "Over" : w.status === "short" ? "Short" : "Met"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-border font-medium">
+                  <td className="py-3 px-4">Total</td>
+                  <td className="py-3 px-4">{weekTotals.leads}</td>
+                  <td className="py-3 px-4">{weekTotals.guaranteed}</td>
+                  <td className="py-3 px-4">{weekTotals.reported}</td>
+                  <td className="py-3 px-4">{weekTotals.payable}</td>
+                  <td className="py-3 px-4">{fmtMoney(weekTotals.cost)}</td>
+                  <td className="py-3 px-4 text-emerald-500">{fmtMoney(weekTotals.savings)}</td>
+                  <td className="py-3 px-4 text-rose-500">{weekTotals.shortfall || "—"}</td>
+                  <td className="py-3 px-4"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <TablePagination {...pgWeeks} />
+          </>
+        )}
+      </div>
+
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card-surface overflow-hidden">
           <div className="p-4 border-b border-border">
