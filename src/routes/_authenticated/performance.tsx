@@ -297,6 +297,74 @@ function PerformancePage() {
 
   const loading = empQ.isLoading || revQ.isLoading || actQ.isLoading;
 
+  const [zipping, setZipping] = useState(false);
+
+  const exportAllPayslips = async () => {
+    if (!can("export_data")) return toast.error("You don't have permission to export data.");
+    const targets = rows.filter((r) => r.active);
+    if (!targets.length) return toast.error("No active agents for this month");
+    setZipping(true);
+    try {
+      const [{ default: JSZip }, logo] = await Promise.all([
+        import("jszip"),
+        loadLogoDataUrl(settings.logoUrl),
+      ]);
+      const zip = new JSZip();
+      const logRows: any[] = [];
+      for (const r of targets) {
+        const input: PayslipInput = {
+          companyName: company?.name ?? "Company",
+          logoDataUrl: logo,
+          employeeName: r.name,
+          teamLabel: r.teamLabel,
+          role: r.role,
+          month,
+          baseSalary: r.baseSalary,
+          workingDays: r.workingDays,
+          absentDays: r.absent,
+          perDayRate: r.perDay,
+          absenceDeduction: r.deduction,
+          ftdCount: r.commissionableFtds,
+          ftdRate: r.ftdRate,
+          ftdCommission: r.ftdCommission,
+          revenueBase: r.commBase,
+          commissionPct: r.team === "R" ? r.rate : 0,
+          revenueCommission: r.commission,
+          stdCount: r.stds,
+          stdRate: r.stdRate,
+          stdBonus: r.stdBonus,
+          withdrawalPenalty: r.penalty,
+        };
+        zip.file(payslipFilename(input), payslipBlob(input));
+        const t = payslipTotals(input);
+        if (companyId) {
+          logRows.push({
+            company_id: companyId,
+            employee_id: r.id,
+            month,
+            gross_commission: t.grossCommission,
+            net_payable: t.netPayable,
+            generated_by: user?.id ?? null,
+            user_email: user?.email ?? null,
+          });
+        }
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `payslips-${month}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      if (logRows.length) await sb.from("payslips").insert(logRows);
+      toast.success(`${targets.length} payslips exported`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to export payslips");
+    } finally {
+      setZipping(false);
+    }
+  };
+
   return (
     <div>
       <PageHeader
@@ -307,9 +375,13 @@ function PerformancePage() {
             <SearchInput value={search} onChange={setSearch} placeholder="Search agents…" className="w-full sm:w-56" />
             <Label className="text-xs text-muted-foreground">Month</Label>
             <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-[160px] max-w-full" />
+            <Button onClick={exportAllPayslips} disabled={zipping || loading}>
+              <Download className="h-4 w-4" /> {zipping ? "Preparing…" : "Export all payslips"}
+            </Button>
           </div>
         }
       />
+
 
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
         <StatCard label="Total FTDs" value={String(totals.ftds)} tone="positive" />
