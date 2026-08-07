@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePagination, TablePagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { TargetBadge } from "@/routes/_authenticated/sources";
-import { isStd } from "@/lib/rules";
+import { isStd, isAgentTeam } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 
@@ -221,8 +221,11 @@ function ReportsPage() {
     const income = revenue.reduce((s, r) => s + Number(r.amount), 0);
     const otherExp = expenses.reduce((s, r) => s + Number(r.amount), 0);
     const activeEmp = employees.filter((e) => e.active);
+    // Salaries include managers (fixed cost); commission never does.
     const salaries = activeEmp.reduce((s, e) => s + Number(e.salary), 0);
-    const commissions = activeEmp.reduce((s, e) => s + (income * Number(e.commission_pct)) / 100, 0);
+    const commissions = activeEmp
+      .filter((e) => isAgentTeam(e.team))
+      .reduce((s, e) => s + (income * Number(e.commission_pct)) / 100, 0);
     const leadCost = cplCost + cpaPayable;
     const totalExpenses = leadCost + marketingCost + otherExp + salaries + commissions;
     const profit = income - totalExpenses;
