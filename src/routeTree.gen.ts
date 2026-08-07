@@ -39,6 +39,7 @@ import { Route as AuthenticatedAffiliatesIdRouteImport } from './routes/_authent
 import { Route as ApiPublicV1LeadsRouteImport } from './routes/api/public/v1/leads'
 import { Route as ApiPublicV1DepositsRouteImport } from './routes/api/public/v1/deposits'
 import { Route as ApiPublicV1ActivationsRouteImport } from './routes/api/public/v1/activations'
+import { Route as ApiPublicV1ReportsSummaryRouteImport } from './routes/api/public/v1/reports/summary'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -197,6 +198,12 @@ const ApiPublicV1ActivationsRoute = ApiPublicV1ActivationsRouteImport.update({
   path: '/api/public/v1/activations',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV1ReportsSummaryRoute =
+  ApiPublicV1ReportsSummaryRouteImport.update({
+    id: '/api/public/v1/reports/summary',
+    path: '/api/public/v1/reports/summary',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -228,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
+  '/api/public/v1/reports/summary': typeof ApiPublicV1ReportsSummaryRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -259,6 +267,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
+  '/api/public/v1/reports/summary': typeof ApiPublicV1ReportsSummaryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -292,6 +301,7 @@ export interface FileRoutesById {
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
+  '/api/public/v1/reports/summary': typeof ApiPublicV1ReportsSummaryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
     | '/api/public/v1/leads'
+    | '/api/public/v1/reports/summary'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
     | '/api/public/v1/leads'
+    | '/api/public/v1/reports/summary'
   id:
     | '__root__'
     | '/_authenticated'
@@ -388,6 +400,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
     | '/api/public/v1/leads'
+    | '/api/public/v1/reports/summary'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -397,6 +410,7 @@ export interface RootRouteChildren {
   ApiPublicV1ActivationsRoute: typeof ApiPublicV1ActivationsRoute
   ApiPublicV1DepositsRoute: typeof ApiPublicV1DepositsRoute
   ApiPublicV1LeadsRoute: typeof ApiPublicV1LeadsRoute
+  ApiPublicV1ReportsSummaryRoute: typeof ApiPublicV1ReportsSummaryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -611,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1ActivationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/reports/summary': {
+      id: '/api/public/v1/reports/summary'
+      path: '/api/public/v1/reports/summary'
+      fullPath: '/api/public/v1/reports/summary'
+      preLoaderRoute: typeof ApiPublicV1ReportsSummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -678,6 +699,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicV1ActivationsRoute: ApiPublicV1ActivationsRoute,
   ApiPublicV1DepositsRoute: ApiPublicV1DepositsRoute,
   ApiPublicV1LeadsRoute: ApiPublicV1LeadsRoute,
+  ApiPublicV1ReportsSummaryRoute: ApiPublicV1ReportsSummaryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
