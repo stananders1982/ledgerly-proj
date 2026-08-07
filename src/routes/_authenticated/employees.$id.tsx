@@ -277,19 +277,66 @@ function EmployeeDetailPage() {
     </div>
   );
 
+  const payslipInput = (logoDataUrl: string | null): PayslipInput => ({
+    companyName: company?.name ?? "Company",
+    logoDataUrl,
+    employeeName: emp.name,
+    teamLabel,
+    role: emp.role,
+    month,
+    baseSalary: Number(emp.salary ?? 0),
+    workingDays: totals.wd,
+    absentDays: totals.absent,
+    perDayRate: totals.perDay,
+    absenceDeduction: totals.deduction,
+    ftdCount: totals.ftdCount,
+    ftdRate: totals.ftdRate,
+    ftdCommission: isConversion ? totals.ftdCommission : 0,
+    revenueBase: isRetention ? totals.commBase : 0,
+    commissionPct: isRetention ? totals.rate : 0,
+    revenueCommission: isRetention ? totals.commission : 0,
+    stdCount: isRetention ? stdCount : 0,
+    stdRate: totals.stdRate,
+    stdBonus: totals.stdBonus,
+    withdrawalPenalty: isRetention ? totals.penalty : 0,
+  });
+
+  const handlePayslip = async () => {
+    if (!can("export_data")) return toast.error("You don't have permission to export data.");
+    const logo = await loadLogoDataUrl(settings.logoUrl);
+    const input = payslipInput(logo);
+    downloadPayslip(input);
+    const t = payslipTotals(input);
+    if (companyId) {
+      await sb.from("payslips").insert({
+        company_id: companyId,
+        employee_id: emp.id,
+        month,
+        gross_commission: t.grossCommission,
+        net_payable: t.netPayable,
+        generated_by: user?.id ?? null,
+        user_email: user?.email ?? null,
+      });
+      qc.invalidateQueries({ queryKey: ["payslips", id] });
+    }
+    toast.success(`Payslip for ${monthLabel(month)} downloaded`);
+  };
+
   return (
     <div>
       <PageHeader
         title={emp.name}
         description={`${emp.active ? "Active" : "Inactive"} · ${teamLabel} · Base salary ${fmtMoney(emp.salary)}`}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Label className="text-xs text-muted-foreground">Month</Label>
             <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-[160px]" />
+            <Button onClick={handlePayslip}><Download className="h-4 w-4" /> Download payslip</Button>
             <Button variant="outline" asChild><Link to="/employees"><ArrowLeft className="h-4 w-4" /> Back</Link></Button>
           </div>
         }
       />
+
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {isRetention && (
