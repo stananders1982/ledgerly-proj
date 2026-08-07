@@ -156,6 +156,41 @@ function EmployeeDetailPage() {
     },
   });
 
+  // STD (retention only): every client this agent handles + every dated deposit.
+  const stdSourceQ = useQuery({
+    enabled: isRetention,
+    queryKey: ["employee-std-source", id],
+    queryFn: async () => {
+      const acts = await fetchAll(() => sb
+        .from("daily_lead_activations")
+        .select("id, lead_name, activation_date")
+        .eq("employee_id", id));
+      const deps = await fetchAll(() => sb
+        .from("revenue")
+        .select("id, activation_id, customer_name, amount, date"));
+      return { acts: acts ?? [], deps: deps ?? [] };
+    },
+  });
+
+  const stdCount = useMemo(() => {
+    if (!isRetention || !stdSourceQ.data) return 0;
+    const { acts, deps } = stdSourceQ.data as { acts: any[]; deps: any[] };
+    return acts.filter((a) => isStd(a, deps, { start, end })).length;
+  }, [isRetention, stdSourceQ.data, start, end]);
+
+  // Payslips previously generated for this employee.
+  const payslipsQ = useQuery({
+    queryKey: ["payslips", id],
+    queryFn: async () =>
+      (await sb
+        .from("payslips")
+        .select("id, month, gross_commission, net_payable, user_email, created_at")
+        .eq("employee_id", id)
+        .order("created_at", { ascending: false })
+        .limit(24)).data ?? [],
+  });
+
+
 
   const conversions = useMemo(() => {
     const deposits = depositIndex(depositsQ.data ?? []);
