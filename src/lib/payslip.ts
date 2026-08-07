@@ -140,17 +140,21 @@ export function buildPayslipDoc(p: PayslipInput): jsPDF {
     columnStyles: { 2: { halign: "right" } },
   });
 
+  const deductions: string[][] = [
+    [
+      "Attendance deduction",
+      `${p.absentDays} absent of ${p.workingDays} working days × ${fmtMoney(p.perDayRate)}`,
+      `-${fmtMoney(p.absenceDeduction)}`,
+    ],
+  ];
+  if (p.withdrawalPenalty) {
+    deductions.push(["Withdrawal penalties", "", `-${fmtMoney(p.withdrawalPenalty)}`]);
+  }
+
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 6,
     head: [["Deductions", "Basis", "Amount"]],
-    body: [
-      [
-        "Attendance deduction",
-        `${p.absentDays} absent of ${p.workingDays} working days × ${fmtMoney(p.perDayRate)}`,
-        `-${fmtMoney(p.absenceDeduction)}`,
-      ],
-      ["Withdrawal penalties", "", `-${fmtMoney(p.withdrawalPenalty)}`],
-    ],
+    body: deductions,
     headStyles: { fillColor: [90, 40, 45] },
     styles: { fontSize: 9 },
     columnStyles: { 2: { halign: "right" } },

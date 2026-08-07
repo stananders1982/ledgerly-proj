@@ -378,7 +378,8 @@ function EmployeeDetailPage() {
         </section>
       )}
 
-      <CoachingInsights employeeId={emp.id} month={month} />
+      {/* Managers are not ranked against agents. */}
+      {!isMarketing && <CoachingInsights employeeId={emp.id} month={month} />}
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label="Working days" value={String(totals.wd)} />
