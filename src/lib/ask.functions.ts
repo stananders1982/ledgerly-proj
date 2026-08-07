@@ -28,10 +28,10 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
 
     const [revenue, expenses, withdrawals, activations, leads, sources, employees, categories, affiliates] =
       await Promise.all([
-        supabase.from("revenue").select("date,amount,customer_name,employee_id,affiliate_id,method").gte("date", sinceIso),
+        supabase.from("revenue").select("date,amount,customer_name,employee_id,affiliate_id,method,activation_id").gte("date", sinceIso),
         supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
         supabase.from("withdrawals").select("date,amount,employee_id").gte("date", sinceIso),
-        supabase.from("daily_lead_activations").select("activation_date,qualified_at,employee_id,conversion_employee_id,entry_id").gte("activation_date", sinceIso),
+        supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id").gte("activation_date", sinceIso),
         supabase.from("daily_lead_entries").select("entry_date,received,activated,reported,cost,source_id").gte("entry_date", sinceIso),
         supabase.from("lead_sources").select("id,name,pricing_model,price"),
         supabase.from("employees").select("id,name,team,active"),
