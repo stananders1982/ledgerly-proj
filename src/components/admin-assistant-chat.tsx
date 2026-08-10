@@ -108,8 +108,8 @@ export function AdminAssistantChat({
             </div>
           )}
 
-          {messages.map((m) => (
-            <Message from={m.role} key={m.id}>
+          {messages.map((m, mi) => (
+            <Message from={m.role} key={m.id || `msg-${mi}`}>
               <MessageContent>
                 {m.parts.map((part, i) => {
                   if (part.type === "text") {
