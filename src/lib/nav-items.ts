@@ -1,4 +1,4 @@
-import { KeyRound, Settings, LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, ShieldAlert, Banknote, Gauge, Building2, Landmark, ScrollText, ListTodo, Upload, History } from "lucide-react";
+import { Bot, KeyRound, Settings, LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, ShieldAlert, Banknote, Gauge, Building2, Landmark, ScrollText, ListTodo, Upload, History } from "lucide-react";
 
 export type NavGroup = "Overview" | "Operations" | "People" | "Analytics" | "Admin";
 
@@ -38,6 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
 
   { key: "users", title: "Users", url: "/users", icon: ShieldCheck, group: "Admin", adminOnly: true },
   { key: "permissions", title: "Permissions", url: "/users/permissions", icon: KeyRound, group: "Admin", adminOnly: true },
+  { key: "assistant", title: "Assistant", url: "/assistant", icon: Bot, group: "Admin", adminOnly: true },
   { key: "settings", title: "Settings", url: "/settings", icon: Settings, group: "Admin", adminOnly: true },
   { key: "activity", title: "Audit Log", url: "/activity", icon: History, group: "Admin", adminOnly: true },
   { key: "logs", title: "Logs", url: "/logs", icon: ScrollText, group: "Admin", adminOnly: true },
