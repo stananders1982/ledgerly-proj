@@ -357,7 +357,14 @@ function EmployeeDetailPage() {
         {isRetention && (
           <>
             <StatCard label="Attributed revenue" value={fmtMoney(totals.attributed)} tone="positive" />
+            <StatCard
+              label="Net revenue"
+              value={fmtMoney(totals.commBase)}
+              tone="positive"
+              hint="After card / wire / crypto deposit fees"
+            />
             <StatCard label={`Commission (${totals.rate}%)`} value={fmtMoney(totals.commission)} tone="positive" />
+
           </>
         )}
         {isConversion && (
