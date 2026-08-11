@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Banknote } from "lucide-react";
+import { Plus, Banknote, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { EmployeeLink } from "@/components/employee-link";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -367,6 +369,8 @@ function WithdrawalDialog({
     notes: row?.notes ?? "",
   }));
 
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const picked = revenues.find((x) => x.id === form.revenue_id);
   const settings = useCompanySettings();
   const penaltyPreview = withdrawalPenalty(form.amount, settings);
   const hasSplit = !!form.employee_id_2;
@@ -392,17 +396,43 @@ function WithdrawalDialog({
       <DialogHeader><DialogTitle>{row?.id ? "Edit withdrawal" : "Record withdrawal"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
         <Field label="Linked sale (optional — autofills fields)">
-          <Select value={form.revenue_id || "_none"} onValueChange={onPickRevenue}>
-            <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_none">None</SelectItem>
-              {revenues.map((r) => (
-                <SelectItem key={r.id} value={r.id}>
-                  {r.customer_name} · {fmtMoney(r.amount)} · {fmtDate(r.date)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                <span className="truncate">
+                  {picked
+                    ? `${picked.customer_name} · ${fmtMoney(picked.amount)} · ${fmtDate(picked.date)}`
+                    : "Search client…"}
+                </span>
+                <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}>
+                <CommandInput placeholder="Search client name…" />
+                <CommandList>
+                  <CommandEmpty>No matching deposit.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem value="none" onSelect={() => { onPickRevenue("_none"); setPickerOpen(false); }}>
+                      — None —
+                    </CommandItem>
+                    {revenues.map((r) => (
+                      <CommandItem
+                        key={r.id}
+                        value={`${r.customer_name ?? ""} ${fmtDate(r.date)}`}
+                        onSelect={() => { onPickRevenue(r.id); setPickerOpen(false); }}
+                      >
+                        <span className="truncate">{r.customer_name}</span>
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {fmtMoney(r.amount)} · {fmtDate(r.date)}
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </Field>
         <Field label="Customer name"><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></Field>
         <div className="grid grid-cols-2 gap-3">
