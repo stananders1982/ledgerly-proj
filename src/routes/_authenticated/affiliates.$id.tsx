@@ -261,6 +261,7 @@ function AffiliateStatementPage() {
                   ...weeks.map((w) => ({
                     Week: `${w.weekStart} → ${w.weekEnd}`,
                     Leads: w.leads,
+                    FTDs: w.activated,
                     Guaranteed: w.guaranteed,
                     Reported: w.reported,
                     Payable: w.payable,
@@ -271,6 +272,7 @@ function AffiliateStatementPage() {
                   {
                     Week: "TOTAL",
                     Leads: weekTotals.leads,
+                    FTDs: weekTotals.activated,
                     Guaranteed: weekTotals.guaranteed,
                     Reported: weekTotals.reported,
                     Payable: weekTotals.payable,
