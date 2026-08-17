@@ -124,8 +124,12 @@ function GoalsPage() {
   };
 
   const save = async () => {
+    if (!companyId) {
+      toast.error("No company selected");
+      return;
+    }
     try {
-      await upsertGoal(form as any);
+      await upsertGoal(form as any, companyId, user?.id);
       toast.success(form.id ? "Goal updated" : "Goal created");
       setOpen(false);
       setForm({ entity_type: "company", target_metric: "revenue", target_value: 0, period_month: period });
