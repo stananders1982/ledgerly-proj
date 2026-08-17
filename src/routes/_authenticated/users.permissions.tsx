@@ -109,6 +109,13 @@ function PermissionsPage() {
           <PermissionMatrix kind="action" />
         </TabsContent>
 
+        <TabsContent value="dashboard" className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Choose which blocks of the dashboard each role sees. Hidden blocks are not loaded at all.
+          </p>
+          <PermissionMatrix kind="dashboard" />
+        </TabsContent>
+
         <TabsContent value="roles">
           <RolesAdmin />
         </TabsContent>
