@@ -62,7 +62,10 @@ import { DataQualityCard } from "@/components/data-quality-card";
 import { AnomalyAlerts } from "@/components/anomaly-alerts";
 import { DailyDigest } from "@/components/daily-digest";
 import { AskBox } from "@/components/ask-box";
+import { RetentionScoreboard } from "@/components/retention-scoreboard";
+import { ConversionsByAgent } from "@/components/conversions-by-agent";
 import { useVisibleDashboardSections } from "@/lib/permissions";
+
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — Ledgerly" }] }),
