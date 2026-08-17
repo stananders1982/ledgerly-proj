@@ -170,8 +170,8 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
       if (g.target_metric === "deposits") return actuals.depositsByEmp.get(g.entity_id!) ?? 0;
     }
     if (g.entity_type === "source") {
-      // Approximate by revenue linked to activations from this source; complex to do exactly without joining
-      return actuals.activations; // simplified for now
+      if (g.target_metric === "activations" || g.target_metric === "ftds") return actuals.activationsBySource.get(g.entity_id!) ?? 0;
+      if (g.target_metric === "revenue" || g.target_metric === "deposits") return actuals.depositsBySource.get(g.entity_id!) ?? 0;
     }
     return 0;
   };
