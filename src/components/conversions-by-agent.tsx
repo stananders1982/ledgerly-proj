@@ -29,12 +29,27 @@ const actDate = (r: ActRow) => r.activation_date ?? r.daily_lead_entries?.entry_
 
 /**
  * Conversion agent leaderboard for a date range: qualified FTDs vs pending ones.
- * Lives on the Leads page (conversion side of the business).
+ * Used on the Leads page and as the conversion scoreboard on the dashboard.
  */
-export function ConversionsByAgent({ start, end }: { start: Date; end: Date }) {
+export function ConversionsByAgent({
+  start,
+  end,
+  variant = "panel",
+  title = "Conversions by agent",
+  teams,
+}: {
+  start: Date;
+  end: Date;
+  /** "card" renders the dashboard glass surface instead of the bordered panel. */
+  variant?: "panel" | "card";
+  title?: string;
+  /** Restrict to specific teams (e.g. ["C"]); defaults to all agent teams. */
+  teams?: string[];
+}) {
   const settings = useCompanySettings();
   const navigate = useNavigate();
   const [pendingView, setPendingView] = useState<{ title: string; rows: PendingRow[] } | null>(null);
+
 
   const activationsQ = useQuery({
     queryKey: ["activated-leads"],
