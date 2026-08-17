@@ -496,6 +496,7 @@ function Dashboard() {
       </section>
       )}
 
+      {(show("dash:sources") || show("dash:insights") || show("dash:cashflow") || show("dash:quality") || show("dash:activity")) && (
       <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-3">
         {show("dash:sources") && (
         <div className="glass-surface glass-hover min-w-0 overflow-hidden p-4 sm:p-5 lg:col-span-2">
