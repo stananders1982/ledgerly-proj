@@ -102,26 +102,29 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
   });
 
   const actuals = useMemo(() => {
-    const revenue = (revenueQ.data ?? []).reduce((s: number, r: any) => {
-      const amt = Number(r.amount || 0);
-      if (r.employee_id_2 && r.split_pct != null) {
-        return s + amt;
-      }
-      return s + amt;
-    }, 0);
+    const revenue = (revenueQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
     const activations = (activationsQ.data ?? []).length;
     const deposits = (depositsQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
     const ftdsByEmp = new Map<string, number>();
-    const stdsByEmp = new Map<string, number>();
     const depositsByEmp = new Map<string, number>();
+    const activationsBySource = new Map<string, number>();
+
+    const entriesById = new Map<string, { source_id: string; activated: number }>();
+    for (const e of (entriesQ.data ?? []) as any[]) {
+      entriesById.set(e.id, e);
+    }
 
     for (const a of (activationsQ.data ?? []) as any[]) {
       if (a.conversion_employee_id) {
         ftdsByEmp.set(a.conversion_employee_id, (ftdsByEmp.get(a.conversion_employee_id) ?? 0) + 1);
       }
+      const entry = entriesById.get(a.entry_id);
+      if (entry?.source_id) {
+        activationsBySource.set(entry.source_id, (activationsBySource.get(entry.source_id) ?? 0) + 1);
+      }
     }
-    // STD is employee_id (retention) on revenue rows; approximate by counting revenue per employee
+
     for (const r of (depositsQ.data ?? []) as any[]) {
       const amt = Number(r.amount || 0);
       if (r.employee_id) {
@@ -137,10 +140,10 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
       activations,
       deposits,
       ftdsByEmp,
-      stdsByEmp,
       depositsByEmp,
+      activationsBySource,
     };
-  }, [revenueQ.data, activationsQ.data, depositsQ.data]);
+  }, [revenueQ.data, activationsQ.data, depositsQ.data, entriesQ.data]);
 
   const namedEntity = (g: Goal) => {
     if (g.entity_type === "company") return "Company";
