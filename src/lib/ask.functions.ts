@@ -42,7 +42,10 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id").gte("activation_date", sinceIso),
         supabase.from("daily_lead_entries").select("entry_date,received,activated,reported,cost,source_id").gte("entry_date", sinceIso),
         supabase.from("lead_sources").select("id,name,pricing_model,price"),
-        supabase.from("employees").select("id,name,team,active"),
+        // Use the same RLS-safe directory as the dashboard leaderboards. Some
+        // non-admin roles cannot select `employees` directly, which previously
+        // turned every activation into "unassigned" for Ask your data.
+        supabase.rpc("list_employees_directory"),
         supabase.from("expense_categories").select("id,name"),
         supabase.from("affiliates").select("id,name"),
       ]);
@@ -257,7 +260,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "You answer questions about a lead-generation and client-deposit business using ONLY the JSON snapshot provided. " +
               "Be short: two or three sentences, with the concrete numbers you used. Amounts are USD. " +
               "When snapshot.selectedPeriod is not null, the user is looking at that dashboard period: answer about it by default " +
-              "unless the question names a different period, and say which dates you used. " + +
+               "unless the question names a different period, and say which dates you used. " +
               "FTD means first-time deposit (an activated client); STD means a second deposit. " +
               "DEFAULT RULE: 'FTDs', 'activations', 'conversions' and 'how many clients' always mean the ACTIVATION clock — " +
               "leads activated in that period, from activationsByMonthActivatedAndAgent / totals.activations. " +
