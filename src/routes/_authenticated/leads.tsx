@@ -32,7 +32,6 @@ import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-tool
 import { isStd, isoDay, isAgentTeam } from "@/lib/rules";
 import { SavedViews } from "@/components/saved-views";
 import { CsvImportDialog } from "@/components/csv-import";
-import { ShiftBar } from "@/components/shift-bar";
 
 
 
@@ -622,15 +621,6 @@ function LeadsPage() {
           onClear={() => routeNavigate({ search: (prev: any) => ({ ...prev, issue: undefined }), replace: true })}
         />
       )}
-
-      <ShiftBar
-        entries={allRows as any}
-        sources={(sourcesQ.data ?? []) as any}
-        employees={(employeesQ.data ?? []) as any}
-        activations={(activationsQ.data ?? []) as any}
-      />
-
-
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <DateRangePicker
