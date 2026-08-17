@@ -146,7 +146,6 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
       </SidebarContent>
 
       <SidebarFooter className="space-y-1">
-        <ThemeToggle collapsed={collapsed} />
         <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={openWizard}>
           <LifeBuoy className="h-4 w-4" /> {!collapsed && "Setup guide"}
         </Button>
