@@ -298,6 +298,7 @@ function AffiliatesPage() {
                   <SortTh label="Price" k="price" sort={sort} toggle={toggle} />
                   <SortTh label="Guarantee %" k="pct" sort={sort} toggle={toggle} />
                   <SortTh label="Leads" k="leads" sort={sort} toggle={toggle} />
+                  <SortTh label="FTDs" k="activated" sort={sort} toggle={toggle} />
                   <SortTh label="Guaranteed" k="guaranteed" sort={sort} toggle={toggle} />
                   <SortTh label="Reported" k="reported" sort={sort} toggle={toggle} />
                   <SortTh label="Owed" k="owed" sort={sort} toggle={toggle} />
@@ -326,6 +327,7 @@ function AffiliatesPage() {
                     <td className="py-3 px-4">{fmtMoney(r.price)}</td>
                     <td className="py-3 px-4">{r.pct}%</td>
                     <td className="py-3 px-4">{r.leads}</td>
+                    <td className="py-3 px-4">{r.activated}</td>
                     <td className="py-3 px-4">{r.guaranteed}</td>
                     <td className="py-3 px-4">{r.reported}</td>
                     <td className="py-3 px-4">{fmtMoney(r.owed)}</td>
