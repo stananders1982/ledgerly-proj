@@ -86,13 +86,14 @@ export function weeklyGuarantee(
   const price = Number(aff.cpa_rate || 0);
   const pct = Number(aff.guarantee_value || 0);
 
-  const buckets = new Map<string, { leads: number; reported: number }>();
+  const buckets = new Map<string, { leads: number; reported: number; activated: number }>();
   for (const e of entries) {
     if (!e.entry_date) continue;
     const k = weekStartOf(e.entry_date);
-    const b = buckets.get(k) ?? { leads: 0, reported: 0 };
+    const b = buckets.get(k) ?? { leads: 0, reported: 0, activated: 0 };
     b.leads += Number(e.received || 0);
     b.reported += Number(e.reported || 0);
+    b.activated += Number(e.activated || 0);
     buckets.set(k, b);
   }
 
@@ -109,6 +110,7 @@ export function weeklyGuarantee(
         weekStart,
         weekEnd: weekEndOf(weekStart),
         leads: b.leads,
+        activated: b.activated,
         guaranteed,
         reported: b.reported,
         payable: round2(payable),
