@@ -12,6 +12,7 @@ import { CompanySwitcher } from "@/components/company-switcher";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NAV_GROUPS, NAV_ITEMS, type NavGroup } from "@/lib/nav-items";
+import { useVisibleDashboardSections } from "@/lib/permissions";
 import { useOnboardingWizard } from "@/components/onboarding-wizard";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +56,8 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
     if (isAdmin) return true;
     if (item.adminOnly) return false;
     if (!permsLoaded) return false;
+    // Any visible dashboard block implies access to the Dashboard page.
+    if (item.key === "dashboard") return navKeys.has("dashboard") || dashSections.any;
     return navKeys.has(item.key);
   });
 
