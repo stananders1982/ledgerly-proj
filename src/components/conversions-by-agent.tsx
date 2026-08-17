@@ -159,14 +159,15 @@ export function ConversionsByAgent({
         ) : (
           <div className="overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+              <thead className={card ? "text-left text-[11px] uppercase tracking-wider text-muted-foreground" : "bg-muted/40 text-left text-xs uppercase text-muted-foreground"}>
                 <tr>
-                  <th className="py-2 px-4 font-medium">Conversion agent</th>
-                  <th className="py-2 px-4 font-medium">Conversions</th>
+                  <th className="py-2 px-4 font-medium">{card ? "Agent" : "Conversion agent"}</th>
+                  <th className="py-2 px-4 font-medium">{card ? "FTDs" : "Conversions"}</th>
                   <th className="py-2 px-4 font-medium">Pending</th>
                   <th className="py-2 px-4 font-medium">Total</th>
                 </tr>
               </thead>
+
               <tbody>
                 {byAgent.map((a) => (
                   <tr key={a.id} className="border-t border-border/50">
