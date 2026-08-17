@@ -97,7 +97,7 @@ function AffiliateStatementPage() {
     queryKey: ["affiliate-entries-one", id],
     queryFn: async () => {
       const data = await fetchAll(() =>
-        supabase.from("daily_lead_entries").select("entry_date,received,reported,source_id"),
+        supabase.from("daily_lead_entries").select("entry_date,received,reported,activated,source_id"),
       );
       return (data ?? []) as LeadEntryLike[];
     },
