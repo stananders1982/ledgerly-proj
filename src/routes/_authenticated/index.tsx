@@ -29,6 +29,7 @@ import {
   Activity,
   CalendarClock,
   DollarSign,
+  Info,
   Repeat,
   Sparkles,
   Target,
@@ -564,7 +565,7 @@ function Dashboard() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <EmptyState text="No source data this month yet." />
+              <EmptyState icon={Info} title="No source data this month" description="Lead entries with source details will appear in this chart." compact />
             )}
           </div>
         </div>
