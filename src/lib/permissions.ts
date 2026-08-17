@@ -108,15 +108,59 @@ export function useMyPermissions() {
         loaded: true,
         navKeys: new Set<string>(),
         actions: new Set<string>(ACTION_PERMISSIONS.map((a) => a.key)),
+        dashboardSections: new Set<string>(DASHBOARD_SECTION_KEYS),
       };
     }
     const rows = q.data ?? [];
+    const allowedNav = rows.filter((r) => r.allowed && r.nav_key).map((r) => r.nav_key as string);
     return {
       loaded: !q.isLoading,
-      navKeys: new Set(rows.filter((r) => r.allowed && r.nav_key).map((r) => r.nav_key as string)),
+      navKeys: new Set(allowedNav.filter((k) => !isDashboardSectionKey(k))),
       actions: new Set(rows.filter((r) => r.allowed && r.action_key).map((r) => r.action_key as string)),
+      dashboardSections: new Set(allowedNav.filter(isDashboardSectionKey)),
     };
   }, [isAdmin, q.data, q.isLoading]);
+}
+
+/**
+ * Which dashboard blocks the signed-in user may see. Falls back to the role
+ * default when nothing has been configured yet.
+ */
+export function useVisibleDashboardSections() {
+  const { isAdmin } = useAuth();
+  const { loaded, dashboardSections } = useMyPermissions();
+  const { roleKey } = useMyRoleKey();
+
+  return useMemo(() => {
+    const configured = dashboardSections.size > 0;
+    const can = (key: string) => {
+      if (isAdmin) return true;
+      if (!loaded) return false;
+      if (configured) return dashboardSections.has(key);
+      return defaultDashboardAllowed(roleKey ?? "agent", key);
+    };
+    return { loaded: isAdmin || loaded, can, any: DASHBOARD_SECTION_KEYS.some(can) };
+  }, [isAdmin, loaded, dashboardSections, roleKey]);
+}
+
+/** The current user's role key inside the active workspace. */
+export function useMyRoleKey() {
+  const { user, companyId, isAdmin } = useAuth();
+  const q = useQuery({
+    enabled: !!user && !!companyId && !isAdmin,
+    queryKey: ["my-role-key", user?.id, companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_users")
+        .select("role_key")
+        .eq("company_id", companyId!)
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.role_key as string | undefined) ?? "agent";
+    },
+  });
+  return { roleKey: isAdmin ? "admin" : q.data, isLoading: q.isLoading };
 }
 
 /** The set of actions the signed-in user is allowed to perform. */
