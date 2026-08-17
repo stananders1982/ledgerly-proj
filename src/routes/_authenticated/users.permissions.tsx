@@ -91,6 +91,7 @@ function PermissionsPage() {
         <TabsList>
           <TabsTrigger value="pages">Page Access</TabsTrigger>
           <TabsTrigger value="actions">Action Permissions</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="roles">Roles</TabsTrigger>
         </TabsList>
 
