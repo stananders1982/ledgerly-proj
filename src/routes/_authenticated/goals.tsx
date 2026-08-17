@@ -59,7 +59,7 @@ const entityIcons: Record<GoalEntityType, typeof Target> = {
 };
 
 function GoalsPage() {
-  const { companyId } = useAuth();
+  const { companyId, user } = useAuth();
   const [period, setPeriod] = useState(thisMonth());
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Goal>>({
