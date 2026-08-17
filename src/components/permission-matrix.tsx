@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-export type MatrixKind = "nav" | "action";
+export type MatrixKind = "nav" | "action" | "dashboard";
 
 type RowDef = { key: string; label: string; hint?: string; locked?: boolean };
 
@@ -28,6 +28,9 @@ export function useMatrixRows(kind: MatrixKind): RowDef[] {
   return useMemo(() => {
     if (kind === "action") {
       return ACTION_PERMISSIONS.map((a) => ({ key: a.key, label: a.label, hint: a.hint }));
+    }
+    if (kind === "dashboard") {
+      return DASHBOARD_SECTIONS.map((s) => ({ key: s.key, label: s.label, hint: s.hint }));
     }
     return NAV_ITEMS.filter((i) => !i.superAdminOnly).map((i) => ({
       key: i.key,
@@ -39,7 +42,7 @@ export function useMatrixRows(kind: MatrixKind): RowDef[] {
 }
 
 export function navKeysForReset() {
-  return NAV_ITEMS.filter((i) => !i.superAdminOnly).map((i) => i.key);
+  return [...NAV_ITEMS.filter((i) => !i.superAdminOnly).map((i) => i.key), ...DASHBOARD_SECTION_KEYS];
 }
 
 export function PermissionMatrix({ kind }: { kind: MatrixKind }) {
