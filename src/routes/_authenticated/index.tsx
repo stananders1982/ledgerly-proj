@@ -4,6 +4,26 @@ import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardRangePicker, useDashRange } from "@/components/dashboard-range-picker";
+import { useAuth } from "@/lib/auth-context";
+
+/** First name of the signed-in user, for the dashboard greeting. */
+function useFirstName() {
+  const { user } = useAuth();
+  const q = useQuery({
+    enabled: !!user,
+    queryKey: ["my-profile-name", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("full_name").eq("id", user!.id).maybeSingle();
+      return data?.full_name ?? null;
+    },
+  });
+  const raw =
+    q.data ||
+    (user?.user_metadata as any)?.full_name ||
+    (user?.email ? user.email.split("@")[0] : "");
+  const first = String(raw ?? "").trim().split(/[\s.]+/)[0];
+  return first ? first.charAt(0).toUpperCase() + first.slice(1) : "";
+}
 
 import {
   Activity,
@@ -322,6 +342,7 @@ function Dashboard() {
   }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions]);
 
   const insights = useMemo(() => buildInsights(m), [m]);
+  const firstName = useFirstName();
   const sections = useVisibleDashboardSections();
   const show = sections.can;
 
@@ -334,7 +355,7 @@ function Dashboard() {
             Live control center
           </div>
           <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight">
-            {greeting()}, here's your business pulse.
+            {greeting()}{firstName ? ` ${firstName}` : ""}, here's your business pulse.
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {new Date().toLocaleString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
