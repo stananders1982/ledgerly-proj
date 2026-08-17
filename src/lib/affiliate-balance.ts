@@ -127,6 +127,7 @@ export function sumWeeks(rows: WeekRow[]) {
   return rows.reduce(
     (acc, r) => ({
       leads: acc.leads + r.leads,
+      activated: acc.activated + r.activated,
       guaranteed: round2(acc.guaranteed + r.guaranteed),
       reported: acc.reported + r.reported,
       payable: round2(acc.payable + r.payable),
@@ -134,7 +135,7 @@ export function sumWeeks(rows: WeekRow[]) {
       savings: round2(acc.savings + r.savings),
       shortfall: round2(acc.shortfall + r.shortfall),
     }),
-    { leads: 0, guaranteed: 0, reported: 0, payable: 0, cost: 0, savings: 0, shortfall: 0 },
+    { leads: 0, activated: 0, guaranteed: 0, reported: 0, payable: 0, cost: 0, savings: 0, shortfall: 0 },
   );
 }
 
