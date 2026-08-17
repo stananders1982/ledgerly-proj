@@ -97,7 +97,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       const splitPct = Number(row.split_pct ?? 100);
       const primary = employeeById.get(row.employee_id) as any;
       const secondary = employeeById.get(row.employee_id_2) as any;
-      if (String(primary?.team ?? "R").toUpperCase() === "R") {
+      if (primary?.name && String(primary.team ?? "R").toUpperCase() === "R") {
         performanceRevenueRows.push({ date: String(row.date), amount: amount * (splitPct / 100), agent: primary.name });
       }
       if (secondary && String(secondary.team ?? "R").toUpperCase() === "R") {
