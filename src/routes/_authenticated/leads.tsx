@@ -285,7 +285,7 @@ function LeadsPage() {
     const scope = sourceFilter.length
       ? allRows.filter((r) => sourceFilter.includes(r.source_id ?? ""))
       : allRows;
-    const list: { key: string; sourceName: string; date: string | null; count: number }[] = [];
+    const list: { key: string; sourceName: string; date: string | null; count: number; row: Entry }[] = [];
     for (const r of scope) {
       const splits = activationsByEntry.get(r.id) ?? [];
       const rowed = splits.reduce((s, a) => s + (a.activated_count ?? 0), 0);
@@ -296,6 +296,7 @@ function LeadsPage() {
           sourceName: r.lead_sources?.name ?? "No source",
           date: (r as any).entry_date ?? null,
           count: diff,
+          row: r,
         });
       }
     }
@@ -307,9 +308,11 @@ function LeadsPage() {
     [unallocatedDetail],
   );
 
+  const [showAllUnallocated, setShowAllUnallocated] = useState(false);
+
   const unallocatedNode = useMemo(() => {
     if (unallocatedTotal <= 0) return undefined;
-    const shown = unallocatedDetail.slice(0, 4);
+    const shown = showAllUnallocated ? unallocatedDetail : unallocatedDetail.slice(0, 4);
     return (
       <div className="space-y-1">
         <div className="text-xs font-medium text-destructive">
@@ -317,22 +320,47 @@ function LeadsPage() {
         </div>
         <ul className="space-y-0.5">
           {shown.map((u) => (
-            <li key={u.key} className="flex items-baseline gap-1.5 text-xs text-muted-foreground">
-              <span className="font-semibold tabular-nums text-foreground">{u.count}</span>
-              <span className="truncate">{u.sourceName}</span>
-              <span className="ml-auto shrink-0 tabular-nums">{fmtDate(u.date)}</span>
+            <li key={u.key}>
+              <button
+                type="button"
+                title="Open this day's entry to allocate"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditing(u.row);
+                  setOpen(true);
+                }}
+                className="flex w-full items-baseline gap-1.5 rounded px-1 py-0.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <span className="font-semibold tabular-nums text-foreground">{u.count}</span>
+                <span className="truncate">{u.sourceName}</span>
+                <span className="ml-auto shrink-0 tabular-nums underline decoration-dotted">{fmtDate(u.date)}</span>
+              </button>
             </li>
           ))}
         </ul>
         {unallocatedDetail.length > shown.length && (
-          <div className="text-xs text-muted-foreground">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowAllUnallocated(true); }}
+            className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+          >
             +{unallocatedDetail.length - shown.length} more day
             {unallocatedDetail.length - shown.length === 1 ? "" : "s"}
-          </div>
+          </button>
+        )}
+        {showAllUnallocated && unallocatedDetail.length > 4 && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowAllUnallocated(false); }}
+            className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+          >
+            Show less
+          </button>
         )}
       </div>
     );
-  }, [unallocatedDetail, unallocatedTotal]);
+  }, [unallocatedDetail, unallocatedTotal, showAllUnallocated]);
+
 
 
 
