@@ -57,7 +57,7 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
     queryFn: async () => {
       const { data, error } = await sb
         .from("daily_lead_activations")
-        .select("conversion_employee_id,employee_id,qualified_at,activation_date")
+        .select("id,conversion_employee_id,employee_id,qualified_at,activation_date,entry_id")
         .gte("activation_date", iso(rangeStart))
         .lte("activation_date", iso(rangeEnd));
       if (error) throw error;
@@ -65,9 +65,22 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
     },
   });
 
+  const entriesQ = useQuery({
+    queryKey: ["dash-goals-entries", iso(rangeStart), iso(rangeEnd)],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("daily_lead_entries")
+        .select("id,source_id,activated")
+        .gte("entry_date", iso(rangeStart))
+        .lte("entry_date", iso(rangeEnd));
+      if (error) throw error;
+      return (data ?? []) as { id: string; source_id: string; activated: number }[];
+    },
+  });
+
   const depositsQ = useQuery({
     queryKey: ["dash-goals-deposits", iso(rangeStart), iso(rangeEnd)],
-    queryFn: async () => await fetchAll(() => sb.from("revenue").select("amount,employee_id,employee_id_2,split_pct").gte("date", iso(rangeStart)).lte("date", iso(rangeEnd))),
+    queryFn: async () => await fetchAll(() => sb.from("revenue").select("amount,employee_id,employee_id_2,split_pct,activation_id").gte("date", iso(rangeStart)).lte("date", iso(rangeEnd))),
   });
 
   const employeesQ = useQuery({
