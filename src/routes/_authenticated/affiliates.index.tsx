@@ -170,6 +170,7 @@ function AffiliatesPage() {
     price: (r) => r.price,
     pct: (r) => r.pct,
     leads: (r) => r.leads,
+    activated: (r) => r.activated,
     guaranteed: (r) => r.guaranteed,
     reported: (r) => r.reported,
     owed: (r) => r.owed,
