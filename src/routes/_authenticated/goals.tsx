@@ -236,7 +236,7 @@ function GoalsPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={save} disabled={form.target_value <= 0}>
+                <Button onClick={save} disabled={(form.target_value ?? 0) <= 0}>
                   {form.id ? "Save changes" : "Create goal"}
                 </Button>
               </DialogFooter>
