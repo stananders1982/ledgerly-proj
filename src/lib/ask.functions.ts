@@ -100,7 +100,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       if (primary?.name && String(primary.team ?? "R").toUpperCase() === "R") {
         performanceRevenueRows.push({ date: String(row.date), amount: amount * (splitPct / 100), agent: primary.name });
       }
-      if (secondary && String(secondary.team ?? "R").toUpperCase() === "R") {
+      if (secondary?.name && String(secondary.team ?? "R").toUpperCase() === "R") {
         performanceRevenueRows.push({ date: String(row.date), amount: amount * ((100 - splitPct) / 100), agent: secondary.name });
       }
     }
