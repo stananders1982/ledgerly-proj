@@ -159,6 +159,7 @@ export function mergeWeekRows(perMember: WeekRow[][]): WeekRow[] {
         continue;
       }
       prev.leads += w.leads;
+      prev.activated += w.activated;
       prev.guaranteed = round2(prev.guaranteed + w.guaranteed);
       prev.reported += w.reported;
       prev.payable = round2(prev.payable + w.payable);
