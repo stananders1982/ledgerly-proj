@@ -114,39 +114,51 @@ export function useMyPermissions() {
         navKeys: new Set<string>(),
         actions: new Set<string>(ACTION_PERMISSIONS.map((a) => a.key)),
         dashboardSections: new Set<string>(DASHBOARD_SECTION_KEYS),
+        dashboardExplicit: new Map<string, boolean>(),
       };
     }
     const rows = q.data ?? [];
     const allowedNav = rows.filter((r) => r.allowed && r.nav_key).map((r) => r.nav_key as string);
+    // Keys with an explicit row (true *or* false). Anything absent falls back
+    // to the role default, matching what the permissions matrix displays.
+    const dashboardExplicit = new Map<string, boolean>();
+    for (const r of rows) {
+      if (r.nav_key && isDashboardSectionKey(r.nav_key)) dashboardExplicit.set(r.nav_key, !!r.allowed);
+    }
+    const navKeys = new Set(allowedNav.filter((k) => !isDashboardSectionKey(k)));
+    // Seeing any dashboard block implies access to the Dashboard page itself.
+    if (allowedNav.some(isDashboardSectionKey)) navKeys.add("dashboard");
     return {
       loaded: !q.isLoading,
-      navKeys: new Set(allowedNav.filter((k) => !isDashboardSectionKey(k))),
+      navKeys,
       actions: new Set(rows.filter((r) => r.allowed && r.action_key).map((r) => r.action_key as string)),
       dashboardSections: new Set(allowedNav.filter(isDashboardSectionKey)),
+      dashboardExplicit,
     };
   }, [isAdmin, q.data, q.isLoading]);
 }
 
 /**
- * Which dashboard blocks the signed-in user may see. Falls back to the role
- * default when nothing has been configured yet.
+ * Which dashboard blocks the signed-in user may see. Each section resolves
+ * independently: an explicit allow/deny row wins, otherwise the role default.
  */
 export function useVisibleDashboardSections() {
   const { isAdmin } = useAuth();
-  const { loaded, dashboardSections } = useMyPermissions();
+  const { loaded, dashboardExplicit } = useMyPermissions();
   const { roleKey } = useMyRoleKey();
 
   return useMemo(() => {
-    const configured = dashboardSections.size > 0;
     const can = (key: string) => {
       if (isAdmin) return true;
       if (!loaded) return false;
-      if (configured) return dashboardSections.has(key);
+      const explicit = dashboardExplicit.get(key);
+      if (explicit !== undefined) return explicit;
       return defaultDashboardAllowed(roleKey ?? "agent", key);
     };
     return { loaded: isAdmin || loaded, can, any: DASHBOARD_SECTION_KEYS.some(can) };
-  }, [isAdmin, loaded, dashboardSections, roleKey]);
+  }, [isAdmin, loaded, dashboardExplicit, roleKey]);
 }
+
 
 /** The current user's role key inside the active workspace. */
 export function useMyRoleKey() {

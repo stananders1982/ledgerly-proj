@@ -3,6 +3,7 @@ import { Menu } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
 import { NAV_ITEMS } from "@/lib/nav-items";
+import { useVisibleDashboardSections } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 /**
@@ -14,12 +15,15 @@ export function MobileBottomNav() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { isAdmin, isSuperAdmin, navKeys, permsLoaded } = useAuth();
   const { setOpenMobile } = useSidebar();
+  const dashSections = useVisibleDashboardSections();
 
   const items = NAV_ITEMS.filter((item) => {
     if (item.superAdminOnly) return isSuperAdmin;
     if (isAdmin) return true;
     if (item.adminOnly) return false;
     if (!permsLoaded) return false;
+    // Any visible dashboard block implies access to the Dashboard page.
+    if (item.key === "dashboard") return navKeys.has("dashboard") || dashSections.any;
     return navKeys.has(item.key);
   }).slice(0, 4);
 
