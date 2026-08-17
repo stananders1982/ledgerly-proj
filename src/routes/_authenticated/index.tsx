@@ -66,6 +66,7 @@ import { AskBox } from "@/components/ask-box";
 import { RetentionScoreboard } from "@/components/retention-scoreboard";
 import { ConversionsByAgent } from "@/components/conversions-by-agent";
 import { DashboardGoals } from "@/components/dashboard-goals";
+import { EmptyState } from "@/components/empty-state";
 import { useVisibleDashboardSections } from "@/lib/permissions";
 
 
@@ -783,9 +784,6 @@ function DarkTooltip({ active, payload, label, money }: any) {
   );
 }
 
-function EmptyState({ text }: { text: string }) {
-  return <div className="h-full w-full flex items-center justify-center text-sm text-muted-foreground">{text}</div>;
-}
 
 function Row({ label, value, icon: Icon, accent }: { label: string; value: string; icon?: typeof CalendarClock; accent?: Tone }) {
   const t = accent ? toneStyles[accent] : null;
