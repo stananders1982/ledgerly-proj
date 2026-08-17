@@ -47,7 +47,10 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         // turned every activation into "unassigned" for Ask your data.
         supabase.rpc("list_employees_directory"),
         supabase.from("expense_categories").select("id,name"),
-        supabase.from("affiliates").select("id,name"),
+        // Revenue stores the source/affiliate id. Use the RLS-safe directory so
+        // non-admin users can attribute deposits without exposing affiliate
+        // contact or commercial fields.
+        supabase.rpc("list_affiliates_directory"),
       ]);
 
     const month = (d: string | null) => (d ?? "").slice(0, 7);
