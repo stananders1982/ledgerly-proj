@@ -279,6 +279,7 @@ function AffiliatesPage() {
                 subtitle={r.active ? `${fmtMoney(r.price)} / conversion · ${r.pct > 0 ? `${r.pct}% guarantee` : "flat, no guarantee"}` : "Inactive"}
                 fields={[
                   { label: "Leads", value: <span className="num">{r.leads}</span> },
+                  { label: "FTDs", value: <span className="num">{r.activated}</span> },
                   { label: "Guaranteed", value: <span className="num">{r.guaranteed}</span> },
                   { label: "Reported", value: <span className="num">{r.reported}</span> },
                   { label: "Owed", value: <span className="num">{fmtMoney(r.owed)}</span> },
