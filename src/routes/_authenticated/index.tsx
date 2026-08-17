@@ -342,6 +342,7 @@ function Dashboard() {
   }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions]);
 
   const insights = useMemo(() => buildInsights(m), [m]);
+  const firstName = useFirstName();
   const sections = useVisibleDashboardSections();
   const show = sections.can;
 
