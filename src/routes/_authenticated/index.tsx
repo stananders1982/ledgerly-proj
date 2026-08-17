@@ -355,7 +355,7 @@ function Dashboard() {
             Live control center
           </div>
           <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight">
-            {greeting()}, here's your business pulse.
+            {greeting()}{firstName ? ` ${firstName}` : ""}, here's your business pulse.
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {new Date().toLocaleString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
