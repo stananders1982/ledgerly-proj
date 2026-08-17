@@ -139,25 +139,56 @@ export function useMyPermissions() {
 }
 
 /**
+ * Explicit dashboard-section rows for the signed-in user: their per-user
+ * overrides plus the rows saved for their role. `my_permissions()` cannot be
+ * used here because it reports "no row for my role" as a hard `false`, which
+ * would hide sections the permissions matrix shows as on (role default).
+ */
+function useDashboardExplicit() {
+  const { user, companyId, isAdmin } = useAuth();
+  const { roleKey } = useMyRoleKey();
+
+  const q = useQuery({
+    enabled: !!user && !!companyId && !isAdmin && !!roleKey,
+    queryKey: ["dashboard-explicit", user?.id, companyId, roleKey],
+    queryFn: async () => {
+      const [roleRes, overrideRes] = await Promise.all([
+        supabase.from("role_permissions").select("nav_key,allowed").eq("role_key", roleKey!).like("nav_key", "dash:%"),
+        supabase.from("user_permission_overrides").select("nav_key,allowed").eq("user_id", user!.id).like("nav_key", "dash:%"),
+      ]);
+      if (roleRes.error) throw roleRes.error;
+      if (overrideRes.error) throw overrideRes.error;
+      const map = new Map<string, boolean>();
+      for (const r of roleRes.data ?? []) if (r.nav_key) map.set(r.nav_key, !!r.allowed);
+      for (const r of overrideRes.data ?? []) if (r.nav_key) map.set(r.nav_key, !!r.allowed);
+      return map;
+    },
+  });
+
+  return { explicit: q.data ?? new Map<string, boolean>(), loaded: !!q.data };
+}
+
+/**
  * Which dashboard blocks the signed-in user may see. Each section resolves
  * independently: an explicit allow/deny row wins, otherwise the role default.
  */
 export function useVisibleDashboardSections() {
   const { isAdmin } = useAuth();
-  const { loaded, dashboardExplicit } = useMyPermissions();
+  const { explicit, loaded } = useDashboardExplicit();
   const { roleKey } = useMyRoleKey();
 
   return useMemo(() => {
     const can = (key: string) => {
       if (isAdmin) return true;
-      if (!loaded) return false;
-      const explicit = dashboardExplicit.get(key);
-      if (explicit !== undefined) return explicit;
-      return defaultDashboardAllowed(roleKey ?? "agent", key);
+      if (!loaded || !roleKey) return false;
+      const value = explicit.get(key);
+      if (value !== undefined) return value;
+      return defaultDashboardAllowed(roleKey, key);
     };
     return { loaded: isAdmin || loaded, can, any: DASHBOARD_SECTION_KEYS.some(can) };
-  }, [isAdmin, loaded, dashboardExplicit, roleKey]);
+  }, [isAdmin, loaded, explicit, roleKey]);
 }
+
 
 
 /** The current user's role key inside the active workspace. */
