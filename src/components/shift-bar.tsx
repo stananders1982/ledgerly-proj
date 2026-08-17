@@ -190,8 +190,12 @@ export function ShiftBar({
 
   const patchEntry = useMutation({
     mutationFn: async ({ id, field, value }: { id: string; field: "received" | "activated" | "reported"; value: number }) => {
-      const payload: Record<string, number> = { [field]: value };
-      if (field === "activated") payload.converted = value;
+      const payload =
+        field === "activated"
+          ? { activated: value, converted: value }
+          : field === "received"
+            ? { received: value }
+            : { reported: value };
       const { error } = await supabase.from("daily_lead_entries").update(payload).eq("id", id);
       if (error) throw error;
     },
@@ -274,7 +278,13 @@ export function ShiftBar({
   });
 
   const patchActivation = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {
+    mutationFn: async ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: { employee_id?: string; conversion_employee_id?: string | null; potential?: string | null };
+    }) => {
       const { error } = await supabase.from("daily_lead_activations").update(patch).eq("id", id);
       if (error) throw error;
     },
