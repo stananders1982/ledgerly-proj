@@ -109,6 +109,7 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
     const ftdsByEmp = new Map<string, number>();
     const depositsByEmp = new Map<string, number>();
     const activationsBySource = new Map<string, number>();
+    const depositsBySource = new Map<string, number>();
 
     const entriesById = new Map<string, { source_id: string; activated: number }>();
     for (const e of (entriesQ.data ?? []) as any[]) {
@@ -133,6 +134,12 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
       if (r.employee_id_2) {
         depositsByEmp.set(r.employee_id_2, (depositsByEmp.get(r.employee_id_2) ?? 0) + amt);
       }
+      if (r.activation_id) {
+        const entry = entriesById.get(r.activation_id);
+        if (entry?.source_id) {
+          depositsBySource.set(entry.source_id, (depositsBySource.get(entry.source_id) ?? 0) + amt);
+        }
+      }
     }
 
     return {
@@ -142,6 +149,7 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
       ftdsByEmp,
       depositsByEmp,
       activationsBySource,
+      depositsBySource,
     };
   }, [revenueQ.data, activationsQ.data, depositsQ.data, entriesQ.data]);
 
