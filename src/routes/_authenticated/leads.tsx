@@ -32,6 +32,7 @@ import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-tool
 import { isStd, isoDay, isAgentTeam } from "@/lib/rules";
 import { SavedViews } from "@/components/saved-views";
 import { CsvImportDialog } from "@/components/csv-import";
+import { ShiftBar } from "@/components/shift-bar";
 
 
 
