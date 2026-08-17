@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardRangePicker, useDashRange } from "@/components/dashboard-range-picker";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/integrations/supabase/client";
 
 /** First name of the signed-in user, for the dashboard greeting. */
 function useFirstName() {
