@@ -25,6 +25,7 @@ export type LeadEntryLike = {
   entry_date: string;
   received?: number | null;
   reported?: number | null;
+  activated?: number | null;
   source_id?: string | null;
 };
 
@@ -32,6 +33,7 @@ export type WeekRow = {
   weekStart: string;
   weekEnd: string;
   leads: number;
+  activated: number;
   guaranteed: number;
   reported: number;
   payable: number;
