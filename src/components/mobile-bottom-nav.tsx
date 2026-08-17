@@ -15,6 +15,7 @@ export function MobileBottomNav() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { isAdmin, isSuperAdmin, navKeys, permsLoaded } = useAuth();
   const { setOpenMobile } = useSidebar();
+  const dashSections = useVisibleDashboardSections();
 
   const items = NAV_ITEMS.filter((item) => {
     if (item.superAdminOnly) return isSuperAdmin;

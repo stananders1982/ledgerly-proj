@@ -34,6 +34,7 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
   const collapsed = state === "collapsed";
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const { openWizard } = useOnboardingWizard();
+  const dashSections = useVisibleDashboardSections();
 
   useEffect(() => {
     setOpenMap(loadOpenState());
