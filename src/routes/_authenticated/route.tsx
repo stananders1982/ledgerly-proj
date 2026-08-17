@@ -110,9 +110,11 @@ function ProtectedLayout() {
               </DropdownMenu>
             </div>
           </header>
-          <main className="flex-1 p-4 pb-24 sm:p-6 md:pb-6 lg:p-8 max-w-[1400px] w-full mx-auto">
+          <main className="flex-1 p-4 pb-24 sm:p-6 md:pb-6 lg:p-8 max-w-[1400px] w-full mx-auto" role="main">
             <UnallocatedFtdAlert />
-            <Outlet />
+            <div className="page-fade-in" key={pathname}>
+              <Outlet />
+            </div>
           </main>
           <MobileBottomNav />
           <QuickCreate />

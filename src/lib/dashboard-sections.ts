@@ -22,7 +22,10 @@ export type DashboardSectionKey =
   | "dash:activity"
   | "dash:retention"
   | "dash:conversion"
-  | "dash:expenses";
+  | "dash:expenses"
+  | "dash:goals"
+  | "dash:goal_sources"
+  | "dash:goal_employees";
 
 export const DASHBOARD_SECTIONS: { key: DashboardSectionKey; label: string; hint: string }[] = [
   { key: "dash:alerts", label: "Alerts", hint: "Anomaly banners at the top of the dashboard." },
@@ -39,6 +42,9 @@ export const DASHBOARD_SECTIONS: { key: DashboardSectionKey; label: string; hint
   { key: "dash:activity", label: "Activity feed", hint: "Recent workspace changes." },
   { key: "dash:retention", label: "Retention scoreboard", hint: "Deposits, withdrawals and net per retention agent." },
   { key: "dash:conversion", label: "Conversion scoreboard", hint: "FTDs, pending and total per conversion agent." },
+  { key: "dash:goals", label: "Company goals", hint: "Monthly company revenue and activation targets." },
+  { key: "dash:goal_sources", label: "Source goals", hint: "Per-source activation and deposit targets." },
+  { key: "dash:goal_employees", label: "Employee goals", hint: "Per-employee FTD, STD, and revenue targets." },
   { key: "dash:expenses", label: "Expense breakdown", hint: "Where the money went." },
 ];
 

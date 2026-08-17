@@ -29,6 +29,7 @@ import {
   Activity,
   CalendarClock,
   DollarSign,
+  Info,
   Repeat,
   Sparkles,
   Target,
@@ -64,6 +65,8 @@ import { DailyDigest } from "@/components/daily-digest";
 import { AskBox } from "@/components/ask-box";
 import { RetentionScoreboard } from "@/components/retention-scoreboard";
 import { ConversionsByAgent } from "@/components/conversions-by-agent";
+import { DashboardGoals } from "@/components/dashboard-goals";
+import { EmptyState } from "@/components/empty-state";
 import { useVisibleDashboardSections } from "@/lib/permissions";
 
 
@@ -350,7 +353,7 @@ function Dashboard() {
   const show = sections.can;
 
   return (
-    <div className="aurora-bg">
+    <div className="aurora-bg page-fade-in">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-8">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-foreground/5 border border-border px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">
@@ -536,6 +539,14 @@ function Dashboard() {
       </section>
       )}
 
+      {/* Goals */}
+      {(show("dash:goals") || show("dash:goal_sources") || show("dash:goal_employees")) && (
+        <section className="mb-10">
+          <SectionTitle eyebrow="Monthly targets" title="Goals progress" />
+          <DashboardGoals start={range.start} end={range.end} />
+        </section>
+      )}
+
 
       {(show("dash:sources") || show("dash:insights") || show("dash:cashflow") || show("dash:quality") || show("dash:activity")) && (
       <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-3">
@@ -555,7 +566,7 @@ function Dashboard() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <EmptyState text="No source data this month yet." />
+              <EmptyState icon={Info} title="No source data this month" description="Lead entries with source details will appear in this chart." compact />
             )}
           </div>
         </div>
@@ -773,9 +784,6 @@ function DarkTooltip({ active, payload, label, money }: any) {
   );
 }
 
-function EmptyState({ text }: { text: string }) {
-  return <div className="h-full w-full flex items-center justify-center text-sm text-muted-foreground">{text}</div>;
-}
 
 function Row({ label, value, icon: Icon, accent }: { label: string; value: string; icon?: typeof CalendarClock; accent?: Tone }) {
   const t = accent ? toneStyles[accent] : null;

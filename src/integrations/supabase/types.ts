@@ -1246,6 +1246,53 @@ export type Database = {
         }
         Relationships: []
       }
+      goals: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          period_month: string
+          target_metric: string
+          target_value: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          period_month: string
+          target_metric: string
+          target_value: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          period_month?: string
+          target_metric?: string
+          target_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_sources: {
         Row: {
           active: boolean

@@ -366,3 +366,25 @@
 [data-density="compact"] table {
   font-size: 0.8125rem;
 }
+
+/* Page-level fade-in for route transitions */
+.page-fade-in {
+  animation: pageFadeIn 0.3s ease-out both;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth route outlet transitions */
+main[role="main"] {
+  transition: opacity 0.2s ease;
+}
+
