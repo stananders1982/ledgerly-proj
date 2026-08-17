@@ -117,7 +117,7 @@ describe("billing group", () => {
   it("shares one balance across sources with the same group key", () => {
     const crg = aff({ id: "a1", name: "FTDhubCRG", cpa_rate: 250, guarantee_value: 20 });
     const flat = aff({ id: "a2", name: "FTDhub-FLAT", cpa_rate: 200, guarantee_value: 0 });
-    const entries = [{ entry_date: "2026-08-03", received: 100, reported: 30 }];
+    const entries = [{ entry_date: "2026-08-03", received: 100, reported: 30, activated: 25 }];
 
     const merged = mergeWeekRows([
       weeklyGuarantee(crg, entries),
@@ -127,6 +127,7 @@ describe("billing group", () => {
     expect(merged).toHaveLength(1); // one shared week, not two rows
     const w = merged[0]!;
     expect(w.leads).toBe(200);
+    expect(w.activated).toBe(50);
     expect(w.guaranteed).toBe(20); // only the CRG source guarantees
     expect(w.reported).toBe(60);
     expect(w.cost).toBe(5000 + 6000); // capped CRG + flat 30 x 200
@@ -136,8 +137,8 @@ describe("billing group", () => {
 
   it("keeps distinct weeks separate when merging", () => {
     const merged = mergeWeekRows([
-      weeklyGuarantee(aff(), [{ entry_date: "2026-08-03", received: 10, reported: 2 }]),
-      weeklyGuarantee(aff({ id: "a2" }), [{ entry_date: "2026-08-10", received: 10, reported: 2 }]),
+      weeklyGuarantee(aff(), [{ entry_date: "2026-08-03", received: 10, reported: 2, activated: 1 }]),
+      weeklyGuarantee(aff({ id: "a2" }), [{ entry_date: "2026-08-10", received: 10, reported: 2, activated: 1 }]),
     ]);
     expect(merged.map((w) => w.weekStart)).toEqual(["2026-08-10", "2026-08-03"]);
   });
