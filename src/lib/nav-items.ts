@@ -34,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
 
   { key: "reports", title: "Reports", url: "/reports", icon: FileBarChart, group: "Analytics" },
   { key: "affiliates", title: "Affiliates", url: "/affiliates", icon: Building2, group: "Analytics" },
+  { key: "goals", title: "Goals", url: "/goals", icon: Target, group: "Analytics" },
   { key: "data-quality", title: "Data Quality", url: "/data-quality", icon: ShieldAlert, group: "Analytics" },
 
   { key: "users", title: "Users", url: "/users", icon: ShieldCheck, group: "Admin", adminOnly: true },
