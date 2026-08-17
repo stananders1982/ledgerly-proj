@@ -97,11 +97,12 @@ describe("weekly guarantee settlement", () => {
 
   it("totals weeks and reports the delivery rate", () => {
     const rows = weeklyGuarantee(aff(), [
-      { entry_date: "2026-08-03", received: 100, reported: 10 },
-      { entry_date: "2026-08-10", received: 100, reported: 30 },
+      { entry_date: "2026-08-03", received: 100, reported: 10, activated: 8 },
+      { entry_date: "2026-08-10", received: 100, reported: 30, activated: 25 },
     ]);
     const t = sumWeeks(rows);
     expect(t.leads).toBe(200);
+    expect(t.activated).toBe(33);
     expect(t.guaranteed).toBe(40);
     expect(t.reported).toBe(40);
     expect(t.payable).toBe(30); // 10 + capped 20
