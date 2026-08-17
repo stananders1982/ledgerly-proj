@@ -1,46 +1,39 @@
-# Compact Navbar Plan
+# Compact Sidebar Header Spacing Plan
 
 ## Goal
-Make the left navigation shorter and more compact so the main content gets more room and the app feels less dense.
+Reduce the vertical space in the left sidebar header so the app feels more compact and the nav items start higher.
 
 ## Direction
-Implement a **compact icon-only rail** as the default sidebar state, with tooltips on hover and the ability to expand back to the full labeled sidebar. Keep the existing sidebar groups, mobile bottom nav, and permission-based visibility untouched.
+Tighten the header block in `src/components/app-sidebar.tsx` without changing the elements, logo, company switcher, or search button. This only affects the expanded sidebar; the collapsed icon rail stays the same.
 
 ## Changes
 
-### 1. Default the sidebar to collapsed icon-rail
-- In `src/routes/_authenticated/route.tsx`, change `SidebarProvider` default state so the sidebar loads as a narrow rail instead of the full expanded panel.
-- Persist the user’s chosen state (collapsed/expanded) across sessions, probably via `localStorage` keyed under `ledgerly-sidebar-state`.
+### 1. Reduce the logo block padding
+- In `src/components/app-sidebar.tsx`, change the logo container from `px-2 py-3` to `px-2 py-2` (or `py-1.5` if needed) so the top/bottom spacing is tighter.
+- Keep the logo icon at `h-8 w-8` and the text as-is.
 
-### 2. Improve the icon-only rail UX
-- In `src/components/app-sidebar.tsx`, ensure every nav item still shows a tooltip with its full label and keyboard shortcut when the sidebar is collapsed.
-- Add a visible active-state indicator on the rail (e.g., a subtle left-border or background pill) so the current page is obvious even without labels.
-- Keep the logo and footer actions visible in the collapsed state in a minimal form.
+### 2. Reduce the gap between header elements
+- The header currently has three vertical blocks: logo, company switcher, and search button. Ensure they sit closer together without adding visible whitespace.
+- If the `SidebarHeader` component adds default padding, reduce it (or use `className` on `<SidebarHeader>`) so the whole header area is compact.
+- Keep the company switcher unchanged internally; only reduce its top/bottom spacing or margins.
+- The search button currently has `mb-1`. Reduce or remove that margin so the search button sits directly above the `SidebarContent` separator.
 
-### 3. Tighten the expanded sidebar spacing
-- Reduce vertical padding on nav items and group headers in expanded mode (e.g., from `py-2` to `py-1.5` or `py-1`).
-- Keep the group accordions but reduce group label size and spacing so the full menu takes less vertical room.
-
-### 4. Provide a compact-mode toggle
-- Add a small toggle button on the rail (or next to the existing `SidebarTrigger`) that lets the user switch between compact and expanded.
-- The toggle should sync with the persisted state.
-
-### 5. Ensure mobile behavior is unchanged
-- On mobile, continue using the `MobileBottomNav` and the sheet-style sidebar; the compact rail only applies to desktop/tablet.
+### 3. Keep mobile and collapsed states unchanged
+- The compact rail header should continue to render just the icon with the existing spacing.
+- No changes to mobile bottom navigation.
 
 ## Out of scope
-- Removing or hiding nav items.
-- Restructuring the nav groups.
-- Changing the mobile bottom navigation.
+- Changing the sidebar width.
+- Removing the logo, company switcher, or search button.
+- Restructuring nav groups or nav items.
+- Changing mobile navigation.
 
 ## Files likely to be changed
-- `src/routes/_authenticated/route.tsx`
 - `src/components/app-sidebar.tsx`
-- `src/components/ui/sidebar.tsx` if needed for rail styling
-- `src/styles.css` for any new rail/accent tokens if required
+- Possibly `src/components/ui/sidebar.tsx` if the `SidebarHeader` has default spacing that needs adjusting.
 
 ## Verification
-- Preview the dashboard and confirm the sidebar loads as a narrow rail.
-- Hover a nav item and confirm the tooltip appears with the label.
-- Click the expand toggle and confirm the full sidebar returns.
-- Check that the active page is visibly highlighted in the collapsed state.
+- Preview the dashboard and confirm the sidebar header is visibly tighter.
+- Confirm the logo, company switcher, and search button still align and are readable.
+- Confirm the collapsed rail is unchanged.
+- Confirm no mobile regression.
