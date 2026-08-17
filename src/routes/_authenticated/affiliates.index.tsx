@@ -137,6 +137,7 @@ function AffiliatesPage() {
         price: Number(a.cpa_rate || 0),
         pct: Number(a.guarantee_value || 0),
         leads: t.leads,
+        activated: t.activated,
         guaranteed: t.guaranteed,
         reported: t.reported,
         owed: t.cost,
