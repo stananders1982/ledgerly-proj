@@ -529,6 +529,7 @@ function Dashboard() {
         {show("dash:activity") && <ActivityFeed sinceIso={startIso} untilIso={endIso} />}
 
       </section>
+      )}
 
       {/* Secondary detail */}
       {show("dash:expenses") && (
