@@ -91,6 +91,7 @@ function PermissionsPage() {
         <TabsList>
           <TabsTrigger value="pages">Page Access</TabsTrigger>
           <TabsTrigger value="actions">Action Permissions</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="roles">Roles</TabsTrigger>
         </TabsList>
 
@@ -106,6 +107,13 @@ function PermissionsPage() {
             Admins always keep every action — their column is locked.
           </p>
           <PermissionMatrix kind="action" />
+        </TabsContent>
+
+        <TabsContent value="dashboard" className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Choose which blocks of the dashboard each role sees. Hidden blocks are not loaded at all.
+          </p>
+          <PermissionMatrix kind="dashboard" />
         </TabsContent>
 
         <TabsContent value="roles">

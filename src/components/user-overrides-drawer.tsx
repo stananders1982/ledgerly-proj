@@ -36,6 +36,7 @@ export function UserOverridesDrawer({
   const { roles } = useRoles();
   const navRows = useMatrixRows("nav");
   const actionRows = useMatrixRows("action");
+  const dashboardRows = useMatrixRows("dashboard");
 
   const rolePermsQ = useQuery({
     enabled: !!companyId && !!user,
@@ -197,6 +198,7 @@ export function UserOverridesDrawer({
             <>
               {section("Page access", navRows, "nav")}
               {section("Action permissions", actionRows, "action")}
+              {section("Dashboard sections", dashboardRows, "nav")}
             </>
           )}
         </div>

@@ -42,6 +42,7 @@ import { DataQualityCard } from "@/components/data-quality-card";
 import { AnomalyAlerts } from "@/components/anomaly-alerts";
 import { DailyDigest } from "@/components/daily-digest";
 import { AskBox } from "@/components/ask-box";
+import { useVisibleDashboardSections } from "@/lib/permissions";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — Ledgerly" }] }),
@@ -321,6 +322,8 @@ function Dashboard() {
   }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions]);
 
   const insights = useMemo(() => buildInsights(m), [m]);
+  const sections = useVisibleDashboardSections();
+  const show = sections.can;
 
   return (
     <div className="aurora-bg">
@@ -340,15 +343,24 @@ function Dashboard() {
         <DashboardRangePicker value={dash.state} onChange={dash.setState} label={rangeLabel} />
       </div>
 
-      <AnomalyAlerts key={`${startIso}:${endIso}`} />
+      {!sections.any && sections.loaded && (
+        <div className="glass-surface p-8 text-center text-sm text-muted-foreground">
+          Nothing has been shared with you on the dashboard yet.
+        </div>
+      )}
 
-      <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
-        <DailyDigest />
-        <AskBox startIso={startIso} endIso={endIso} rangeLabel={rangeLabel} />
-      </section>
+      {show("dash:alerts") && <AnomalyAlerts key={`${startIso}:${endIso}`} />}
+
+      {(show("dash:digest") || show("dash:ask")) && (
+        <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
+          {show("dash:digest") && <DailyDigest />}
+          {show("dash:ask") && <AskBox startIso={startIso} endIso={endIso} rangeLabel={rangeLabel} />}
+        </section>
+      )}
 
 
       {/* Hero KPIs */}
+      {show("dash:kpis") && (
       <section className="grid gap-3 grid-cols-2 sm:gap-4 xl:grid-cols-4 mb-10 [&>*]:min-w-0">
         <HeroCard
           label="Net profit"
@@ -393,8 +405,10 @@ function Dashboard() {
           to="/leads"
         />
       </section>
+      )}
 
       {/* Business engine */}
+      {show("dash:engine") && (
       <section className="mb-10">
         <SectionTitle eyebrow="Business engine" title="Three pillars driving the month" />
         <div className="grid gap-4 lg:grid-cols-3">
@@ -431,9 +445,12 @@ function Dashboard() {
           </EngineBlock>
         </div>
       </section>
+      )}
 
       {/* Charts */}
+      {(show("dash:revexp") || show("dash:funnel")) && (
       <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-3">
+        {show("dash:revexp") && (
         <div className="glass-surface glass-hover min-w-0 overflow-hidden p-4 sm:p-5 lg:col-span-2">
           <ChartHeader title="Revenue vs expenses" subtitle={rangeLabel} icon={Activity} />
           <div className="h-64 mt-2">
@@ -459,7 +476,9 @@ function Dashboard() {
             </ResponsiveContainer>
           </div>
         </div>
+        )}
 
+        {show("dash:funnel") && (
         <div className="glass-surface glass-hover min-w-0 overflow-hidden p-4 sm:p-5">
           <ChartHeader title="Lead funnel" subtitle={rangeLabel} icon={Zap} />
           <div className="mt-4 space-y-3">
@@ -473,9 +492,13 @@ function Dashboard() {
             <Pill label="Activation rate" tone="green" value={fmtPct(m.rate)} />
           </div>
         </div>
+        )}
       </section>
+      )}
 
+      {(show("dash:sources") || show("dash:insights") || show("dash:cashflow") || show("dash:quality") || show("dash:activity")) && (
       <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-3">
+        {show("dash:sources") && (
         <div className="glass-surface glass-hover min-w-0 overflow-hidden p-4 sm:p-5 lg:col-span-2">
           <ChartHeader title="Lead source performance" subtitle={`Activated vs received — ${rangeLabel.toLowerCase()}`} icon={Users} />
           <div className="h-64 mt-2">
@@ -495,18 +518,21 @@ function Dashboard() {
             )}
           </div>
         </div>
+        )}
 
-        <AIInsights insights={insights} />
+        {show("dash:insights") && <AIInsights insights={insights} />}
 
-        <CashflowForecast />
+        {show("dash:cashflow") && <CashflowForecast />}
 
-        <DataQualityCard />
+        {show("dash:quality") && <DataQualityCard />}
 
-        <ActivityFeed sinceIso={startIso} untilIso={endIso} />
+        {show("dash:activity") && <ActivityFeed sinceIso={startIso} untilIso={endIso} />}
 
       </section>
+      )}
 
       {/* Secondary detail */}
+      {show("dash:expenses") && (
       <section className="glass-surface p-5">
         <ChartHeader title="Expense breakdown" subtitle="Where the money went" icon={Repeat} />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
@@ -520,6 +546,7 @@ function Dashboard() {
           <Row label="CPA savings" value={fmtMoney(m.cpaSavings)} accent="purple" />
         </div>
       </section>
+      )}
     </div>
   );
 }

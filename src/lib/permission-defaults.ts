@@ -2,6 +2,8 @@
  * Role defaults — kept free of browser imports so both the app and the
  * server-side assistant can reason about them.
  */
+import { defaultDashboardAllowed, isDashboardSectionKey } from "@/lib/dashboard-sections";
+
 const MANAGER_NAV_EXCLUDES = ["settings", "users", "permissions", "logs", "activity"];
 const AGENT_NAV = ["dashboard", "leads", "activations", "revenue", "tasks", "performance"];
 const RETENTION_NAV = ["dashboard", "activations", "revenue", "withdrawals", "tasks", "performance"];
@@ -10,6 +12,7 @@ const AGENT_ACTIONS = ["export_data", "manage_tasks"];
 const RETENTION_ACTIONS = ["export_data", "manage_tasks", "approve_withdrawals"];
 
 export function defaultNavAllowed(roleKey: string, navKey: string) {
+  if (isDashboardSectionKey(navKey)) return defaultDashboardAllowed(roleKey, navKey);
   if (roleKey === "admin") return true;
   if (roleKey === "manager") return !MANAGER_NAV_EXCLUDES.includes(navKey);
   if (roleKey === "agent") return AGENT_NAV.includes(navKey);

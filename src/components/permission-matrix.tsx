@@ -4,6 +4,7 @@ import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { NAV_ITEMS } from "@/lib/nav-items";
+import { DASHBOARD_SECTIONS, DASHBOARD_SECTION_KEYS } from "@/lib/dashboard-sections";
 import { ACTION_PERMISSIONS, LOCKED_NAV_KEYS, ROLE_PERMISSIONS_KEY, useRoles, type RoleOption } from "@/lib/permissions";
 import {
   defaultActionAllowed,
@@ -20,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-export type MatrixKind = "nav" | "action";
+export type MatrixKind = "nav" | "action" | "dashboard";
 
 type RowDef = { key: string; label: string; hint?: string; locked?: boolean };
 
@@ -28,6 +29,9 @@ export function useMatrixRows(kind: MatrixKind): RowDef[] {
   return useMemo(() => {
     if (kind === "action") {
       return ACTION_PERMISSIONS.map((a) => ({ key: a.key, label: a.label, hint: a.hint }));
+    }
+    if (kind === "dashboard") {
+      return DASHBOARD_SECTIONS.map((s) => ({ key: s.key, label: s.label, hint: s.hint }));
     }
     return NAV_ITEMS.filter((i) => !i.superAdminOnly).map((i) => ({
       key: i.key,
@@ -39,7 +43,7 @@ export function useMatrixRows(kind: MatrixKind): RowDef[] {
 }
 
 export function navKeysForReset() {
-  return NAV_ITEMS.filter((i) => !i.superAdminOnly).map((i) => i.key);
+  return [...NAV_ITEMS.filter((i) => !i.superAdminOnly).map((i) => i.key), ...DASHBOARD_SECTION_KEYS];
 }
 
 export function PermissionMatrix({ kind }: { kind: MatrixKind }) {
@@ -56,10 +60,10 @@ export function PermissionMatrix({ kind }: { kind: MatrixKind }) {
   });
 
   const value = (roleKey: string, rowKey: string) => {
-    const ref = kind === "nav" ? { navKey: rowKey } : { actionKey: rowKey };
+    const ref = kind === "action" ? { actionKey: rowKey } : { navKey: rowKey };
     const found = (permsQ.data ?? []).find((r: MatrixRow) => r.role_key === roleKey && permMatches(r, ref));
     if (found) return found.allowed;
-    return kind === "nav" ? defaultNavAllowed(roleKey, rowKey) : defaultActionAllowed(roleKey, rowKey);
+    return kind === "action" ? defaultActionAllowed(roleKey, rowKey) : defaultNavAllowed(roleKey, rowKey);
   };
 
   const isLocked = (role: RoleOption, _row: RowDef) => role.key === "admin";
@@ -70,7 +74,7 @@ export function PermissionMatrix({ kind }: { kind: MatrixKind }) {
       await setRolePermission({
         companyId,
         roleKey: v.roleKey,
-        ref: kind === "nav" ? { navKey: v.rowKey } : { actionKey: v.rowKey },
+        ref: kind === "action" ? { actionKey: v.rowKey } : { navKey: v.rowKey },
         allowed: v.allowed,
       });
       return v;
@@ -124,7 +128,7 @@ export function PermissionMatrix({ kind }: { kind: MatrixKind }) {
           <thead className="sticky top-0 z-20 bg-card">
             <tr className="border-b">
               <th className="sticky left-0 z-30 bg-card px-4 py-3 text-left font-medium min-w-[220px]">
-                {kind === "nav" ? "Page" : "Action"}
+                {kind === "action" ? "Action" : kind === "dashboard" ? "Section" : "Page"}
               </th>
               {roles.map((role) => (
                 <th key={role.key} className="px-4 py-2 text-center font-medium">
