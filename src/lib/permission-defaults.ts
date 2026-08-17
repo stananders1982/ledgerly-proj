@@ -10,6 +10,7 @@ const AGENT_ACTIONS = ["export_data", "manage_tasks"];
 const RETENTION_ACTIONS = ["export_data", "manage_tasks", "approve_withdrawals"];
 
 export function defaultNavAllowed(roleKey: string, navKey: string) {
+  if (isDashboardSectionKey(navKey)) return defaultDashboardAllowed(roleKey, navKey);
   if (roleKey === "admin") return true;
   if (roleKey === "manager") return !MANAGER_NAV_EXCLUDES.includes(navKey);
   if (roleKey === "agent") return AGENT_NAV.includes(navKey);
