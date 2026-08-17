@@ -88,7 +88,7 @@ function AffiliatesPage() {
       const data = await fetchAll(() =>
         supabase
           .from("daily_lead_entries")
-          .select("entry_date,received,reported,source_id")
+          .select("entry_date,received,reported,activated,source_id")
           .gte("entry_date", startIso)
           .lte("entry_date", endIso),
       );
@@ -137,6 +137,7 @@ function AffiliatesPage() {
         price: Number(a.cpa_rate || 0),
         pct: Number(a.guarantee_value || 0),
         leads: t.leads,
+        activated: t.activated,
         guaranteed: t.guaranteed,
         reported: t.reported,
         owed: t.cost,
@@ -169,6 +170,7 @@ function AffiliatesPage() {
     price: (r) => r.price,
     pct: (r) => r.pct,
     leads: (r) => r.leads,
+    activated: (r) => r.activated,
     guaranteed: (r) => r.guaranteed,
     reported: (r) => r.reported,
     owed: (r) => r.owed,
@@ -277,6 +279,7 @@ function AffiliatesPage() {
                 subtitle={r.active ? `${fmtMoney(r.price)} / conversion · ${r.pct > 0 ? `${r.pct}% guarantee` : "flat, no guarantee"}` : "Inactive"}
                 fields={[
                   { label: "Leads", value: <span className="num">{r.leads}</span> },
+                  { label: "FTDs", value: <span className="num">{r.activated}</span> },
                   { label: "Guaranteed", value: <span className="num">{r.guaranteed}</span> },
                   { label: "Reported", value: <span className="num">{r.reported}</span> },
                   { label: "Owed", value: <span className="num">{fmtMoney(r.owed)}</span> },
@@ -295,6 +298,7 @@ function AffiliatesPage() {
                   <SortTh label="Price" k="price" sort={sort} toggle={toggle} />
                   <SortTh label="Guarantee %" k="pct" sort={sort} toggle={toggle} />
                   <SortTh label="Leads" k="leads" sort={sort} toggle={toggle} />
+                  <SortTh label="FTDs" k="activated" sort={sort} toggle={toggle} />
                   <SortTh label="Guaranteed" k="guaranteed" sort={sort} toggle={toggle} />
                   <SortTh label="Reported" k="reported" sort={sort} toggle={toggle} />
                   <SortTh label="Owed" k="owed" sort={sort} toggle={toggle} />
@@ -323,6 +327,7 @@ function AffiliatesPage() {
                     <td className="py-3 px-4">{fmtMoney(r.price)}</td>
                     <td className="py-3 px-4">{r.pct}%</td>
                     <td className="py-3 px-4">{r.leads}</td>
+                    <td className="py-3 px-4">{r.activated}</td>
                     <td className="py-3 px-4">{r.guaranteed}</td>
                     <td className="py-3 px-4">{r.reported}</td>
                     <td className="py-3 px-4">{fmtMoney(r.owed)}</td>

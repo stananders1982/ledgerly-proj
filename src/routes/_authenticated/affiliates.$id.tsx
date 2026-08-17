@@ -97,7 +97,7 @@ function AffiliateStatementPage() {
     queryKey: ["affiliate-entries-one", id],
     queryFn: async () => {
       const data = await fetchAll(() =>
-        supabase.from("daily_lead_entries").select("entry_date,received,reported,source_id"),
+        supabase.from("daily_lead_entries").select("entry_date,received,reported,activated,source_id"),
       );
       return (data ?? []) as LeadEntryLike[];
     },
@@ -261,6 +261,7 @@ function AffiliateStatementPage() {
                   ...weeks.map((w) => ({
                     Week: `${w.weekStart} → ${w.weekEnd}`,
                     Leads: w.leads,
+                    FTDs: w.activated,
                     Guaranteed: w.guaranteed,
                     Reported: w.reported,
                     Payable: w.payable,
@@ -271,6 +272,7 @@ function AffiliateStatementPage() {
                   {
                     Week: "TOTAL",
                     Leads: weekTotals.leads,
+                    FTDs: weekTotals.activated,
                     Guaranteed: weekTotals.guaranteed,
                     Reported: weekTotals.reported,
                     Payable: weekTotals.payable,
@@ -413,6 +415,7 @@ function AffiliateStatementPage() {
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <th className="py-3 px-4">Week</th>
                   <th className="py-3 px-4">Leads</th>
+                  <th className="py-3 px-4">FTDs</th>
                   <th className="py-3 px-4">Guaranteed</th>
                   <th className="py-3 px-4">Reported</th>
                   <th className="py-3 px-4">Payable</th>
@@ -427,6 +430,7 @@ function AffiliateStatementPage() {
                   <tr key={w.weekStart} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                     <td className="py-3 px-4 font-medium whitespace-nowrap">{w.weekStart} → {w.weekEnd}</td>
                     <td className="py-3 px-4">{w.leads}</td>
+                    <td className="py-3 px-4">{w.activated}</td>
                     <td className="py-3 px-4">{w.guaranteed}</td>
                     <td className="py-3 px-4">{w.reported}</td>
                     <td className="py-3 px-4">{w.payable}</td>
@@ -450,6 +454,7 @@ function AffiliateStatementPage() {
                 <tr className="border-t border-border font-medium">
                   <td className="py-3 px-4">Total</td>
                   <td className="py-3 px-4">{weekTotals.leads}</td>
+                  <td className="py-3 px-4">{weekTotals.activated}</td>
                   <td className="py-3 px-4">{weekTotals.guaranteed}</td>
                   <td className="py-3 px-4">{weekTotals.reported}</td>
                   <td className="py-3 px-4">{weekTotals.payable}</td>

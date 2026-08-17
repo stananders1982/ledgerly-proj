@@ -25,6 +25,7 @@ export type LeadEntryLike = {
   entry_date: string;
   received?: number | null;
   reported?: number | null;
+  activated?: number | null;
   source_id?: string | null;
 };
 
@@ -32,6 +33,7 @@ export type WeekRow = {
   weekStart: string;
   weekEnd: string;
   leads: number;
+  activated: number;
   guaranteed: number;
   reported: number;
   payable: number;
@@ -84,13 +86,14 @@ export function weeklyGuarantee(
   const price = Number(aff.cpa_rate || 0);
   const pct = Number(aff.guarantee_value || 0);
 
-  const buckets = new Map<string, { leads: number; reported: number }>();
+  const buckets = new Map<string, { leads: number; reported: number; activated: number }>();
   for (const e of entries) {
     if (!e.entry_date) continue;
     const k = weekStartOf(e.entry_date);
-    const b = buckets.get(k) ?? { leads: 0, reported: 0 };
+    const b = buckets.get(k) ?? { leads: 0, reported: 0, activated: 0 };
     b.leads += Number(e.received || 0);
     b.reported += Number(e.reported || 0);
+    b.activated += Number(e.activated || 0);
     buckets.set(k, b);
   }
 
@@ -107,6 +110,7 @@ export function weeklyGuarantee(
         weekStart,
         weekEnd: weekEndOf(weekStart),
         leads: b.leads,
+        activated: b.activated,
         guaranteed,
         reported: b.reported,
         payable: round2(payable),
@@ -123,6 +127,7 @@ export function sumWeeks(rows: WeekRow[]) {
   return rows.reduce(
     (acc, r) => ({
       leads: acc.leads + r.leads,
+      activated: acc.activated + r.activated,
       guaranteed: round2(acc.guaranteed + r.guaranteed),
       reported: acc.reported + r.reported,
       payable: round2(acc.payable + r.payable),
@@ -130,7 +135,7 @@ export function sumWeeks(rows: WeekRow[]) {
       savings: round2(acc.savings + r.savings),
       shortfall: round2(acc.shortfall + r.shortfall),
     }),
-    { leads: 0, guaranteed: 0, reported: 0, payable: 0, cost: 0, savings: 0, shortfall: 0 },
+    { leads: 0, activated: 0, guaranteed: 0, reported: 0, payable: 0, cost: 0, savings: 0, shortfall: 0 },
   );
 }
 
@@ -154,6 +159,7 @@ export function mergeWeekRows(perMember: WeekRow[][]): WeekRow[] {
         continue;
       }
       prev.leads += w.leads;
+      prev.activated += w.activated;
       prev.guaranteed = round2(prev.guaranteed + w.guaranteed);
       prev.reported += w.reported;
       prev.payable = round2(prev.payable + w.payable);
