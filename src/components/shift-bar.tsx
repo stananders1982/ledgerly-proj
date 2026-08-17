@@ -179,6 +179,12 @@ export function ShiftBar({
   );
   const unallocated = todayActivations.filter((a) => !retentionIds.has(a.employee_id));
 
+  // FTDs counted on the day's entry but never named — the gap the KPI card flags.
+  const unnamed = todayEntries.reduce((sum, e) => {
+    const named = todayActivations.filter((a) => a.entry_id === e.id).length;
+    return sum + Math.max(0, Number(e.activated || 0) - named);
+  }, 0);
+
   const totals = todayEntries.reduce(
     (acc, e) => ({
       received: acc.received + Number(e.received || 0),
@@ -365,6 +371,18 @@ export function ShiftBar({
             <Button type="button" size="sm" className="h-8" onClick={() => setShowFtd((v) => !v)}>
               <UserPlus className="mr-1 h-4 w-4" /> Add FTD
             </Button>
+
+            {unnamed > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 border-amber-500/50 text-amber-700 dark:text-amber-400"
+                onClick={() => setShowFtd(true)}
+              >
+                <AlertTriangle className="mr-1 h-4 w-4" /> {unnamed} unnamed FTD{unnamed === 1 ? "" : "s"}
+              </Button>
+            )}
 
             {unallocated.length > 0 && (
               <Button
