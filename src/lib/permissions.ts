@@ -16,6 +16,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { exportCSV, exportPDF, exportXLSX } from "@/lib/export";
+import {
+  DASHBOARD_SECTION_KEYS,
+  defaultDashboardAllowed,
+  isDashboardSectionKey,
+} from "@/lib/dashboard-sections";
 
 export type ActionKey =
   | "delete_records"
