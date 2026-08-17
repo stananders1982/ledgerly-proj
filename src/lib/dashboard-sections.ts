@@ -20,6 +20,8 @@ export type DashboardSectionKey =
   | "dash:cashflow"
   | "dash:quality"
   | "dash:activity"
+  | "dash:retention"
+  | "dash:conversion"
   | "dash:expenses";
 
 export const DASHBOARD_SECTIONS: { key: DashboardSectionKey; label: string; hint: string }[] = [
@@ -35,8 +37,11 @@ export const DASHBOARD_SECTIONS: { key: DashboardSectionKey; label: string; hint
   { key: "dash:cashflow", label: "Cashflow forecast", hint: "90-day forecast card." },
   { key: "dash:quality", label: "Data quality", hint: "Data quality checks card." },
   { key: "dash:activity", label: "Activity feed", hint: "Recent workspace changes." },
+  { key: "dash:retention", label: "Retention scoreboard", hint: "Deposits, withdrawals and net per retention agent." },
+  { key: "dash:conversion", label: "Conversion scoreboard", hint: "FTDs, pending and total per conversion agent." },
   { key: "dash:expenses", label: "Expense breakdown", hint: "Where the money went." },
 ];
+
 
 export const DASHBOARD_SECTION_KEYS = DASHBOARD_SECTIONS.map((s) => s.key) as string[];
 

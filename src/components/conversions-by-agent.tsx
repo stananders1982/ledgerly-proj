@@ -7,7 +7,7 @@ import { EmployeeLink } from "@/components/employee-link";
 import { AnsweredBadge, PotentialBadge } from "@/components/status-badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fmtDate, fmtMoney } from "@/lib/format";
-import { qualifiesAsFtd, ftdPendingReasons, depositIndex, effectiveBalanceIndexed, isAgentTeam } from "@/lib/rules";
+import { qualifiesAsFtd, ftdPendingReasons, depositIndex, effectiveBalanceIndexed, isAgentTeam, normalizeTeam } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 
 type ActRow = {
@@ -29,12 +29,27 @@ const actDate = (r: ActRow) => r.activation_date ?? r.daily_lead_entries?.entry_
 
 /**
  * Conversion agent leaderboard for a date range: qualified FTDs vs pending ones.
- * Lives on the Leads page (conversion side of the business).
+ * Used on the Leads page and as the conversion scoreboard on the dashboard.
  */
-export function ConversionsByAgent({ start, end }: { start: Date; end: Date }) {
+export function ConversionsByAgent({
+  start,
+  end,
+  variant = "panel",
+  title = "Conversions by agent",
+  teams,
+}: {
+  start: Date;
+  end: Date;
+  /** "card" renders the dashboard glass surface instead of the bordered panel. */
+  variant?: "panel" | "card";
+  title?: string;
+  /** Restrict to specific teams (e.g. ["C"]); defaults to all agent teams. */
+  teams?: string[];
+}) {
   const settings = useCompanySettings();
   const navigate = useNavigate();
   const [pendingView, setPendingView] = useState<{ title: string; rows: PendingRow[] } | null>(null);
+
 
   const activationsQ = useQuery({
     queryKey: ["activated-leads"],
@@ -70,11 +85,14 @@ export function ConversionsByAgent({ start, end }: { start: Date; end: Date }) {
   const employeeName = (id?: string | null) =>
     (employeesQ.data ?? []).find((e) => e.id === id)?.name ?? "—";
 
-  /** Managers (Team M) are never ranked as agents. */
+  /** Managers (Team M) are never ranked as agents; `teams` narrows further. */
   const isAgentId = (id?: string | null) => {
     const e = (employeesQ.data ?? []).find((x) => x.id === id);
-    return !e || isAgentTeam(e.team);
+    if (!e) return !teams;
+    if (teams) return teams.includes(normalizeTeam(e.team));
+    return isAgentTeam(e.team);
   };
+
 
   // Prefer the direct client link; name matching only covers legacy rows.
   const deposits = useMemo(() => depositIndex((revenueQ.data ?? []) as any[]), [revenueQ.data]);
@@ -126,26 +144,30 @@ export function ConversionsByAgent({ start, end }: { start: Date; end: Date }) {
     [byAgent],
   );
 
+  const card = variant === "card";
+
   return (
     <>
-      <div className="mb-6 rounded-lg border border-border">
-        <div className="border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold">Conversions by agent</h2>
+      <div className={card ? "glass-surface glass-hover min-w-0 overflow-hidden p-4 sm:p-5" : "mb-6 rounded-lg border border-border"}>
+        <div className={card ? "mb-3" : "border-b border-border px-4 py-3"}>
+          <h2 className={card ? "font-display text-base font-semibold" : "text-sm font-semibold"}>{title}</h2>
           <p className="text-xs text-muted-foreground">{`Counts qualified FTDs: answered and (mid/high potential or balance of $${settings.ftdBalanceThreshold}+). Everything else is pending.`}</p>
         </div>
+
         {byAgent.length === 0 ? (
           <p className="px-4 py-6 text-sm text-muted-foreground">No conversions in this range.</p>
         ) : (
           <div className="overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+              <thead className={card ? "text-left text-[11px] uppercase tracking-wider text-muted-foreground" : "bg-muted/40 text-left text-xs uppercase text-muted-foreground"}>
                 <tr>
-                  <th className="py-2 px-4 font-medium">Conversion agent</th>
-                  <th className="py-2 px-4 font-medium">Conversions</th>
+                  <th className="py-2 px-4 font-medium">{card ? "Agent" : "Conversion agent"}</th>
+                  <th className="py-2 px-4 font-medium">{card ? "FTDs" : "Conversions"}</th>
                   <th className="py-2 px-4 font-medium">Pending</th>
                   <th className="py-2 px-4 font-medium">Total</th>
                 </tr>
               </thead>
+
               <tbody>
                 {byAgent.map((a) => (
                   <tr key={a.id} className="border-t border-border/50">

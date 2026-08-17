@@ -62,7 +62,10 @@ import { DataQualityCard } from "@/components/data-quality-card";
 import { AnomalyAlerts } from "@/components/anomaly-alerts";
 import { DailyDigest } from "@/components/daily-digest";
 import { AskBox } from "@/components/ask-box";
+import { RetentionScoreboard } from "@/components/retention-scoreboard";
+import { ConversionsByAgent } from "@/components/conversions-by-agent";
 import { useVisibleDashboardSections } from "@/lib/permissions";
+
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({ meta: [{ title: "Dashboard — Ledgerly" }] }),
@@ -516,6 +519,23 @@ function Dashboard() {
         )}
       </section>
       )}
+
+      {/* Agent scoreboards */}
+      {(show("dash:retention") || show("dash:conversion")) && (
+      <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
+        {show("dash:retention") && <RetentionScoreboard start={range.start} end={range.end} />}
+        {show("dash:conversion") && (
+          <ConversionsByAgent
+            start={range.start}
+            end={range.end}
+            variant="card"
+            title="Conversion agents"
+            teams={["C"]}
+          />
+        )}
+      </section>
+      )}
+
 
       {(show("dash:sources") || show("dash:insights") || show("dash:cashflow") || show("dash:quality") || show("dash:activity")) && (
       <section className="mb-10 grid gap-4 [&>*]:min-w-0 lg:grid-cols-3">
