@@ -27,7 +27,7 @@ export function CompanySwitcher() {
 
   if (!isSuperAdmin || companies.length < 2) {
     return (
-      <div className="mx-2 mb-1 flex items-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/30 px-2.5 py-1.5 text-xs">
+      <div className="mx-2 flex items-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/30 px-2.5 py-1.5 text-xs">
         {label}
       </div>
     );
@@ -51,7 +51,7 @@ export function CompanySwitcher() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="mx-2 mb-1 flex items-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/30 px-2.5 py-1.5 text-xs transition-colors hover:bg-sidebar-accent"
+          className="mx-2 flex items-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/30 px-2.5 py-1.5 text-xs transition-colors hover:bg-sidebar-accent"
         >
           {label}
           {busy ? (
