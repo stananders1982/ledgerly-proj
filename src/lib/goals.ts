@@ -38,13 +38,19 @@ export function fetchGoals(periodMonth?: string) {
   return q;
 }
 
-export async function upsertGoal(goal: Partial<Goal> & { target_value: number; target_metric: GoalMetric; entity_type: GoalEntityType; period_month: string }) {
+export async function upsertGoal(
+  goal: Partial<Goal> & { target_value: number; target_metric: GoalMetric; entity_type: GoalEntityType; period_month: string },
+  companyId: string,
+  userId?: string | null,
+) {
   const payload = {
     entity_type: goal.entity_type,
     entity_id: goal.entity_id ?? null,
     target_metric: goal.target_metric,
     target_value: Number(goal.target_value),
     period_month: goal.period_month,
+    company_id: companyId,
+    created_by: userId ?? null,
   };
   if (goal.id) {
     const { error } = await sb.from("goals").update(payload).eq("id", goal.id);
