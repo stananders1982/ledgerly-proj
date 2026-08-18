@@ -42,6 +42,7 @@ import { DataCard, DataCardList } from "@/components/data-card-list";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { QueryError } from "@/components/query-error";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/leads")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -629,6 +630,24 @@ function LeadsPage() {
           </div>
         }
       />
+
+      <AlertDialog open={!!dupPending} onOpenChange={(o: boolean) => { if (!o) setDupPending(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>An entry already exists</AlertDialogTitle>
+            <AlertDialogDescription>
+              This source already has an entry for {dupPending?.entry_date}. Adding another will double-count
+              those leads — edit the existing row instead, unless this is intentional.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { const v = dupPending; setDupPending(null); if (v) upsert.mutate(v); }}>
+              Add anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {issue && (
         <IssueFilterBanner
