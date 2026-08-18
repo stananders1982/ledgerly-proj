@@ -1092,6 +1092,20 @@ function EditDialog({
           <Checkbox checked={form.answered} onCheckedChange={(c) => setForm({ ...form, answered: Boolean(c) })} />
           Answered
         </label>
+        <label className="flex items-start gap-2 rounded-md border border-border/60 bg-muted/30 p-2.5 text-sm">
+          <Checkbox
+            className="mt-0.5"
+            checked={!!form.legacy}
+            onCheckedChange={(c) => setForm({ ...form, legacy: Boolean(c) })}
+          />
+          <span>
+            Legacy client (from old CRM)
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              Deposits, withdrawals and STDs still count. Not credited as an FTD to the
+              conversion agent and not counted as a client received.
+            </span>
+          </span>
+        </label>
       </div>
       <DialogFooter className="flex-row items-center gap-2 sm:justify-between">
         {onDelete ? (
