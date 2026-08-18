@@ -1078,7 +1078,17 @@ function EditDialog({
           Answered
         </label>
       </div>
-      <DialogFooter>
+      <DialogFooter className="flex-row items-center gap-2 sm:justify-between">
+        {onDelete ? (
+          <ConfirmDelete
+            text="Delete"
+            onConfirm={onDelete}
+            label={`Delete ${row.lead_name || "this client"}?`}
+            description="The client record is removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
+          />
+        ) : (
+          <span />
+        )}
         <Button onClick={() => onSubmit(form)} disabled={loading || !form.employee_id}>
           {loading ? "Saving…" : "Save"}
         </Button>
