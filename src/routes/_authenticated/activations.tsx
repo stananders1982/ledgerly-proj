@@ -962,7 +962,15 @@ function ActivationsPage() {
                 <CommentThread entityType="client" entityId={cur.id} />
               </div>
 
-              <SheetFooter className="mt-4 flex-row justify-end gap-2">
+              <SheetFooter className="mt-4 flex-row items-center gap-2">
+                <ConfirmDelete
+                  text="Delete client"
+                  disabled={bulkDelete.isPending}
+                  onConfirm={() => bulkDelete.mutate([cur.id])}
+                  label={`Delete ${cur.lead_name || "this client"}?`}
+                  description="The client record is removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
+                />
+                <div className="flex-1" />
                 <Button variant="outline" onClick={() => setViewing(null)}>Close</Button>
                 <Button onClick={() => { setViewing(null); setEditing(cur); }}>Edit client</Button>
               </SheetFooter>
