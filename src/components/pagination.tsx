@@ -9,13 +9,38 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function usePagination<T>(items: T[], defaultPerPage = 25) {
+export function usePagination<T>(items: T[], defaultPerPage = 25, storageKey?: string) {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(defaultPerPage);
+
+  // Remember the rows-per-page choice for this table between visits.
+  const lsKey = storageKey ? `table-perpage:${storageKey}` : null;
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (!lsKey) return;
+    try {
+      const raw = window.localStorage.getItem(lsKey);
+      const n = raw ? Number(raw) : NaN;
+      if (Number.isFinite(n) && n > 0) setPerPage(n);
+    } catch {
+      /* ignore */
+    }
+    setHydrated(true);
+  }, [lsKey]);
+
+  useEffect(() => {
+    if (!lsKey || !hydrated) return;
+    try {
+      window.localStorage.setItem(lsKey, String(perPage));
+    } catch {
+      /* ignore */
+    }
+  }, [lsKey, perPage, hydrated]);
 
   useEffect(() => {
     setPage(1);
   }, [items.length, perPage]);
+
 
   const totalItems = items.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
