@@ -194,55 +194,32 @@ function ReportsPage() {
 
 
 
-  const data = useMemo(() => {
-    const entries = (leadsQ.data ?? []) as any[];
-    const revenue = (revQ.data ?? []) as any[];
-    const expenses = (expQ.data ?? []) as any[];
-    const employees = (empQ.data ?? []) as any[];
-    const recurring = (recQ.data ?? []) as any[];
+  const data = useMemo(
+    () =>
+      summarize(
+        (leadsQ.data ?? []) as any[],
+        (revQ.data ?? []) as any[],
+        (expQ.data ?? []) as any[],
+        (empQ.data ?? []) as any[],
+        (recQ.data ?? []) as any[],
+      ),
+    [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data],
+  );
 
-    let received = 0, activated = 0, reported = 0, converted = 0;
-    let cplCost = 0, cpaPayable = 0, cpaSavings = 0, marketingCost = 0;
-    for (const e of entries) {
-      received += e.received ?? 0;
-      activated += e.activated ?? 0;
-      reported += e.reported ?? 0;
-      converted += e.converted ?? 0;
-      marketingCost += Number(e.cost ?? 0);
-      const s = e.lead_sources;
-      if (!s) continue;
-      const p = Number(s.price);
-      if (s.pricing_model === "CPL") cplCost += p * (e.received ?? 0);
-      else {
-        cpaPayable += p * (e.reported ?? 0);
-        cpaSavings += p * Math.max(0, (e.activated ?? 0) - (e.reported ?? 0));
-      }
-    }
-    const unreported = activated - reported;
-    const income = revenue.reduce((s, r) => s + Number(r.amount), 0);
-    const otherExp = expenses.reduce((s, r) => s + Number(r.amount), 0);
-    const activeEmp = employees.filter((e) => e.active);
-    // Salaries include managers (fixed cost); commission never does.
-    const salaries = activeEmp.reduce((s, e) => s + Number(e.salary), 0);
-    const commissions = activeEmp
-      .filter((e) => isAgentTeam(e.team))
-      .reduce((s, e) => s + (income * Number(e.commission_pct)) / 100, 0);
-    const leadCost = cplCost + cpaPayable;
-    const totalExpenses = leadCost + marketingCost + otherExp + salaries + commissions;
-    const profit = income - totalExpenses;
+  const prevData = useMemo(
+    () =>
+      compare
+        ? summarize(
+            (prevLeadsQ.data ?? []) as any[],
+            (prevRevQ.data ?? []) as any[],
+            (prevExpQ.data ?? []) as any[],
+            (empQ.data ?? []) as any[],
+            (recQ.data ?? []) as any[],
+          )
+        : null,
+    [compare, prevLeadsQ.data, prevRevQ.data, prevExpQ.data, empQ.data, recQ.data],
+  );
 
-    return {
-      received, activated, reported, unreported, converted,
-      cplCost, cpaPayable, cpaSavings, marketingCost, leadCost,
-      income, otherExp, salaries, commissions, totalExpenses, profit,
-      rate: received ? (activated / received) * 100 : 0,
-      cpl: received ? leadCost / received : 0,
-      cpa: activated ? leadCost / activated : 0,
-      revPerActivation: activated ? income / activated : 0,
-      margin: income ? (profit / income) * 100 : 0,
-      entries, revenue, expenses, employees, recurring,
-    };
-  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data]);
 
   const sources = useMemo(() => {
     const map = new Map<string, any>();
