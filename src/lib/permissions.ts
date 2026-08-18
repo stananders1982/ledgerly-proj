@@ -100,12 +100,17 @@ export function useMyPermissions() {
   const q = useQuery({
     enabled: !!user && !isAdmin,
     queryKey: [...MY_PERMISSIONS_KEY, user?.id, companyId],
+    // Permission changes made by an admin should land without a re-login.
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase.rpc("my_permissions");
       if (error) throw error;
       return (data ?? []) as PermissionRow[];
     },
   });
+
 
   return useMemo(() => {
     if (isAdmin) {
