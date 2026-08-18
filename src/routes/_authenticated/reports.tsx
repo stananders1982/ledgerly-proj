@@ -638,18 +638,18 @@ function ReportsPage() {
     };
   }, [data, range]);
 
-  // Conversion funnel
+  // Conversion funnel — real counts only, no estimated stages.
   const funnel = useMemo(() => {
     const stages = [
       { name: "Leads received", value: data.received },
-      { name: "Contacted", value: Math.round(data.received * 0.8) }, // estimated
-      { name: "Qualified", value: Math.round(data.received * 0.5) },
-      { name: "Activated", value: data.activated },
-      { name: "Reported", value: data.reported },
+      { name: "Activated (FTD)", value: data.activated },
+      { name: "Reported to source", value: data.reported },
+      { name: "Deposits recorded", value: data.revenue.length },
     ];
     const max = stages[0].value || 1;
     return stages.map((s, i) => ({ ...s, pct: max ? (s.value / max) * 100 : 0, conv: i === 0 ? 100 : stages[i - 1].value ? (s.value / stages[i - 1].value) * 100 : 0 }));
-  }, [data.received, data.activated, data.reported]);
+  }, [data.received, data.activated, data.reported, data.revenue]);
+
 
   // Revenue groupings
   const revByDay = useMemo(() => {
