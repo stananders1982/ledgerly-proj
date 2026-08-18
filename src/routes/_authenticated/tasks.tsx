@@ -28,6 +28,7 @@ import { CheckCircle2, ListTodo, Plus, AlarmClock } from "lucide-react";
 const sb = supabase as any;
 
 import { useQuickCreate } from "@/lib/quick-create";
+import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/tasks")({
   head: () => ({
@@ -122,7 +123,7 @@ function TasksPage() {
     owner: (t) => empName(t.employee_id),
     status: (t) => t.status,
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted, 30, "tasks");
 
   const stats = useMemo(() => {
     const all = q.data ?? [];
@@ -231,7 +232,9 @@ function TasksPage() {
       </div>
 
       <div className="card-surface overflow-hidden">
-        {q.isLoading ? (
+        {q.error ? (
+          <QueryError error={q.error} onRetry={() => q.refetch()} />
+        ) : q.isLoading ? (
           <TableSkeleton cols={6} />
         ) : sorted.length === 0 ? (
           <EmptyState

@@ -20,6 +20,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney } from "@/lib/format";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
@@ -41,6 +51,8 @@ import { useRowSelection } from "@/lib/row-selection";
 import { BulkBar } from "@/components/bulk-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCompanySettings } from "@/lib/settings";
+import { usePersistedState } from "@/hooks/use-persisted-state";
+import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/revenue")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -57,9 +69,9 @@ function RevenuePage() {
   const [open, setOpen] = useState(false);
   useQuickCreate("revenue", () => setOpen(true));
   const [editing, setEditing] = useState<any | null>(null);
-  const [range, setRange] = useState<RangeKey>("month");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const [range, setRange] = usePersistedState<RangeKey>("revenue:range", "month");
+  const [customStart, setCustomStart] = usePersistedState<string>("revenue:range-start", "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("revenue:range-end", "");
   const [search, setSearch] = useState("");
   const { issue } = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -172,7 +184,7 @@ function RevenuePage() {
     employee: (r) => getEmployeeName(r.employee_id, r.employees) ?? "",
     affiliate: (r) => getAffiliateName(r.affiliate_id, r.affiliates) ?? "",
   });
-  const { pageItems, ...pg } = usePagination(sorted);
+  const { pageItems, ...pg } = usePagination(sorted, 25, "revenue");
 
 
   const stats = useMemo(() => {
@@ -198,7 +210,24 @@ function RevenuePage() {
     return { total, allTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
   }, [filtered, revQ.data, employeeNameById, affiliateNameById]);
 
+  // Flag an obvious re-entry (same client, same amount, same day) before saving.
+  const [dupPending, setDupPending] = useState<any | null>(null);
+  const findDuplicate = (v: any) => {
+    if (v.id) return null;
+    const name = String(v.customer_name ?? "").trim().toLowerCase();
+    const amount = Number(v.amount) || 0;
+    return (
+      (revQ.data ?? []).find(
+        (r: any) =>
+          String(r.customer_name ?? "").trim().toLowerCase() === name &&
+          Number(r.amount || 0) === amount &&
+          String(r.date) === String(v.date),
+      ) ?? null
+    );
+  };
+
   const upsert = useMutation({
+
     mutationFn: async (v: any) => {
       let activationId: string | null = v.activation_id || null;
 
@@ -346,11 +375,35 @@ function RevenuePage() {
             </DropdownMenu>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
               <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New revenue</Button></DialogTrigger>
-              <RevenueDialog key={editing?.id ?? "new"} rev={editing} employees={empQ.data ?? []} affiliates={affQ.data ?? []} activations={activationsQ.data ?? []} phoneByName={leadPhonesQ.data ?? {}} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+              <RevenueDialog key={editing?.id ?? "new"} rev={editing} employees={empQ.data ?? []} affiliates={affQ.data ?? []} activations={activationsQ.data ?? []} phoneByName={leadPhonesQ.data ?? {}} onSubmit={(v) => { const dup = findDuplicate(v); if (dup) setDupPending(v); else upsert.mutate(v); }} loading={upsert.isPending} />
             </Dialog>
           </div>
         }
       />
+
+      <AlertDialog open={!!dupPending} onOpenChange={(o: boolean) => { if (!o) setDupPending(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>This looks like a duplicate</AlertDialogTitle>
+            <AlertDialogDescription>
+              A deposit for{" "}
+              <span className="font-medium text-foreground">{dupPending?.customer_name}</span> of{" "}
+              <span className="font-medium text-foreground">{fmtMoney(Number(dupPending?.amount) || 0)}</span> is
+              already recorded on {dupPending?.date}. Save it anyway?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { const v = dupPending; setDupPending(null); if (v) upsert.mutate(v); }}
+            >
+              Save anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
 
       {issue && (
         <IssueFilterBanner
@@ -410,7 +463,8 @@ function RevenuePage() {
       </div>
 
       <div className="card-surface overflow-hidden">
-        {revQ.isLoading ? <TableSkeleton cols={6} />
+        {revQ.error ? <QueryError error={revQ.error} onRetry={() => revQ.refetch()} />
+          : revQ.isLoading ? <TableSkeleton cols={6} />
         : filtered.length === 0 ? (
           <EmptyState icon={TrendingUp} title="No revenue in this range" description="Try a different time frame or record a new sale."
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New revenue</Button>} />

@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
+import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/employees/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -103,7 +104,7 @@ function EmployeesPage() {
     salary: (e) => Number(e.salary ?? 0),
     active: (e) => !!e.active,
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted, 30, "employees");
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
@@ -185,7 +186,9 @@ function EmployeesPage() {
       )}
 
       <div className="card-surface overflow-hidden">
-        {q.isLoading ? (
+        {q.error ? (
+          <QueryError error={q.error} onRetry={() => q.refetch()} />
+        ) : q.isLoading ? (
           <TableSkeleton cols={6} />
         ) : rows.length === 0 ? (
           <EmptyState

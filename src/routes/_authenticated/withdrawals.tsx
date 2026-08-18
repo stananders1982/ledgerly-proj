@@ -36,6 +36,8 @@ const sb = supabase as any;
 
 
 import { useQuickCreate } from "@/lib/quick-create";
+import { usePersistedState } from "@/hooks/use-persisted-state";
+import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/withdrawals")({
   head: () => ({ meta: [{ title: "Withdrawals — Ledgerly" }] }),
@@ -51,9 +53,9 @@ function WithdrawalsPage() {
   useQuickCreate("withdrawals", () => setOpen(true));
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
-  const [range, setRange] = useState<RangeKey>("month");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const [range, setRange] = usePersistedState<RangeKey>("withdrawals:range", "month");
+  const [customStart, setCustomStart] = usePersistedState<string>("withdrawals:range-start", "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("withdrawals:range-end", "");
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
@@ -130,7 +132,7 @@ function WithdrawalsPage() {
     source: (r) => r.affiliates?.name ?? "",
     sale: (r) => r.revenue?.customer_name ?? "",
   });
-  const { pageItems, ...pg } = usePagination(sorted);
+  const { pageItems, ...pg } = usePagination(sorted, 25, "withdrawals");
 
   const stats = useMemo(() => {
     const list = inRange;
@@ -246,7 +248,8 @@ function WithdrawalsPage() {
       </div>
 
       <div className="card-surface overflow-hidden">
-        {wQ.isLoading ? <TableSkeleton cols={7} />
+        {wQ.error ? <QueryError error={wQ.error} onRetry={() => wQ.refetch()} />
+          : wQ.isLoading ? <TableSkeleton cols={7} />
         : rows.length === 0 ? (
           <EmptyState icon={Banknote} title="No withdrawals yet" description="Record your first withdrawal to track payouts and agent penalties."
             action={canApprove ? <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New withdrawal</Button> : undefined} />

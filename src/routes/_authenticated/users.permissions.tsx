@@ -50,6 +50,8 @@ function PermissionsPage() {
       toast.success("Role updated");
       qc.invalidateQueries({ queryKey: ["workspace-members"] });
       qc.invalidateQueries({ queryKey: ["my-permissions"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-explicit"] });
+      qc.invalidateQueries({ queryKey: ["my-role-key"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not change role"),
   });

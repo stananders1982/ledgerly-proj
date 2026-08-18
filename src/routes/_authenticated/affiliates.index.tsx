@@ -21,8 +21,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { EmptyState } from "@/components/empty-state";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 import {
   sourceToAffiliate,
+
   sumWeeks,
   weeklyGuarantee,
   type AffiliateTerms,
@@ -54,9 +56,9 @@ function AffiliatesPage() {
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [range, setRange] = useState<RangeKey>("month");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const [range, setRange] = usePersistedState<RangeKey>("affiliates:range", "month");
+  const [customStart, setCustomStart] = usePersistedState<string>("affiliates:range-start", "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("affiliates:range-end", "");
   const activeRange = useMemo(() => getRange(range, { start: customStart, end: customEnd }), [range, customStart, customEnd]);
   const startIso = isoOf(activeRange.start);
   const endIso = isoOf(activeRange.end);
@@ -177,7 +179,7 @@ function AffiliatesPage() {
     paid: (r) => r.paid,
     balance: (r) => r.balance,
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted, 30, "affiliates");
 
   const totals = useMemo(
     () => ({

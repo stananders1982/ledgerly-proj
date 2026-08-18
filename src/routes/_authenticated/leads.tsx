@@ -39,6 +39,10 @@ import { useQuickCreate } from "@/lib/quick-create";
 import { useRowSelection } from "@/lib/row-selection";
 import { BulkBar } from "@/components/bulk-bar";
 import { DataCard, DataCardList } from "@/components/data-card-list";
+import { usePersistedState } from "@/hooks/use-persisted-state";
+import { TableSkeleton } from "@/components/table-skeleton";
+import { QueryError } from "@/components/query-error";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/leads")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -69,9 +73,9 @@ function LeadsPage() {
   const [open, setOpen] = useState(false);
   useQuickCreate("leads", () => setOpen(true));
   const [editing, setEditing] = useState<Entry | null>(null);
-  const [range, setRange] = useState<RangeKey>("month");
-  const [customStart, setCustomStart] = useState<string>("");
-  const [customEnd, setCustomEnd] = useState<string>("");
+  const [range, setRange] = usePersistedState<RangeKey>("leads:range", "month");
+  const [customStart, setCustomStart] = usePersistedState<string>("leads:range-start", "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("leads:range-end", "");
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
   const [leadSearch, setLeadSearch] = useState<string>("");
   const { issue } = Route.useSearch();
@@ -225,7 +229,7 @@ function LeadsPage() {
         : 0,
     notes: (r) => r.notes ?? "",
   });
-  const { pageItems, ...pg } = usePagination(sorted);
+  const { pageItems, ...pg } = usePagination(sorted, 25, "leads");
 
   // Activations are dated independently of the lead entry: an April lead
   // activated today belongs to today's period for FTD/commission purposes.
@@ -403,6 +407,19 @@ function LeadsPage() {
       rate: received ? (activated / received) * 100 : 0,
     };
   }, [rows]);
+
+  // Warn when an entry already exists for the same source on the same day.
+  const [dupPending, setDupPending] = useState<any | null>(null);
+  const findDuplicate = (v: any) => {
+    if (v.id) return null;
+    return (
+      (q.data ?? []).find(
+        (r: any) =>
+          String(r.entry_date) === String(v.entry_date) &&
+          String(r.source_id ?? "") === String(v.source_id ?? ""),
+      ) ?? null
+    );
+  };
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
@@ -606,13 +623,31 @@ function LeadsPage() {
                   })),
                 ) : []
               }
-              onSubmit={(v) => upsert.mutate(v)}
+              onSubmit={(v: any) => { if (findDuplicate(v)) setDupPending(v); else upsert.mutate(v); }}
               loading={upsert.isPending}
             />
           </Dialog>
           </div>
         }
       />
+
+      <AlertDialog open={!!dupPending} onOpenChange={(o: boolean) => { if (!o) setDupPending(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>An entry already exists</AlertDialogTitle>
+            <AlertDialogDescription>
+              This source already has an entry for {dupPending?.entry_date}. Adding another will double-count
+              those leads — edit the existing row instead, unless this is intentional.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { const v = dupPending; setDupPending(null); if (v) upsert.mutate(v); }}>
+              Add anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {issue && (
         <IssueFilterBanner
@@ -789,8 +824,10 @@ function LeadsPage() {
       </div>
 
       <div className="card-surface overflow-hidden">
-        {q.isLoading ? (
-          <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+        {q.error ? (
+          <QueryError error={q.error} onRetry={() => q.refetch()} />
+        ) : q.isLoading ? (
+          <TableSkeleton cols={7} />
         ) : rows.length === 0 ? (
           <EmptyState
             icon={Users}

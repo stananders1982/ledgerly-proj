@@ -39,6 +39,7 @@ import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/comp
 import { FavoriteStar } from "@/components/favorite-star";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -97,9 +98,9 @@ function StdBadge({ count }: { count: number }) {
 function ActivationsPage() {
   const settings = useCompanySettings();
   const qc = useQueryClient();
-  const [range, setRange] = useState<RangeKey>("month");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const [range, setRange] = usePersistedState<RangeKey>("activations:range", "month");
+  const [customStart, setCustomStart] = usePersistedState<string>("activations:range-start", "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("activations:range-end", "");
   const [editing, setEditing] = useState<Row | null>(null);
   const [viewing, setViewing] = useState<Row | null>(null);
   
@@ -327,7 +328,7 @@ function ActivationsPage() {
     answered: (r) => !!r.answered,
     std: (r) => stdCountFor(r),
   });
-  const { pageItems, ...pg } = usePagination(sorted);
+  const { pageItems, ...pg } = usePagination(sorted, 25, "activations");
   const navIndex = viewing ? pageItems.findIndex((r) => r.id === viewing.id) : -1;
 
   const totalBalance = rows.reduce(

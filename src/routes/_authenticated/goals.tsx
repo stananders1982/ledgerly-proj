@@ -25,6 +25,7 @@ import {
   type GoalMetric,
 } from "@/lib/goals";
 import { toast } from "sonner";
+import { QueryError } from "@/components/query-error";
 
 const sb = supabase as any;
 
@@ -73,7 +74,7 @@ function GoalsPage() {
     setForm((f) => ({ ...f, period_month: period }));
   }, [period]);
 
-  const { data: goals, isLoading, refetch } = useQuery({
+  const { data: goals, isLoading, error, refetch } = useQuery({
     queryKey: ["goals", period, companyId],
     queryFn: async () => {
       const { data, error } = await fetchGoals(period);
@@ -255,7 +256,9 @@ function GoalsPage() {
         }
       />
 
-      {isLoading ? (
+      {error ? (
+        <QueryError error={error} onRetry={() => refetch()} />
+      ) : isLoading ? (
         <TableSkeleton cols={4} />
       ) : !goals?.length ? (
         <EmptyState

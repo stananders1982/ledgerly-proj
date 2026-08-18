@@ -100,12 +100,17 @@ export function useMyPermissions() {
   const q = useQuery({
     enabled: !!user && !isAdmin,
     queryKey: [...MY_PERMISSIONS_KEY, user?.id, companyId],
+    // Permission changes made by an admin should land without a re-login.
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase.rpc("my_permissions");
       if (error) throw error;
       return (data ?? []) as PermissionRow[];
     },
   });
+
 
   return useMemo(() => {
     if (isAdmin) {
@@ -151,7 +156,11 @@ function useDashboardExplicit() {
   const q = useQuery({
     enabled: !!user && !!companyId && !isAdmin && !!roleKey,
     queryKey: ["dashboard-explicit", user?.id, companyId, roleKey],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
     queryFn: async () => {
+
       const [roleRes, overrideRes] = await Promise.all([
         supabase.from("role_permissions").select("nav_key,allowed").eq("role_key", roleKey!).like("nav_key", "dash:%"),
         supabase.from("user_permission_overrides").select("nav_key,allowed").eq("user_id", user!.id).like("nav_key", "dash:%"),
@@ -197,7 +206,10 @@ export function useMyRoleKey() {
   const q = useQuery({
     enabled: !!user && !!companyId && !isAdmin,
     queryKey: ["my-role-key", user?.id, companyId],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
+
       const { data, error } = await supabase
         .from("company_users")
         .select("role_key")

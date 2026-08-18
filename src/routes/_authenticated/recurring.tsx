@@ -105,7 +105,7 @@ function RecurringPage() {
     next: (r) => r.next_due_date ?? "",
     status: (r) => !!r.active,
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted, 30, "recurring");
 
   const upsert = useMutation({
     mutationFn: async (v: any) => {
