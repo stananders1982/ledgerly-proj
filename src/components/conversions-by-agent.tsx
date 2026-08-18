@@ -7,7 +7,7 @@ import { EmployeeLink } from "@/components/employee-link";
 import { AnsweredBadge, PotentialBadge } from "@/components/status-badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fmtDate, fmtMoney } from "@/lib/format";
-import { qualifiesAsFtd, ftdPendingReasons, depositIndex, effectiveBalanceIndexed, isAgentTeam, normalizeTeam } from "@/lib/rules";
+import { qualifiesAsFtd, ftdPendingReasons, depositIndex, effectiveBalanceIndexed, isAgentTeam, normalizeTeam, isLegacyClient } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 
 type ActRow = {
@@ -111,6 +111,8 @@ export function ConversionsByAgent({
   const byAgent = useMemo(() => {
     const m = new Map<string, { count: number; pending: number; pendingRows: PendingRow[] }>();
     for (const r of rows) {
+      // Legacy (old CRM) clients are never credited to a conversion agent.
+      if (isLegacyClient(r as any)) continue;
       const id = r.conversion_employee_id;
       if (!id || !isAgentId(id)) continue;
       const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
