@@ -106,7 +106,9 @@ function ReportsPage() {
   const [customStart, setCustomStart] = usePersistedState<string>("reports:range-start", "");
   const [customEnd, setCustomEnd] = usePersistedState<string>("reports:range-end", "");
   const [tab, setTab] = useState("summary");
+  const [compare, setCompare] = usePersistedState<boolean>("reports:compare", true);
   const [pvPeriod, setPvPeriod] = useState<"week" | "month" | "all">("month");
+
 
   // Saved presets: a named snapshot of tab + date range, kept in this browser.
   type Preset = { name: string; tab: string; range: RangeKey; customStart: string; customEnd: string };
