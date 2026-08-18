@@ -206,7 +206,10 @@ export function useMyRoleKey() {
   const q = useQuery({
     enabled: !!user && !!companyId && !isAdmin,
     queryKey: ["my-role-key", user?.id, companyId],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
+
       const { data, error } = await supabase
         .from("company_users")
         .select("role_key")
