@@ -987,6 +987,7 @@ function ActivationsPage() {
             employees={employeesQ.data ?? []}
             loading={save.isPending}
             onSubmit={(v) => save.mutate(v)}
+            onDelete={() => bulkDelete.mutate([editing.id])}
           />
         )}
       </Dialog>
