@@ -706,6 +706,11 @@ function ActivationsPage() {
                     />
                   </td>
                   )}
+                  {tb.show("legacy") && (
+                  <td className="py-2.5 px-2 text-xs text-muted-foreground">
+                    {r.legacy ? "Legacy (old CRM)" : "New lead"}
+                  </td>
+                  )}
                   <td className="py-3 px-2 text-right" onClick={(e) => e.stopPropagation()}>
                     <ConfirmDelete
                       onConfirm={() => bulkDelete.mutate([r.id])}
