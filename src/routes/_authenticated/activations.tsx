@@ -615,8 +615,9 @@ function ActivationsPage() {
                 {tb.show("conversion") && <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-3 px-4" />}
                 {tb.show("retention") && <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-3 px-4" />}
                 {tb.show("answered") && <SortTh label="Answered" k="answered" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                <th className="py-3 px-2 w-10 text-right"></th>
               </tr>
-              <FilterRow tb={tb} leading={2} />
+              <FilterRow tb={tb} leading={2} trailing={1} />
             </thead>
             <tbody>
               {pageItems.map((r: any) => (
