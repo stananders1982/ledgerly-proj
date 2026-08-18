@@ -1032,12 +1032,12 @@ function ActivationsPage() {
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         {editing && (
           <EditDialog
-            key={editing.id}
+            key={editing.id || "new"}
             row={editing}
             employees={employeesQ.data ?? []}
             loading={save.isPending}
             onSubmit={(v) => save.mutate(v)}
-            onDelete={() => bulkDelete.mutate([editing.id])}
+            onDelete={editing.id ? () => bulkDelete.mutate([editing.id]) : undefined}
           />
         )}
       </Dialog>
