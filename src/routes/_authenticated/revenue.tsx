@@ -348,7 +348,7 @@ function RevenuePage() {
             </DropdownMenu>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
               <DialogTrigger asChild><Button><Plus className="h-4 w-4" /> New revenue</Button></DialogTrigger>
-              <RevenueDialog key={editing?.id ?? "new"} rev={editing} employees={empQ.data ?? []} affiliates={affQ.data ?? []} activations={activationsQ.data ?? []} phoneByName={leadPhonesQ.data ?? {}} onSubmit={(v) => upsert.mutate(v)} loading={upsert.isPending} />
+              <RevenueDialog key={editing?.id ?? "new"} rev={editing} employees={empQ.data ?? []} affiliates={affQ.data ?? []} activations={activationsQ.data ?? []} phoneByName={leadPhonesQ.data ?? {}} onSubmit={(v) => { const dup = findDuplicate(v); if (dup) setDupPending(v); else upsert.mutate(v); }} loading={upsert.isPending} />
             </Dialog>
           </div>
         }
