@@ -26,7 +26,7 @@ import { AttachmentsPanel } from "@/components/attachments-panel";
 import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { ActivatedLeadsByEmployee } from "@/components/activated-leads-by-employee";
-import { CheckCircle2, PhoneCall, Wallet, Copy } from "lucide-react";
+import { CheckCircle2, PhoneCall, Wallet, Copy, Plus } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
