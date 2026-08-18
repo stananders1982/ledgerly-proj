@@ -87,6 +87,8 @@ export function PermissionMatrix({ kind }: { kind: MatrixKind }) {
       toast.success(`${role}: ${row} ${v.allowed ? "enabled" : "disabled"}`);
       qc.invalidateQueries({ queryKey: ROLE_PERMISSIONS_KEY });
       qc.invalidateQueries({ queryKey: ["my-permissions"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-explicit"] });
+      qc.invalidateQueries({ queryKey: ["my-role-key"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not update permission"),
   });
@@ -106,6 +108,8 @@ export function PermissionMatrix({ kind }: { kind: MatrixKind }) {
       toast.success(`${roles.find((r) => r.key === roleKey)?.label ?? roleKey} reset to defaults`);
       qc.invalidateQueries({ queryKey: ROLE_PERMISSIONS_KEY });
       qc.invalidateQueries({ queryKey: ["my-permissions"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-explicit"] });
+      qc.invalidateQueries({ queryKey: ["my-role-key"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not reset role"),
   });
