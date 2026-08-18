@@ -371,6 +371,30 @@ function RevenuePage() {
         }
       />
 
+      <AlertDialog open={!!dupPending} onOpenChange={(o) => { if (!o) setDupPending(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>This looks like a duplicate</AlertDialogTitle>
+            <AlertDialogDescription>
+              A deposit for{" "}
+              <span className="font-medium text-foreground">{dupPending?.customer_name}</span> of{" "}
+              <span className="font-medium text-foreground">{money(Number(dupPending?.amount) || 0)}</span> is
+              already recorded on {dupPending?.date}. Save it anyway?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { const v = dupPending; setDupPending(null); if (v) upsert.mutate(v); }}
+            >
+              Save anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
+
       {issue && (
         <IssueFilterBanner
           issue={issue}
