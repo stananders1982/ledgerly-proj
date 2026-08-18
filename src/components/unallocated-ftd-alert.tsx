@@ -18,6 +18,7 @@ export function UnallocatedFtdAlert() {
         supabase
           .from("daily_lead_activations")
           .select("id,lead_name,qualified_at,employee_id")
+          .eq("legacy", false)
           .not("qualified_at", "is", null)
           .order("qualified_at", { ascending: false }),
         // Directory RPC: readable by every signed-in user, unlike the
