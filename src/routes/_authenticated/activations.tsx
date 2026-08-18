@@ -619,6 +619,7 @@ function ActivationsPage() {
                 {tb.show("conversion") && <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("retention") && <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("answered") && <SortTh label="Answered" k="answered" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("legacy") && <th className="py-2.5 px-2">Origin</th>}
                 <th className="py-3 px-2 w-10 text-right"></th>
               </tr>
               <FilterRow tb={tb} leading={2} trailing={1} />
@@ -656,6 +657,11 @@ function ActivationsPage() {
                   {tb.show("lead") && (
                   <td className="py-2.5 px-2 font-medium">
                     {r.lead_name || "—"}
+                    {r.legacy && (
+                      <Badge variant="outline" className="ml-2 border-muted-foreground/40 text-muted-foreground">
+                        Legacy
+                      </Badge>
+                    )}
                     {isDup(r) && (
                       <Badge variant="outline" className="ml-2 border-amber-500/50 text-amber-600 dark:text-amber-400">
                         Duplicate
