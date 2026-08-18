@@ -996,12 +996,13 @@ function ActivationsPage() {
 }
 
 function EditDialog({
-  row, employees, loading, onSubmit,
+  row, employees, loading, onSubmit, onDelete,
 }: {
   row: Row;
   employees: { id: string; name: string; team?: string | null }[];
   loading: boolean;
   onSubmit: (v: Row) => void;
+  onDelete?: () => void;
 }) {
   const [form, setForm] = useState<Row>({ ...row });
 
