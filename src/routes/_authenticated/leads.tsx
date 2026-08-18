@@ -407,6 +407,19 @@ function LeadsPage() {
     };
   }, [rows]);
 
+  // Warn when an entry already exists for the same source on the same day.
+  const [dupPending, setDupPending] = useState<any | null>(null);
+  const findDuplicate = (v: any) => {
+    if (v.id) return null;
+    return (
+      (q.data ?? []).find(
+        (r: any) =>
+          String(r.entry_date) === String(v.entry_date) &&
+          String(r.source_id ?? "") === String(v.source_id ?? ""),
+      ) ?? null
+    );
+  };
+
   const upsert = useMutation({
     mutationFn: async (v: any) => {
       const payload = {
@@ -609,7 +622,7 @@ function LeadsPage() {
                   })),
                 ) : []
               }
-              onSubmit={(v) => upsert.mutate(v)}
+              onSubmit={(v: any) => { if (findDuplicate(v)) setDupPending(v); else upsert.mutate(v); }}
               loading={upsert.isPending}
             />
           </Dialog>
