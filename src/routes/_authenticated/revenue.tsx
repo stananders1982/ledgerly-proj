@@ -200,7 +200,24 @@ function RevenuePage() {
     return { total, allTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
   }, [filtered, revQ.data, employeeNameById, affiliateNameById]);
 
+  // Flag an obvious re-entry (same client, same amount, same day) before saving.
+  const [dupPending, setDupPending] = useState<any | null>(null);
+  const findDuplicate = (v: any) => {
+    if (v.id) return null;
+    const name = String(v.customer_name ?? "").trim().toLowerCase();
+    const amount = Number(v.amount) || 0;
+    return (
+      (revQ.data ?? []).find(
+        (r: any) =>
+          String(r.customer_name ?? "").trim().toLowerCase() === name &&
+          Number(r.amount || 0) === amount &&
+          String(r.date) === String(v.date),
+      ) ?? null
+    );
+  };
+
   const upsert = useMutation({
+
     mutationFn: async (v: any) => {
       let activationId: string | null = v.activation_id || null;
 
