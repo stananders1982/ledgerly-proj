@@ -21,9 +21,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { EmptyState } from "@/components/empty-state";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
-import {
 import { usePersistedState } from "@/hooks/use-persisted-state";
+import {
   sourceToAffiliate,
+
   sumWeeks,
   weeklyGuarantee,
   type AffiliateTerms,
