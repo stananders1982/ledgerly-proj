@@ -20,6 +20,7 @@ import { TargetBadge } from "@/routes/_authenticated/sources";
 import { isStd, isAgentTeam } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionableAmount, type CommissionTiers } from "@/lib/commission";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({ meta: [{ title: "Reports — Ledgerly" }] }),
@@ -55,9 +56,9 @@ function monthlyEquiv(amount: number, freq: string) {
 function ReportsPage() {
   const { exportCSV, exportXLSX, exportPDF } = useExporters();
   const settings = useCompanySettings();
-  const [range, setRange] = useState<RangeKey>("month");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const [range, setRange] = usePersistedState<RangeKey>("reports:range", "month");
+  const [customStart, setCustomStart] = usePersistedState<string>("reports:range-start", "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("reports:range-end", "");
   const [tab, setTab] = useState("summary");
   const [pvPeriod, setPvPeriod] = useState<"week" | "month" | "all">("month");
 

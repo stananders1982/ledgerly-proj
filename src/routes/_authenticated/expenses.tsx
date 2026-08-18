@@ -32,6 +32,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useQuickCreate } from "@/lib/quick-create";
 import { CommentThread } from "@/components/comment-thread";
 import { AttachmentsPanel } from "@/components/attachments-panel";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 export const Route = createFileRoute("/_authenticated/expenses")({
   head: () => ({ meta: [{ title: "Expenses — Ledgerly" }] }),
@@ -44,9 +45,9 @@ function ExpensesPage() {
   const [open, setOpen] = useState(false);
   useQuickCreate("expenses", () => setOpen(true));
   const [editing, setEditing] = useState<any | null>(null);
-  const [range, setRange] = useState<RangeKey>("month");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const [range, setRange] = usePersistedState<RangeKey>("expenses:range", "month");
+  const [customStart, setCustomStart] = usePersistedState<string>("expenses:range-start", "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("expenses:range-end", "");
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],

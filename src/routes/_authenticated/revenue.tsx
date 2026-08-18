@@ -41,6 +41,7 @@ import { useRowSelection } from "@/lib/row-selection";
 import { BulkBar } from "@/components/bulk-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCompanySettings } from "@/lib/settings";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 export const Route = createFileRoute("/_authenticated/revenue")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -57,9 +58,9 @@ function RevenuePage() {
   const [open, setOpen] = useState(false);
   useQuickCreate("revenue", () => setOpen(true));
   const [editing, setEditing] = useState<any | null>(null);
-  const [range, setRange] = useState<RangeKey>("month");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const [range, setRange] = usePersistedState<RangeKey>("revenue:range", "month");
+  const [customStart, setCustomStart] = usePersistedState<string>("revenue:range-start", "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("revenue:range-end", "");
   const [search, setSearch] = useState("");
   const { issue } = Route.useSearch();
   const navigate = Route.useNavigate();

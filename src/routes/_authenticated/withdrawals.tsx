@@ -36,6 +36,7 @@ const sb = supabase as any;
 
 
 import { useQuickCreate } from "@/lib/quick-create";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 export const Route = createFileRoute("/_authenticated/withdrawals")({
   head: () => ({ meta: [{ title: "Withdrawals — Ledgerly" }] }),
@@ -51,9 +52,9 @@ function WithdrawalsPage() {
   useQuickCreate("withdrawals", () => setOpen(true));
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
-  const [range, setRange] = useState<RangeKey>("month");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const [range, setRange] = usePersistedState<RangeKey>("withdrawals:range", "month");
+  const [customStart, setCustomStart] = usePersistedState<string>("withdrawals:range-start", "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("withdrawals:range-end", "");
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],

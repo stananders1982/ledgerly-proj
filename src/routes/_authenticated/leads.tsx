@@ -39,6 +39,7 @@ import { useQuickCreate } from "@/lib/quick-create";
 import { useRowSelection } from "@/lib/row-selection";
 import { BulkBar } from "@/components/bulk-bar";
 import { DataCard, DataCardList } from "@/components/data-card-list";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 export const Route = createFileRoute("/_authenticated/leads")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -69,9 +70,9 @@ function LeadsPage() {
   const [open, setOpen] = useState(false);
   useQuickCreate("leads", () => setOpen(true));
   const [editing, setEditing] = useState<Entry | null>(null);
-  const [range, setRange] = useState<RangeKey>("month");
-  const [customStart, setCustomStart] = useState<string>("");
-  const [customEnd, setCustomEnd] = useState<string>("");
+  const [range, setRange] = usePersistedState<RangeKey>("leads:range", "month");
+  const [customStart, setCustomStart] = usePersistedState<string>("leads:range-start", "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("leads:range-end", "");
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
   const [leadSearch, setLeadSearch] = useState<string>("");
   const { issue } = Route.useSearch();
