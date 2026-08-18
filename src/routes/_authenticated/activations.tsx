@@ -347,19 +347,29 @@ function ActivationsPage() {
 
   const save = useMutation({
     mutationFn: async (v: Row) => {
+      const payload = {
+        lead_name: v.lead_name?.trim() || null,
+        balance: Number(v.balance) || 0,
+        legacy: !!v.legacy,
+        potential: v.potential,
+        answered: v.answered,
+        employee_id: v.employee_id,
+        conversion_employee_id: v.conversion_employee_id || null,
+        notes: v.notes?.trim() || null,
+        tags: v.tags ?? [],
+      } as any;
+      if (!v.id) {
+        const { error } = await supabase.from("daily_lead_activations").insert({
+          ...payload,
+          activated_count: 1,
+          activation_date: v.activation_date || todayISO(),
+        } as any);
+        if (error) throw error;
+        return;
+      }
       const { error } = await supabase
         .from("daily_lead_activations")
-        .update({
-          lead_name: v.lead_name?.trim() || null,
-          balance: Number(v.balance) || 0,
-          legacy: !!v.legacy,
-          potential: v.potential,
-          answered: v.answered,
-          employee_id: v.employee_id,
-          conversion_employee_id: v.conversion_employee_id || null,
-          notes: v.notes?.trim() || null,
-          tags: v.tags ?? [],
-        } as any)
+        .update(payload)
         .eq("id", v.id);
       if (error) throw error;
     },
@@ -371,6 +381,7 @@ function ActivationsPage() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const toggleSelected = (id: string) =>
