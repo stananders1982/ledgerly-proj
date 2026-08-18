@@ -290,7 +290,7 @@ function PerformancePage() {
     salary: (r) => r.salary,
     payout: (r) => r.payout,
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted, 30, "performance");
 
   const totals = useMemo(() => {
     const retClients = rows.filter((r) => r.team === "R").reduce((s, r) => s + r.clients, 0);

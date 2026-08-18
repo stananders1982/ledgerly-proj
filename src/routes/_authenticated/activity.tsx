@@ -86,7 +86,7 @@ function ActivityPage() {
     });
   }, [q.data, search, action, entity]);
 
-  const { pageItems, ...pg } = usePagination(rows, 30);
+  const { pageItems, ...pg } = usePagination(rows, 30, "activity");
 
   return (
     <div>

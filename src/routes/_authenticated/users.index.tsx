@@ -112,7 +112,7 @@ function UsersPage() {
     role: (u: any) => (u.roles.includes("admin") ? "admin" : "user"),
     pages: (u: any) => (u.nav_permissions?.length ?? 0),
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted, 30, "users");
   const th = (label: string, k: string) => (
     <button type="button" onClick={() => toggle(k)} className="inline-flex items-center gap-1 hover:text-foreground">
       {label} <ArrowUpDown className={`h-3 w-3 ${sort?.key === k ? "opacity-100" : "opacity-40"}`} />

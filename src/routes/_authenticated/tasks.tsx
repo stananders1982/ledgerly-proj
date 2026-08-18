@@ -122,7 +122,7 @@ function TasksPage() {
     owner: (t) => empName(t.employee_id),
     status: (t) => t.status,
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted, 30, "tasks");
 
   const stats = useMemo(() => {
     const all = q.data ?? [];

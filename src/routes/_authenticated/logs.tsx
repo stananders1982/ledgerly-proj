@@ -85,7 +85,7 @@ function LogsPage() {
     };
   }, [q.data]);
 
-  const pg = usePagination(rows);
+  const pg = usePagination(rows, 25, "logs");
   const pageItems = pg.pageItems;
 
   if (!isAdmin && !isSuperAdmin) {

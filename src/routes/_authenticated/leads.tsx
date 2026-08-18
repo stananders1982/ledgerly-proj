@@ -225,7 +225,7 @@ function LeadsPage() {
         : 0,
     notes: (r) => r.notes ?? "",
   });
-  const { pageItems, ...pg } = usePagination(sorted);
+  const { pageItems, ...pg } = usePagination(sorted, 25, "leads");
 
   // Activations are dated independently of the lead entry: an April lead
   // activated today belongs to today's period for FTD/commission purposes.

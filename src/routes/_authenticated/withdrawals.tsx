@@ -130,7 +130,7 @@ function WithdrawalsPage() {
     source: (r) => r.affiliates?.name ?? "",
     sale: (r) => r.revenue?.customer_name ?? "",
   });
-  const { pageItems, ...pg } = usePagination(sorted);
+  const { pageItems, ...pg } = usePagination(sorted, 25, "withdrawals");
 
   const stats = useMemo(() => {
     const list = inRange;

@@ -327,7 +327,7 @@ function ActivationsPage() {
     answered: (r) => !!r.answered,
     std: (r) => stdCountFor(r),
   });
-  const { pageItems, ...pg } = usePagination(sorted);
+  const { pageItems, ...pg } = usePagination(sorted, 25, "activations");
   const navIndex = viewing ? pageItems.findIndex((r) => r.id === viewing.id) : -1;
 
   const totalBalance = rows.reduce(

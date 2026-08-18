@@ -160,7 +160,7 @@ function SourcesPage() {
     actual: (a) => Number(a.actualRate ?? 0),
     cost: (a) => Number(a.cost ?? 0),
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted, 30, "sources");
 
   const totals = useMemo(() => analytics.reduce(
     (a, x) => ({

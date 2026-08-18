@@ -177,7 +177,7 @@ function AffiliatesPage() {
     paid: (r) => r.paid,
     balance: (r) => r.balance,
   });
-  const { pageItems, ...pg } = usePagination(sorted, 30);
+  const { pageItems, ...pg } = usePagination(sorted, 30, "affiliates");
 
   const totals = useMemo(
     () => ({
