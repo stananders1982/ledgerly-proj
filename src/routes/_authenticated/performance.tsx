@@ -110,12 +110,14 @@ function PerformancePage() {
         .gte("date", start).lte("date", end)),
   });
 
+  // Legacy (old CRM) clients are excluded: they were never converted here.
   const actQ = useQuery({
     queryKey: ["perf-activations", start, end],
     queryFn: async () => {
       const data = await fetchAll(() => sb
         .from("daily_lead_activations")
         .select("id,employee_id,conversion_employee_id,lead_name,potential,answered,balance,activated_count,activation_date,qualified_at")
+        .eq("legacy", false)
         .gte("activation_date", start)
         .lte("activation_date", end));
       return data ?? [];
@@ -130,6 +132,7 @@ function PerformancePage() {
       const data = await fetchAll(() => sb
         .from("daily_lead_activations")
         .select("id,conversion_employee_id,qualified_at")
+        .eq("legacy", false)
         .gte("qualified_at", start)
         .lte("qualified_at", end));
       return (data ?? []) as any[];
