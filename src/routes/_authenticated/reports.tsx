@@ -668,6 +668,66 @@ function ReportsPage() {
     return Array.from(map.entries()).map(([month, amount]) => ({ month, amount })).sort((a, b) => a.month.localeCompare(b.month));
   }, [data.expenses]);
 
+  // Daily revenue vs. direct costs, plus a running profit line (overview chart).
+  const trend = useMemo(() => {
+    const map = new Map<string, { date: string; revenue: number; cost: number }>();
+    const touch = (d: string) => {
+      const k = String(d).slice(0, 10);
+      const row = map.get(k) ?? { date: k, revenue: 0, cost: 0 };
+      map.set(k, row);
+      return row;
+    };
+    for (const r of data.revenue) touch(r.date).revenue += Number(r.amount) || 0;
+    for (const e of data.expenses) touch(e.date).cost += Number(e.amount) || 0;
+    for (const e of data.entries) {
+      const row = touch(e.entry_date);
+      row.cost += Number(e.cost ?? 0);
+      const s = e.lead_sources;
+      if (!s) continue;
+      const p = Number(s.price);
+      row.cost += s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
+    }
+    let running = 0;
+    return Array.from(map.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((r) => {
+        running += r.revenue - r.cost;
+        return { ...r, cumulative: running, label: r.date.slice(5) };
+      });
+  }, [data.revenue, data.expenses, data.entries]);
+
+  const breakdown = useMemo(
+    () => [
+      { label: "Lead cost (CPL)", value: data.cplCost, className: "bg-sky-500" },
+      { label: "Lead cost (CPA)", value: data.cpaPayable, className: "bg-indigo-500" },
+      { label: "Marketing", value: data.marketingCost, className: "bg-violet-500" },
+      { label: "Salaries", value: data.salaries, className: "bg-amber-500" },
+      { label: "Commissions", value: data.commissions, className: "bg-orange-500" },
+      { label: "Other expenses", value: data.otherExp, className: "bg-rose-500" },
+      { label: data.profit >= 0 ? "Net profit" : "Loss", value: Math.abs(data.profit), className: data.profit >= 0 ? "bg-emerald-500" : "bg-destructive" },
+    ],
+    [data],
+  );
+
+  // Short list of things worth looking at, generated from the same numbers.
+  const attention = useMemo(() => {
+    const out: { id: string; text: string; tone: "good" | "bad" | "neutral"; tab?: string }[] = [];
+    if (data.profit < 0) out.push({ id: "loss", tone: "bad", tab: "pl", text: `The period is at a loss of ${fmtMoney(Math.abs(data.profit))} — costs are ${fmtMoney(data.totalExpenses)} against ${fmtMoney(data.income)} revenue.` });
+    const withCost = sources.filter((s) => s.totalCost > 0);
+    const best = [...withCost].sort((a, b) => b.roi - a.roi)[0];
+    const worst = [...withCost].sort((a, b) => a.roi - b.roi)[0];
+    if (best) out.push({ id: "best-src", tone: "good", tab: "sources", text: `Best source: ${best.name} at ${fmtPct(best.roi)} ROI (${fmtMoney(best.revenue)} from ${fmtMoney(best.totalCost)} spend).` });
+    if (worst && best && worst.name !== best.name && worst.roi < 0) out.push({ id: "worst-src", tone: "bad", tab: "sources", text: `Weakest source: ${worst.name} at ${fmtPct(worst.roi)} ROI — ${fmtMoney(worst.totalCost)} spent, ${fmtMoney(worst.revenue)} back.` });
+    if (data.unreported > 0) out.push({ id: "unreported", tone: "good", tab: "savings", text: `${data.unreported} activation${data.unreported === 1 ? "" : "s"} not reported to sources — ${fmtMoney(data.cpaSavings)} saved this period.` });
+    const topCat = [...plCategories].sort((a, b) => b.amount - a.amount)[0];
+    if (topCat && data.otherExp > 0) out.push({ id: "top-cat", tone: "neutral", tab: "expenses", text: `Largest expense category: ${topCat.name} at ${fmtMoney(topCat.amount)} (${fmtPct((topCat.amount / data.otherExp) * 100)} of other expenses).` });
+    const topEmp = employeesRpt[0];
+    if (topEmp && topEmp.revenue > 0) out.push({ id: "top-emp", tone: "good", tab: "employees", text: `Top agent: ${topEmp.name} with ${fmtMoney(topEmp.revenue)} in deposits.` });
+    if (data.received > 0 && data.rate < 10) out.push({ id: "low-rate", tone: "bad", tab: "sources", text: `Activation rate is only ${fmtPct(data.rate)} across ${data.received} leads.` });
+    return out.slice(0, 5);
+  }, [data, sources, plCategories, employeesRpt]);
+
+
   // Export current tab
   function exportCurrent(format: "csv" | "xlsx" | "pdf") {
     const title = `Report — ${tab}`;
