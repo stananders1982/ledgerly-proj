@@ -22,7 +22,7 @@ export const Route = createFileRoute("/api/public/v1/activations")({
         let q = supabaseAdmin
           .from("daily_lead_activations")
           .select(
-            "id, lead_name, activation_date, qualified_at, balance, potential, answered, employee_id, conversion_employee_id, tags, notes",
+            "id, lead_name, activation_date, qualified_at, balance, potential, answered, employee_id, conversion_employee_id, tags, notes, legacy",
             { count: "exact" },
           )
           .eq("company_id", auth.key.companyId)
