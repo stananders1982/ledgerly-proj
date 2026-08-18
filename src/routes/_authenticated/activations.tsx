@@ -394,8 +394,8 @@ function ActivationsPage() {
   });
 
   const bulkDelete = useMutation({
-    mutationFn: async () => {
-      const ids = [...selected];
+    mutationFn: async (idsArg?: string[]) => {
+      const ids = idsArg ?? [...selected];
       if (!ids.length) return 0;
       const { error } = await supabase.from("daily_lead_activations").delete().in("id", ids);
       if (error) throw error;
@@ -405,6 +405,8 @@ function ActivationsPage() {
       qc.invalidateQueries({ queryKey: ["activated-leads"] });
       qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
       setSelected(new Set());
+      setViewing(null);
+      setEditing(null);
       if (count) toast.success(`Deleted ${count} client${count === 1 ? "" : "s"}`);
     },
     onError: (e: any) => toast.error(e.message),
@@ -511,6 +513,16 @@ function ActivationsPage() {
       {selected.size > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-2.5 text-sm">
           <span className="font-medium">{selected.size} selected</span>
+          {selected.size < sorted.length && (
+            <Button
+              size="sm"
+              variant="link"
+              className="h-auto p-0"
+              onClick={() => setSelected(new Set(sorted.map((r: any) => r.id)))}
+            >
+              Select all {sorted.length} matching filters
+            </Button>
+          )}
           <div className="flex-1" />
           <Button size="sm" variant="outline" disabled={bulkUpdate.isPending} onClick={() => bulkUpdate.mutate({ answered: true })}>
             Mark answered
@@ -526,7 +538,14 @@ function ActivationsPage() {
               <SelectItem value="high">High</SelectItem>
             </SelectContent>
           </Select>
-          <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${selected.size} selected client(s)?`} />
+          <ConfirmDelete
+            text={`Delete ${selected.size}`}
+            disabled={bulkDelete.isPending}
+            onConfirm={() => bulkDelete.mutate(undefined)}
+            label={`Delete ${selected.size} client${selected.size === 1 ? "" : "s"}?`}
+            description="The client records are removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
+            confirmText={`Delete ${selected.size}`}
+          />
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
         </div>
       )}
@@ -596,8 +615,9 @@ function ActivationsPage() {
                 {tb.show("conversion") && <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-3 px-4" />}
                 {tb.show("retention") && <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-3 px-4" />}
                 {tb.show("answered") && <SortTh label="Answered" k="answered" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                <th className="py-3 px-2 w-10 text-right"></th>
               </tr>
-              <FilterRow tb={tb} leading={2} />
+              <FilterRow tb={tb} leading={2} trailing={1} />
             </thead>
             <tbody>
               {pageItems.map((r: any) => (
@@ -676,6 +696,13 @@ function ActivationsPage() {
                     />
                   </td>
                   )}
+                  <td className="py-3 px-2 text-right" onClick={(e) => e.stopPropagation()}>
+                    <ConfirmDelete
+                      onConfirm={() => bulkDelete.mutate([r.id])}
+                      label={`Delete ${r.lead_name || "this client"}?`}
+                      description="The client record is removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -935,7 +962,15 @@ function ActivationsPage() {
                 <CommentThread entityType="client" entityId={cur.id} />
               </div>
 
-              <SheetFooter className="mt-4 flex-row justify-end gap-2">
+              <SheetFooter className="mt-4 flex-row items-center gap-2">
+                <ConfirmDelete
+                  text="Delete client"
+                  disabled={bulkDelete.isPending}
+                  onConfirm={() => bulkDelete.mutate([cur.id])}
+                  label={`Delete ${cur.lead_name || "this client"}?`}
+                  description="The client record is removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
+                />
+                <div className="flex-1" />
                 <Button variant="outline" onClick={() => setViewing(null)}>Close</Button>
                 <Button onClick={() => { setViewing(null); setEditing(cur); }}>Edit client</Button>
               </SheetFooter>
@@ -952,6 +987,7 @@ function ActivationsPage() {
             employees={employeesQ.data ?? []}
             loading={save.isPending}
             onSubmit={(v) => save.mutate(v)}
+            onDelete={() => bulkDelete.mutate([editing.id])}
           />
         )}
       </Dialog>
@@ -960,12 +996,13 @@ function ActivationsPage() {
 }
 
 function EditDialog({
-  row, employees, loading, onSubmit,
+  row, employees, loading, onSubmit, onDelete,
 }: {
   row: Row;
   employees: { id: string; name: string; team?: string | null }[];
   loading: boolean;
   onSubmit: (v: Row) => void;
+  onDelete?: () => void;
 }) {
   const [form, setForm] = useState<Row>({ ...row });
 
@@ -1041,7 +1078,17 @@ function EditDialog({
           Answered
         </label>
       </div>
-      <DialogFooter>
+      <DialogFooter className="flex-row items-center gap-2 sm:justify-between">
+        {onDelete ? (
+          <ConfirmDelete
+            text="Delete"
+            onConfirm={onDelete}
+            label={`Delete ${row.lead_name || "this client"}?`}
+            description="The client record is removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
+          />
+        ) : (
+          <span />
+        )}
         <Button onClick={() => onSubmit(form)} disabled={loading || !form.employee_id}>
           {loading ? "Saving…" : "Save"}
         </Button>
