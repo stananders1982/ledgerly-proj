@@ -721,7 +721,7 @@ function ReportsPage() {
     if (data.unreported > 0) out.push({ id: "unreported", tone: "good", tab: "savings", text: `${data.unreported} activation${data.unreported === 1 ? "" : "s"} not reported to sources — ${fmtMoney(data.cpaSavings)} saved this period.` });
     const topCat = [...plCategories].sort((a, b) => b.amount - a.amount)[0];
     if (topCat && data.otherExp > 0) out.push({ id: "top-cat", tone: "neutral", tab: "expenses", text: `Largest expense category: ${topCat.name} at ${fmtMoney(topCat.amount)} (${fmtPct((topCat.amount / data.otherExp) * 100)} of other expenses).` });
-    const topEmp = employeesRpt[0];
+    const topEmp = [...employeesRpt].sort((a, b) => b.revenue - a.revenue)[0];
     if (topEmp && topEmp.revenue > 0) out.push({ id: "top-emp", tone: "good", tab: "employees", text: `Top agent: ${topEmp.name} with ${fmtMoney(topEmp.revenue)} in deposits.` });
     if (data.received > 0 && data.rate < 10) out.push({ id: "low-rate", tone: "bad", tab: "sources", text: `Activation rate is only ${fmtPct(data.rate)} across ${data.received} leads.` });
     return out.slice(0, 5);
