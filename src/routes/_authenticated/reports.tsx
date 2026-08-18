@@ -883,47 +883,154 @@ function ReportsPage() {
       )}
 
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="overflow-x-auto scroll-slim print:hidden">
-          <TabsList className="h-auto flex-wrap">
-            <TabsTrigger value="summary">Executive</TabsTrigger>
-            <TabsTrigger value="pl">P&amp;L</TabsTrigger>
-            <TabsTrigger value="sources">Lead Sources</TabsTrigger>
-            <TabsTrigger value="employees">Employees</TabsTrigger>
-            <TabsTrigger value="payouts">Affiliate Payouts</TabsTrigger>
-            <TabsTrigger value="playervalue">Player Value</TabsTrigger>
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
-            <TabsTrigger value="savings">CPA Savings</TabsTrigger>
-            <TabsTrigger value="marketing">Marketing</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
-            <TabsTrigger value="recurring">Recurring</TabsTrigger>
-            <TabsTrigger value="revenue">Revenue</TabsTrigger>
-            <TabsTrigger value="funnel">Funnel</TabsTrigger>
-            <TabsTrigger value="forecast">Forecast</TabsTrigger>
-            <TabsTrigger value="audit">Audit</TabsTrigger>
-          </TabsList>
+        <div className="print:hidden space-y-2">
+          <div className="overflow-x-auto scroll-slim">
+            <div className="inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
+              {TAB_GROUPS.map((g) => {
+                const active = g.tabs.some(([k]) => k === tab);
+                return (
+                  <button
+                    key={g.key}
+                    type="button"
+                    onClick={() => { if (!active) setTab(g.tabs[0][0]); }}
+                    className={cn(
+                      "rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap",
+                      active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {g.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {activeGroup.tabs.length > 1 && (
+            <div className="overflow-x-auto scroll-slim">
+              <TabsList className="h-auto flex-wrap">
+                {activeGroup.tabs.map(([k, label]) => (
+                  <TabsTrigger key={k} value={k}>{label}</TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          )}
         </div>
 
-
         <TabsContent value="summary" className="space-y-4">
-          <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Revenue" value={fmtMoney(data.income)} tone="positive" />
-            <StatCard label="Expenses" value={fmtMoney(data.totalExpenses)} />
-            <StatCard label="Net Profit" value={fmtMoney(data.profit)} tone={data.profit >= 0 ? "positive" : "negative"} />
-            <StatCard label="Activation Rate" value={fmtPct(data.rate)} />
+          <div className="flex items-center justify-between gap-3 print:hidden">
+            <p className="text-sm text-muted-foreground">
+              {start} → {end}
+              {compare && <span> · compared with {prev.start} → {prev.end}</span>}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => setCompare((v) => !v)}>
+              {compare ? "Hide comparison" : "Compare to previous period"}
+            </Button>
           </div>
+
           <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Leads Received" value={String(data.received)} />
-            <StatCard label="Activated" value={String(data.activated)} />
-            <StatCard label="Reported" value={String(data.reported)} />
-            <StatCard label="Unreported" value={String(data.unreported)} />
+            <ReportKpi
+              label={data.profit >= 0 ? "Net profit" : "Net loss"}
+              value={fmtMoney(data.profit)}
+              current={data.profit}
+              prev={prevData?.profit}
+              hint={`${fmtPct(data.margin)} margin`}
+              emphasis
+            />
+            <ReportKpi label="Revenue" value={fmtMoney(data.income)} current={data.income} prev={prevData?.income} hint={`${data.revenue.length} deposits`} emphasis />
+            <ReportKpi label="Total costs" value={fmtMoney(data.totalExpenses)} current={data.totalExpenses} prev={prevData?.totalExpenses} invert hint={`${fmtMoney(data.leadCost)} on leads`} emphasis />
+            <ReportKpi label="Activated (FTD)" value={String(data.activated)} current={data.activated} prev={prevData?.activated} hint={`${fmtPct(data.rate)} of ${data.received} leads`} emphasis />
           </div>
+
+          <ReportBreakdownBar total={data.income} slices={breakdown} />
+
+          <div className="grid gap-3 lg:grid-cols-3">
+            <div className="card-surface p-5 lg:col-span-2">
+              <h3 className="mb-3 font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Revenue vs. costs
+              </h3>
+              {trend.length === 0 ? (
+                <p className="py-10 text-center text-sm text-muted-foreground">No activity in this period.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <ComposedChart data={trend} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="currentColor" className="text-muted-foreground" />
+                    <YAxis tick={{ fontSize: 11 }} stroke="currentColor" className="text-muted-foreground" width={54} />
+                    <RTooltip
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                      formatter={(v: any, n: any) => [fmtMoney(Number(v)), n]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar dataKey="revenue" name="Revenue" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="cost" name="Costs" fill="hsl(var(--muted-foreground))" radius={[3, 3, 0, 0]} />
+                    <RLine dataKey="cumulative" name="Cumulative profit" stroke="#10b981" strokeWidth={2} dot={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            <div className="card-surface p-5">
+              <h3 className="mb-3 font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Needs attention
+              </h3>
+              {attention.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nothing unusual in this period.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {attention.map((a) => (
+                    <li key={a.id} className="flex gap-2 text-sm">
+                      <span
+                        className={cn(
+                          "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                          a.tone === "good" && "bg-emerald-500",
+                          a.tone === "bad" && "bg-destructive",
+                          a.tone === "neutral" && "bg-muted-foreground",
+                        )}
+                      />
+                      <span className="min-w-0">
+                        {a.text}{" "}
+                        {a.tab && (
+                          <button type="button" className="underline underline-offset-2 hover:no-underline" onClick={() => setTab(a.tab!)}>
+                            open
+                          </button>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          <div className="card-surface p-5">
+            <h3 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Lead journey
+            </h3>
+            <div className="space-y-3">
+              {funnel.map((s, i) => (
+                <div key={s.name}>
+                  <div className="mb-1 flex items-baseline justify-between text-sm">
+                    <span>{s.name}</span>
+                    <span className="tabular-nums">
+                      {s.value.toLocaleString()}
+                      {i > 0 && <span className="ml-2 text-xs text-muted-foreground">{fmtPct(s.conv)} of previous</span>}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, s.pct)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Cost per Lead" value={fmtMoney(data.cpl)} />
-            <StatCard label="Cost per Activation" value={fmtMoney(data.cpa)} />
-            <StatCard label="Revenue per Activation" value={fmtMoney(data.revPerActivation)} />
-            <StatCard label="CPA Savings" value={fmtMoney(data.cpaSavings)} tone="positive" />
+            <ReportKpi label="Cost per lead" value={fmtMoney(data.cpl)} current={data.cpl} prev={prevData?.cpl} invert />
+            <ReportKpi label="Cost per activation" value={fmtMoney(data.cpa)} current={data.cpa} prev={prevData?.cpa} invert />
+            <ReportKpi label="Revenue per activation" value={fmtMoney(data.revPerActivation)} current={data.revPerActivation} prev={prevData?.revPerActivation} />
+            <ReportKpi label="CPA savings" value={fmtMoney(data.cpaSavings)} current={data.cpaSavings} prev={prevData?.cpaSavings} hint={`${data.unreported} unreported`} />
           </div>
         </TabsContent>
+
 
         <TabsContent value="pl">
           <div className="card-surface p-5 space-y-4">
