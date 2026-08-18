@@ -278,6 +278,7 @@ function ReportsPage() {
     queryFn: async () => await fetchAll(() => supabase
       .from("daily_lead_activations")
       .select("id,activation_date,employee_id,conversion_employee_id")
+      .eq("legacy", false)
       .gte("activation_date", pvWindow.start)
       .lte("activation_date", pvWindow.end)),
   });
