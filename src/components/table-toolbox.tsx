@@ -166,7 +166,29 @@ export function useTableToolbox<T>(
     }
     return cols.filter((c) => c.defaultHidden).map((c) => c.key);
   });
+  const filtersKey = `table-filters:${storageKey}`;
   const [filters, setFilters] = useState<Record<string, string>>({});
+
+  // Remember column filters between visits (hydrated after mount to stay SSR-safe).
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(filtersKey);
+      if (raw) setFilters(JSON.parse(raw) as Record<string, string>);
+    } catch {
+      /* ignore */
+    }
+    setFiltersHydrated(true);
+  }, [filtersKey]);
+
+  useEffect(() => {
+    if (!filtersHydrated) return;
+    try {
+      window.localStorage.setItem(filtersKey, JSON.stringify(filters));
+    } catch {
+      /* ignore */
+    }
+  }, [filters, filtersKey, filtersHydrated]);
 
   useEffect(() => {
     try {
@@ -175,6 +197,7 @@ export function useTableToolbox<T>(
       /* ignore */
     }
   }, [hidden, lsKey]);
+
 
   const show = (key: string) => !hidden.includes(key);
 
