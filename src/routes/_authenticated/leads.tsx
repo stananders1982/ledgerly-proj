@@ -40,6 +40,8 @@ import { useRowSelection } from "@/lib/row-selection";
 import { BulkBar } from "@/components/bulk-bar";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { usePersistedState } from "@/hooks/use-persisted-state";
+import { TableSkeleton } from "@/components/table-skeleton";
+import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/leads")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -790,8 +792,10 @@ function LeadsPage() {
       </div>
 
       <div className="card-surface overflow-hidden">
-        {q.isLoading ? (
-          <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+        {q.error ? (
+          <QueryError error={q.error} onRetry={() => q.refetch()} />
+        ) : q.isLoading ? (
+          <TableSkeleton cols={7} />
         ) : rows.length === 0 ? (
           <EmptyState
             icon={Users}

@@ -23,6 +23,8 @@ import { StatCard } from "@/components/stat-card";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { DataCard, DataCardList } from "@/components/data-card-list";
+import { TableSkeleton } from "@/components/table-skeleton";
+import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/sources")({
   head: () => ({ meta: [{ title: "Lead Sources — Ledgerly" }] }),
@@ -275,8 +277,10 @@ function SourcesPage() {
       </div>
 
       <div className="card-surface overflow-hidden">
-        {sourcesQ.isLoading ? (
-          <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+        {sourcesQ.error ? (
+          <QueryError error={sourcesQ.error} onRetry={() => sourcesQ.refetch()} />
+        ) : sourcesQ.isLoading ? (
+          <TableSkeleton cols={7} />
         ) : visible.length === 0 ? (
           <EmptyState
             icon={Tag}
