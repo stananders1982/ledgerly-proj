@@ -586,11 +586,11 @@ function ActivationsPage() {
               />
             ))}
           </DataCardList>
-          <div className="hidden md:block overflow-x-auto scroll-slim">
-          <table className="w-full text-sm">
+          <div className="hidden md:block">
+          <table className="w-full table-auto text-xs">
             <thead className="table-head bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="py-3 px-4 w-10">
+                <th className="py-2.5 px-2 w-10">
                   <Checkbox
                     checked={pageItems.length > 0 && pageItems.every((r: any) => selected.has(r.id))}
                     onCheckedChange={(c) =>
@@ -604,17 +604,17 @@ function ActivationsPage() {
                   />
                 </th>
                 <th className="py-3 px-2 w-8"></th>
-                {tb.show("date") && <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />}
-                {tb.show("qualified") && <th className="py-3 px-4">Qualified</th>}
-                {tb.show("lead") && <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-3 px-4" />}
-                {tb.show("source") && <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />}
-                {tb.show("balance") && <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-3 px-4" />}
-                {tb.show("potential") && <SortTh label="Potential" k="potential" sort={sort} toggle={toggle} className="py-3 px-4" />}
-                {tb.show("tags") && <th className="py-3 px-4">Tags</th>}
-                {tb.show("std") && <SortTh label="STD" k="std" sort={sort} toggle={toggle} className="py-3 px-4" />}
-                {tb.show("conversion") && <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-3 px-4" />}
-                {tb.show("retention") && <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-3 px-4" />}
-                {tb.show("answered") && <SortTh label="Answered" k="answered" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                {tb.show("date") && <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("qualified") && <th className="py-2.5 px-2">Qualified</th>}
+                {tb.show("lead") && <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("source") && <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("balance") && <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("potential") && <SortTh label="Potential" k="potential" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("tags") && <th className="py-2.5 px-2">Tags</th>}
+                {tb.show("std") && <SortTh label="STD" k="std" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("conversion") && <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("retention") && <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("answered") && <SortTh label="Answered" k="answered" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 <th className="py-3 px-2 w-10 text-right"></th>
               </tr>
               <FilterRow tb={tb} leading={2} trailing={1} />
@@ -626,17 +626,17 @@ function ActivationsPage() {
                   className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                   onClick={() => setViewing(r)}
                 >
-                  <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                  <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
                     <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleSelected(r.id)} aria-label="Select client" />
                   </td>
                   <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                     <FavoriteStar type="client" id={r.id} label={r.lead_name} />
                   </td>
                   {tb.show("date") && (
-                  <td className="py-3 px-4">{actDate(r) ? fmtDate(actDate(r)!) : "—"}</td>
+                  <td className="py-2.5 px-2">{actDate(r) ? fmtDate(actDate(r)!) : "—"}</td>
                   )}
                   {tb.show("qualified") && (
-                  <td className="py-3 px-4">
+                  <td className="py-2.5 px-2">
                     {r.qualified_at ? (
                       <span className="text-primary">
                         {fmtDate(r.qualified_at)}
@@ -650,7 +650,7 @@ function ActivationsPage() {
                   </td>
                   )}
                   {tb.show("lead") && (
-                  <td className="py-3 px-4 font-medium">
+                  <td className="py-2.5 px-2 font-medium">
                     {r.lead_name || "—"}
                     {isDup(r) && (
                       <Badge variant="outline" className="ml-2 border-amber-500/50 text-amber-600 dark:text-amber-400">
@@ -660,10 +660,10 @@ function ActivationsPage() {
                   </td>
                   )}
                   {tb.show("source") && (
-                  <td className="py-3 px-4">{r.daily_lead_entries?.lead_sources?.name ?? "—"}</td>
+                  <td className="py-2.5 px-2">{r.daily_lead_entries?.lead_sources?.name ?? "—"}</td>
                   )}
                   {tb.show("balance") && (
-                  <td className="py-3 px-4">
+                  <td className="py-2.5 px-2">
                     {fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name, r.id))}
                     {depositsFor(r.lead_name, r.id) > 0 && (
                       <span className="ml-2 text-xs text-muted-foreground">
@@ -674,22 +674,22 @@ function ActivationsPage() {
                   )}
 
                   {tb.show("potential") && (
-                  <td className="py-3 px-4"><PotentialBadge value={r.potential} /></td>
+                  <td className="py-2.5 px-2"><PotentialBadge value={r.potential} /></td>
                   )}
                   {tb.show("tags") && (
-                  <td className="py-3 px-4"><TagBadges tags={r.tags} /></td>
+                  <td className="py-2.5 px-2"><TagBadges tags={r.tags} /></td>
                   )}
                   {tb.show("std") && (
-                  <td className="py-3 px-4"><StdBadge count={stdCountFor(r)} /></td>
+                  <td className="py-2.5 px-2"><StdBadge count={stdCountFor(r)} /></td>
                   )}
                   {tb.show("conversion") && (
-                  <td className="py-3 px-4"><EmployeeLink id={r.conversion_employee_id} name={employeeName(r.conversion_employee_id)} /></td>
+                  <td className="py-2.5 px-2"><EmployeeLink id={r.conversion_employee_id} name={employeeName(r.conversion_employee_id)} /></td>
                   )}
                   {tb.show("retention") && (
-                  <td className="py-3 px-4"><EmployeeLink id={r.employee_id} name={employeeName(r.employee_id)} /></td>
+                  <td className="py-2.5 px-2"><EmployeeLink id={r.employee_id} name={employeeName(r.employee_id)} /></td>
                   )}
                   {tb.show("answered") && (
-                  <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                  <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={r.answered}
                       onCheckedChange={(c) => toggleAnswered.mutate({ id: r.id, answered: Boolean(c) })}
