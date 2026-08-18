@@ -1058,12 +1058,24 @@ function EditDialog({
 
   return (
     <DialogContent className="max-w-md">
-      <DialogHeader><DialogTitle>Client</DialogTitle></DialogHeader>
+      <DialogHeader>
+        <DialogTitle>{row.id ? "Client" : "Add client"}</DialogTitle>
+      </DialogHeader>
       <div className="grid gap-3 py-2">
         <div className="grid gap-1.5">
           <label className="text-xs text-muted-foreground">Lead name</label>
           <Input value={form.lead_name ?? ""} onChange={(e) => setForm({ ...form, lead_name: e.target.value })} />
         </div>
+        {!row.id && (
+          <div className="grid gap-1.5">
+            <label className="text-xs text-muted-foreground">Activation date</label>
+            <Input
+              type="date"
+              value={form.activation_date ?? todayISO()}
+              onChange={(e) => setForm({ ...form, activation_date: e.target.value })}
+            />
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-1.5">
             <label className="text-xs text-muted-foreground">Base balance</label>
