@@ -513,6 +513,16 @@ function ActivationsPage() {
       {selected.size > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-2.5 text-sm">
           <span className="font-medium">{selected.size} selected</span>
+          {selected.size < sorted.length && (
+            <Button
+              size="sm"
+              variant="link"
+              className="h-auto p-0"
+              onClick={() => setSelected(new Set(sorted.map((r: any) => r.id)))}
+            >
+              Select all {sorted.length} matching filters
+            </Button>
+          )}
           <div className="flex-1" />
           <Button size="sm" variant="outline" disabled={bulkUpdate.isPending} onClick={() => bulkUpdate.mutate({ answered: true })}>
             Mark answered
@@ -528,7 +538,14 @@ function ActivationsPage() {
               <SelectItem value="high">High</SelectItem>
             </SelectContent>
           </Select>
-          <ConfirmDelete onConfirm={() => bulkDelete.mutate()} label={`Delete ${selected.size} selected client(s)?`} />
+          <ConfirmDelete
+            text={`Delete ${selected.size}`}
+            disabled={bulkDelete.isPending}
+            onConfirm={() => bulkDelete.mutate(undefined)}
+            label={`Delete ${selected.size} client${selected.size === 1 ? "" : "s"}?`}
+            description="The client records are removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
+            confirmText={`Delete ${selected.size}`}
+          />
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
         </div>
       )}
