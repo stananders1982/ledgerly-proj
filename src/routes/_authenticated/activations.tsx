@@ -19,7 +19,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { fmtDate, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtMoney, todayISO } from "@/lib/format";
 import { EmptyState } from "@/components/empty-state";
 import { CommentThread } from "@/components/comment-thread";
 import { AttachmentsPanel } from "@/components/attachments-panel";
