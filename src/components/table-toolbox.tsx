@@ -332,7 +332,7 @@ export function DateFilter({
           } else onChange(v);
         }}
       >
-        <SelectTrigger className={cn("h-8 min-w-[8rem] text-xs normal-case", className)}>
+        <SelectTrigger className={cn("h-8 w-full min-w-[5.5rem] text-xs normal-case", className)}>
           <SelectValue placeholder="Any date" />
         </SelectTrigger>
         <SelectContent className="max-h-72">
@@ -351,7 +351,7 @@ export function DateFilter({
             <Button
               variant="outline"
               className={cn(
-                "h-8 min-w-[9rem] justify-start gap-1 px-2 text-xs font-normal normal-case",
+                "h-8 w-full min-w-[6rem] justify-start gap-1 px-2 text-xs font-normal normal-case",
                 !range && "text-muted-foreground",
               )}
             >
@@ -414,13 +414,13 @@ export function FilterRow<T>({
         <th key={`l${i}`} className="px-2 py-2" />
       ))}
       {visible.map((c) => (
-        <th key={c.key} className="px-2 py-2 align-middle font-normal">
+        <th key={c.key} className="px-1.5 py-2 align-middle font-normal">
           {c.filter === "none" || !c.value ? null : c.filter === "select" ? (
             <Select
               value={tb.filters[c.key] ?? ALL}
               onValueChange={(v) => tb.setFilter(c.key, v)}
             >
-              <SelectTrigger className="h-8 min-w-[7rem] text-xs normal-case">
+              <SelectTrigger className="h-8 w-full min-w-[5rem] text-xs normal-case">
                 <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent className="max-h-72">
@@ -442,7 +442,7 @@ export function FilterRow<T>({
               value={tb.filters[c.key] ?? ""}
               onChange={(e) => tb.setFilter(c.key, e.target.value)}
               placeholder="Search"
-              className="h-8 min-w-[6rem] text-xs normal-case"
+              className="h-8 w-full min-w-[4.5rem] text-xs normal-case"
             />
           )}
 
