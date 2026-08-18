@@ -1,0 +1,2 @@
+ALTER TABLE public.daily_lead_activations ADD COLUMN IF NOT EXISTS legacy boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_dla_legacy ON public.daily_lead_activations (company_id, legacy);

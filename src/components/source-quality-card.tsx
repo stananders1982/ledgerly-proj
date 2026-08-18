@@ -41,6 +41,7 @@ export function SourceQualityCard({ windowDays = 90 }: { windowDays?: number }) 
           sb
             .from("daily_lead_activations")
             .select("lead_name,activation_date,created_at,qualified_at,entry_id,daily_lead_entries(entry_date,source_id)")
+            .eq("legacy", false)
             .gte("activation_date", prevStart),
         ),
         fetchAll(() => sb.from("revenue").select("amount,date,customer_name").gte("date", prevStart)),

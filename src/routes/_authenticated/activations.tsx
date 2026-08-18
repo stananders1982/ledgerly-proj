@@ -19,14 +19,14 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { fmtDate, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtMoney, todayISO } from "@/lib/format";
 import { EmptyState } from "@/components/empty-state";
 import { CommentThread } from "@/components/comment-thread";
 import { AttachmentsPanel } from "@/components/attachments-panel";
 import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { ActivatedLeadsByEmployee } from "@/components/activated-leads-by-employee";
-import { CheckCircle2, PhoneCall, Wallet, Copy } from "lucide-react";
+import { CheckCircle2, PhoneCall, Wallet, Copy, Plus } from "lucide-react";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
@@ -72,6 +72,8 @@ type Row = {
   answered: boolean;
   activation_date: string | null;
   qualified_at?: string | null;
+  /** Imported from the old CRM — never credited as an FTD to a conversion agent. */
+  legacy?: boolean | null;
   notes?: string | null;
   tags?: string[] | null;
   daily_lead_entries?: { entry_date: string; source_id: string | null; lead_sources?: { name: string } | null } | null;
@@ -312,6 +314,7 @@ function ActivationsPage() {
       { key: "conversion", label: "Conversion agent", filter: "select", value: (r: any) => employeeName(r.conversion_employee_id) ?? "" },
       { key: "retention", label: "Retention agent", filter: "select", value: (r: any) => employeeName(r.employee_id) ?? "" },
       { key: "answered", label: "Answered", filter: "select", value: (r: any) => (r.answered ? "Yes" : "No") },
+      { key: "legacy", label: "Origin", filter: "select", value: (r: any) => (r.legacy ? "Legacy (old CRM)" : "New lead") },
     ],
     rows,
     { allTimeRows: rowsAllTime, allTimeKeys: ["lead"] },
@@ -344,18 +347,29 @@ function ActivationsPage() {
 
   const save = useMutation({
     mutationFn: async (v: Row) => {
+      const payload = {
+        lead_name: v.lead_name?.trim() || null,
+        balance: Number(v.balance) || 0,
+        legacy: !!v.legacy,
+        potential: v.potential,
+        answered: v.answered,
+        employee_id: v.employee_id,
+        conversion_employee_id: v.conversion_employee_id || null,
+        notes: v.notes?.trim() || null,
+        tags: v.tags ?? [],
+      } as any;
+      if (!v.id) {
+        const { error } = await supabase.from("daily_lead_activations").insert({
+          ...payload,
+          activated_count: 1,
+          activation_date: v.activation_date || todayISO(),
+        } as any);
+        if (error) throw error;
+        return;
+      }
       const { error } = await supabase
         .from("daily_lead_activations")
-        .update({
-          lead_name: v.lead_name?.trim() || null,
-          balance: Number(v.balance) || 0,
-          potential: v.potential,
-          answered: v.answered,
-          employee_id: v.employee_id,
-          conversion_employee_id: v.conversion_employee_id || null,
-          notes: v.notes?.trim() || null,
-          tags: v.tags ?? [],
-        } as any)
+        .update(payload)
         .eq("id", v.id);
       if (error) throw error;
     },
@@ -367,6 +381,7 @@ function ActivationsPage() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const toggleSelected = (id: string) =>
@@ -439,6 +454,30 @@ function ActivationsPage() {
       <PageHeader
         title="Clients"
         description="Every client with its balance, potential, agents and answer status."
+        actions={
+          <Button
+            variant="outline"
+            onClick={() =>
+              setEditing({
+                id: "",
+                entry_id: "",
+                employee_id: "",
+                conversion_employee_id: null,
+                activated_count: 1,
+                lead_name: "",
+                balance: 0,
+                potential: null,
+                answered: false,
+                activation_date: todayISO(),
+                legacy: true,
+                notes: null,
+                tags: [],
+              })
+            }
+          >
+            <Plus className="h-4 w-4" /> Add client
+          </Button>
+        }
       />
 
       {issue && (
@@ -615,6 +654,7 @@ function ActivationsPage() {
                 {tb.show("conversion") && <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("retention") && <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("answered") && <SortTh label="Answered" k="answered" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("legacy") && <th className="py-2.5 px-2">Origin</th>}
                 <th className="py-3 px-2 w-10 text-right"></th>
               </tr>
               <FilterRow tb={tb} leading={2} trailing={1} />
@@ -652,6 +692,11 @@ function ActivationsPage() {
                   {tb.show("lead") && (
                   <td className="py-2.5 px-2 font-medium">
                     {r.lead_name || "—"}
+                    {r.legacy && (
+                      <Badge variant="outline" className="ml-2 border-muted-foreground/40 text-muted-foreground">
+                        Legacy
+                      </Badge>
+                    )}
                     {isDup(r) && (
                       <Badge variant="outline" className="ml-2 border-amber-500/50 text-amber-600 dark:text-amber-400">
                         Duplicate
@@ -694,6 +739,11 @@ function ActivationsPage() {
                       checked={r.answered}
                       onCheckedChange={(c) => toggleAnswered.mutate({ id: r.id, answered: Boolean(c) })}
                     />
+                  </td>
+                  )}
+                  {tb.show("legacy") && (
+                  <td className="py-2.5 px-2 text-xs text-muted-foreground">
+                    {r.legacy ? "Legacy (old CRM)" : "New lead"}
                   </td>
                   )}
                   <td className="py-3 px-2 text-right" onClick={(e) => e.stopPropagation()}>
@@ -982,12 +1032,12 @@ function ActivationsPage() {
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         {editing && (
           <EditDialog
-            key={editing.id}
+            key={editing.id || "new"}
             row={editing}
             employees={employeesQ.data ?? []}
             loading={save.isPending}
             onSubmit={(v) => save.mutate(v)}
-            onDelete={() => bulkDelete.mutate([editing.id])}
+            onDelete={editing.id ? () => bulkDelete.mutate([editing.id]) : undefined}
           />
         )}
       </Dialog>
@@ -1008,12 +1058,24 @@ function EditDialog({
 
   return (
     <DialogContent className="max-w-md">
-      <DialogHeader><DialogTitle>Client</DialogTitle></DialogHeader>
+      <DialogHeader>
+        <DialogTitle>{row.id ? "Client" : "Add client"}</DialogTitle>
+      </DialogHeader>
       <div className="grid gap-3 py-2">
         <div className="grid gap-1.5">
           <label className="text-xs text-muted-foreground">Lead name</label>
           <Input value={form.lead_name ?? ""} onChange={(e) => setForm({ ...form, lead_name: e.target.value })} />
         </div>
+        {!row.id && (
+          <div className="grid gap-1.5">
+            <label className="text-xs text-muted-foreground">Activation date</label>
+            <Input
+              type="date"
+              value={form.activation_date ?? todayISO()}
+              onChange={(e) => setForm({ ...form, activation_date: e.target.value })}
+            />
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-1.5">
             <label className="text-xs text-muted-foreground">Base balance</label>
@@ -1076,6 +1138,20 @@ function EditDialog({
         <label className="flex items-center gap-2 text-sm">
           <Checkbox checked={form.answered} onCheckedChange={(c) => setForm({ ...form, answered: Boolean(c) })} />
           Answered
+        </label>
+        <label className="flex items-start gap-2 rounded-md border border-border/60 bg-muted/30 p-2.5 text-sm">
+          <Checkbox
+            className="mt-0.5"
+            checked={!!form.legacy}
+            onCheckedChange={(c) => setForm({ ...form, legacy: Boolean(c) })}
+          />
+          <span>
+            Legacy client (from old CRM)
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              Deposits, withdrawals and STDs still count. Not credited as an FTD to the
+              conversion agent and not counted as a client received.
+            </span>
+          </span>
         </label>
       </div>
       <DialogFooter className="flex-row items-center gap-2 sm:justify-between">

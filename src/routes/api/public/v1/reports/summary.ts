@@ -35,6 +35,7 @@ export const Route = createFileRoute("/api/public/v1/reports/summary")({
             .from("daily_lead_activations")
             .select("id, qualified_at, activation_date")
             .eq("company_id", cid)
+            .eq("legacy", false)
             .gte("activation_date", from)
             .lte("activation_date", to),
         ]);

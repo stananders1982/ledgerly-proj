@@ -862,6 +862,7 @@ export type Database = {
           entry_id: string | null
           id: string
           lead_name: string | null
+          legacy: boolean
           low_potential_alerted: boolean
           notes: string | null
           potential: string | null
@@ -882,6 +883,7 @@ export type Database = {
           entry_id?: string | null
           id?: string
           lead_name?: string | null
+          legacy?: boolean
           low_potential_alerted?: boolean
           notes?: string | null
           potential?: string | null
@@ -902,6 +904,7 @@ export type Database = {
           entry_id?: string | null
           id?: string
           lead_name?: string | null
+          legacy?: boolean
           low_potential_alerted?: boolean
           notes?: string | null
           potential?: string | null

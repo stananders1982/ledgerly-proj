@@ -62,6 +62,7 @@ export function ActivatedLeadsByEmployee({
         supabase
           .from("daily_lead_activations")
           .select("*, daily_lead_entries(entry_date, source_id, lead_sources(name))")
+          .eq("legacy", false)
           .order("created_at", { ascending: false }),
       );
       return (data ?? []) as unknown as ActRow[];

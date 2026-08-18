@@ -39,7 +39,8 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         supabase.from("revenue").select("date,amount,customer_name,employee_id,employee_id_2,split_pct,affiliate_id,method,activation_id").gte("date", sinceIso),
         supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
         supabase.from("withdrawals").select("date,amount,employee_id").gte("date", sinceIso),
-        supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id").gte("activation_date", sinceIso),
+        // Legacy (old CRM) clients are excluded from FTD/activation analysis.
+        supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id").eq("legacy", false).gte("activation_date", sinceIso),
         supabase.from("daily_lead_entries").select("entry_date,received,activated,reported,cost,source_id").gte("entry_date", sinceIso),
         supabase.from("lead_sources").select("id,name,pricing_model,price"),
         // Use the same RLS-safe directory as the dashboard leaderboards. Some

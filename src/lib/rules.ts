@@ -115,6 +115,27 @@ export function qualifiesAsFtd(
   );
 }
 
+/**
+ * Legacy clients were imported from the previous CRM: they never came in as a
+ * lead from an affiliate, and their conversion agent was already paid there.
+ * They stay full clients (deposits, withdrawals, STDs) but are never credited
+ * as an FTD / activation to a conversion agent, and are not counted as
+ * "clients received" for retention.
+ */
+export function isLegacyClient(row: { legacy?: boolean | null } | null | undefined): boolean {
+  return !!row?.legacy;
+}
+
+/** FTD that actually earns a conversion agent credit (legacy clients excluded). */
+export function countsAsConversionFtd(
+  row: ActivationLike & { legacy?: boolean | null },
+  balance: number,
+  settings: CompanySettings = DEFAULT_SETTINGS,
+): boolean {
+  return !isLegacyClient(row) && qualifiesAsFtd(row, balance, settings);
+}
+
+
 /** Human-readable reasons a lead has not yet become a qualified FTD. */
 export function ftdPendingReasons(
   row: ActivationLike,

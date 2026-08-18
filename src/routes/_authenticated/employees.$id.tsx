@@ -120,6 +120,7 @@ function EmployeeDetailPage() {
         .from("daily_lead_activations")
         .select("activated_count, lead_name, activation_date, daily_lead_entries(entry_date)")
         .eq("employee_id", id)
+        .eq("legacy", false)
         .gte("activation_date", start)
         .lte("activation_date", end));
       return data ?? [];
@@ -129,6 +130,7 @@ function EmployeeDetailPage() {
   // FTDs — leads this employee activated (as conversion agent).
   // Counted in the month the lead *became valid* (qualified_at), which can be
   // later than the activation month. Pending leads are listed by activation date.
+  // Legacy (old CRM) clients never count here.
   const conversionsQ = useQuery({
     enabled: isConversion,
     queryKey: ["employee-conversions", id, start, end],
@@ -137,12 +139,14 @@ function EmployeeDetailPage() {
         .from("daily_lead_activations")
         .select("id, lead_name, potential, answered, balance, activation_date, qualified_at, daily_lead_entries(entry_date)")
         .eq("conversion_employee_id", id)
+        .eq("legacy", false)
         .gte("qualified_at", start)
         .lte("qualified_at", end));
       const pending = await fetchAll(() => sb
         .from("daily_lead_activations")
         .select("id, lead_name, potential, answered, balance, activation_date, qualified_at, daily_lead_entries(entry_date)")
         .eq("conversion_employee_id", id)
+        .eq("legacy", false)
         .is("qualified_at", null)
         .gte("activation_date", start)
         .lte("activation_date", end));

@@ -114,7 +114,8 @@ function LeadsPage() {
   const activationsQ = useQuery({
     queryKey: ["daily-lead-activations"],
     queryFn: async () => {
-      const data = await fetchAll(() => supabase.from("daily_lead_activations").select("*"));
+      // Legacy (old CRM) clients never came from a lead — excluded here.
+      const data = await fetchAll(() => supabase.from("daily_lead_activations").select("*").eq("legacy", false));
       return (data ?? []) as Activation[];
     },
   });

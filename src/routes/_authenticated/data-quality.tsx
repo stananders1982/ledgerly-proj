@@ -55,7 +55,8 @@ export function useDataQuality() {
       (await fetchAll(() =>
         supabase
           .from("daily_lead_activations")
-          .select("id,lead_name,potential,employee_id,conversion_employee_id,qualified_at,balance"),
+          .select("id,lead_name,potential,employee_id,conversion_employee_id,qualified_at,balance")
+          .eq("legacy", false),
       )) ?? [],
   });
   const empQ = useQuery({

@@ -43,6 +43,7 @@ export function DailyDigest() {
           sb
             .from("daily_lead_activations")
             .select("activation_date,qualified_at,lead_name,employee_id,conversion_employee_id")
+            .eq("legacy", false)
             .gte("activation_date", dayBefore),
         ),
         ]);

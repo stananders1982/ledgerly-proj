@@ -58,6 +58,7 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
       const { data, error } = await sb
         .from("daily_lead_activations")
         .select("id,conversion_employee_id,employee_id,qualified_at,activation_date,entry_id")
+        .eq("legacy", false)
         .gte("activation_date", iso(rangeStart))
         .lte("activation_date", iso(rangeEnd));
       if (error) throw error;

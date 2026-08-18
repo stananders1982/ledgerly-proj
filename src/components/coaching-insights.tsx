@@ -40,6 +40,7 @@ export function CoachingInsights({ employeeId, month }: { employeeId: string; mo
           sb
             .from("daily_lead_activations")
             .select("id,activation_date,qualified_at,employee_id,conversion_employee_id,answered")
+            .eq("legacy", false)
             .gte("activation_date", since),
         ),
       ]);
