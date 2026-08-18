@@ -72,6 +72,8 @@ type Row = {
   answered: boolean;
   activation_date: string | null;
   qualified_at?: string | null;
+  /** Imported from the old CRM — never credited as an FTD to a conversion agent. */
+  legacy?: boolean | null;
   notes?: string | null;
   tags?: string[] | null;
   daily_lead_entries?: { entry_date: string; source_id: string | null; lead_sources?: { name: string } | null } | null;
@@ -312,6 +314,7 @@ function ActivationsPage() {
       { key: "conversion", label: "Conversion agent", filter: "select", value: (r: any) => employeeName(r.conversion_employee_id) ?? "" },
       { key: "retention", label: "Retention agent", filter: "select", value: (r: any) => employeeName(r.employee_id) ?? "" },
       { key: "answered", label: "Answered", filter: "select", value: (r: any) => (r.answered ? "Yes" : "No") },
+      { key: "legacy", label: "Origin", filter: "select", value: (r: any) => (r.legacy ? "Legacy (old CRM)" : "New lead") },
     ],
     rows,
     { allTimeRows: rowsAllTime, allTimeKeys: ["lead"] },
@@ -349,6 +352,7 @@ function ActivationsPage() {
         .update({
           lead_name: v.lead_name?.trim() || null,
           balance: Number(v.balance) || 0,
+          legacy: !!v.legacy,
           potential: v.potential,
           answered: v.answered,
           employee_id: v.employee_id,
