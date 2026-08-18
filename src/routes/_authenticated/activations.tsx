@@ -696,6 +696,13 @@ function ActivationsPage() {
                     />
                   </td>
                   )}
+                  <td className="py-3 px-2 text-right" onClick={(e) => e.stopPropagation()}>
+                    <ConfirmDelete
+                      onConfirm={() => bulkDelete.mutate([r.id])}
+                      label={`Delete ${r.lead_name || "this client"}?`}
+                      description="The client record is removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
