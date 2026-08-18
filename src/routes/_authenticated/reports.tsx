@@ -21,6 +21,23 @@ import { isStd, isAgentTeam } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 import { usePersistedState } from "@/hooks/use-persisted-state";
+import { cn } from "@/lib/utils";
+import { ReportKpi } from "@/components/report-kpi";
+import { ReportBreakdownBar } from "@/components/report-breakdown-bar";
+import {
+  ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Legend, Bar,
+  Line as RLine, Tooltip as RTooltip,
+} from "recharts";
+
+/** Reports are grouped so the tab strip stays readable. */
+const TAB_GROUPS: { key: string; label: string; tabs: [string, string][] }[] = [
+  { key: "overview", label: "Overview", tabs: [["summary", "Executive"]] },
+  { key: "money", label: "Money", tabs: [["pl", "P&L"], ["revenue", "Revenue"], ["expenses", "Expenses"], ["recurring", "Recurring"], ["forecast", "Forecast"]] },
+  { key: "acquisition", label: "Acquisition", tabs: [["sources", "Lead Sources"], ["marketing", "Marketing"], ["savings", "CPA Savings"], ["funnel", "Funnel"]] },
+  { key: "people", label: "People", tabs: [["employees", "Employees"], ["attendance", "Attendance"], ["playervalue", "Player Value"]] },
+  { key: "partners", label: "Partners", tabs: [["payouts", "Affiliate Payouts"]] },
+  { key: "audit", label: "Audit", tabs: [["audit", "Audit"]] },
+];
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({ meta: [{ title: "Reports — Ledgerly" }] }),
@@ -53,6 +70,52 @@ function monthlyEquiv(amount: number, freq: string) {
   return freq === "weekly" ? (amount * 52) / 12 : freq === "quarterly" ? amount / 3 : freq === "yearly" ? amount / 12 : amount;
 }
 
+/** Roll a period's raw rows into the headline numbers used across the report. */
+function summarize(entries: any[], revenue: any[], expenses: any[], employees: any[], recurring: any[]) {
+  let received = 0, activated = 0, reported = 0, converted = 0;
+  let cplCost = 0, cpaPayable = 0, cpaSavings = 0, marketingCost = 0;
+  for (const e of entries) {
+    received += e.received ?? 0;
+    activated += e.activated ?? 0;
+    reported += e.reported ?? 0;
+    converted += e.converted ?? 0;
+    marketingCost += Number(e.cost ?? 0);
+    const s = e.lead_sources;
+    if (!s) continue;
+    const p = Number(s.price);
+    if (s.pricing_model === "CPL") cplCost += p * (e.received ?? 0);
+    else {
+      cpaPayable += p * (e.reported ?? 0);
+      cpaSavings += p * Math.max(0, (e.activated ?? 0) - (e.reported ?? 0));
+    }
+  }
+  const unreported = activated - reported;
+  const income = revenue.reduce((s, r) => s + Number(r.amount), 0);
+  const otherExp = expenses.reduce((s, r) => s + Number(r.amount), 0);
+  const activeEmp = employees.filter((e) => e.active);
+  // Salaries include managers (fixed cost); commission never does.
+  const salaries = activeEmp.reduce((s, e) => s + Number(e.salary), 0);
+  const commissions = activeEmp
+    .filter((e) => isAgentTeam(e.team))
+    .reduce((s, e) => s + (income * Number(e.commission_pct)) / 100, 0);
+  const leadCost = cplCost + cpaPayable;
+  const totalExpenses = leadCost + marketingCost + otherExp + salaries + commissions;
+  const profit = income - totalExpenses;
+
+  return {
+    received, activated, reported, unreported, converted,
+    cplCost, cpaPayable, cpaSavings, marketingCost, leadCost,
+    income, otherExp, salaries, commissions, totalExpenses, profit,
+    rate: received ? (activated / received) * 100 : 0,
+    cpl: received ? leadCost / received : 0,
+    cpa: activated ? leadCost / activated : 0,
+    revPerActivation: activated ? income / activated : 0,
+    margin: income ? (profit / income) * 100 : 0,
+    entries, revenue, expenses, employees, recurring,
+  };
+}
+
+
 function ReportsPage() {
   const { exportCSV, exportXLSX, exportPDF } = useExporters();
   const settings = useCompanySettings();
@@ -60,7 +123,10 @@ function ReportsPage() {
   const [customStart, setCustomStart] = usePersistedState<string>("reports:range-start", "");
   const [customEnd, setCustomEnd] = usePersistedState<string>("reports:range-end", "");
   const [tab, setTab] = useState("summary");
+  const [compare, setCompare] = usePersistedState<boolean>("reports:compare", true);
   const [pvPeriod, setPvPeriod] = useState<"week" | "month" | "all">("month");
+  const activeGroup = TAB_GROUPS.find((g) => g.tabs.some(([k]) => k === tab)) ?? TAB_GROUPS[0];
+
 
   // Saved presets: a named snapshot of tab + date range, kept in this browser.
   type Preset = { name: string; tab: string; range: RangeKey; customStart: string; customEnd: string };
@@ -123,6 +189,35 @@ function ReportsPage() {
     queryKey: ["rpt-exp", start, end],
     queryFn: async () => await fetchAll(() => supabase.from("expenses").select("id,date,amount,notes,category_id,affiliate_id,created_at,expense_categories(name)").gte("date", start).lte("date", end)),
   });
+
+  // Previous equal-length window, used by the "compare" toggle on the overview.
+  const prev = useMemo(() => {
+    const s = new Date(start + "T00:00:00");
+    const e = new Date(end + "T00:00:00");
+    const days = Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
+    const pEnd = new Date(s); pEnd.setDate(pEnd.getDate() - 1);
+    const pStart = new Date(pEnd); pStart.setDate(pStart.getDate() - (days - 1));
+    return { start: iso(pStart), end: iso(pEnd), days };
+  }, [start, end]);
+  const prevLeadsQ = useQuery({
+    enabled: compare,
+    queryKey: ["rpt-leads", prev.start, prev.end],
+    queryFn: async () => (await fetchAll(() => supabase
+      .from("daily_lead_entries")
+      .select("entry_date,source_id,campaign,received,activated,reported,converted,cost,notes,lead_sources(id,name,pricing_model,price)")
+      .gte("entry_date", prev.start).lte("entry_date", prev.end))) ?? [],
+  });
+  const prevRevQ = useQuery({
+    enabled: compare,
+    queryKey: ["rpt-rev-prev", prev.start, prev.end],
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("id,date,amount,method,employee_id,employee_id_2,split_pct").gte("date", prev.start).lte("date", prev.end)),
+  });
+  const prevExpQ = useQuery({
+    enabled: compare,
+    queryKey: ["rpt-exp-prev", prev.start, prev.end],
+    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("id,date,amount,category_id").gte("date", prev.start).lte("date", prev.end)),
+  });
+
   const wdQ = useQuery({
     queryKey: ["rpt-wd", start, end],
     queryFn: async () => await fetchAll(() => supabase.from("withdrawals").select("id,date,amount,customer_name,affiliate_id,revenue_id,revenue:revenue_id(affiliate_id)").gte("date", start).lte("date", end)),
@@ -194,55 +289,32 @@ function ReportsPage() {
 
 
 
-  const data = useMemo(() => {
-    const entries = (leadsQ.data ?? []) as any[];
-    const revenue = (revQ.data ?? []) as any[];
-    const expenses = (expQ.data ?? []) as any[];
-    const employees = (empQ.data ?? []) as any[];
-    const recurring = (recQ.data ?? []) as any[];
+  const data = useMemo(
+    () =>
+      summarize(
+        (leadsQ.data ?? []) as any[],
+        (revQ.data ?? []) as any[],
+        (expQ.data ?? []) as any[],
+        (empQ.data ?? []) as any[],
+        (recQ.data ?? []) as any[],
+      ),
+    [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data],
+  );
 
-    let received = 0, activated = 0, reported = 0, converted = 0;
-    let cplCost = 0, cpaPayable = 0, cpaSavings = 0, marketingCost = 0;
-    for (const e of entries) {
-      received += e.received ?? 0;
-      activated += e.activated ?? 0;
-      reported += e.reported ?? 0;
-      converted += e.converted ?? 0;
-      marketingCost += Number(e.cost ?? 0);
-      const s = e.lead_sources;
-      if (!s) continue;
-      const p = Number(s.price);
-      if (s.pricing_model === "CPL") cplCost += p * (e.received ?? 0);
-      else {
-        cpaPayable += p * (e.reported ?? 0);
-        cpaSavings += p * Math.max(0, (e.activated ?? 0) - (e.reported ?? 0));
-      }
-    }
-    const unreported = activated - reported;
-    const income = revenue.reduce((s, r) => s + Number(r.amount), 0);
-    const otherExp = expenses.reduce((s, r) => s + Number(r.amount), 0);
-    const activeEmp = employees.filter((e) => e.active);
-    // Salaries include managers (fixed cost); commission never does.
-    const salaries = activeEmp.reduce((s, e) => s + Number(e.salary), 0);
-    const commissions = activeEmp
-      .filter((e) => isAgentTeam(e.team))
-      .reduce((s, e) => s + (income * Number(e.commission_pct)) / 100, 0);
-    const leadCost = cplCost + cpaPayable;
-    const totalExpenses = leadCost + marketingCost + otherExp + salaries + commissions;
-    const profit = income - totalExpenses;
+  const prevData = useMemo(
+    () =>
+      compare
+        ? summarize(
+            (prevLeadsQ.data ?? []) as any[],
+            (prevRevQ.data ?? []) as any[],
+            (prevExpQ.data ?? []) as any[],
+            (empQ.data ?? []) as any[],
+            (recQ.data ?? []) as any[],
+          )
+        : null,
+    [compare, prevLeadsQ.data, prevRevQ.data, prevExpQ.data, empQ.data, recQ.data],
+  );
 
-    return {
-      received, activated, reported, unreported, converted,
-      cplCost, cpaPayable, cpaSavings, marketingCost, leadCost,
-      income, otherExp, salaries, commissions, totalExpenses, profit,
-      rate: received ? (activated / received) * 100 : 0,
-      cpl: received ? leadCost / received : 0,
-      cpa: activated ? leadCost / activated : 0,
-      revPerActivation: activated ? income / activated : 0,
-      margin: income ? (profit / income) * 100 : 0,
-      entries, revenue, expenses, employees, recurring,
-    };
-  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data]);
 
   const sources = useMemo(() => {
     const map = new Map<string, any>();
@@ -584,18 +656,18 @@ function ReportsPage() {
     };
   }, [data, range]);
 
-  // Conversion funnel
+  // Conversion funnel — real counts only, no estimated stages.
   const funnel = useMemo(() => {
     const stages = [
       { name: "Leads received", value: data.received },
-      { name: "Contacted", value: Math.round(data.received * 0.8) }, // estimated
-      { name: "Qualified", value: Math.round(data.received * 0.5) },
-      { name: "Activated", value: data.activated },
-      { name: "Reported", value: data.reported },
+      { name: "Activated (FTD)", value: data.activated },
+      { name: "Reported to source", value: data.reported },
+      { name: "Deposits recorded", value: data.revenue.length },
     ];
     const max = stages[0].value || 1;
     return stages.map((s, i) => ({ ...s, pct: max ? (s.value / max) * 100 : 0, conv: i === 0 ? 100 : stages[i - 1].value ? (s.value / stages[i - 1].value) * 100 : 0 }));
-  }, [data.received, data.activated, data.reported]);
+  }, [data.received, data.activated, data.reported, data.revenue]);
+
 
   // Revenue groupings
   const revByDay = useMemo(() => {
@@ -613,6 +685,66 @@ function ReportsPage() {
     }
     return Array.from(map.entries()).map(([month, amount]) => ({ month, amount })).sort((a, b) => a.month.localeCompare(b.month));
   }, [data.expenses]);
+
+  // Daily revenue vs. direct costs, plus a running profit line (overview chart).
+  const trend = useMemo(() => {
+    const map = new Map<string, { date: string; revenue: number; cost: number }>();
+    const touch = (d: string) => {
+      const k = String(d).slice(0, 10);
+      const row = map.get(k) ?? { date: k, revenue: 0, cost: 0 };
+      map.set(k, row);
+      return row;
+    };
+    for (const r of data.revenue) touch(r.date).revenue += Number(r.amount) || 0;
+    for (const e of data.expenses) touch(e.date).cost += Number(e.amount) || 0;
+    for (const e of data.entries) {
+      const row = touch(e.entry_date);
+      row.cost += Number(e.cost ?? 0);
+      const s = e.lead_sources;
+      if (!s) continue;
+      const p = Number(s.price);
+      row.cost += s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
+    }
+    let running = 0;
+    return Array.from(map.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((r) => {
+        running += r.revenue - r.cost;
+        return { ...r, cumulative: running, label: r.date.slice(5) };
+      });
+  }, [data.revenue, data.expenses, data.entries]);
+
+  const breakdown = useMemo(
+    () => [
+      { label: "Lead cost (CPL)", value: data.cplCost, className: "bg-sky-500" },
+      { label: "Lead cost (CPA)", value: data.cpaPayable, className: "bg-indigo-500" },
+      { label: "Marketing", value: data.marketingCost, className: "bg-violet-500" },
+      { label: "Salaries", value: data.salaries, className: "bg-amber-500" },
+      { label: "Commissions", value: data.commissions, className: "bg-orange-500" },
+      { label: "Other expenses", value: data.otherExp, className: "bg-rose-500" },
+      { label: data.profit >= 0 ? "Net profit" : "Loss", value: Math.abs(data.profit), className: data.profit >= 0 ? "bg-emerald-500" : "bg-destructive" },
+    ],
+    [data],
+  );
+
+  // Short list of things worth looking at, generated from the same numbers.
+  const attention = useMemo(() => {
+    const out: { id: string; text: string; tone: "good" | "bad" | "neutral"; tab?: string }[] = [];
+    if (data.profit < 0) out.push({ id: "loss", tone: "bad", tab: "pl", text: `The period is at a loss of ${fmtMoney(Math.abs(data.profit))} — costs are ${fmtMoney(data.totalExpenses)} against ${fmtMoney(data.income)} revenue.` });
+    const withCost = sources.filter((s) => s.totalCost > 0);
+    const best = [...withCost].sort((a, b) => b.roi - a.roi)[0];
+    const worst = [...withCost].sort((a, b) => a.roi - b.roi)[0];
+    if (best) out.push({ id: "best-src", tone: "good", tab: "sources", text: `Best source: ${best.name} at ${fmtPct(best.roi)} ROI (${fmtMoney(best.revenue)} from ${fmtMoney(best.totalCost)} spend).` });
+    if (worst && best && worst.name !== best.name && worst.roi < 0) out.push({ id: "worst-src", tone: "bad", tab: "sources", text: `Weakest source: ${worst.name} at ${fmtPct(worst.roi)} ROI — ${fmtMoney(worst.totalCost)} spent, ${fmtMoney(worst.revenue)} back.` });
+    if (data.unreported > 0) out.push({ id: "unreported", tone: "good", tab: "savings", text: `${data.unreported} activation${data.unreported === 1 ? "" : "s"} not reported to sources — ${fmtMoney(data.cpaSavings)} saved this period.` });
+    const topCat = [...plCategories].sort((a, b) => b.amount - a.amount)[0];
+    if (topCat && data.otherExp > 0) out.push({ id: "top-cat", tone: "neutral", tab: "expenses", text: `Largest expense category: ${topCat.name} at ${fmtMoney(topCat.amount)} (${fmtPct((topCat.amount / data.otherExp) * 100)} of other expenses).` });
+    const topEmp = [...employeesRpt].sort((a, b) => b.revenue - a.revenue)[0];
+    if (topEmp && topEmp.revenue > 0) out.push({ id: "top-emp", tone: "good", tab: "employees", text: `Top agent: ${topEmp.name} with ${fmtMoney(topEmp.revenue)} in deposits.` });
+    if (data.received > 0 && data.rate < 10) out.push({ id: "low-rate", tone: "bad", tab: "sources", text: `Activation rate is only ${fmtPct(data.rate)} across ${data.received} leads.` });
+    return out.slice(0, 5);
+  }, [data, sources, plCategories, employeesRpt]);
+
 
   // Export current tab
   function exportCurrent(format: "csv" | "xlsx" | "pdf") {
@@ -769,47 +901,154 @@ function ReportsPage() {
       )}
 
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="overflow-x-auto scroll-slim print:hidden">
-          <TabsList className="h-auto flex-wrap">
-            <TabsTrigger value="summary">Executive</TabsTrigger>
-            <TabsTrigger value="pl">P&amp;L</TabsTrigger>
-            <TabsTrigger value="sources">Lead Sources</TabsTrigger>
-            <TabsTrigger value="employees">Employees</TabsTrigger>
-            <TabsTrigger value="payouts">Affiliate Payouts</TabsTrigger>
-            <TabsTrigger value="playervalue">Player Value</TabsTrigger>
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
-            <TabsTrigger value="savings">CPA Savings</TabsTrigger>
-            <TabsTrigger value="marketing">Marketing</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
-            <TabsTrigger value="recurring">Recurring</TabsTrigger>
-            <TabsTrigger value="revenue">Revenue</TabsTrigger>
-            <TabsTrigger value="funnel">Funnel</TabsTrigger>
-            <TabsTrigger value="forecast">Forecast</TabsTrigger>
-            <TabsTrigger value="audit">Audit</TabsTrigger>
-          </TabsList>
+        <div className="print:hidden space-y-2">
+          <div className="overflow-x-auto scroll-slim">
+            <div className="inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
+              {TAB_GROUPS.map((g) => {
+                const active = g.tabs.some(([k]) => k === tab);
+                return (
+                  <button
+                    key={g.key}
+                    type="button"
+                    onClick={() => { if (!active) setTab(g.tabs[0][0]); }}
+                    className={cn(
+                      "rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap",
+                      active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {g.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {activeGroup.tabs.length > 1 && (
+            <div className="overflow-x-auto scroll-slim">
+              <TabsList className="h-auto flex-wrap">
+                {activeGroup.tabs.map(([k, label]) => (
+                  <TabsTrigger key={k} value={k}>{label}</TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          )}
         </div>
 
-
         <TabsContent value="summary" className="space-y-4">
-          <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Revenue" value={fmtMoney(data.income)} tone="positive" />
-            <StatCard label="Expenses" value={fmtMoney(data.totalExpenses)} />
-            <StatCard label="Net Profit" value={fmtMoney(data.profit)} tone={data.profit >= 0 ? "positive" : "negative"} />
-            <StatCard label="Activation Rate" value={fmtPct(data.rate)} />
+          <div className="flex items-center justify-between gap-3 print:hidden">
+            <p className="text-sm text-muted-foreground">
+              {start} → {end}
+              {compare && <span> · compared with {prev.start} → {prev.end}</span>}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => setCompare((v) => !v)}>
+              {compare ? "Hide comparison" : "Compare to previous period"}
+            </Button>
           </div>
+
           <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Leads Received" value={String(data.received)} />
-            <StatCard label="Activated" value={String(data.activated)} />
-            <StatCard label="Reported" value={String(data.reported)} />
-            <StatCard label="Unreported" value={String(data.unreported)} />
+            <ReportKpi
+              label={data.profit >= 0 ? "Net profit" : "Net loss"}
+              value={fmtMoney(data.profit)}
+              current={data.profit}
+              prev={prevData?.profit}
+              hint={`${fmtPct(data.margin)} margin`}
+              emphasis
+            />
+            <ReportKpi label="Revenue" value={fmtMoney(data.income)} current={data.income} prev={prevData?.income} hint={`${data.revenue.length} deposits`} emphasis />
+            <ReportKpi label="Total costs" value={fmtMoney(data.totalExpenses)} current={data.totalExpenses} prev={prevData?.totalExpenses} invert hint={`${fmtMoney(data.leadCost)} on leads`} emphasis />
+            <ReportKpi label="Activated (FTD)" value={String(data.activated)} current={data.activated} prev={prevData?.activated} hint={`${fmtPct(data.rate)} of ${data.received} leads`} emphasis />
           </div>
+
+          <ReportBreakdownBar total={data.income} slices={breakdown} />
+
+          <div className="grid gap-3 lg:grid-cols-3">
+            <div className="card-surface p-5 lg:col-span-2">
+              <h3 className="mb-3 font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Revenue vs. costs
+              </h3>
+              {trend.length === 0 ? (
+                <p className="py-10 text-center text-sm text-muted-foreground">No activity in this period.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <ComposedChart data={trend} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="currentColor" className="text-muted-foreground" />
+                    <YAxis tick={{ fontSize: 11 }} stroke="currentColor" className="text-muted-foreground" width={54} />
+                    <RTooltip
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                      formatter={(v: any, n: any) => [fmtMoney(Number(v)), n]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar dataKey="revenue" name="Revenue" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="cost" name="Costs" fill="hsl(var(--muted-foreground))" radius={[3, 3, 0, 0]} />
+                    <RLine dataKey="cumulative" name="Cumulative profit" stroke="#10b981" strokeWidth={2} dot={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            <div className="card-surface p-5">
+              <h3 className="mb-3 font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Needs attention
+              </h3>
+              {attention.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nothing unusual in this period.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {attention.map((a) => (
+                    <li key={a.id} className="flex gap-2 text-sm">
+                      <span
+                        className={cn(
+                          "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                          a.tone === "good" && "bg-emerald-500",
+                          a.tone === "bad" && "bg-destructive",
+                          a.tone === "neutral" && "bg-muted-foreground",
+                        )}
+                      />
+                      <span className="min-w-0">
+                        {a.text}{" "}
+                        {a.tab && (
+                          <button type="button" className="underline underline-offset-2 hover:no-underline" onClick={() => setTab(a.tab!)}>
+                            open
+                          </button>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          <div className="card-surface p-5">
+            <h3 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Lead journey
+            </h3>
+            <div className="space-y-3">
+              {funnel.map((s, i) => (
+                <div key={s.name}>
+                  <div className="mb-1 flex items-baseline justify-between text-sm">
+                    <span>{s.name}</span>
+                    <span className="tabular-nums">
+                      {s.value.toLocaleString()}
+                      {i > 0 && <span className="ml-2 text-xs text-muted-foreground">{fmtPct(s.conv)} of previous</span>}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, s.pct)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Cost per Lead" value={fmtMoney(data.cpl)} />
-            <StatCard label="Cost per Activation" value={fmtMoney(data.cpa)} />
-            <StatCard label="Revenue per Activation" value={fmtMoney(data.revPerActivation)} />
-            <StatCard label="CPA Savings" value={fmtMoney(data.cpaSavings)} tone="positive" />
+            <ReportKpi label="Cost per lead" value={fmtMoney(data.cpl)} current={data.cpl} prev={prevData?.cpl} invert />
+            <ReportKpi label="Cost per activation" value={fmtMoney(data.cpa)} current={data.cpa} prev={prevData?.cpa} invert />
+            <ReportKpi label="Revenue per activation" value={fmtMoney(data.revPerActivation)} current={data.revPerActivation} prev={prevData?.revPerActivation} />
+            <ReportKpi label="CPA savings" value={fmtMoney(data.cpaSavings)} current={data.cpaSavings} prev={prevData?.cpaSavings} hint={`${data.unreported} unreported`} />
           </div>
         </TabsContent>
+
 
         <TabsContent value="pl">
           <div className="card-surface p-5 space-y-4">
