@@ -394,8 +394,8 @@ function ActivationsPage() {
   });
 
   const bulkDelete = useMutation({
-    mutationFn: async () => {
-      const ids = [...selected];
+    mutationFn: async (idsArg?: string[]) => {
+      const ids = idsArg ?? [...selected];
       if (!ids.length) return 0;
       const { error } = await supabase.from("daily_lead_activations").delete().in("id", ids);
       if (error) throw error;
@@ -405,6 +405,8 @@ function ActivationsPage() {
       qc.invalidateQueries({ queryKey: ["activated-leads"] });
       qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
       setSelected(new Set());
+      setViewing(null);
+      setEditing(null);
       if (count) toast.success(`Deleted ${count} client${count === 1 ? "" : "s"}`);
     },
     onError: (e: any) => toast.error(e.message),
