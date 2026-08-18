@@ -21,6 +21,23 @@ import { isStd, isAgentTeam } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 import { usePersistedState } from "@/hooks/use-persisted-state";
+import { cn } from "@/lib/utils";
+import { ReportKpi } from "@/components/report-kpi";
+import { ReportBreakdownBar } from "@/components/report-breakdown-bar";
+import {
+  ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Legend, Bar,
+  Line as RLine, Tooltip as RTooltip,
+} from "recharts";
+
+/** Reports are grouped so the tab strip stays readable. */
+const TAB_GROUPS: { key: string; label: string; tabs: [string, string][] }[] = [
+  { key: "overview", label: "Overview", tabs: [["summary", "Executive"]] },
+  { key: "money", label: "Money", tabs: [["pl", "P&L"], ["revenue", "Revenue"], ["expenses", "Expenses"], ["recurring", "Recurring"], ["forecast", "Forecast"]] },
+  { key: "acquisition", label: "Acquisition", tabs: [["sources", "Lead Sources"], ["marketing", "Marketing"], ["savings", "CPA Savings"], ["funnel", "Funnel"]] },
+  { key: "people", label: "People", tabs: [["employees", "Employees"], ["attendance", "Attendance"], ["playervalue", "Player Value"]] },
+  { key: "partners", label: "Partners", tabs: [["payouts", "Affiliate Payouts"]] },
+  { key: "audit", label: "Audit", tabs: [["audit", "Audit"]] },
+];
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({ meta: [{ title: "Reports — Ledgerly" }] }),
@@ -108,6 +125,7 @@ function ReportsPage() {
   const [tab, setTab] = useState("summary");
   const [compare, setCompare] = usePersistedState<boolean>("reports:compare", true);
   const [pvPeriod, setPvPeriod] = useState<"week" | "month" | "all">("month");
+  const activeGroup = TAB_GROUPS.find((g) => g.tabs.some(([k]) => k === tab)) ?? TAB_GROUPS[0];
 
 
   // Saved presets: a named snapshot of tab + date range, kept in this browser.
