@@ -20,6 +20,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney } from "@/lib/format";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
@@ -371,14 +381,14 @@ function RevenuePage() {
         }
       />
 
-      <AlertDialog open={!!dupPending} onOpenChange={(o) => { if (!o) setDupPending(null); }}>
+      <AlertDialog open={!!dupPending} onOpenChange={(o: boolean) => { if (!o) setDupPending(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>This looks like a duplicate</AlertDialogTitle>
             <AlertDialogDescription>
               A deposit for{" "}
               <span className="font-medium text-foreground">{dupPending?.customer_name}</span> of{" "}
-              <span className="font-medium text-foreground">{money(Number(dupPending?.amount) || 0)}</span> is
+              <span className="font-medium text-foreground">{fmtMoney(Number(dupPending?.amount) || 0)}</span> is
               already recorded on {dupPending?.date}. Save it anyway?
             </AlertDialogDescription>
           </AlertDialogHeader>
