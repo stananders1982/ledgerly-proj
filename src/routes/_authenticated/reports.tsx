@@ -171,6 +171,35 @@ function ReportsPage() {
     queryKey: ["rpt-exp", start, end],
     queryFn: async () => await fetchAll(() => supabase.from("expenses").select("id,date,amount,notes,category_id,affiliate_id,created_at,expense_categories(name)").gte("date", start).lte("date", end)),
   });
+
+  // Previous equal-length window, used by the "compare" toggle on the overview.
+  const prev = useMemo(() => {
+    const s = new Date(start + "T00:00:00");
+    const e = new Date(end + "T00:00:00");
+    const days = Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
+    const pEnd = new Date(s); pEnd.setDate(pEnd.getDate() - 1);
+    const pStart = new Date(pEnd); pStart.setDate(pStart.getDate() - (days - 1));
+    return { start: iso(pStart), end: iso(pEnd), days };
+  }, [start, end]);
+  const prevLeadsQ = useQuery({
+    enabled: compare,
+    queryKey: ["rpt-leads", prev.start, prev.end],
+    queryFn: async () => (await fetchAll(() => supabase
+      .from("daily_lead_entries")
+      .select("entry_date,source_id,campaign,received,activated,reported,converted,cost,notes,lead_sources(id,name,pricing_model,price)")
+      .gte("entry_date", prev.start).lte("entry_date", prev.end))) ?? [],
+  });
+  const prevRevQ = useQuery({
+    enabled: compare,
+    queryKey: ["rpt-rev-prev", prev.start, prev.end],
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("id,date,amount,method,employee_id,employee_id_2,split_pct").gte("date", prev.start).lte("date", prev.end)),
+  });
+  const prevExpQ = useQuery({
+    enabled: compare,
+    queryKey: ["rpt-exp-prev", prev.start, prev.end],
+    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("id,date,amount,category_id").gte("date", prev.start).lte("date", prev.end)),
+  });
+
   const wdQ = useQuery({
     queryKey: ["rpt-wd", start, end],
     queryFn: async () => await fetchAll(() => supabase.from("withdrawals").select("id,date,amount,customer_name,affiliate_id,revenue_id,revenue:revenue_id(affiliate_id)").gte("date", start).lte("date", end)),
