@@ -42,6 +42,7 @@ import { BulkBar } from "@/components/bulk-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCompanySettings } from "@/lib/settings";
 import { usePersistedState } from "@/hooks/use-persisted-state";
+import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/revenue")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -411,7 +412,8 @@ function RevenuePage() {
       </div>
 
       <div className="card-surface overflow-hidden">
-        {revQ.isLoading ? <TableSkeleton cols={6} />
+        {revQ.error ? <QueryError error={revQ.error} onRetry={() => revQ.refetch()} />
+          : revQ.isLoading ? <TableSkeleton cols={6} />
         : filtered.length === 0 ? (
           <EmptyState icon={TrendingUp} title="No revenue in this range" description="Try a different time frame or record a new sale."
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New revenue</Button>} />

@@ -33,6 +33,7 @@ import { useQuickCreate } from "@/lib/quick-create";
 import { CommentThread } from "@/components/comment-thread";
 import { AttachmentsPanel } from "@/components/attachments-panel";
 import { usePersistedState } from "@/hooks/use-persisted-state";
+import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/expenses")({
   head: () => ({ meta: [{ title: "Expenses — Ledgerly" }] }),
@@ -275,7 +276,8 @@ function ExpensesPage() {
       </div>
 
       <div className="card-surface overflow-hidden">
-        {expQ.isLoading ? <TableSkeleton cols={6} />
+        {expQ.error ? <QueryError error={expQ.error} onRetry={() => expQ.refetch()} />
+          : expQ.isLoading ? <TableSkeleton cols={6} />
         : (expQ.data?.length ?? 0) === 0 ? (
           <EmptyState icon={Receipt} title="No expenses yet" description="Start logging to see category breakdowns."
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New expense</Button>} />

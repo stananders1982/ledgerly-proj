@@ -37,6 +37,7 @@ const sb = supabase as any;
 
 import { useQuickCreate } from "@/lib/quick-create";
 import { usePersistedState } from "@/hooks/use-persisted-state";
+import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/withdrawals")({
   head: () => ({ meta: [{ title: "Withdrawals — Ledgerly" }] }),
@@ -247,7 +248,8 @@ function WithdrawalsPage() {
       </div>
 
       <div className="card-surface overflow-hidden">
-        {wQ.isLoading ? <TableSkeleton cols={7} />
+        {wQ.error ? <QueryError error={wQ.error} onRetry={() => wQ.refetch()} />
+          : wQ.isLoading ? <TableSkeleton cols={7} />
         : rows.length === 0 ? (
           <EmptyState icon={Banknote} title="No withdrawals yet" description="Record your first withdrawal to track payouts and agent penalties."
             action={canApprove ? <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New withdrawal</Button> : undefined} />
