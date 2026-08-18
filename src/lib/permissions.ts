@@ -156,7 +156,11 @@ function useDashboardExplicit() {
   const q = useQuery({
     enabled: !!user && !!companyId && !isAdmin && !!roleKey,
     queryKey: ["dashboard-explicit", user?.id, companyId, roleKey],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
     queryFn: async () => {
+
       const [roleRes, overrideRes] = await Promise.all([
         supabase.from("role_permissions").select("nav_key,allowed").eq("role_key", roleKey!).like("nav_key", "dash:%"),
         supabase.from("user_permission_overrides").select("nav_key,allowed").eq("user_id", user!.id).like("nav_key", "dash:%"),
