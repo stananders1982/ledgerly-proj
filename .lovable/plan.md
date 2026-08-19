@@ -10,15 +10,17 @@ conversions only. You want the guarantee honoured instead.
 Leads received   = sum of received in the week
 Guaranteed convs = leads x guarantee %          (from the affiliate's terms)
 Reported convs   = sum of reported in the week
-Payable convs    = guaranteed                   (when a guarantee % is set)
+Payable convs    = max(reported, guaranteed)    -- floor, not a cap
 Cost             = payable x FTD price
 Shortfall        = max(0, guaranteed - reported)   -> paid but not delivered
-Savings          = max(0, reported - guaranteed) x price  -> extra conversions are free
 ```
 
 So for 100 leads, 10% guarantee, $200 price:
-- 8 reported -> cost $2,000 (guarantee honoured), shortfall 2 conversions flagged
-- 13 reported -> cost $2,000, savings $600
+- 8 reported -> pay the guaranteed 10 = $2,000, shortfall 2 conversions flagged
+- 13 reported -> pay all 13 = $2,600 (over-delivery is paid in full)
+
+The guarantee is a floor only: exceed it and every reported FTD is paid. There is no
+"savings" from over-delivery any more, so that column is dropped.
 
 Affiliates with no guarantee % keep the current flat behaviour: pay every reported
 conversion at the FTD price.
@@ -29,31 +31,31 @@ Positive = still owed.
 ## What changes on screen
 
 **Affiliate detail page**
-- Weekly guarantee table: `Payable` now equals the guaranteed count, `Shortfall` becomes a
-  visible "paid for undelivered" column, and the row status reads Met / Short / Over.
+- Weekly guarantee table: `Payable` is the greater of reported and guaranteed, `Savings` is
+  replaced by a `Shortfall cost` column (what we paid for conversions never delivered), and
+  the row status reads Met / Short / Over.
 - Balance cards (Owed for range, Paid, Balance outstanding, Delivery %) recompute from the
-  new cost. Delivery % (reported ÷ guaranteed) becomes the headline quality signal, since
-  cost no longer moves when they under-deliver.
-- A small "Shortfall cost" figure showing how much of the period's cost was for conversions
-  never delivered — that is the number to negotiate on.
+  new cost, plus a period "Shortfall cost" figure — the number to negotiate on.
 
 **Affiliates list**
-- Owed / Paid / Balance columns and the KPI cards pick up the new math automatically; a
-  Shortfall column is added next to Savings.
+- Owed / Paid / Balance columns and the KPI cards pick up the new math automatically; the
+  Savings column becomes Shortfall cost.
 
 **Statement export**
 - The PDF/CSV statement includes the same columns, so the numbers sent to the affiliate
   match the screen.
 
+
 ## Technical notes
 
 - Single change point: `weeklyGuarantee()` in `src/lib/affiliate-balance.ts` sets
-  `payable = guaranteed` when `guarantee_value > 0`, keeps the flat path when it is 0, and
-  adds `shortfallCost = shortfall x price` to `WeekRow`; `sumWeeks` and `mergeWeekRows`
-  aggregate the new field. Every screen already reads from this helper, so the list, detail
-  page, group billing and exports stay consistent.
-- `src/lib/__tests__/affiliate-balance.test.ts` gets cases for under-delivery, exact
-  delivery, over-delivery and the flat (no guarantee) affiliate.
+  `payable = max(reported, guaranteed)` when `guarantee_value > 0`, keeps the flat path when
+  it is 0, drops `savings` and adds `shortfallCost = shortfall x price` to `WeekRow`;
+  `sumWeeks` and `mergeWeekRows` aggregate the new field. Every screen already reads from
+  this helper, so the list, detail page, group billing and exports stay consistent.
+- `src/lib/__tests__/affiliate-balance.test.ts` is updated for the floor rule: under-delivery
+  bills the guarantee, over-delivery bills every reported FTD, exact delivery, and the flat
+  (no guarantee) affiliate.
 - No database or schema changes: price and guarantee % already live on the affiliate record
   and are editable through the existing "Edit terms" dialog; payments remain expenses tagged
   to the affiliate.
