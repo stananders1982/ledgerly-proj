@@ -437,9 +437,8 @@ function LeadsPage() {
         model: s?.pricing_model ?? null,
         price: s ? Number(s.price) : 0,
         expected: s?.expected_conversion_rate ? Number(s.expected_conversion_rate) : null,
-        days: 0, received: 0, invalid: 0, valid: 0, activated: 0, reported: 0, cost: 0, savings: 0,
+        received: 0, invalid: 0, valid: 0, activated: 0, reported: 0, cost: 0, savings: 0,
       };
-      g.days += 1;
       g.received += Number(r.received ?? 0);
       g.invalid += Number(r.invalid ?? 0);
       g.valid += validReceived(r);
