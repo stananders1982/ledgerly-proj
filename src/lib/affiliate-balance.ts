@@ -308,13 +308,15 @@ export function weeklyLedger(
   for (const k of paidByWeek.keys()) if (!byWeek.has(k)) byWeek.set(k, blankWeek(k));
 
   const asc = [...byWeek.values()].sort((a, b) => a.weekStart.localeCompare(b.weekStart));
-  let running = 0;
+  let running = round2(opening);
   const out: LedgerRow[] = [];
   for (const w of asc) {
     const paid = round2(paidByWeek.get(w.weekStart) ?? 0);
-    const opening = running;
-    running = round2(opening + w.cost - paid);
-    out.push({ ...w, paid, opening, closing: running });
+    const openingOfWeek = running;
+    running = round2(openingOfWeek + w.cost - paid);
+    out.push({ ...w, paid, opening: openingOfWeek, closing: running });
   }
+  // No weeks yet: the opening figure is still the live balance.
+  if (!out.length && opening) out.push({ ...blankWeek(weekStartOf(todayIso())), paid: 0, opening: 0, closing: round2(opening) });
   return out.reverse();
 }
