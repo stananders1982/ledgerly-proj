@@ -877,8 +877,28 @@ function LeadsPage() {
       </BulkBar>
 
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
-        <ColumnsMenu tb={tb} />
+        <div className="flex flex-wrap items-center gap-2">
+          {!groupBySource && <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />}
+          <div className="inline-flex rounded-md border border-border p-0.5">
+            <Button
+              size="sm"
+              variant={groupBySource ? "ghost" : "secondary"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setGroupBySource(false)}
+            >
+              Daily
+            </Button>
+            <Button
+              size="sm"
+              variant={groupBySource ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setGroupBySource(true)}
+            >
+              By affiliate
+            </Button>
+          </div>
+        </div>
+        {!groupBySource && <ColumnsMenu tb={tb} />}
       </div>
 
       <div className="card-surface overflow-hidden">
@@ -893,8 +913,65 @@ function LeadsPage() {
             description="Add your first daily entry."
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Add entry</Button>}
           />
+        ) : groupBySource ? (
+          <div className="overflow-x-auto scroll-slim">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-2.5 px-2">Affiliate</th>
+                  <th className="py-2.5 px-2">Model</th>
+                  <th className="py-2.5 px-2">Days</th>
+                  <th className="py-2.5 px-2">Received</th>
+                  <th className="py-2.5 px-2">Invalid</th>
+                  <th className="py-2.5 px-2">Valid</th>
+                  <th className="py-2.5 px-2">Activated</th>
+                  <th className="py-2.5 px-2">Reported</th>
+                  <th className="py-2.5 px-2">Expected %</th>
+                  <th className="py-2.5 px-2">Reported %</th>
+                  <th className="py-2.5 px-2">Activated %</th>
+                  <th className="py-2.5 px-2">Cost</th>
+                  <th className="py-2.5 px-2">Savings</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupedRows.map((g: any) => (
+                  <tr key={g.key} className="border-b border-border/50">
+                    <td className="py-2.5 px-2 font-medium">{g.name}</td>
+                    <td className="py-2.5 px-2">{g.model ? <PricingBadge model={g.model} /> : "—"}</td>
+                    <td className="py-2.5 px-2 text-muted-foreground">{g.days}</td>
+                    <td className="py-2.5 px-2">{g.received}</td>
+                    <td className="py-2.5 px-2 text-muted-foreground">{g.invalid}</td>
+                    <td className="py-2.5 px-2 font-medium">{g.valid}</td>
+                    <td className="py-2.5 px-2">{g.activated}</td>
+                    <td className="py-2.5 px-2">{g.reported}</td>
+                    <td className="py-2.5 px-2">{g.expected ? fmtPct(g.expected) : "—"}</td>
+                    <td className="py-2.5 px-2">{g.valid ? fmtPct((g.reported / g.valid) * 100) : "—"}</td>
+                    <td className="py-2.5 px-2">{g.valid ? fmtPct((g.activated / g.valid) * 100) : "—"}</td>
+                    <td className="py-2.5 px-2">{fmtMoney(g.cost)}</td>
+                    <td className="py-2.5 px-2 text-emerald-500">{g.model === "CPA" ? fmtMoney(g.savings) : "—"}</td>
+                  </tr>
+                ))}
+                <tr className="border-t border-border font-medium">
+                  <td className="py-2.5 px-2">Total</td>
+                  <td className="py-2.5 px-2"></td>
+                  <td className="py-2.5 px-2"></td>
+                  <td className="py-2.5 px-2">{groupedRows.reduce((n: number, g: any) => n + g.received, 0)}</td>
+                  <td className="py-2.5 px-2">{stats.invalid}</td>
+                  <td className="py-2.5 px-2">{stats.received}</td>
+                  <td className="py-2.5 px-2">{stats.activated}</td>
+                  <td className="py-2.5 px-2">{stats.reported}</td>
+                  <td className="py-2.5 px-2"></td>
+                  <td className="py-2.5 px-2">{stats.received ? fmtPct((stats.reported / stats.received) * 100) : "—"}</td>
+                  <td className="py-2.5 px-2">{stats.received ? fmtPct((stats.activated / stats.received) * 100) : "—"}</td>
+                  <td className="py-2.5 px-2">{fmtMoney(stats.totalCost)}</td>
+                  <td className="py-2.5 px-2 text-emerald-500">{fmtMoney(stats.cpaSavings)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         ) : (
           <>
+
           <DataCardList>
             {pageItems.map((r: any) => {
               const s = r.lead_sources;
