@@ -51,8 +51,8 @@ describe("weekly guarantee settlement", () => {
     expect(w1.activated).toBe(7);
     expect(w1.guaranteed).toBe(20); // 100 x 20%
     expect(w1.reported).toBe(10);
-    expect(w1.payable).toBe(10); // min(reported, guaranteed)
-    expect(w1.cost).toBe(2500); // 10 x 250
+    expect(w1.payable).toBe(20); // max(reported, guaranteed) — guarantee is a floor
+    expect(w1.cost).toBe(5000); // 20 x 250
     expect(w1.shortfall).toBe(10);
     expect(w1.status).toBe("short");
 
@@ -60,17 +60,27 @@ describe("weekly guarantee settlement", () => {
     expect(rows[0]!.weekStart).toBe("2026-08-10");
   });
 
-  it("caps payable at the guarantee and books the excess as savings", () => {
+  it("pays every reported conversion when delivery beats the guarantee", () => {
     const [w] = weeklyGuarantee(aff(), [
       { entry_date: "2026-08-03", received: 100, reported: 30, activated: 25 },
     ]);
     expect(w!.guaranteed).toBe(20);
     expect(w!.activated).toBe(25);
-    expect(w!.payable).toBe(20);
-    expect(w!.cost).toBe(5000); // only the guaranteed 20 are billed
-    expect(w!.savings).toBe(2500); // 10 extra x 250 never paid for
+    expect(w!.payable).toBe(30);
+    expect(w!.cost).toBe(7500); // all 30 reported are billed
+    expect(w!.extra).toBe(10);
     expect(w!.shortfall).toBe(0);
     expect(w!.status).toBe("over");
+  });
+
+  it("excludes invalid leads from the guarantee base and percentages", () => {
+    const [w] = weeklyGuarantee(aff(), [
+      { entry_date: "2026-08-03", received: 120, invalid: 20, reported: 10, activated: 20 },
+    ]);
+    expect(w!.valid).toBe(100);
+    expect(w!.guaranteed).toBe(20); // 100 valid x 20%
+    expect(w!.activationPct).toBe(20);
+    expect(w!.reportedPct).toBe(10);
   });
 
   it("marks a week met when reported equals the guarantee", () => {
@@ -78,7 +88,7 @@ describe("weekly guarantee settlement", () => {
       { entry_date: "2026-08-03", received: 100, reported: 20, activated: 18 },
     ]);
     expect(w!.status).toBe("met");
-    expect(w!.savings).toBe(0);
+    expect(w!.extra).toBe(0);
     expect(w!.shortfall).toBe(0);
   });
 
@@ -88,9 +98,9 @@ describe("weekly guarantee settlement", () => {
     ]);
     expect(w!.guaranteed).toBe(0);
     expect(w!.activated).toBe(10);
-    expect(w!.payable).toBe(7); // not capped
+    expect(w!.payable).toBe(7);
     expect(w!.cost).toBe(2100); // 7 x 300
-    expect(w!.savings).toBe(0); // flat sources never generate savings
+    expect(w!.extra).toBe(0);
     expect(w!.shortfall).toBe(0);
     expect(w!.status).toBe("met");
   });
@@ -102,12 +112,14 @@ describe("weekly guarantee settlement", () => {
     ]);
     const t = sumWeeks(rows);
     expect(t.leads).toBe(200);
+    expect(t.valid).toBe(200);
     expect(t.activated).toBe(33);
     expect(t.guaranteed).toBe(40);
     expect(t.reported).toBe(40);
-    expect(t.payable).toBe(30); // 10 + capped 20
-    expect(t.cost).toBe(7500);
-    expect(t.savings).toBe(2500);
+    expect(t.payable).toBe(50); // guaranteed 20 + reported 30
+    expect(t.cost).toBe(12500);
+    expect(t.extra).toBe(10);
+    expect(t.shortfall).toBe(10);
     expect(deliveryPct(t)).toBe(100);
     expect(deliveryPct({ reported: 5, guaranteed: 0 })).toBeNull();
   });
@@ -130,10 +142,11 @@ describe("billing group", () => {
     expect(w.activated).toBe(50);
     expect(w.guaranteed).toBe(20); // only the CRG source guarantees
     expect(w.reported).toBe(60);
-    expect(w.cost).toBe(5000 + 6000); // capped CRG + flat 30 x 200
-    expect(w.savings).toBe(2500);
+    expect(w.cost).toBe(7500 + 6000); // CRG 30 x 250 + flat 30 x 200
+    expect(w.extra).toBe(10);
     expect(w.status).toBe("over");
   });
+
 
   it("keeps distinct weeks separate when merging", () => {
     const merged = mergeWeekRows([
