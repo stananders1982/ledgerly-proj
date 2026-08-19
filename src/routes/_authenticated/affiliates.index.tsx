@@ -179,6 +179,7 @@ function AffiliatesPage() {
     owed: (r) => r.owed,
     paid: (r) => r.paid,
     balance: (r) => r.balance,
+    shortfallCost: (r) => r.shortfallCost,
   });
   const { pageItems, ...pg } = usePagination(sorted, 30, "affiliates");
 
