@@ -419,6 +419,41 @@ function LeadsPage() {
     };
   }, [rows]);
 
+  // Weekly (and any grouped) view: one row per affiliate instead of one per day.
+  const groupedRows = useMemo(() => {
+    const m = new Map<string, any>();
+    for (const r of rows) {
+      const s = r.lead_sources;
+      const key = s?.id ?? "none";
+      const g = m.get(key) ?? {
+        key,
+        name: s?.name ?? "No source",
+        model: s?.pricing_model ?? null,
+        price: s ? Number(s.price) : 0,
+        expected: s?.expected_conversion_rate ? Number(s.expected_conversion_rate) : null,
+        days: 0, received: 0, invalid: 0, valid: 0, activated: 0, reported: 0, cost: 0, savings: 0,
+      };
+      g.days += 1;
+      g.received += Number(r.received ?? 0);
+      g.invalid += Number(r.invalid ?? 0);
+      g.valid += validReceived(r);
+      g.activated += Number(r.activated ?? 0);
+      g.reported += Number(r.reported ?? 0);
+      if (s) {
+        const p = Number(s.price);
+        if (s.pricing_model === "CPL") g.cost += p * validReceived(r);
+        else {
+          g.cost += p * Number(r.reported ?? 0);
+          g.savings += p * Math.max(0, Number(r.activated ?? 0) - Number(r.reported ?? 0));
+        }
+      }
+      m.set(key, g);
+    }
+    return [...m.values()].sort((a, b) => b.valid - a.valid);
+  }, [rows]);
+
+
+
   // Warn when an entry already exists for the same source on the same day.
   const [dupPending, setDupPending] = useState<any | null>(null);
   const findDuplicate = (v: any) => {
