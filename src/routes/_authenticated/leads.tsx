@@ -919,7 +919,6 @@ function LeadsPage() {
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <th className="py-2.5 px-2">Affiliate</th>
                   <th className="py-2.5 px-2">Model</th>
-                  <th className="py-2.5 px-2">Days</th>
                   <th className="py-2.5 px-2">Received</th>
                   <th className="py-2.5 px-2">Invalid</th>
                   <th className="py-2.5 px-2">Valid</th>
@@ -937,7 +936,6 @@ function LeadsPage() {
                   <tr key={g.key} className="border-b border-border/50">
                     <td className="py-2.5 px-2 font-medium">{g.name}</td>
                     <td className="py-2.5 px-2">{g.model ? <PricingBadge model={g.model} /> : "—"}</td>
-                    <td className="py-2.5 px-2 text-muted-foreground">{g.days}</td>
                     <td className="py-2.5 px-2">{g.received}</td>
                     <td className="py-2.5 px-2 text-muted-foreground">{g.invalid}</td>
                     <td className="py-2.5 px-2 font-medium">{g.valid}</td>
@@ -952,7 +950,6 @@ function LeadsPage() {
                 ))}
                 <tr className="border-t border-border font-medium">
                   <td className="py-2.5 px-2">Total</td>
-                  <td className="py-2.5 px-2"></td>
                   <td className="py-2.5 px-2"></td>
                   <td className="py-2.5 px-2">{groupedRows.reduce((n: number, g: any) => n + g.received, 0)}</td>
                   <td className="py-2.5 px-2">{stats.invalid}</td>
