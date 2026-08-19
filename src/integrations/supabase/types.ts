@@ -298,6 +298,8 @@ export type Database = {
       affiliates: {
         Row: {
           active: boolean
+          balance_activated_at: string | null
+          balance_start_date: string | null
           company_id: string
           cpa_rate: number
           created_at: string
@@ -308,10 +310,13 @@ export type Database = {
           guarantee_value: number
           id: string
           name: string
+          opening_balance: number
           updated_at: string
         }
         Insert: {
           active?: boolean
+          balance_activated_at?: string | null
+          balance_start_date?: string | null
           company_id?: string
           cpa_rate?: number
           created_at?: string
@@ -322,10 +327,13 @@ export type Database = {
           guarantee_value?: number
           id?: string
           name: string
+          opening_balance?: number
           updated_at?: string
         }
         Update: {
           active?: boolean
+          balance_activated_at?: string | null
+          balance_start_date?: string | null
           company_id?: string
           cpa_rate?: number
           created_at?: string
@@ -336,6 +344,7 @@ export type Database = {
           guarantee_value?: number
           id?: string
           name?: string
+          opening_balance?: number
           updated_at?: string
         }
         Relationships: [

@@ -24,10 +24,14 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import {
   sourceToAffiliate,
-
+  balanceActive,
+  effectiveStart,
+  openingBalance,
+  withinRange,
   sumWeeks,
   weeklyGuarantee,
   type AffiliateTerms,
+  type BalanceActivation,
   type LeadEntryLike,
 } from "@/lib/affiliate-balance";
 
@@ -68,10 +72,10 @@ function AffiliatesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("affiliates")
-        .select("id,name,active,cpa_rate,guarantee_value,guarantee_period,group_key")
+        .select("id,name,active,cpa_rate,guarantee_value,guarantee_period,group_key,balance_start_date,opening_balance,balance_activated_at")
         .order("name");
       if (error) throw error;
-      return (data ?? []) as (AffRow & { guarantee_period: string; group_key: string | null })[];
+      return (data ?? []) as (AffRow & BalanceActivation & { guarantee_period: string; group_key: string | null })[];
     },
   });
 
@@ -109,7 +113,7 @@ function AffiliatesPage() {
           .gte("date", startIso)
           .lte("date", endIso),
       );
-      return (data ?? []) as { affiliate_id: string; amount: number }[];
+      return (data ?? []) as { affiliate_id: string; amount: number; date: string }[];
     },
   });
 
@@ -123,52 +127,69 @@ function AffiliatesPage() {
       list.push(e);
       entriesByAff.set(affId, list);
     }
-    const paidByAff = new Map<string, number>();
+    const expByAff = new Map<string, { amount: number; date: string }[]>();
     for (const e of expQ.data ?? []) {
-      paidByAff.set(e.affiliate_id, (paidByAff.get(e.affiliate_id) ?? 0) + Number(e.amount || 0));
+      const list = expByAff.get(e.affiliate_id) ?? [];
+      list.push({ amount: Number(e.amount || 0), date: e.date });
+      expByAff.set(e.affiliate_id, list);
     }
 
     const base = (affQ.data ?? []).map((a) => {
-      const weeks = weeklyGuarantee(a, entriesByAff.get(a.id) ?? []);
-      const t = sumWeeks(weeks);
+      const activated = balanceActive(a);
+      // Stats always follow the picked range; money starts at the activation date.
+      const moneyStart = effectiveStart(startIso, a);
+      const all = entriesByAff.get(a.id) ?? [];
+      const statWeeks = sumWeeks(weeklyGuarantee(a, all));
+      const moneyWeeks = activated
+        ? sumWeeks(weeklyGuarantee(a, withinRange(all, (e) => e.entry_date, moneyStart, endIso)))
+        : null;
+      const paid = activated
+        ? withinRange(expByAff.get(a.id) ?? [], (e) => e.date, moneyStart, endIso).reduce((s, e) => s + e.amount, 0)
+        : 0;
       return {
         id: a.id,
         name: a.name,
         active: a.active,
+        balanceActive: activated,
+        startDate: a.balance_start_date ?? null,
+        opening: openingBalance(a),
         groupKey: (a as { group_key?: string | null }).group_key?.trim() || null,
         price: Number(a.cpa_rate || 0),
         pct: Number(a.guarantee_value || 0),
-        leads: t.leads,
-        valid: t.valid,
-        activated: t.activated,
-        activationPct: t.activationPct,
-        reportedPct: t.reportedPct,
-        guaranteed: t.guaranteed,
-        reported: t.reported,
-        owed: t.cost,
-        extra: t.extra,
-        shortfall: t.shortfall,
-        paid: paidByAff.get(a.id) ?? 0,
+        leads: statWeeks.leads,
+        valid: statWeeks.valid,
+        activated: statWeeks.activated,
+        activationPct: statWeeks.activationPct,
+        reportedPct: statWeeks.reportedPct,
+        guaranteed: statWeeks.guaranteed,
+        reported: statWeeks.reported,
+        owed: moneyWeeks?.cost ?? 0,
+        extra: moneyWeeks?.extra ?? 0,
+        shortfall: moneyWeeks?.shortfall ?? 0,
+        paid,
       };
     });
 
     // Affiliates sharing a billing group share their payments and balance.
     const groupCost = new Map<string, number>();
     const groupPaid = new Map<string, number>();
+    const groupOpening = new Map<string, number>();
     for (const r of base) {
       const k = r.groupKey ?? r.id;
       groupCost.set(k, (groupCost.get(k) ?? 0) + r.owed);
       groupPaid.set(k, (groupPaid.get(k) ?? 0) + r.paid);
+      groupOpening.set(k, (groupOpening.get(k) ?? 0) + r.opening);
     }
 
     return base
       .map((r) => {
         const k = r.groupKey ?? r.id;
         const gPaid = groupPaid.get(k) ?? 0;
-        return { ...r, groupId: k, paid: gPaid, balance: (groupCost.get(k) ?? 0) - gPaid };
+        const balance = (groupOpening.get(k) ?? 0) + (groupCost.get(k) ?? 0) - gPaid;
+        return { ...r, groupId: k, paid: gPaid, balance };
       })
       .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()));
-  }, [affQ.data, srcQ.data, entriesQ.data, expQ.data, search]);
+  }, [affQ.data, srcQ.data, entriesQ.data, expQ.data, search, startIso, endIso]);
 
   const { sorted, sort, toggle } = useSort(rows, {
     name: (r) => r.name,
@@ -186,16 +207,17 @@ function AffiliatesPage() {
   });
   const { pageItems, ...pg } = usePagination(sorted, 30, "affiliates");
 
-  const totals = useMemo(
-    () => ({
-      owed: rows.reduce((s, r) => s + r.owed, 0),
+  const totals = useMemo(() => {
+    const live = rows.filter((r) => r.balanceActive);
+    return {
+      owed: live.reduce((s, r) => s + r.owed, 0),
       // Grouped affiliates share one payment pool — count each group once.
-      paid: [...new Map(rows.map((r) => [r.groupId, r.paid])).values()].reduce((s, v) => s + v, 0),
-      balance: [...new Map(rows.map((r) => [r.groupId, r.balance])).values()].reduce((s, v) => s + v, 0),
-      shortfallCost: rows.reduce((s, r) => s + r.shortfall * r.price, 0),
-    }),
-    [rows],
-  );
+      paid: [...new Map(live.map((r) => [r.groupId, r.paid])).values()].reduce((s, v) => s + v, 0),
+      balance: [...new Map(live.map((r) => [r.groupId, r.balance])).values()].reduce((s, v) => s + v, 0),
+      shortfallCost: live.reduce((s, r) => s + r.shortfall * r.price, 0),
+    };
+  }, [rows]);
+
 
   const [editing, setEditing] = useState<(AffRow & { guarantee_period?: string; group_key?: string | null }) | null>(null);
   const [form, setForm] = useState({ cpa_rate: "0", guarantee_value: "0", group_key: "", active: true });
@@ -229,6 +251,40 @@ function AffiliatesPage() {
     onSuccess: () => {
       toast.success("Affiliate terms updated");
       setEditing(null);
+      qc.invalidateQueries({ queryKey: ["affiliates-list"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"),
+  });
+
+  type ActivateTarget = { id: string; name: string; groupKey: string | null; startDate: string | null; opening: number; active: boolean };
+  const [activating, setActivating] = useState<ActivateTarget | null>(null);
+  const [actForm, setActForm] = useState({ start: "", opening: "0" });
+  useEffect(() => {
+    if (activating) {
+      setActForm({ start: activating.startDate ?? isoOf(new Date()), opening: String(activating.opening || 0) });
+    }
+  }, [activating]);
+
+  const saveActivation = useMutation({
+    mutationFn: async (mode: "on" | "off") => {
+      if (!activating) return;
+      const patch =
+        mode === "off"
+          ? { balance_activated_at: null, balance_start_date: null, opening_balance: 0 }
+          : {
+              balance_activated_at: new Date().toISOString(),
+              balance_start_date: actForm.start,
+              opening_balance: Number(actForm.opening) || 0,
+            };
+      // Billing-group members share one balance, so they share activation too.
+      let q = supabase.from("affiliates").update(patch);
+      q = activating.groupKey ? q.eq("group_key", activating.groupKey) : q.eq("id", activating.id);
+      const { error } = await q;
+      if (error) throw error;
+    },
+    onSuccess: (_d, mode) => {
+      toast.success(mode === "off" ? "Balance tracking turned off" : "Balance activated");
+      setActivating(null);
       qc.invalidateQueries({ queryKey: ["affiliates-list"] });
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"),
@@ -290,10 +346,16 @@ function AffiliatesPage() {
                   { label: "FTDs", value: <span className="num">{r.activated}{r.activationPct == null ? "" : ` (${r.activationPct}%)`}</span> },
                   { label: "Guaranteed", value: <span className="num">{r.guaranteed}</span> },
                   { label: "Reported", value: <span className="num">{r.reported}{r.reportedPct == null ? "" : ` (${r.reportedPct}%)`}</span> },
-                  { label: "Owed", value: <span className="num">{fmtMoney(r.owed)}</span> },
-                  { label: "Paid", value: <span className="num text-warning">−{fmtMoney(r.paid)}</span> },
-                  { label: r.balance < 0 ? "Credit" : "Balance", value: <span className={cn("num font-medium", r.balance > 0 ? "text-destructive" : "text-success")}>{fmtMoney(Math.abs(r.balance))}</span> },
+                  { label: "Owed", value: r.balanceActive ? <span className="num">{fmtMoney(r.owed)}</span> : <span className="text-muted-foreground">—</span> },
+                  { label: "Paid", value: r.balanceActive ? <span className="num text-warning">−{fmtMoney(r.paid)}</span> : <span className="text-muted-foreground">—</span> },
+                  {
+                    label: r.balanceActive && r.balance < 0 ? "Credit" : "Balance",
+                    value: r.balanceActive
+                      ? <span className={cn("num font-medium", r.balance > 0 ? "text-destructive" : "text-success")}>{fmtMoney(Math.abs(r.balance))}</span>
+                      : <span className="text-muted-foreground">not activated</span>,
+                  },
                 ]}
+
                 actions={<Link to="/affiliates/$id" params={{ id: r.id }} className="text-primary hover:underline text-xs">Statement</Link>}
               />
             ))}
@@ -342,10 +404,43 @@ function AffiliatesPage() {
                     <td className="py-3 px-4">{r.guaranteed}</td>
                     <td className="py-3 px-4">{r.reported}</td>
                     <td className="py-3 px-4">{r.reportedPct == null ? "—" : `${r.reportedPct}%`}</td>
-                    <td className="py-3 px-4">{fmtMoney(r.owed)}</td>
-                    <td className="py-3 px-4 text-amber-500">−{fmtMoney(r.paid)}</td>
-                    <td className={cn("py-3 px-4 font-medium", r.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(Math.abs(r.balance))}{r.balance < 0 && <span className="ml-1 text-xs text-muted-foreground">credit</span>}</td>
+                    <td className="py-3 px-4">{r.balanceActive ? fmtMoney(r.owed) : <span className="text-muted-foreground">—</span>}</td>
+                    <td className="py-3 px-4 text-amber-500">{r.balanceActive ? `−${fmtMoney(r.paid)}` : <span className="text-muted-foreground">—</span>}</td>
+                    <td className={cn("py-3 px-4 font-medium", r.balanceActive ? (r.balance > 0 ? "text-rose-500" : "text-emerald-500") : "text-muted-foreground")}>
+                      {r.balanceActive ? (
+                        <>
+                          {fmtMoney(Math.abs(r.balance))}
+                          {r.balance < 0 && <span className="ml-1 text-xs text-muted-foreground">credit</span>}
+                        </>
+                      ) : isAdmin ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActivating({ id: r.id, name: r.name, groupKey: r.groupKey, startDate: r.startDate, opening: r.opening, active: false });
+                          }}
+                        >
+                          Activate balance
+                        </Button>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">
+                      {isAdmin && r.balanceActive && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mr-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActivating({ id: r.id, name: r.name, groupKey: r.groupKey, startDate: r.startDate, opening: r.opening, active: true });
+                          }}
+                        >
+                          <Wallet className="h-3.5 w-3.5" /> Balance
+                        </Button>
+                      )}
                       {isAdmin && (
                         <Button
                           variant="ghost"
@@ -360,6 +455,7 @@ function AffiliatesPage() {
                           <Settings2 className="h-3.5 w-3.5" /> Terms
                         </Button>
                       )}
+
                       <Link to="/affiliates/$id" params={{ id: r.id }} className="inline-flex items-center gap-1 text-primary hover:underline text-xs" onClick={(e) => e.stopPropagation()}>
                         Statement <ExternalLink className="h-3 w-3" />
                       </Link>
@@ -417,6 +513,44 @@ function AffiliatesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
             <Button onClick={() => saveTerms.mutate()} disabled={saveTerms.isPending}>Save terms</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!activating} onOpenChange={(o) => !o && setActivating(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{activating?.active ? "Balance settings" : "Activate balance"} — {activating?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Start counting from</Label>
+              <Input type="date" value={actForm.start} onChange={(e) => setActForm((f) => ({ ...f, start: e.target.value }))} />
+              <p className="text-xs text-muted-foreground">Weeks and payments before this date are ignored — nothing is calculated retroactively.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Opening balance</Label>
+              <Input type="number" step="0.01" value={actForm.opening} onChange={(e) => setActForm((f) => ({ ...f, opening: e.target.value }))} />
+              <p className="text-xs text-muted-foreground">What you already owe on that date. Use a negative number for a prepaid credit.</p>
+            </div>
+            {activating?.groupKey && (
+              <p className="text-xs text-muted-foreground">
+                Applies to every affiliate in billing group “{activating.groupKey}”, since they share one balance.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            {activating?.active ? (
+              <Button variant="ghost" className="text-destructive" onClick={() => saveActivation.mutate("off")} disabled={saveActivation.isPending}>
+                Turn off tracking
+              </Button>
+            ) : <span />}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setActivating(null)}>Cancel</Button>
+              <Button onClick={() => saveActivation.mutate("on")} disabled={saveActivation.isPending || !actForm.start}>
+                {activating?.active ? "Save" : "Activate"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
