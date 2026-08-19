@@ -199,6 +199,79 @@ function AffiliateStatementPage() {
     },
   });
 
+  // Payments to the affiliate, grouped into the settlement week they land in.
+  // Anything dated before the charging start date is ignored entirely.
+  const paidByWeek = useMemo(() => {
+    const m = new Map<string, number>();
+    if (!balanceOn) return m;
+    for (const e of expQ.data ?? []) {
+      if (balanceStart && e.date < balanceStart) continue;
+      const k = weekStartOf(e.date);
+      m.set(k, (m.get(k) ?? 0) + Number(e.amount || 0));
+    }
+    return m;
+  }, [expQ.data, balanceOn, balanceStart]);
+
+  // Lifetime ledger from the start date: the balance rolls forward week after
+  // week, so a credit from a top-up is never lost when the date filter changes.
+  const ledger = useMemo(() => {
+    if (!members.length || !balanceOn) return [];
+    const srcByName = new Map<string, string>();
+    for (const s of srcQ.data ?? []) srcByName.set(s.name.trim().toLowerCase(), s.id);
+    const lifetime = mergeWeekRows(
+      members.map((m) => {
+        const srcId = srcByName.get(m.name.trim().toLowerCase());
+        const mine = (entriesQ.data ?? []).filter(
+          (e) => e.source_id && e.source_id === srcId && (!balanceStart || e.entry_date >= balanceStart),
+        );
+        return weeklyGuarantee(m, mine);
+      }),
+    );
+    return weeklyLedger(lifetime, paidByWeek);
+  }, [members, srcQ.data, entriesQ.data, balanceOn, balanceStart, paidByWeek]);
+
+  // Newest week first, so its closing balance is the live running balance.
+  const runningBalance = ledger.length ? ledger[0].closing : 0;
+
+  const weeks = useMemo(
+    () => ledger.filter((w) => inRange(w.weekStart) || inRange(w.weekEnd)),
+    [ledger, activeRange],
+  );
+  const weekTotals = useMemo(() => sumWeeks(weeks), [weeks]);
+  const paidInView = useMemo(() => weeks.reduce((s, w) => s + w.paid, 0), [weeks]);
+  const { pageItems: weekPage, ...pgWeeks } = usePagination(weeks, 30);
+
+  // Record a payment / top-up straight from the affiliate page.
+  const [paying, setPaying] = useState(false);
+  const [payForm, setPayForm] = useState({ amount: "", date: isoOf(new Date()), notes: "" });
+  useEffect(() => {
+    if (paying) setPayForm({ amount: "", date: isoOf(new Date()), notes: "" });
+  }, [paying]);
+
+  const savePayment = useMutation({
+    mutationFn: async () => {
+      const amount = Number(payForm.amount) || 0;
+      if (amount <= 0) throw new Error("Enter an amount");
+      const { error } = await supabase.from("expenses").insert({
+        affiliate_id: id,
+        amount,
+        date: payForm.date,
+        notes: payForm.notes.trim() || "Affiliate payout",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Payment recorded");
+      setPaying(false);
+      qc.invalidateQueries({ queryKey: ["affiliate-expenses", memberIds.join(",")] });
+      qc.invalidateQueries({ queryKey: ["expenses-list"] });
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"),
+  });
+
+
+
   const monthly = useMemo(() => {
     const blank = () => ({ revenue: 0, withdrawals: 0, paid: 0 });
     const map = new Map<string, { revenue: number; withdrawals: number; paid: number }>();
