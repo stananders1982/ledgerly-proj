@@ -582,6 +582,10 @@ function AffiliateStatementPage() {
                     <td className="py-3 px-4">{w.payable}</td>
                     <td className="py-3 px-4">{fmtMoney(w.cost)}</td>
                     <td className="py-3 px-4 text-rose-500">{w.shortfall || "—"}</td>
+                    <td className="py-3 px-4 text-amber-500">{w.paid ? `−${fmtMoney(w.paid)}` : "—"}</td>
+                    <td className={cn("py-3 px-4 font-medium", w.closing < 0 ? "text-emerald-500" : "text-rose-500")}>
+                      {w.closing < 0 ? `${fmtMoney(Math.abs(w.closing))} cr` : fmtMoney(w.closing)}
+                    </td>
                     <td className="py-3 px-4">
                       <span className={cn(
                         "rounded border px-1.5 py-0.5 text-xs font-medium",
