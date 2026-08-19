@@ -431,6 +431,7 @@ function AffiliateStatementPage() {
                   <th className="py-3 px-4">Cost</th>
                   <th className="py-3 px-4">Savings</th>
                   <th className="py-3 px-4">Shortfall</th>
+                  <th className="py-3 px-4">Shortfall cost</th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
