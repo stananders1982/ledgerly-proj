@@ -82,6 +82,12 @@ function LeadsPage() {
   const [customStart, setCustomStart] = usePersistedState<string>("leads:range-start", "");
   const [customEnd, setCustomEnd] = usePersistedState<string>("leads:range-end", "");
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
+  // Weekly view defaults to one row per affiliate instead of a row per day.
+  const [groupBySource, setGroupBySource] = useState(range === "week");
+  useEffect(() => {
+    setGroupBySource(range === "week");
+  }, [range]);
+
   const [leadSearch, setLeadSearch] = useState<string>("");
   const { issue } = Route.useSearch();
   const routeNavigate = Route.useNavigate();
