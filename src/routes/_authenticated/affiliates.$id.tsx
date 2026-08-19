@@ -41,20 +41,29 @@ function monthKey(iso: string) {
   return iso.slice(0, 7);
 }
 
+function isoOf(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function AffiliateStatementPage() {
   const { exportPDF } = useExporters();
+  const { isAdmin } = useAuth();
+  const qc = useQueryClient();
   const { id } = useParams({ from: "/_authenticated/affiliates/$id" });
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
-  const activeRange = useMemo(
-    () => getRange(range, { start: customStart, end: customEnd }),
-    [range, customStart, customEnd],
-  );
+  const activeRange = useMemo(() => {
+    const r = getRange(range, { start: customStart, end: customEnd });
+    // Affiliates settle Mon–Sun, so "Week" means the current settlement week.
+    if (range !== "week") return r;
+    return { ...r, start: new Date(weekStartOf(isoOf(r.end)) + "T00:00:00"), label: "This week" };
+  }, [range, customStart, customEnd]);
   const inRange = (d: string) => {
     const t = new Date(d + "T12:00:00").getTime();
     return t >= activeRange.start.getTime() && t <= activeRange.end.getTime();
   };
+
 
   // An affiliate can share a billing group with other sources (e.g. one flat and
   // one with a guarantee). Payments and balance are shared across the group.
