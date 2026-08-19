@@ -2,16 +2,18 @@
  * Affiliate balance with a weekly conversion guarantee.
  *
  * Every affiliate has an activation price (CPA) and a guaranteed conversion
- * rate. Each Mon–Sun week settles on its own:
+ * rate. The guarantee is a MINIMUM payment. Each Mon–Sun week settles alone:
  *
- *   guaranteed = leads received x guarantee %  (0% => flat: pay every reported)
- *   payable    = min(reported, guaranteed)
+ *   valid      = received - invalid
+ *   guaranteed = valid x guarantee %          (0% => flat: pay every reported)
+ *   payable    = max(reported, guaranteed)
  *   cost       = payable x price
- *   savings    = max(0, reported - guaranteed) x price
- *   shortfall  = max(0, guaranteed - reported)
+ *   shortfall  = max(0, guaranteed - reported)  paid but not delivered
+ *   extra      = max(0, reported - guaranteed)  delivered above the guarantee
  *
  * Balance owed = sum(cost) - payments recorded as expenses tagged to the affiliate.
  */
+
 
 export type AffiliateTerms = {
   id: string;
