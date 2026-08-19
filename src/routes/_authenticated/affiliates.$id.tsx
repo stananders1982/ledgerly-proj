@@ -467,14 +467,17 @@ function AffiliateStatementPage() {
 
       {!balanceOn ? (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-          <span>Balance tracking is not activated for this affiliate, so no money is calculated.</span>
-          {isAdmin && <Button size="sm" onClick={() => setActivating(true)}>Activate balance</Button>}
+          <span>Charging has not started for this affiliate, so no money is calculated.</span>
+          {isAdmin && <Button size="sm" onClick={() => setActivating(true)}>Start charging</Button>}
         </div>
       ) : (
         isAdmin && (
-          <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex flex-wrap justify-end gap-2">
+            <Button size="sm" onClick={() => setPaying(true)}>
+              <Wallet className="h-3.5 w-3.5" /> Add payment
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setActivating(true)}>
-              <Wallet className="h-3.5 w-3.5" /> Balance settings
+              Charging from {balanceStart}
             </Button>
           </div>
         )
@@ -487,22 +490,23 @@ function AffiliateStatementPage() {
           <CardContent className="text-2xl font-semibold">{balanceOn ? fmtMoney(weekTotals.cost) : "—"}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Paid to affiliate</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold text-amber-500">{balanceOn ? fmtMoney(totals.paid) : "—"}</CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Paid ({activeRange.label})</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold text-amber-500">{balanceOn ? fmtMoney(paidInView) : "—"}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">
-            {opening + weekTotals.cost - totals.paid < 0 ? "Credit with affiliate" : "Balance outstanding"}
+            {runningBalance < 0 ? "Credit carried over" : "Balance outstanding"}
           </CardTitle></CardHeader>
-          <CardContent className={cn("text-2xl font-semibold", opening + weekTotals.cost - totals.paid < 0 ? "text-emerald-500" : "text-rose-500")}>
-            {balanceOn ? fmtMoney(Math.abs(opening + weekTotals.cost - totals.paid)) : "—"}
+          <CardContent className={cn("text-2xl font-semibold", runningBalance < 0 ? "text-emerald-500" : "text-rose-500")}>
+            {balanceOn ? fmtMoney(Math.abs(runningBalance)) : "—"}
           </CardContent>
           <CardContent className="pt-0 text-xs text-muted-foreground">
             {!balanceOn
-              ? "Not activated"
-              : `${opening + weekTotals.cost - totals.paid < 0 ? "Paid ahead of reported cost" : "Still owed to the affiliate"}${opening ? ` · includes ${fmtMoney(opening)} opening balance` : ""}${balanceStart ? ` · from ${balanceStart}` : ""}`}
+              ? "Charging not started"
+              : `Running total, rolls over week to week${balanceStart ? ` · since ${balanceStart}` : ""}`}
           </CardContent>
         </Card>
+
 
 
         <Card>
