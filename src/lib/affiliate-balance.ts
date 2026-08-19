@@ -88,6 +88,9 @@ export function sourceToAffiliate(
   return m;
 }
 
+const pctOf = (n: number, base: number): number | null =>
+  base > 0 ? round2((n / base) * 100) : null;
+
 /** Weekly guarantee settlement rows for one affiliate. */
 export function weeklyGuarantee(
   aff: AffiliateTerms,
@@ -96,12 +99,16 @@ export function weeklyGuarantee(
   const price = Number(aff.cpa_rate || 0);
   const pct = Number(aff.guarantee_value || 0);
 
-  const buckets = new Map<string, { leads: number; reported: number; activated: number }>();
+  const buckets = new Map<
+    string,
+    { leads: number; invalid: number; reported: number; activated: number }
+  >();
   for (const e of entries) {
     if (!e.entry_date) continue;
     const k = weekStartOf(e.entry_date);
-    const b = buckets.get(k) ?? { leads: 0, reported: 0, activated: 0 };
+    const b = buckets.get(k) ?? { leads: 0, invalid: 0, reported: 0, activated: 0 };
     b.leads += Number(e.received || 0);
+    b.invalid += Number(e.invalid || 0);
     b.reported += Number(e.reported || 0);
     b.activated += Number(e.activated || 0);
     buckets.set(k, b);
@@ -111,22 +118,28 @@ export function weeklyGuarantee(
     .map(([weekStart, b]) => {
       // No guarantee % configured => flat source: pay for every reported conversion.
       const flat = !(pct > 0);
-      const guaranteed = flat ? 0 : round2(b.leads * (pct / 100));
-      const payable = flat ? b.reported : Math.min(b.reported, guaranteed);
+      const valid = Math.max(0, b.leads - b.invalid);
+      const guaranteed = flat ? 0 : round2(valid * (pct / 100));
+      // The guarantee is a minimum: under-delivery still pays the guarantee.
+      const payable = flat ? b.reported : Math.max(b.reported, guaranteed);
       const cost = round2(payable * price);
-      const extra = flat ? 0 : Math.max(0, b.reported - guaranteed);
+      const extra = flat ? 0 : round2(Math.max(0, b.reported - guaranteed));
       const shortfall = flat ? 0 : round2(Math.max(0, guaranteed - b.reported));
       return {
         weekStart,
         weekEnd: weekEndOf(weekStart),
         leads: b.leads,
+        invalid: b.invalid,
+        valid,
         activated: b.activated,
         guaranteed,
         reported: b.reported,
         payable: round2(payable),
         cost,
-        savings: round2(extra * price),
+        extra,
         shortfall,
+        activationPct: pctOf(b.activated, valid),
+        reportedPct: pctOf(b.reported, valid),
         status: flat ? ("met" as const) : extra > 0 ? ("over" as const) : shortfall > 0 ? ("short" as const) : ("met" as const),
       };
     })
@@ -134,19 +147,26 @@ export function weeklyGuarantee(
 }
 
 export function sumWeeks(rows: WeekRow[]) {
-  return rows.reduce(
+  const t = rows.reduce(
     (acc, r) => ({
       leads: acc.leads + r.leads,
+      invalid: acc.invalid + r.invalid,
+      valid: acc.valid + r.valid,
       activated: acc.activated + r.activated,
       guaranteed: round2(acc.guaranteed + r.guaranteed),
       reported: acc.reported + r.reported,
       payable: round2(acc.payable + r.payable),
       cost: round2(acc.cost + r.cost),
-      savings: round2(acc.savings + r.savings),
+      extra: round2(acc.extra + r.extra),
       shortfall: round2(acc.shortfall + r.shortfall),
     }),
-    { leads: 0, activated: 0, guaranteed: 0, reported: 0, payable: 0, cost: 0, savings: 0, shortfall: 0 },
+    { leads: 0, invalid: 0, valid: 0, activated: 0, guaranteed: 0, reported: 0, payable: 0, cost: 0, extra: 0, shortfall: 0 },
   );
+  return {
+    ...t,
+    activationPct: pctOf(t.activated, t.valid),
+    reportedPct: pctOf(t.reported, t.valid),
+  };
 }
 
 /** Delivery rate: reported conversions as a share of guaranteed conversions. */
@@ -169,17 +189,22 @@ export function mergeWeekRows(perMember: WeekRow[][]): WeekRow[] {
         continue;
       }
       prev.leads += w.leads;
+      prev.invalid += w.invalid;
+      prev.valid += w.valid;
       prev.activated += w.activated;
       prev.guaranteed = round2(prev.guaranteed + w.guaranteed);
       prev.reported += w.reported;
       prev.payable = round2(prev.payable + w.payable);
       prev.cost = round2(prev.cost + w.cost);
-      prev.savings = round2(prev.savings + w.savings);
+      prev.extra = round2(prev.extra + w.extra);
       prev.shortfall = round2(prev.shortfall + w.shortfall);
-      prev.status = prev.savings > 0 ? "over" : prev.shortfall > 0 ? "short" : "met";
+      prev.activationPct = pctOf(prev.activated, prev.valid);
+      prev.reportedPct = pctOf(prev.reported, prev.valid);
+      prev.status = prev.extra > 0 ? "over" : prev.shortfall > 0 ? "short" : "met";
     }
   }
   return [...merged.values()].sort((a, b) => b.weekStart.localeCompare(a.weekStart));
+
 }
 
 /** What a source costs us, by pricing model. CPA pays only reported conversions. */
