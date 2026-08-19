@@ -190,7 +190,7 @@ function AffiliatesPage() {
       // Grouped affiliates share one payment pool — count each group once.
       paid: [...new Map(rows.map((r) => [r.groupId, r.paid])).values()].reduce((s, v) => s + v, 0),
       balance: [...new Map(rows.map((r) => [r.groupId, r.balance])).values()].reduce((s, v) => s + v, 0),
-      savings: rows.reduce((s, r) => s + r.savings, 0),
+      shortfallCost: rows.reduce((s, r) => s + r.shortfall * r.price, 0),
     }),
     [rows],
   );
