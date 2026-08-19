@@ -563,6 +563,8 @@ function AffiliateStatementPage() {
                   <th className="py-3 px-4">Payable</th>
                   <th className="py-3 px-4">Cost</th>
                   <th className="py-3 px-4">Shortfall</th>
+                  <th className="py-3 px-4">Paid</th>
+                  <th className="py-3 px-4">Balance</th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
