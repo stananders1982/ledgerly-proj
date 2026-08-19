@@ -112,8 +112,14 @@ export function weeklyGuarantee(
     .map(([weekStart, b]) => {
       // No guarantee % configured => flat source: pay for every reported conversion.
       const flat = !(pct > 0);
+      // From the cutoff week the guarantee is a floor, not a cap.
+      const floor = weekStart >= GUARANTEE_FLOOR_FROM;
       const guaranteed = flat ? 0 : round2(b.leads * (pct / 100));
-      const payable = flat ? b.reported : Math.min(b.reported, guaranteed);
+      const payable = flat
+        ? b.reported
+        : floor
+          ? Math.max(b.reported, guaranteed)
+          : Math.min(b.reported, guaranteed);
       const cost = round2(payable * price);
       const extra = flat ? 0 : Math.max(0, b.reported - guaranteed);
       const shortfall = flat ? 0 : round2(Math.max(0, guaranteed - b.reported));
@@ -126,8 +132,10 @@ export function weeklyGuarantee(
         reported: b.reported,
         payable: round2(payable),
         cost,
-        savings: round2(extra * price),
+        // Over-delivery is paid in full from the cutoff, so there are no savings.
+        savings: flat || floor ? 0 : round2(extra * price),
         shortfall,
+        shortfallCost: floor ? round2(shortfall * price) : 0,
         status: flat ? ("met" as const) : extra > 0 ? ("over" as const) : shortfall > 0 ? ("short" as const) : ("met" as const),
       };
     })
@@ -145,8 +153,9 @@ export function sumWeeks(rows: WeekRow[]) {
       cost: round2(acc.cost + r.cost),
       savings: round2(acc.savings + r.savings),
       shortfall: round2(acc.shortfall + r.shortfall),
+      shortfallCost: round2(acc.shortfallCost + r.shortfallCost),
     }),
-    { leads: 0, activated: 0, guaranteed: 0, reported: 0, payable: 0, cost: 0, savings: 0, shortfall: 0 },
+    { leads: 0, activated: 0, guaranteed: 0, reported: 0, payable: 0, cost: 0, savings: 0, shortfall: 0, shortfallCost: 0 },
   );
 }
 
