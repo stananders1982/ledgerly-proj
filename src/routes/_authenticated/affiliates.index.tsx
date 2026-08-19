@@ -304,8 +304,10 @@ function AffiliatesPage() {
                   <SortTh label="Guarantee %" k="pct" sort={sort} toggle={toggle} />
                   <SortTh label="Leads" k="leads" sort={sort} toggle={toggle} />
                   <SortTh label="FTDs" k="activated" sort={sort} toggle={toggle} />
+                  <SortTh label="Act %" k="activationPct" sort={sort} toggle={toggle} />
                   <SortTh label="Guaranteed" k="guaranteed" sort={sort} toggle={toggle} />
                   <SortTh label="Reported" k="reported" sort={sort} toggle={toggle} />
+                  <SortTh label="Rep %" k="reportedPct" sort={sort} toggle={toggle} />
                   <SortTh label="Owed" k="owed" sort={sort} toggle={toggle} />
                   <SortTh label="Paid" k="paid" sort={sort} toggle={toggle} />
                   <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} />
