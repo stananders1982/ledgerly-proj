@@ -447,6 +447,7 @@ function AffiliateStatementPage() {
                     <td className="py-3 px-4">{fmtMoney(w.cost)}</td>
                     <td className="py-3 px-4 text-emerald-500">{w.savings ? fmtMoney(w.savings) : "—"}</td>
                     <td className="py-3 px-4 text-rose-500">{w.shortfall || "—"}</td>
+                    <td className="py-3 px-4 text-rose-500">{w.shortfallCost ? fmtMoney(w.shortfallCost) : "—"}</td>
                     <td className="py-3 px-4">
                       <span className={cn(
                         "rounded border px-1.5 py-0.5 text-xs font-medium",
