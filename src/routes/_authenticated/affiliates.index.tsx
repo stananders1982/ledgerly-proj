@@ -24,10 +24,14 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import {
   sourceToAffiliate,
-
+  balanceActive,
+  effectiveStart,
+  openingBalance,
+  withinRange,
   sumWeeks,
   weeklyGuarantee,
   type AffiliateTerms,
+  type BalanceActivation,
   type LeadEntryLike,
 } from "@/lib/affiliate-balance";
 
