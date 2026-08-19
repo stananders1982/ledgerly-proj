@@ -25,6 +25,11 @@ The guarantee is a floor only: exceed it and every reported FTD is paid. There i
 Affiliates with no guarantee % keep the current flat behaviour: pay every reported
 conversion at the FTD price.
 
+**Not retroactive.** The new rule applies only to weeks starting Monday 17 Aug 2026 and
+later. Every earlier week keeps exactly the numbers it has today (payable capped at the
+guarantee, savings shown), so past statements and balances do not change. The cutoff is a
+single dated constant, easy to move if you want a different start week.
+
 Balance stays: `sum(weekly cost) − payments recorded as expenses tagged to that affiliate`.
 Positive = still owed.
 
