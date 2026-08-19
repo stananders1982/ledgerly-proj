@@ -268,6 +268,7 @@ function AffiliateStatementPage() {
                     Cost: fmtMoney(w.cost),
                     Savings: fmtMoney(w.savings),
                     Shortfall: w.shortfall,
+                    "Shortfall cost": fmtMoney(w.shortfallCost),
                   })),
                   {
                     Week: "TOTAL",
