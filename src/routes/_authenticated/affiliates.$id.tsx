@@ -378,6 +378,13 @@ function AffiliateStatementPage() {
             {deliveryPct(weekTotals) == null ? "—" : `${deliveryPct(weekTotals)}%`}
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Shortfall cost</CardTitle></CardHeader>
+          <CardContent className={cn("text-2xl font-semibold", weekTotals.shortfallCost > 0 ? "text-rose-500" : "")}>
+            {fmtMoney(weekTotals.shortfallCost)}
+          </CardContent>
+          <CardContent className="pt-0 text-xs text-muted-foreground">Paid for guaranteed conversions never delivered</CardContent>
+        </Card>
       </section>
 
 
