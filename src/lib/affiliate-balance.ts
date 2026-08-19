@@ -38,8 +38,9 @@ export function balanceActive(a: BalanceActivation | null | undefined): boolean 
   return !!a?.balance_activated_at && !!a?.balance_start_date;
 }
 
-export function openingBalance(a: BalanceActivation | null | undefined): number {
-  return balanceActive(a) ? Number(a?.opening_balance || 0) : 0;
+/** Legacy opening balances are no longer used: nothing is charged retroactively. */
+export function openingBalance(_a: BalanceActivation | null | undefined): number {
+  return 0;
 }
 
 /** The start date is a hard floor: never look at money before it. */
