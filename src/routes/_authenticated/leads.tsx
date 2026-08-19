@@ -384,21 +384,31 @@ function LeadsPage() {
 
 
 
-  // STD: any deposit recorded on/after the client's activation date. Counted in
-  // the period the deposit was made (the activation itself may be older).
-  const stdCount = useMemo(() => {
+  // STD: the second deposit of a client, counted in the period the deposit was
+  // made (the activation itself may be older).
+  const stdDetails = useMemo(() => {
     const win = { start: isoDay(activeRange.start), end: isoDay(activeRange.end) };
     const allowedEntries = sourceFilter.length
       ? new Set(allRows.filter((r) => sourceFilter.includes(r.source_id ?? "")).map((r) => r.id))
       : null;
     const deposits = revenueQ.data ?? [];
-    let n = 0;
+    const out: { name: string; activationDate: string; depositDate: string; amount: number }[] = [];
     for (const a of activationsQ.data ?? []) {
-      if (allowedEntries && !allowedEntries.has(a.entry_id)) continue;
-      if (isStd(a as any, deposits, win)) n += 1;
+      if (allowedEntries && !allowedEntries.has((a as any).entry_id)) continue;
+      const [dep] = stdDepositsFor(a as any, deposits as any, win);
+      if (!dep) continue;
+      out.push({
+        name: (a as any).lead_name ?? (dep as any).customer_name ?? "—",
+        activationDate: (a as any).activation_date ?? "",
+        depositDate: (dep as any).date ?? "",
+        amount: Number((dep as any).amount ?? 0),
+      });
     }
-    return n;
+    return out.sort((x, y) => (x.depositDate < y.depositDate ? 1 : -1));
   }, [activationsQ.data, revenueQ.data, activeRange, allRows, sourceFilter]);
+
+  const stdCount = stdDetails.length;
+
 
   const stats = useMemo(() => {
     let received = 0, invalid = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
