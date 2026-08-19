@@ -124,11 +124,12 @@ function AffiliateStatementPage() {
     balanceOn && inRange(d) && (!balanceStart || d >= balanceStart);
 
   // Charging start date lives here, next to the money it controls.
+  const opening = openingBalance(groupQ.data?.self);
   const [activating, setActivating] = useState(false);
-  const [actForm, setActForm] = useState({ start: "" });
+  const [actForm, setActForm] = useState({ start: "", opening: "" });
   useEffect(() => {
-    if (activating) setActForm({ start: balanceStart ?? isoOf(new Date()) });
-  }, [activating, balanceStart]);
+    if (activating) setActForm({ start: balanceStart ?? isoOf(new Date()), opening: opening ? String(opening) : "" });
+  }, [activating, balanceStart, opening]);
 
   const saveActivation = useMutation({
     mutationFn: async (mode: "on" | "off") => {
@@ -138,9 +139,8 @@ function AffiliateStatementPage() {
           : {
               balance_activated_at: new Date().toISOString(),
               balance_start_date: actForm.start,
-              // No retroactive debt: the balance is derived only from what
-              // happens on or after the start date.
-              opening_balance: 0,
+              // Only figure carried over from before the start date.
+              opening_balance: Number(actForm.opening) || 0,
             };
       // Billing-group members share one balance, so they share activation too.
       let q = supabase.from("affiliates").update(patch);
