@@ -82,10 +82,10 @@ function LeadsPage() {
   const [customStart, setCustomStart] = usePersistedState<string>("leads:range-start", "");
   const [customEnd, setCustomEnd] = usePersistedState<string>("leads:range-end", "");
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
-  // Weekly view defaults to one row per affiliate instead of a row per day.
-  const [groupBySource, setGroupBySource] = useState(range === "week");
+  // Weekly and monthly views default to one row per affiliate instead of a row per day.
+  const [groupBySource, setGroupBySource] = useState(range === "week" || range === "month");
   useEffect(() => {
-    setGroupBySource(range === "week");
+    setGroupBySource(range === "week" || range === "month");
   }, [range]);
 
   const [leadSearch, setLeadSearch] = useState<string>("");
