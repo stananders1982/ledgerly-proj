@@ -752,8 +752,27 @@ function AffiliateStatementPage() {
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label>Start charging from</Label>
-              <Input type="date" value={actForm.start} onChange={(e) => setActForm({ start: e.target.value })} />
+              <Input type="date" value={actForm.start} onChange={(e) => setActForm((f) => ({ ...f, start: e.target.value }))} />
               <p className="text-xs text-muted-foreground">Weeks and payments before this date are ignored completely — no old debt, no old top-ups. The balance builds up from this date and rolls forward week to week.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Starting balance</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={actForm.opening}
+                onChange={(e) => setActForm((f) => ({ ...f, opening: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Where the balance opens on that date. Positive = you owe the affiliate; negative (e.g. −4000) = credit, eaten by the coming weeks before you owe again. Leave empty to start clean.
+              </p>
+              {Number(actForm.opening) !== 0 && actForm.opening !== "" && (
+                <p className="text-xs text-muted-foreground">
+                  Starts at {fmtMoney(Math.abs(Number(actForm.opening)))} {Number(actForm.opening) < 0 ? "credit" : "owed"}
+                  {actForm.start ? ` on ${actForm.start}` : ""}.
+                </p>
+              )}
             </div>
             {groupLabel && (
               <p className="text-xs text-muted-foreground">
