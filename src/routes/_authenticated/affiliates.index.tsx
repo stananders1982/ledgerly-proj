@@ -264,8 +264,8 @@ function AffiliatesPage() {
           <CardContent className={cn("text-2xl font-semibold", totals.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(Math.abs(totals.balance))}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><PiggyBank className="h-4 w-4" /> Guarantee savings</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold text-emerald-500">{fmtMoney(totals.savings)}</CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><PiggyBank className="h-4 w-4" /> Guarantee shortfall paid</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold text-rose-500">{fmtMoney(totals.shortfallCost)}</CardContent>
         </Card>
       </section>
 
