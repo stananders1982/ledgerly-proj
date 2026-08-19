@@ -18,7 +18,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { deliveryPct, sumWeeks, weekStartOf, weeklyGuarantee, mergeWeekRows, affiliateNet, balanceActive, openingBalance, type LeadEntryLike, type WeekRow } from "@/lib/affiliate-balance";
+import { deliveryPct, sumWeeks, weekStartOf, weeklyGuarantee, mergeWeekRows, weeklyLedger, affiliateNet, balanceActive, type LeadEntryLike } from "@/lib/affiliate-balance";
 
 type AffRow = { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number; group_key: string | null; balance_start_date: string | null; opening_balance: number | null; balance_activated_at: string | null };
 
@@ -116,22 +116,19 @@ function AffiliateStatementPage() {
     },
   });
 
-  // Money only counts from the day the balance was activated — the app took over
-  // part-way through the year, so earlier weeks and payouts are never re-derived.
+  // Money only counts from the day charging starts — the app took over part-way
+  // through the year, so earlier weeks and top-ups are never counted at all.
   const balanceOn = balanceActive(groupQ.data?.self);
   const balanceStart = groupQ.data?.self?.balance_start_date ?? null;
-  const opening = openingBalance(groupQ.data?.self);
   const inMoneyRange = (d: string) =>
     balanceOn && inRange(d) && (!balanceStart || d >= balanceStart);
 
-  // Balance activation lives here, next to the money it controls.
+  // Charging start date lives here, next to the money it controls.
   const [activating, setActivating] = useState(false);
-  const [actForm, setActForm] = useState({ start: "", opening: "0" });
+  const [actForm, setActForm] = useState({ start: "" });
   useEffect(() => {
-    if (activating) {
-      setActForm({ start: balanceStart ?? isoOf(new Date()), opening: String(opening || 0) });
-    }
-  }, [activating, balanceStart, opening]);
+    if (activating) setActForm({ start: balanceStart ?? isoOf(new Date()) });
+  }, [activating, balanceStart]);
 
   const saveActivation = useMutation({
     mutationFn: async (mode: "on" | "off") => {
@@ -141,7 +138,9 @@ function AffiliateStatementPage() {
           : {
               balance_activated_at: new Date().toISOString(),
               balance_start_date: actForm.start,
-              opening_balance: Number(actForm.opening) || 0,
+              // No retroactive debt: the balance is derived only from what
+              // happens on or after the start date.
+              opening_balance: 0,
             };
       // Billing-group members share one balance, so they share activation too.
       let q = supabase.from("affiliates").update(patch);
@@ -150,7 +149,7 @@ function AffiliateStatementPage() {
       if (error) throw error;
     },
     onSuccess: (_d, mode) => {
-      toast.success(mode === "off" ? "Balance tracking turned off" : "Balance activated");
+      toast.success(mode === "off" ? "Charging turned off" : "Charging start saved");
       setActivating(false);
       qc.invalidateQueries({ queryKey: ["affiliate-group", id] });
       qc.invalidateQueries({ queryKey: ["affiliates-list"] });
@@ -158,25 +157,6 @@ function AffiliateStatementPage() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"),
   });
 
-
-  const weeks = useMemo(() => {
-    if (!members.length || !balanceOn) return [];
-    const srcByName = new Map<string, string>();
-    for (const s of srcQ.data ?? []) srcByName.set(s.name.trim().toLowerCase(), s.id);
-    // Each member settles on its own terms; weeks are then merged for the group.
-    return mergeWeekRows(
-      members.map((m) => {
-        const srcId = srcByName.get(m.name.trim().toLowerCase());
-        const mine = (entriesQ.data ?? []).filter(
-          (e) => e.source_id && e.source_id === srcId && inMoneyRange(e.entry_date),
-        );
-        return weeklyGuarantee(m, mine);
-      }),
-    );
-  }, [members, srcQ.data, entriesQ.data, activeRange, balanceOn, balanceStart]);
-
-  const weekTotals = useMemo(() => sumWeeks(weeks), [weeks]);
-  const { pageItems: weekPage, ...pgWeeks } = usePagination(weeks, 30);
 
 
   // Revenue and withdrawals stay per source — performance is measured per
@@ -218,6 +198,79 @@ function AffiliateStatementPage() {
       return (data ?? []) as { id: string; date: string; amount: number; notes: string | null; created_at: string }[];
     },
   });
+
+  // Payments to the affiliate, grouped into the settlement week they land in.
+  // Anything dated before the charging start date is ignored entirely.
+  const paidByWeek = useMemo(() => {
+    const m = new Map<string, number>();
+    if (!balanceOn) return m;
+    for (const e of expQ.data ?? []) {
+      if (balanceStart && e.date < balanceStart) continue;
+      const k = weekStartOf(e.date);
+      m.set(k, (m.get(k) ?? 0) + Number(e.amount || 0));
+    }
+    return m;
+  }, [expQ.data, balanceOn, balanceStart]);
+
+  // Lifetime ledger from the start date: the balance rolls forward week after
+  // week, so a credit from a top-up is never lost when the date filter changes.
+  const ledger = useMemo(() => {
+    if (!members.length || !balanceOn) return [];
+    const srcByName = new Map<string, string>();
+    for (const s of srcQ.data ?? []) srcByName.set(s.name.trim().toLowerCase(), s.id);
+    const lifetime = mergeWeekRows(
+      members.map((m) => {
+        const srcId = srcByName.get(m.name.trim().toLowerCase());
+        const mine = (entriesQ.data ?? []).filter(
+          (e) => e.source_id && e.source_id === srcId && (!balanceStart || e.entry_date >= balanceStart),
+        );
+        return weeklyGuarantee(m, mine);
+      }),
+    );
+    return weeklyLedger(lifetime, paidByWeek);
+  }, [members, srcQ.data, entriesQ.data, balanceOn, balanceStart, paidByWeek]);
+
+  // Newest week first, so its closing balance is the live running balance.
+  const runningBalance = ledger.length ? ledger[0].closing : 0;
+
+  const weeks = useMemo(
+    () => ledger.filter((w) => inRange(w.weekStart) || inRange(w.weekEnd)),
+    [ledger, activeRange],
+  );
+  const weekTotals = useMemo(() => sumWeeks(weeks), [weeks]);
+  const paidInView = useMemo(() => weeks.reduce((s, w) => s + w.paid, 0), [weeks]);
+  const { pageItems: weekPage, ...pgWeeks } = usePagination(weeks, 30);
+
+  // Record a payment / top-up straight from the affiliate page.
+  const [paying, setPaying] = useState(false);
+  const [payForm, setPayForm] = useState({ amount: "", date: isoOf(new Date()), notes: "" });
+  useEffect(() => {
+    if (paying) setPayForm({ amount: "", date: isoOf(new Date()), notes: "" });
+  }, [paying]);
+
+  const savePayment = useMutation({
+    mutationFn: async () => {
+      const amount = Number(payForm.amount) || 0;
+      if (amount <= 0) throw new Error("Enter an amount");
+      const { error } = await supabase.from("expenses").insert({
+        affiliate_id: id,
+        amount,
+        date: payForm.date,
+        notes: payForm.notes.trim() || "Affiliate payout",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Payment recorded");
+      setPaying(false);
+      qc.invalidateQueries({ queryKey: ["affiliate-expenses", memberIds.join(",")] });
+      qc.invalidateQueries({ queryKey: ["expenses-list"] });
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"),
+  });
+
+
 
   const monthly = useMemo(() => {
     const blank = () => ({ revenue: 0, withdrawals: 0, paid: 0 });
@@ -414,14 +467,17 @@ function AffiliateStatementPage() {
 
       {!balanceOn ? (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-          <span>Balance tracking is not activated for this affiliate, so no money is calculated.</span>
-          {isAdmin && <Button size="sm" onClick={() => setActivating(true)}>Activate balance</Button>}
+          <span>Charging has not started for this affiliate, so no money is calculated.</span>
+          {isAdmin && <Button size="sm" onClick={() => setActivating(true)}>Start charging</Button>}
         </div>
       ) : (
         isAdmin && (
-          <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex flex-wrap justify-end gap-2">
+            <Button size="sm" onClick={() => setPaying(true)}>
+              <Wallet className="h-3.5 w-3.5" /> Add payment
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setActivating(true)}>
-              <Wallet className="h-3.5 w-3.5" /> Balance settings
+              Charging from {balanceStart}
             </Button>
           </div>
         )
@@ -434,22 +490,23 @@ function AffiliateStatementPage() {
           <CardContent className="text-2xl font-semibold">{balanceOn ? fmtMoney(weekTotals.cost) : "—"}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Paid to affiliate</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold text-amber-500">{balanceOn ? fmtMoney(totals.paid) : "—"}</CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Paid ({activeRange.label})</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold text-amber-500">{balanceOn ? fmtMoney(paidInView) : "—"}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">
-            {opening + weekTotals.cost - totals.paid < 0 ? "Credit with affiliate" : "Balance outstanding"}
+            {runningBalance < 0 ? "Credit carried over" : "Balance outstanding"}
           </CardTitle></CardHeader>
-          <CardContent className={cn("text-2xl font-semibold", opening + weekTotals.cost - totals.paid < 0 ? "text-emerald-500" : "text-rose-500")}>
-            {balanceOn ? fmtMoney(Math.abs(opening + weekTotals.cost - totals.paid)) : "—"}
+          <CardContent className={cn("text-2xl font-semibold", runningBalance < 0 ? "text-emerald-500" : "text-rose-500")}>
+            {balanceOn ? fmtMoney(Math.abs(runningBalance)) : "—"}
           </CardContent>
           <CardContent className="pt-0 text-xs text-muted-foreground">
             {!balanceOn
-              ? "Not activated"
-              : `${opening + weekTotals.cost - totals.paid < 0 ? "Paid ahead of reported cost" : "Still owed to the affiliate"}${opening ? ` · includes ${fmtMoney(opening)} opening balance` : ""}${balanceStart ? ` · from ${balanceStart}` : ""}`}
+              ? "Charging not started"
+              : `Running total, rolls over week to week${balanceStart ? ` · since ${balanceStart}` : ""}`}
           </CardContent>
         </Card>
+
 
 
         <Card>
@@ -506,6 +563,8 @@ function AffiliateStatementPage() {
                   <th className="py-3 px-4">Payable</th>
                   <th className="py-3 px-4">Cost</th>
                   <th className="py-3 px-4">Shortfall</th>
+                  <th className="py-3 px-4">Paid</th>
+                  <th className="py-3 px-4">Balance</th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
@@ -523,6 +582,10 @@ function AffiliateStatementPage() {
                     <td className="py-3 px-4">{w.payable}</td>
                     <td className="py-3 px-4">{fmtMoney(w.cost)}</td>
                     <td className="py-3 px-4 text-rose-500">{w.shortfall || "—"}</td>
+                    <td className="py-3 px-4 text-amber-500">{w.paid ? `−${fmtMoney(w.paid)}` : "—"}</td>
+                    <td className={cn("py-3 px-4 font-medium", w.closing < 0 ? "text-emerald-500" : "text-rose-500")}>
+                      {w.closing < 0 ? `${fmtMoney(Math.abs(w.closing))} cr` : fmtMoney(w.closing)}
+                    </td>
                     <td className="py-3 px-4">
                       <span className={cn(
                         "rounded border px-1.5 py-0.5 text-xs font-medium",
@@ -549,6 +612,10 @@ function AffiliateStatementPage() {
                   <td className="py-3 px-4">{weekTotals.payable}</td>
                   <td className="py-3 px-4">{fmtMoney(weekTotals.cost)}</td>
                   <td className="py-3 px-4 text-rose-500">{weekTotals.shortfall || "—"}</td>
+                  <td className="py-3 px-4 text-amber-500">{paidInView ? `−${fmtMoney(paidInView)}` : "—"}</td>
+                  <td className={cn("py-3 px-4", runningBalance < 0 ? "text-emerald-500" : "text-rose-500")}>
+                    {runningBalance < 0 ? `${fmtMoney(Math.abs(runningBalance))} cr` : fmtMoney(runningBalance)}
+                  </td>
                   <td className="py-3 px-4"></td>
                 </tr>
               </tfoot>
@@ -680,18 +747,13 @@ function AffiliateStatementPage() {
       <Dialog open={activating} onOpenChange={setActivating}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{balanceOn ? "Balance settings" : "Activate balance"} — {affQ.data?.name}</DialogTitle>
+            <DialogTitle>Start charging from — {affQ.data?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Start counting from</Label>
-              <Input type="date" value={actForm.start} onChange={(e) => setActForm((f) => ({ ...f, start: e.target.value }))} />
-              <p className="text-xs text-muted-foreground">Weeks and payments before this date are ignored — nothing is calculated retroactively.</p>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Opening balance</Label>
-              <Input type="number" step="0.01" value={actForm.opening} onChange={(e) => setActForm((f) => ({ ...f, opening: e.target.value }))} />
-              <p className="text-xs text-muted-foreground">What you already owe on that date. Use a negative number for a prepaid credit.</p>
+              <Label>Start charging from</Label>
+              <Input type="date" value={actForm.start} onChange={(e) => setActForm({ start: e.target.value })} />
+              <p className="text-xs text-muted-foreground">Weeks and payments before this date are ignored completely — no old debt, no old top-ups. The balance builds up from this date and rolls forward week to week.</p>
             </div>
             {groupLabel && (
               <p className="text-xs text-muted-foreground">
@@ -708,9 +770,41 @@ function AffiliateStatementPage() {
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setActivating(false)}>Cancel</Button>
               <Button onClick={() => saveActivation.mutate("on")} disabled={saveActivation.isPending || !actForm.start}>
-                {balanceOn ? "Save" : "Activate"}
+                {balanceOn ? "Save" : "Start"}
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={paying} onOpenChange={setPaying}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add payment — {affQ.data?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Amount</Label>
+              <Input type="number" step="0.01" value={payForm.amount} onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0.00" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Date</Label>
+              <Input type="date" value={payForm.date} onChange={(e) => setPayForm((f) => ({ ...f, date: e.target.value }))} />
+              {balanceStart && payForm.date && payForm.date < balanceStart && (
+                <p className="text-xs text-amber-500">This date is before charging started ({balanceStart}), so it will not count toward the balance.</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Note (optional)</Label>
+              <Input value={payForm.notes} onChange={(e) => setPayForm((f) => ({ ...f, notes: e.target.value }))} placeholder="wire 19/08" />
+            </div>
+            <p className="text-xs text-muted-foreground">Any credit left over rolls into the next week automatically.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaying(false)}>Cancel</Button>
+            <Button onClick={() => savePayment.mutate()} disabled={savePayment.isPending || !payForm.amount || !payForm.date}>
+              Save payment
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

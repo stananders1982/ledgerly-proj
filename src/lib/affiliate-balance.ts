@@ -38,8 +38,9 @@ export function balanceActive(a: BalanceActivation | null | undefined): boolean 
   return !!a?.balance_activated_at && !!a?.balance_start_date;
 }
 
-export function openingBalance(a: BalanceActivation | null | undefined): number {
-  return balanceActive(a) ? Number(a?.opening_balance || 0) : 0;
+/** Legacy opening balances are no longer used: nothing is charged retroactively. */
+export function openingBalance(_a: BalanceActivation | null | undefined): number {
+  return 0;
 }
 
 /** The start date is a hard floor: never look at money before it. */
@@ -262,4 +263,50 @@ export function sourceCost(
 /** Net balance for an affiliate: client deposits less withdrawals and payouts. */
 export function affiliateNet(m: { revenue: number; withdrawals: number; paid: number }): number {
   return round2(Number(m.revenue || 0) - Number(m.withdrawals || 0) - Number(m.paid || 0));
+}
+
+/**
+ * Running balance across weeks. The balance never resets at the end of a week
+ * or month: each week opens with the previous week's closing balance, adds the
+ * week's cost and subtracts what was paid. A negative closing balance is a
+ * credit (top-up ahead of cost) that rolls into the following weeks.
+ */
+export type LedgerRow = WeekRow & { paid: number; opening: number; closing: number };
+
+function blankWeek(weekStart: string): WeekRow {
+  return {
+    weekStart,
+    weekEnd: weekEndOf(weekStart),
+    leads: 0,
+    invalid: 0,
+    valid: 0,
+    activated: 0,
+    guaranteed: 0,
+    reported: 0,
+    payable: 0,
+    cost: 0,
+    extra: 0,
+    shortfall: 0,
+    activationPct: null,
+    reportedPct: null,
+    status: "met",
+  };
+}
+
+/** Newest-first ledger rows; payments are keyed by the Monday of their week. */
+export function weeklyLedger(weeks: WeekRow[], paidByWeek: Map<string, number>): LedgerRow[] {
+  const byWeek = new Map<string, WeekRow>();
+  for (const w of weeks) byWeek.set(w.weekStart, w);
+  for (const k of paidByWeek.keys()) if (!byWeek.has(k)) byWeek.set(k, blankWeek(k));
+
+  const asc = [...byWeek.values()].sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+  let running = 0;
+  const out: LedgerRow[] = [];
+  for (const w of asc) {
+    const paid = round2(paidByWeek.get(w.weekStart) ?? 0);
+    const opening = running;
+    running = round2(opening + w.cost - paid);
+    out.push({ ...w, paid, opening, closing: running });
+  }
+  return out.reverse();
 }
