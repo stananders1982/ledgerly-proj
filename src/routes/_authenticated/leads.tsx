@@ -937,7 +937,7 @@ function LeadsPage() {
                     <td className="py-2.5 px-2 font-medium">{g.name}</td>
                     <td className="py-2.5 px-2">{g.model ? <PricingBadge model={g.model} /> : "—"}</td>
                     <td className="py-2.5 px-2">{g.received}</td>
-                    <td className="py-2.5 px-2 text-muted-foreground">{g.invalid}</td>
+                    <td className="py-2.5 px-2 text-destructive">{g.invalid}</td>
                     <td className="py-2.5 px-2 font-medium">{g.valid}</td>
                     <td className="py-2.5 px-2">{g.activated}</td>
                     <td className="py-2.5 px-2">{g.reported}</td>
@@ -952,7 +952,7 @@ function LeadsPage() {
                   <td className="py-2.5 px-2">Total</td>
                   <td className="py-2.5 px-2"></td>
                   <td className="py-2.5 px-2">{groupedRows.reduce((n: number, g: any) => n + g.received, 0)}</td>
-                  <td className="py-2.5 px-2">{stats.invalid}</td>
+                  <td className="py-2.5 px-2 text-destructive">{stats.invalid}</td>
                   <td className="py-2.5 px-2">{stats.received}</td>
                   <td className="py-2.5 px-2">{stats.activated}</td>
                   <td className="py-2.5 px-2">{stats.reported}</td>
@@ -1060,7 +1060,7 @@ function LeadsPage() {
                       <td className="py-2.5 px-2">{r.received}</td>
                       )}
                       {tb.show("invalid") && (
-                      <td className="py-2.5 px-2 text-muted-foreground">{r.invalid ?? 0}</td>
+                      <td className="py-2.5 px-2 text-destructive">{r.invalid ?? 0}</td>
                       )}
                       {tb.show("valid") && (
                       <td className="py-2.5 px-2 font-medium">{validReceived(r)}</td>
