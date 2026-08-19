@@ -298,7 +298,11 @@ function blankWeek(weekStart: string): WeekRow {
 }
 
 /** Newest-first ledger rows; payments are keyed by the Monday of their week. */
-export function weeklyLedger(weeks: WeekRow[], paidByWeek: Map<string, number>): LedgerRow[] {
+export function weeklyLedger(
+  weeks: WeekRow[],
+  paidByWeek: Map<string, number>,
+  opening = 0,
+): LedgerRow[] {
   const byWeek = new Map<string, WeekRow>();
   for (const w of weeks) byWeek.set(w.weekStart, w);
   for (const k of paidByWeek.keys()) if (!byWeek.has(k)) byWeek.set(k, blankWeek(k));
