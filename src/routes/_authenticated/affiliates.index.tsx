@@ -331,10 +331,12 @@ function AffiliatesPage() {
 
                     <td className="py-3 px-4">{fmtMoney(r.price)}</td>
                     <td className="py-3 px-4">{r.pct}%</td>
-                    <td className="py-3 px-4">{r.leads}</td>
+                    <td className="py-3 px-4">{r.leads}{r.leads !== r.valid && <span className="text-muted-foreground text-xs"> ({r.valid} valid)</span>}</td>
                     <td className="py-3 px-4">{r.activated}</td>
+                    <td className="py-3 px-4">{r.activationPct == null ? "—" : `${r.activationPct}%`}</td>
                     <td className="py-3 px-4">{r.guaranteed}</td>
                     <td className="py-3 px-4">{r.reported}</td>
+                    <td className="py-3 px-4">{r.reportedPct == null ? "—" : `${r.reportedPct}%`}</td>
                     <td className="py-3 px-4">{fmtMoney(r.owed)}</td>
                     <td className="py-3 px-4 text-amber-500">−{fmtMoney(r.paid)}</td>
                     <td className={cn("py-3 px-4 font-medium", r.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(Math.abs(r.balance))}{r.balance < 0 && <span className="ml-1 text-xs text-muted-foreground">credit</span>}</td>
