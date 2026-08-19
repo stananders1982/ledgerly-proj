@@ -28,6 +28,15 @@ Next to the "Start charging from" button, add an **Add payment** button (admins 
 
 Saving records it as an affiliate payout (the same affiliate expense records used today, shared across a billing group), then refreshes the cards, the transaction list and the balance immediately. If the date is before the start date, the dialog warns that it won't be counted.
 
+## 4. Running balance that rolls forward
+
+The balance never resets at the end of a week or month — it carries over.
+
+- The weekly settlement table gets two extra columns: **Paid** (payments made in that week) and **Running balance** (previous week's balance + this week's cost − payments in that week).
+- If you overpay/top up, the running balance goes negative (credit) and that credit is carried into the next week and next month automatically, so the following weeks' costs are eaten by it before you owe anything again.
+- The top balance card shows the true running balance as of today (from the start date, regardless of the date filter), with a small line like "Credit carried over: $4,200" or "Owed: $1,300", so switching the date filter to "This week" no longer hides last week's leftover.
+- A short **Balance ledger** summary under the weekly table shows: opening (0 or previous carry) → cost → paid → closing, per week and per month.
+
 ## Technical notes
 
 - `src/routes/_authenticated/affiliates.$id.tsx`: rewrite the activation dialog (drop `opening` field), add a payment dialog that inserts into `expenses` with `affiliate_id`, `date`, `amount`, `notes`, `company_id`; invalidate `affiliate-expenses` on success.
