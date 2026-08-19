@@ -123,52 +123,69 @@ function AffiliatesPage() {
       list.push(e);
       entriesByAff.set(affId, list);
     }
-    const paidByAff = new Map<string, number>();
+    const expByAff = new Map<string, { amount: number; date: string }[]>();
     for (const e of expQ.data ?? []) {
-      paidByAff.set(e.affiliate_id, (paidByAff.get(e.affiliate_id) ?? 0) + Number(e.amount || 0));
+      const list = expByAff.get(e.affiliate_id) ?? [];
+      list.push({ amount: Number(e.amount || 0), date: e.date });
+      expByAff.set(e.affiliate_id, list);
     }
 
     const base = (affQ.data ?? []).map((a) => {
-      const weeks = weeklyGuarantee(a, entriesByAff.get(a.id) ?? []);
-      const t = sumWeeks(weeks);
+      const activated = balanceActive(a);
+      // Stats always follow the picked range; money starts at the activation date.
+      const moneyStart = effectiveStart(startIso, a);
+      const all = entriesByAff.get(a.id) ?? [];
+      const statWeeks = sumWeeks(weeklyGuarantee(a, all));
+      const moneyWeeks = activated
+        ? sumWeeks(weeklyGuarantee(a, withinRange(all, (e) => e.entry_date, moneyStart, endIso)))
+        : null;
+      const paid = activated
+        ? withinRange(expByAff.get(a.id) ?? [], (e) => e.date, moneyStart, endIso).reduce((s, e) => s + e.amount, 0)
+        : 0;
       return {
         id: a.id,
         name: a.name,
         active: a.active,
+        balanceActive: activated,
+        startDate: a.balance_start_date ?? null,
+        opening: openingBalance(a),
         groupKey: (a as { group_key?: string | null }).group_key?.trim() || null,
         price: Number(a.cpa_rate || 0),
         pct: Number(a.guarantee_value || 0),
-        leads: t.leads,
-        valid: t.valid,
-        activated: t.activated,
-        activationPct: t.activationPct,
-        reportedPct: t.reportedPct,
-        guaranteed: t.guaranteed,
-        reported: t.reported,
-        owed: t.cost,
-        extra: t.extra,
-        shortfall: t.shortfall,
-        paid: paidByAff.get(a.id) ?? 0,
+        leads: statWeeks.leads,
+        valid: statWeeks.valid,
+        activated: statWeeks.activated,
+        activationPct: statWeeks.activationPct,
+        reportedPct: statWeeks.reportedPct,
+        guaranteed: statWeeks.guaranteed,
+        reported: statWeeks.reported,
+        owed: moneyWeeks?.cost ?? 0,
+        extra: moneyWeeks?.extra ?? 0,
+        shortfall: moneyWeeks?.shortfall ?? 0,
+        paid,
       };
     });
 
     // Affiliates sharing a billing group share their payments and balance.
     const groupCost = new Map<string, number>();
     const groupPaid = new Map<string, number>();
+    const groupOpening = new Map<string, number>();
     for (const r of base) {
       const k = r.groupKey ?? r.id;
       groupCost.set(k, (groupCost.get(k) ?? 0) + r.owed);
       groupPaid.set(k, (groupPaid.get(k) ?? 0) + r.paid);
+      groupOpening.set(k, (groupOpening.get(k) ?? 0) + r.opening);
     }
 
     return base
       .map((r) => {
         const k = r.groupKey ?? r.id;
         const gPaid = groupPaid.get(k) ?? 0;
-        return { ...r, groupId: k, paid: gPaid, balance: (groupCost.get(k) ?? 0) - gPaid };
+        const balance = (groupOpening.get(k) ?? 0) + (groupCost.get(k) ?? 0) - gPaid;
+        return { ...r, groupId: k, paid: gPaid, balance };
       })
       .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()));
-  }, [affQ.data, srcQ.data, entriesQ.data, expQ.data, search]);
+  }, [affQ.data, srcQ.data, entriesQ.data, expQ.data, search, startIso, endIso]);
 
   const { sorted, sort, toggle } = useSort(rows, {
     name: (r) => r.name,
@@ -186,16 +203,17 @@ function AffiliatesPage() {
   });
   const { pageItems, ...pg } = usePagination(sorted, 30, "affiliates");
 
-  const totals = useMemo(
-    () => ({
-      owed: rows.reduce((s, r) => s + r.owed, 0),
+  const totals = useMemo(() => {
+    const live = rows.filter((r) => r.balanceActive);
+    return {
+      owed: live.reduce((s, r) => s + r.owed, 0),
       // Grouped affiliates share one payment pool — count each group once.
-      paid: [...new Map(rows.map((r) => [r.groupId, r.paid])).values()].reduce((s, v) => s + v, 0),
-      balance: [...new Map(rows.map((r) => [r.groupId, r.balance])).values()].reduce((s, v) => s + v, 0),
-      shortfallCost: rows.reduce((s, r) => s + r.shortfall * r.price, 0),
-    }),
-    [rows],
-  );
+      paid: [...new Map(live.map((r) => [r.groupId, r.paid])).values()].reduce((s, v) => s + v, 0),
+      balance: [...new Map(live.map((r) => [r.groupId, r.balance])).values()].reduce((s, v) => s + v, 0),
+      shortfallCost: live.reduce((s, r) => s + r.shortfall * r.price, 0),
+    };
+  }, [rows]);
+
 
   const [editing, setEditing] = useState<(AffRow & { guarantee_period?: string; group_key?: string | null }) | null>(null);
   const [form, setForm] = useState({ cpa_rate: "0", guarantee_value: "0", group_key: "", active: true });
