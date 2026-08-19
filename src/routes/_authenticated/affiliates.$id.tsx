@@ -472,6 +472,7 @@ function AffiliateStatementPage() {
                   <td className="py-3 px-4">{fmtMoney(weekTotals.cost)}</td>
                   <td className="py-3 px-4 text-emerald-500">{fmtMoney(weekTotals.savings)}</td>
                   <td className="py-3 px-4 text-rose-500">{weekTotals.shortfall || "—"}</td>
+                  <td className="py-3 px-4 text-rose-500">{fmtMoney(weekTotals.shortfallCost)}</td>
                   <td className="py-3 px-4"></td>
                 </tr>
               </tfoot>
