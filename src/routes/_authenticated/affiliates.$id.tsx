@@ -612,6 +612,10 @@ function AffiliateStatementPage() {
                   <td className="py-3 px-4">{weekTotals.payable}</td>
                   <td className="py-3 px-4">{fmtMoney(weekTotals.cost)}</td>
                   <td className="py-3 px-4 text-rose-500">{weekTotals.shortfall || "—"}</td>
+                  <td className="py-3 px-4 text-amber-500">{paidInView ? `−${fmtMoney(paidInView)}` : "—"}</td>
+                  <td className={cn("py-3 px-4", runningBalance < 0 ? "text-emerald-500" : "text-rose-500")}>
+                    {runningBalance < 0 ? `${fmtMoney(Math.abs(runningBalance))} cr` : fmtMoney(runningBalance)}
+                  </td>
                   <td className="py-3 px-4"></td>
                 </tr>
               </tfoot>
