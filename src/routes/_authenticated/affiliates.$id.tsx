@@ -676,6 +676,45 @@ function AffiliateStatementPage() {
           <TablePagination {...pgTx} />
         </div>
       </div>
+
+      <Dialog open={activating} onOpenChange={setActivating}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{balanceOn ? "Balance settings" : "Activate balance"} — {affQ.data?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Start counting from</Label>
+              <Input type="date" value={actForm.start} onChange={(e) => setActForm((f) => ({ ...f, start: e.target.value }))} />
+              <p className="text-xs text-muted-foreground">Weeks and payments before this date are ignored — nothing is calculated retroactively.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Opening balance</Label>
+              <Input type="number" step="0.01" value={actForm.opening} onChange={(e) => setActForm((f) => ({ ...f, opening: e.target.value }))} />
+              <p className="text-xs text-muted-foreground">What you already owe on that date. Use a negative number for a prepaid credit.</p>
+            </div>
+            {groupLabel && (
+              <p className="text-xs text-muted-foreground">
+                Applies to every affiliate in billing group “{groupLabel}”, since they share one balance.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            {balanceOn ? (
+              <Button variant="ghost" className="text-destructive" onClick={() => saveActivation.mutate("off")} disabled={saveActivation.isPending}>
+                Turn off tracking
+              </Button>
+            ) : <span />}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setActivating(false)}>Cancel</Button>
+              <Button onClick={() => saveActivation.mutate("on")} disabled={saveActivation.isPending || !actForm.start}>
+                {balanceOn ? "Save" : "Activate"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
