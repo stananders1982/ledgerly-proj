@@ -40,8 +40,19 @@ export type WeekRow = {
   cost: number;
   savings: number;
   shortfall: number;
+  /** Money paid for guaranteed conversions the affiliate never delivered. */
+  shortfallCost: number;
   status: "met" | "short" | "over";
 };
+
+/**
+ * The guarantee became a floor (we pay the guaranteed conversions when the
+ * affiliate under-delivers, and every reported conversion when they beat it)
+ * from this Monday onwards. Earlier weeks keep the old capped math so past
+ * statements and balances never change.
+ */
+export const GUARANTEE_FLOOR_FROM = "2026-08-17";
+
 
 /** Monday of the week that contains the given YYYY-MM-DD date. */
 export function weekStartOf(iso: string): string {
