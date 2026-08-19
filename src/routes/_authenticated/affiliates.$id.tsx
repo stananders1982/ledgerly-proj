@@ -116,22 +116,19 @@ function AffiliateStatementPage() {
     },
   });
 
-  // Money only counts from the day the balance was activated — the app took over
-  // part-way through the year, so earlier weeks and payouts are never re-derived.
+  // Money only counts from the day charging starts — the app took over part-way
+  // through the year, so earlier weeks and top-ups are never counted at all.
   const balanceOn = balanceActive(groupQ.data?.self);
   const balanceStart = groupQ.data?.self?.balance_start_date ?? null;
-  const opening = openingBalance(groupQ.data?.self);
   const inMoneyRange = (d: string) =>
     balanceOn && inRange(d) && (!balanceStart || d >= balanceStart);
 
-  // Balance activation lives here, next to the money it controls.
+  // Charging start date lives here, next to the money it controls.
   const [activating, setActivating] = useState(false);
-  const [actForm, setActForm] = useState({ start: "", opening: "0" });
+  const [actForm, setActForm] = useState({ start: "" });
   useEffect(() => {
-    if (activating) {
-      setActForm({ start: balanceStart ?? isoOf(new Date()), opening: String(opening || 0) });
-    }
-  }, [activating, balanceStart, opening]);
+    if (activating) setActForm({ start: balanceStart ?? isoOf(new Date()) });
+  }, [activating, balanceStart]);
 
   const saveActivation = useMutation({
     mutationFn: async (mode: "on" | "off") => {
@@ -141,7 +138,9 @@ function AffiliateStatementPage() {
           : {
               balance_activated_at: new Date().toISOString(),
               balance_start_date: actForm.start,
-              opening_balance: Number(actForm.opening) || 0,
+              // No retroactive debt: the balance is derived only from what
+              // happens on or after the start date.
+              opening_balance: 0,
             };
       // Billing-group members share one balance, so they share activation too.
       let q = supabase.from("affiliates").update(patch);
@@ -150,7 +149,7 @@ function AffiliateStatementPage() {
       if (error) throw error;
     },
     onSuccess: (_d, mode) => {
-      toast.success(mode === "off" ? "Balance tracking turned off" : "Balance activated");
+      toast.success(mode === "off" ? "Charging turned off" : "Charging start saved");
       setActivating(false);
       qc.invalidateQueries({ queryKey: ["affiliate-group", id] });
       qc.invalidateQueries({ queryKey: ["affiliates-list"] });
@@ -158,25 +157,6 @@ function AffiliateStatementPage() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"),
   });
 
-
-  const weeks = useMemo(() => {
-    if (!members.length || !balanceOn) return [];
-    const srcByName = new Map<string, string>();
-    for (const s of srcQ.data ?? []) srcByName.set(s.name.trim().toLowerCase(), s.id);
-    // Each member settles on its own terms; weeks are then merged for the group.
-    return mergeWeekRows(
-      members.map((m) => {
-        const srcId = srcByName.get(m.name.trim().toLowerCase());
-        const mine = (entriesQ.data ?? []).filter(
-          (e) => e.source_id && e.source_id === srcId && inMoneyRange(e.entry_date),
-        );
-        return weeklyGuarantee(m, mine);
-      }),
-    );
-  }, [members, srcQ.data, entriesQ.data, activeRange, balanceOn, balanceStart]);
-
-  const weekTotals = useMemo(() => sumWeeks(weeks), [weeks]);
-  const { pageItems: weekPage, ...pgWeeks } = usePagination(weeks, 30);
 
 
   // Revenue and withdrawals stay per source — performance is measured per
