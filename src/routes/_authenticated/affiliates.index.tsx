@@ -404,10 +404,43 @@ function AffiliatesPage() {
                     <td className="py-3 px-4">{r.guaranteed}</td>
                     <td className="py-3 px-4">{r.reported}</td>
                     <td className="py-3 px-4">{r.reportedPct == null ? "—" : `${r.reportedPct}%`}</td>
-                    <td className="py-3 px-4">{fmtMoney(r.owed)}</td>
-                    <td className="py-3 px-4 text-amber-500">−{fmtMoney(r.paid)}</td>
-                    <td className={cn("py-3 px-4 font-medium", r.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(Math.abs(r.balance))}{r.balance < 0 && <span className="ml-1 text-xs text-muted-foreground">credit</span>}</td>
+                    <td className="py-3 px-4">{r.balanceActive ? fmtMoney(r.owed) : <span className="text-muted-foreground">—</span>}</td>
+                    <td className="py-3 px-4 text-amber-500">{r.balanceActive ? `−${fmtMoney(r.paid)}` : <span className="text-muted-foreground">—</span>}</td>
+                    <td className={cn("py-3 px-4 font-medium", r.balanceActive ? (r.balance > 0 ? "text-rose-500" : "text-emerald-500") : "text-muted-foreground")}>
+                      {r.balanceActive ? (
+                        <>
+                          {fmtMoney(Math.abs(r.balance))}
+                          {r.balance < 0 && <span className="ml-1 text-xs text-muted-foreground">credit</span>}
+                        </>
+                      ) : isAdmin ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActivating({ id: r.id, name: r.name, groupKey: r.groupKey, startDate: r.startDate, opening: r.opening, active: false });
+                          }}
+                        >
+                          Activate balance
+                        </Button>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">
+                      {isAdmin && r.balanceActive && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mr-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActivating({ id: r.id, name: r.name, groupKey: r.groupKey, startDate: r.startDate, opening: r.opening, active: true });
+                          }}
+                        >
+                          <Wallet className="h-3.5 w-3.5" /> Balance
+                        </Button>
+                      )}
                       {isAdmin && (
                         <Button
                           variant="ghost"
@@ -422,6 +455,7 @@ function AffiliatesPage() {
                           <Settings2 className="h-3.5 w-3.5" /> Terms
                         </Button>
                       )}
+
                       <Link to="/affiliates/$id" params={{ id: r.id }} className="inline-flex items-center gap-1 text-primary hover:underline text-xs" onClick={(e) => e.stopPropagation()}>
                         Statement <ExternalLink className="h-3 w-3" />
                       </Link>
