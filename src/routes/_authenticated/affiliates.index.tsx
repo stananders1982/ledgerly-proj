@@ -346,10 +346,15 @@ function AffiliatesPage() {
                   { label: "FTDs", value: <span className="num">{r.activated}{r.activationPct == null ? "" : ` (${r.activationPct}%)`}</span> },
                   { label: "Guaranteed", value: <span className="num">{r.guaranteed}</span> },
                   { label: "Reported", value: <span className="num">{r.reported}{r.reportedPct == null ? "" : ` (${r.reportedPct}%)`}</span> },
-                  { label: "Owed", value: <span className="num">{fmtMoney(r.owed)}</span> },
-                  { label: "Paid", value: <span className="num text-warning">−{fmtMoney(r.paid)}</span> },
-                  { label: r.balance < 0 ? "Credit" : "Balance", value: <span className={cn("num font-medium", r.balance > 0 ? "text-destructive" : "text-success")}>{fmtMoney(Math.abs(r.balance))}</span> },
-                ]}
+                  { label: "Owed", value: r.balanceActive ? <span className="num">{fmtMoney(r.owed)}</span> : <span className="text-muted-foreground">—</span> },
+                  { label: "Paid", value: r.balanceActive ? <span className="num text-warning">−{fmtMoney(r.paid)}</span> : <span className="text-muted-foreground">—</span> },
+                  {
+                    label: r.balanceActive && r.balance < 0 ? "Credit" : "Balance",
+                    value: r.balanceActive
+                      ? <span className={cn("num font-medium", r.balance > 0 ? "text-destructive" : "text-success")}>{fmtMoney(Math.abs(r.balance))}</span>
+                      : <span className="text-muted-foreground">not activated</span>,
+                  },
+
                 actions={<Link to="/affiliates/$id" params={{ id: r.id }} className="text-primary hover:underline text-xs">Statement</Link>}
               />
             ))}
