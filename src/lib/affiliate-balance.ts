@@ -23,6 +23,40 @@ export type AffiliateTerms = {
   guarantee_value?: number | string | null;
 };
 
+/**
+ * Balance activation. The app only became the source of truth part-way through
+ * the year, so money is counted from an explicit start date per affiliate,
+ * beginning from an opening balance. Until activated, no money is calculated.
+ */
+export type BalanceActivation = {
+  balance_start_date?: string | null;
+  opening_balance?: number | string | null;
+  balance_activated_at?: string | null;
+};
+
+export function balanceActive(a: BalanceActivation | null | undefined): boolean {
+  return !!a?.balance_activated_at && !!a?.balance_start_date;
+}
+
+export function openingBalance(a: BalanceActivation | null | undefined): number {
+  return balanceActive(a) ? Number(a?.opening_balance || 0) : 0;
+}
+
+/** The start date is a hard floor: never look at money before it. */
+export function effectiveStart(rangeStart: string, a: BalanceActivation | null | undefined): string {
+  const s = a?.balance_start_date;
+  return s && s > rangeStart ? s : rangeStart;
+}
+
+/** Keep only dated rows inside [start, end]. */
+export function withinRange<T>(rows: T[], date: (r: T) => string | null | undefined, start: string, end: string): T[] {
+  return rows.filter((r) => {
+    const d = date(r);
+    return !!d && d >= start && d <= end;
+  });
+}
+
+
 export type LeadEntryLike = {
   entry_date: string;
   received?: number | null;
