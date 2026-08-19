@@ -26,6 +26,7 @@ export type AffiliateTerms = {
 export type LeadEntryLike = {
   entry_date: string;
   received?: number | null;
+  invalid?: number | null;
   reported?: number | null;
   activated?: number | null;
   source_id?: string | null;
@@ -35,15 +36,22 @@ export type WeekRow = {
   weekStart: string;
   weekEnd: string;
   leads: number;
+  invalid: number;
+  valid: number;
   activated: number;
   guaranteed: number;
   reported: number;
   payable: number;
   cost: number;
-  savings: number;
+  /** Reported conversions above the guarantee (paid at CPA). */
+  extra: number;
+  /** Guaranteed conversions that were never delivered (still paid for). */
   shortfall: number;
+  activationPct: number | null;
+  reportedPct: number | null;
   status: "met" | "short" | "over";
 };
+
 
 /** Monday of the week that contains the given YYYY-MM-DD date. */
 export function weekStartOf(iso: string): string {
