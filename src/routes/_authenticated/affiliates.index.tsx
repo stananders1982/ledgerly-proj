@@ -145,7 +145,6 @@ function AffiliatesPage() {
         owed: t.cost,
         savings: t.savings,
         shortfall: t.shortfall,
-        shortfallCost: t.shortfallCost,
         paid: paidByAff.get(a.id) ?? 0,
       };
     });
@@ -179,7 +178,6 @@ function AffiliatesPage() {
     owed: (r) => r.owed,
     paid: (r) => r.paid,
     balance: (r) => r.balance,
-    shortfallCost: (r) => r.shortfallCost,
   });
   const { pageItems, ...pg } = usePagination(sorted, 30, "affiliates");
 
@@ -190,7 +188,6 @@ function AffiliatesPage() {
       paid: [...new Map(rows.map((r) => [r.groupId, r.paid])).values()].reduce((s, v) => s + v, 0),
       balance: [...new Map(rows.map((r) => [r.groupId, r.balance])).values()].reduce((s, v) => s + v, 0),
       savings: rows.reduce((s, r) => s + r.savings, 0),
-      shortfallCost: rows.reduce((s, r) => s + r.shortfallCost, 0),
     }),
     [rows],
   );
@@ -264,9 +261,8 @@ function AffiliatesPage() {
           <CardContent className={cn("text-2xl font-semibold", totals.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(Math.abs(totals.balance))}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><PiggyBank className="h-4 w-4" /> Shortfall cost</CardTitle></CardHeader>
-          <CardContent className={cn("text-2xl font-semibold", totals.shortfallCost > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(totals.shortfallCost)}</CardContent>
-          <CardContent className="pt-0 text-xs text-muted-foreground">Paid for undelivered guaranteed conversions</CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><PiggyBank className="h-4 w-4" /> Guarantee savings</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold text-emerald-500">{fmtMoney(totals.savings)}</CardContent>
         </Card>
       </section>
 
@@ -289,7 +285,6 @@ function AffiliatesPage() {
                   { label: "Guaranteed", value: <span className="num">{r.guaranteed}</span> },
                   { label: "Reported", value: <span className="num">{r.reported}</span> },
                   { label: "Owed", value: <span className="num">{fmtMoney(r.owed)}</span> },
-                  { label: "Shortfall cost", value: <span className={cn("num", r.shortfallCost > 0 && "text-destructive")}>{fmtMoney(r.shortfallCost)}</span> },
                   { label: "Paid", value: <span className="num text-warning">−{fmtMoney(r.paid)}</span> },
                   { label: r.balance < 0 ? "Credit" : "Balance", value: <span className={cn("num font-medium", r.balance > 0 ? "text-destructive" : "text-success")}>{fmtMoney(Math.abs(r.balance))}</span> },
                 ]}
@@ -309,7 +304,6 @@ function AffiliatesPage() {
                   <SortTh label="Guaranteed" k="guaranteed" sort={sort} toggle={toggle} />
                   <SortTh label="Reported" k="reported" sort={sort} toggle={toggle} />
                   <SortTh label="Owed" k="owed" sort={sort} toggle={toggle} />
-                  <SortTh label="Shortfall cost" k="shortfallCost" sort={sort} toggle={toggle} />
                   <SortTh label="Paid" k="paid" sort={sort} toggle={toggle} />
                   <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} />
                   <th className="py-3 px-4"></th>
@@ -339,7 +333,6 @@ function AffiliatesPage() {
                     <td className="py-3 px-4">{r.guaranteed}</td>
                     <td className="py-3 px-4">{r.reported}</td>
                     <td className="py-3 px-4">{fmtMoney(r.owed)}</td>
-                    <td className={cn("py-3 px-4", r.shortfallCost > 0 && "text-rose-500")}>{r.shortfallCost ? fmtMoney(r.shortfallCost) : "—"}</td>
                     <td className="py-3 px-4 text-amber-500">−{fmtMoney(r.paid)}</td>
                     <td className={cn("py-3 px-4 font-medium", r.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(Math.abs(r.balance))}{r.balance < 0 && <span className="ml-1 text-xs text-muted-foreground">credit</span>}</td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">

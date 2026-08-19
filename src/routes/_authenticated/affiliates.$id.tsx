@@ -268,7 +268,6 @@ function AffiliateStatementPage() {
                     Cost: fmtMoney(w.cost),
                     Savings: fmtMoney(w.savings),
                     Shortfall: w.shortfall,
-                    "Shortfall cost": fmtMoney(w.shortfallCost),
                   })),
                   {
                     Week: "TOTAL",
@@ -280,7 +279,6 @@ function AffiliateStatementPage() {
                     Cost: fmtMoney(weekTotals.cost),
                     Savings: fmtMoney(weekTotals.savings),
                     Shortfall: weekTotals.shortfall,
-                    "Shortfall cost": fmtMoney(weekTotals.shortfallCost),
                   },
                 ],
                 "affiliate-guarantee",
@@ -378,13 +376,6 @@ function AffiliateStatementPage() {
             {deliveryPct(weekTotals) == null ? "—" : `${deliveryPct(weekTotals)}%`}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Shortfall cost</CardTitle></CardHeader>
-          <CardContent className={cn("text-2xl font-semibold", weekTotals.shortfallCost > 0 ? "text-rose-500" : "")}>
-            {fmtMoney(weekTotals.shortfallCost)}
-          </CardContent>
-          <CardContent className="pt-0 text-xs text-muted-foreground">Paid for guaranteed conversions never delivered</CardContent>
-        </Card>
       </section>
 
 
@@ -431,7 +422,6 @@ function AffiliateStatementPage() {
                   <th className="py-3 px-4">Cost</th>
                   <th className="py-3 px-4">Savings</th>
                   <th className="py-3 px-4">Shortfall</th>
-                  <th className="py-3 px-4">Shortfall cost</th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
@@ -447,7 +437,6 @@ function AffiliateStatementPage() {
                     <td className="py-3 px-4">{fmtMoney(w.cost)}</td>
                     <td className="py-3 px-4 text-emerald-500">{w.savings ? fmtMoney(w.savings) : "—"}</td>
                     <td className="py-3 px-4 text-rose-500">{w.shortfall || "—"}</td>
-                    <td className="py-3 px-4 text-rose-500">{w.shortfallCost ? fmtMoney(w.shortfallCost) : "—"}</td>
                     <td className="py-3 px-4">
                       <span className={cn(
                         "rounded border px-1.5 py-0.5 text-xs font-medium",
@@ -472,7 +461,6 @@ function AffiliateStatementPage() {
                   <td className="py-3 px-4">{fmtMoney(weekTotals.cost)}</td>
                   <td className="py-3 px-4 text-emerald-500">{fmtMoney(weekTotals.savings)}</td>
                   <td className="py-3 px-4 text-rose-500">{weekTotals.shortfall || "—"}</td>
-                  <td className="py-3 px-4 text-rose-500">{fmtMoney(weekTotals.shortfallCost)}</td>
                   <td className="py-3 px-4"></td>
                 </tr>
               </tfoot>
