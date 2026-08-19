@@ -516,6 +516,44 @@ function AffiliatesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!activating} onOpenChange={(o) => !o && setActivating(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{activating?.active ? "Balance settings" : "Activate balance"} — {activating?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Start counting from</Label>
+              <Input type="date" value={actForm.start} onChange={(e) => setActForm((f) => ({ ...f, start: e.target.value }))} />
+              <p className="text-xs text-muted-foreground">Weeks and payments before this date are ignored — nothing is calculated retroactively.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Opening balance</Label>
+              <Input type="number" step="0.01" value={actForm.opening} onChange={(e) => setActForm((f) => ({ ...f, opening: e.target.value }))} />
+              <p className="text-xs text-muted-foreground">What you already owe on that date. Use a negative number for a prepaid credit.</p>
+            </div>
+            {activating?.groupKey && (
+              <p className="text-xs text-muted-foreground">
+                Applies to every affiliate in billing group “{activating.groupKey}”, since they share one balance.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            {activating?.active ? (
+              <Button variant="ghost" className="text-destructive" onClick={() => saveActivation.mutate("off")} disabled={saveActivation.isPending}>
+                Turn off tracking
+              </Button>
+            ) : <span />}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setActivating(null)}>Cancel</Button>
+              <Button onClick={() => saveActivation.mutate("on")} disabled={saveActivation.isPending || !actForm.start}>
+                {activating?.active ? "Save" : "Activate"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
