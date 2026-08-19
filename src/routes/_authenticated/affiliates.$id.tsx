@@ -231,7 +231,7 @@ function AffiliateStatementPage() {
   }, [members, srcQ.data, entriesQ.data, balanceOn, balanceStart, paidByWeek, opening]);
 
   // Newest week first, so its closing balance is the live running balance.
-  const runningBalance = ledger.length ? ledger[0].closing : 0;
+  const runningBalance = ledger.length ? ledger[0].closing : balanceOn ? opening : 0;
 
   const weeks = useMemo(
     () => ledger.filter((w) => inRange(w.weekStart) || inRange(w.weekEnd)),
