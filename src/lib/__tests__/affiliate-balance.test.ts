@@ -113,6 +113,59 @@ describe("weekly guarantee settlement", () => {
   });
 });
 
+describe("guarantee floor (weeks from 2026-08-17)", () => {
+  it("pays the guarantee when the affiliate under-delivers", () => {
+    const [w] = weeklyGuarantee(aff({ cpa_rate: 200, guarantee_value: 10 }), [
+      { entry_date: "2026-08-17", received: 100, reported: 8, activated: 8 },
+    ]);
+    expect(w!.guaranteed).toBe(10);
+    expect(w!.payable).toBe(10);
+    expect(w!.cost).toBe(2000);
+    expect(w!.shortfall).toBe(2);
+    expect(w!.shortfallCost).toBe(400);
+    expect(w!.savings).toBe(0);
+    expect(w!.status).toBe("short");
+  });
+
+  it("pays every reported conversion when the guarantee is beaten", () => {
+    const [w] = weeklyGuarantee(aff({ cpa_rate: 200, guarantee_value: 10 }), [
+      { entry_date: "2026-08-17", received: 100, reported: 13, activated: 13 },
+    ]);
+    expect(w!.payable).toBe(13);
+    expect(w!.cost).toBe(2600);
+    expect(w!.savings).toBe(0);
+    expect(w!.shortfallCost).toBe(0);
+    expect(w!.status).toBe("over");
+  });
+
+  it("bills exactly the guarantee when delivery matches", () => {
+    const [w] = weeklyGuarantee(aff({ cpa_rate: 200, guarantee_value: 10 }), [
+      { entry_date: "2026-08-17", received: 100, reported: 10, activated: 10 },
+    ]);
+    expect(w!.cost).toBe(2000);
+    expect(w!.shortfallCost).toBe(0);
+    expect(w!.status).toBe("met");
+  });
+
+  it("leaves flat (0% guarantee) affiliates unchanged", () => {
+    const [w] = weeklyGuarantee(aff({ guarantee_value: 0, cpa_rate: 300 }), [
+      { entry_date: "2026-08-17", received: 40, reported: 7, activated: 10 },
+    ]);
+    expect(w!.payable).toBe(7);
+    expect(w!.cost).toBe(2100);
+    expect(w!.shortfallCost).toBe(0);
+  });
+
+  it("does not touch weeks before the cutoff", () => {
+    const [w] = weeklyGuarantee(aff({ cpa_rate: 200, guarantee_value: 10 }), [
+      { entry_date: "2026-08-10", received: 100, reported: 8, activated: 8 },
+    ]);
+    expect(w!.payable).toBe(8); // old capped math
+    expect(w!.cost).toBe(1600);
+    expect(w!.shortfallCost).toBe(0);
+  });
+});
+
 describe("billing group", () => {
   it("shares one balance across sources with the same group key", () => {
     const crg = aff({ id: "a1", name: "FTDhubCRG", cpa_rate: 250, guarantee_value: 20 });
