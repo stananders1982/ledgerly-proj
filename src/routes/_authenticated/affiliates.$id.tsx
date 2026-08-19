@@ -503,7 +503,9 @@ function AffiliateStatementPage() {
           <CardContent className="pt-0 text-xs text-muted-foreground">
             {!balanceOn
               ? "Charging not started"
-              : `Running total, rolls over week to week${balanceStart ? ` · since ${balanceStart}` : ""}`}
+              : `Running total, rolls over week to week${balanceStart ? ` · since ${balanceStart}` : ""}${
+                  opening ? ` · includes ${fmtMoney(Math.abs(opening))} opening ${opening < 0 ? "credit" : "debt"}` : ""
+                }`}
           </CardContent>
         </Card>
 
