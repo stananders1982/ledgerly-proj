@@ -280,6 +280,7 @@ function AffiliateStatementPage() {
                     Cost: fmtMoney(weekTotals.cost),
                     Savings: fmtMoney(weekTotals.savings),
                     Shortfall: weekTotals.shortfall,
+                    "Shortfall cost": fmtMoney(weekTotals.shortfallCost),
                   },
                 ],
                 "affiliate-guarantee",
