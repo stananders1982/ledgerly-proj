@@ -36,9 +36,9 @@ Positive = still owed.
 ## What changes on screen
 
 **Affiliate detail page**
-- Weekly guarantee table: `Payable` is the greater of reported and guaranteed, `Savings` is
-  replaced by a `Shortfall cost` column (what we paid for conversions never delivered), and
-  the row status reads Met / Short / Over.
+- Weekly guarantee table: from the cutoff week on, `Payable` is the greater of reported and
+  guaranteed and a `Shortfall cost` column shows what we paid for conversions never
+  delivered; older weeks keep their `Savings` figure. Row status reads Met / Short / Over.
 - Balance cards (Owed for range, Paid, Balance outstanding, Delivery %) recompute from the
   new cost, plus a period "Shortfall cost" figure — the number to negotiate on.
 
