@@ -309,6 +309,7 @@ function AffiliatesPage() {
                   <SortTh label="Guaranteed" k="guaranteed" sort={sort} toggle={toggle} />
                   <SortTh label="Reported" k="reported" sort={sort} toggle={toggle} />
                   <SortTh label="Owed" k="owed" sort={sort} toggle={toggle} />
+                  <SortTh label="Shortfall cost" k="shortfallCost" sort={sort} toggle={toggle} />
                   <SortTh label="Paid" k="paid" sort={sort} toggle={toggle} />
                   <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} />
                   <th className="py-3 px-4"></th>
