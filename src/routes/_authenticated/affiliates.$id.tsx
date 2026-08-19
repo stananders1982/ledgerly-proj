@@ -97,7 +97,7 @@ function AffiliateStatementPage() {
     queryKey: ["affiliate-entries-one", id],
     queryFn: async () => {
       const data = await fetchAll(() =>
-        supabase.from("daily_lead_entries").select("entry_date,received,reported,activated,source_id"),
+        supabase.from("daily_lead_entries").select("entry_date,received,invalid,reported,activated,source_id"),
       );
       return (data ?? []) as LeadEntryLike[];
     },
@@ -261,26 +261,33 @@ function AffiliateStatementPage() {
                   ...weeks.map((w) => ({
                     Week: `${w.weekStart} → ${w.weekEnd}`,
                     Leads: w.leads,
+                    Invalid: w.invalid,
+                    Valid: w.valid,
                     FTDs: w.activated,
-                    Guaranteed: w.guaranteed,
+                    "Act %": w.activationPct == null ? "—" : `${w.activationPct}%`,
                     Reported: w.reported,
+                    "Rep %": w.reportedPct == null ? "—" : `${w.reportedPct}%`,
+                    Guaranteed: w.guaranteed,
                     Payable: w.payable,
                     Cost: fmtMoney(w.cost),
-                    Savings: fmtMoney(w.savings),
                     Shortfall: w.shortfall,
                   })),
                   {
                     Week: "TOTAL",
                     Leads: weekTotals.leads,
+                    Invalid: weekTotals.invalid,
+                    Valid: weekTotals.valid,
                     FTDs: weekTotals.activated,
-                    Guaranteed: weekTotals.guaranteed,
+                    "Act %": weekTotals.activationPct == null ? "—" : `${weekTotals.activationPct}%`,
                     Reported: weekTotals.reported,
+                    "Rep %": weekTotals.reportedPct == null ? "—" : `${weekTotals.reportedPct}%`,
+                    Guaranteed: weekTotals.guaranteed,
                     Payable: weekTotals.payable,
                     Cost: fmtMoney(weekTotals.cost),
-                    Savings: fmtMoney(weekTotals.savings),
                     Shortfall: weekTotals.shortfall,
                   },
                 ],
+
                 "affiliate-guarantee",
               );
             }}
@@ -415,12 +422,14 @@ function AffiliateStatementPage() {
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <th className="py-3 px-4">Week</th>
                   <th className="py-3 px-4">Leads</th>
+                  <th className="py-3 px-4">Valid</th>
                   <th className="py-3 px-4">FTDs</th>
-                  <th className="py-3 px-4">Guaranteed</th>
+                  <th className="py-3 px-4">Act %</th>
                   <th className="py-3 px-4">Reported</th>
+                  <th className="py-3 px-4">Rep %</th>
+                  <th className="py-3 px-4">Guaranteed</th>
                   <th className="py-3 px-4">Payable</th>
                   <th className="py-3 px-4">Cost</th>
-                  <th className="py-3 px-4">Savings</th>
                   <th className="py-3 px-4">Shortfall</th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
@@ -429,13 +438,15 @@ function AffiliateStatementPage() {
                 {weekPage.map((w) => (
                   <tr key={w.weekStart} className="border-b border-border/50 transition-colors hover:bg-accent/30">
                     <td className="py-3 px-4 font-medium whitespace-nowrap">{w.weekStart} → {w.weekEnd}</td>
-                    <td className="py-3 px-4">{w.leads}</td>
+                    <td className="py-3 px-4">{w.leads}{w.invalid ? <span className="text-muted-foreground"> (−{w.invalid})</span> : null}</td>
+                    <td className="py-3 px-4">{w.valid}</td>
                     <td className="py-3 px-4">{w.activated}</td>
-                    <td className="py-3 px-4">{w.guaranteed}</td>
+                    <td className="py-3 px-4">{w.activationPct == null ? "—" : `${w.activationPct}%`}</td>
                     <td className="py-3 px-4">{w.reported}</td>
+                    <td className="py-3 px-4">{w.reportedPct == null ? "—" : `${w.reportedPct}%`}</td>
+                    <td className="py-3 px-4">{w.guaranteed}</td>
                     <td className="py-3 px-4">{w.payable}</td>
                     <td className="py-3 px-4">{fmtMoney(w.cost)}</td>
-                    <td className="py-3 px-4 text-emerald-500">{w.savings ? fmtMoney(w.savings) : "—"}</td>
                     <td className="py-3 px-4 text-rose-500">{w.shortfall || "—"}</td>
                     <td className="py-3 px-4">
                       <span className={cn(
@@ -454,16 +465,19 @@ function AffiliateStatementPage() {
                 <tr className="border-t border-border font-medium">
                   <td className="py-3 px-4">Total</td>
                   <td className="py-3 px-4">{weekTotals.leads}</td>
+                  <td className="py-3 px-4">{weekTotals.valid}</td>
                   <td className="py-3 px-4">{weekTotals.activated}</td>
-                  <td className="py-3 px-4">{weekTotals.guaranteed}</td>
+                  <td className="py-3 px-4">{weekTotals.activationPct == null ? "—" : `${weekTotals.activationPct}%`}</td>
                   <td className="py-3 px-4">{weekTotals.reported}</td>
+                  <td className="py-3 px-4">{weekTotals.reportedPct == null ? "—" : `${weekTotals.reportedPct}%`}</td>
+                  <td className="py-3 px-4">{weekTotals.guaranteed}</td>
                   <td className="py-3 px-4">{weekTotals.payable}</td>
                   <td className="py-3 px-4">{fmtMoney(weekTotals.cost)}</td>
-                  <td className="py-3 px-4 text-emerald-500">{fmtMoney(weekTotals.savings)}</td>
                   <td className="py-3 px-4 text-rose-500">{weekTotals.shortfall || "—"}</td>
                   <td className="py-3 px-4"></td>
                 </tr>
               </tfoot>
+
             </table>
           </div>
           <TablePagination {...pgWeeks} />

@@ -90,7 +90,7 @@ function AffiliatesPage() {
       const data = await fetchAll(() =>
         supabase
           .from("daily_lead_entries")
-          .select("entry_date,received,reported,activated,source_id")
+          .select("entry_date,received,invalid,reported,activated,source_id")
           .gte("entry_date", startIso)
           .lte("entry_date", endIso),
       );
@@ -139,11 +139,14 @@ function AffiliatesPage() {
         price: Number(a.cpa_rate || 0),
         pct: Number(a.guarantee_value || 0),
         leads: t.leads,
+        valid: t.valid,
         activated: t.activated,
+        activationPct: t.activationPct,
+        reportedPct: t.reportedPct,
         guaranteed: t.guaranteed,
         reported: t.reported,
         owed: t.cost,
-        savings: t.savings,
+        extra: t.extra,
         shortfall: t.shortfall,
         paid: paidByAff.get(a.id) ?? 0,
       };
@@ -173,8 +176,10 @@ function AffiliatesPage() {
     pct: (r) => r.pct,
     leads: (r) => r.leads,
     activated: (r) => r.activated,
+    activationPct: (r) => r.activationPct ?? -1,
     guaranteed: (r) => r.guaranteed,
     reported: (r) => r.reported,
+    reportedPct: (r) => r.reportedPct ?? -1,
     owed: (r) => r.owed,
     paid: (r) => r.paid,
     balance: (r) => r.balance,
@@ -187,7 +192,7 @@ function AffiliatesPage() {
       // Grouped affiliates share one payment pool — count each group once.
       paid: [...new Map(rows.map((r) => [r.groupId, r.paid])).values()].reduce((s, v) => s + v, 0),
       balance: [...new Map(rows.map((r) => [r.groupId, r.balance])).values()].reduce((s, v) => s + v, 0),
-      savings: rows.reduce((s, r) => s + r.savings, 0),
+      shortfallCost: rows.reduce((s, r) => s + r.shortfall * r.price, 0),
     }),
     [rows],
   );
@@ -261,8 +266,8 @@ function AffiliatesPage() {
           <CardContent className={cn("text-2xl font-semibold", totals.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(Math.abs(totals.balance))}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><PiggyBank className="h-4 w-4" /> Guarantee savings</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold text-emerald-500">{fmtMoney(totals.savings)}</CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-2"><PiggyBank className="h-4 w-4" /> Guarantee shortfall paid</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold text-rose-500">{fmtMoney(totals.shortfallCost)}</CardContent>
         </Card>
       </section>
 
@@ -281,9 +286,10 @@ function AffiliatesPage() {
                 subtitle={r.active ? `${fmtMoney(r.price)} / conversion · ${r.pct > 0 ? `${r.pct}% guarantee` : "flat, no guarantee"}` : "Inactive"}
                 fields={[
                   { label: "Leads", value: <span className="num">{r.leads}</span> },
-                  { label: "FTDs", value: <span className="num">{r.activated}</span> },
+                  { label: "Valid", value: <span className="num">{r.valid}</span> },
+                  { label: "FTDs", value: <span className="num">{r.activated}{r.activationPct == null ? "" : ` (${r.activationPct}%)`}</span> },
                   { label: "Guaranteed", value: <span className="num">{r.guaranteed}</span> },
-                  { label: "Reported", value: <span className="num">{r.reported}</span> },
+                  { label: "Reported", value: <span className="num">{r.reported}{r.reportedPct == null ? "" : ` (${r.reportedPct}%)`}</span> },
                   { label: "Owed", value: <span className="num">{fmtMoney(r.owed)}</span> },
                   { label: "Paid", value: <span className="num text-warning">−{fmtMoney(r.paid)}</span> },
                   { label: r.balance < 0 ? "Credit" : "Balance", value: <span className={cn("num font-medium", r.balance > 0 ? "text-destructive" : "text-success")}>{fmtMoney(Math.abs(r.balance))}</span> },
@@ -301,8 +307,10 @@ function AffiliatesPage() {
                   <SortTh label="Guarantee %" k="pct" sort={sort} toggle={toggle} />
                   <SortTh label="Leads" k="leads" sort={sort} toggle={toggle} />
                   <SortTh label="FTDs" k="activated" sort={sort} toggle={toggle} />
+                  <SortTh label="Act %" k="activationPct" sort={sort} toggle={toggle} />
                   <SortTh label="Guaranteed" k="guaranteed" sort={sort} toggle={toggle} />
                   <SortTh label="Reported" k="reported" sort={sort} toggle={toggle} />
+                  <SortTh label="Rep %" k="reportedPct" sort={sort} toggle={toggle} />
                   <SortTh label="Owed" k="owed" sort={sort} toggle={toggle} />
                   <SortTh label="Paid" k="paid" sort={sort} toggle={toggle} />
                   <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} />
@@ -328,10 +336,12 @@ function AffiliatesPage() {
 
                     <td className="py-3 px-4">{fmtMoney(r.price)}</td>
                     <td className="py-3 px-4">{r.pct}%</td>
-                    <td className="py-3 px-4">{r.leads}</td>
+                    <td className="py-3 px-4">{r.leads}{r.leads !== r.valid && <span className="text-muted-foreground text-xs"> ({r.valid} valid)</span>}</td>
                     <td className="py-3 px-4">{r.activated}</td>
+                    <td className="py-3 px-4">{r.activationPct == null ? "—" : `${r.activationPct}%`}</td>
                     <td className="py-3 px-4">{r.guaranteed}</td>
                     <td className="py-3 px-4">{r.reported}</td>
+                    <td className="py-3 px-4">{r.reportedPct == null ? "—" : `${r.reportedPct}%`}</td>
                     <td className="py-3 px-4">{fmtMoney(r.owed)}</td>
                     <td className="py-3 px-4 text-amber-500">−{fmtMoney(r.paid)}</td>
                     <td className={cn("py-3 px-4 font-medium", r.balance > 0 ? "text-rose-500" : "text-emerald-500")}>{fmtMoney(Math.abs(r.balance))}{r.balance < 0 && <span className="ml-1 text-xs text-muted-foreground">credit</span>}</td>
