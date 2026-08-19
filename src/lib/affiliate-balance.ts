@@ -316,7 +316,5 @@ export function weeklyLedger(
     running = round2(openingOfWeek + w.cost - paid);
     out.push({ ...w, paid, opening: openingOfWeek, closing: running });
   }
-  // No weeks yet: the opening figure is still the live balance.
-  if (!out.length && opening) out.push({ ...blankWeek(weekStartOf(todayIso())), paid: 0, opening: 0, closing: round2(opening) });
   return out.reverse();
 }
