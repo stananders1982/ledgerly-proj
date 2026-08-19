@@ -18,7 +18,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { deliveryPct, sumWeeks, weekStartOf, weeklyGuarantee, mergeWeekRows, weeklyLedger, affiliateNet, balanceActive, type LeadEntryLike } from "@/lib/affiliate-balance";
+import { deliveryPct, sumWeeks, weekStartOf, weeklyGuarantee, mergeWeekRows, weeklyLedger, affiliateNet, balanceActive, openingBalance, type LeadEntryLike } from "@/lib/affiliate-balance";
 
 type AffRow = { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number; group_key: string | null; balance_start_date: string | null; opening_balance: number | null; balance_activated_at: string | null };
 
