@@ -716,6 +716,42 @@ function LeadsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <Dialog open={stdOpen} onOpenChange={setStdOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Second time deposits ({stdCount})</DialogTitle>
+          </DialogHeader>
+          {stdDetails.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No STDs in this period.</p>
+          ) : (
+            <div className="max-h-[60vh] overflow-y-auto scroll-slim">
+              <table className="w-full text-sm">
+                <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th className="py-2 px-2 text-left">Client</th>
+                    <th className="py-2 px-2 text-left">Activated</th>
+                    <th className="py-2 px-2 text-left">STD date</th>
+                    <th className="py-2 px-2 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stdDetails.map((s, i) => (
+                    <tr key={`${s.name}-${i}`} className="border-b border-border/60">
+                      <td className="py-2 px-2">{s.name}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{s.activationDate || "—"}</td>
+                      <td className="py-2 px-2">{s.depositDate}</td>
+                      <td className="py-2 px-2 text-right">{fmtMoney(s.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+
+
       {issue && (
         <IssueFilterBanner
           issue={issue}
