@@ -29,7 +29,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
-import { isStd, isoDay, isAgentTeam } from "@/lib/rules";
+import { stdDepositsFor, isoDay, isAgentTeam } from "@/lib/rules";
 import { SavedViews } from "@/components/saved-views";
 import { CsvImportDialog } from "@/components/csv-import";
 
