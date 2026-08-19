@@ -90,7 +90,7 @@ function AffiliatesPage() {
       const data = await fetchAll(() =>
         supabase
           .from("daily_lead_entries")
-          .select("entry_date,received,reported,activated,source_id")
+          .select("entry_date,received,invalid,reported,activated,source_id")
           .gte("entry_date", startIso)
           .lte("entry_date", endIso),
       );
