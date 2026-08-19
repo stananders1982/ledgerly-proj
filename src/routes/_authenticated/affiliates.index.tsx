@@ -72,10 +72,10 @@ function AffiliatesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("affiliates")
-        .select("id,name,active,cpa_rate,guarantee_value,guarantee_period,group_key")
+        .select("id,name,active,cpa_rate,guarantee_value,guarantee_period,group_key,balance_start_date,opening_balance,balance_activated_at")
         .order("name");
       if (error) throw error;
-      return (data ?? []) as (AffRow & { guarantee_period: string; group_key: string | null })[];
+      return (data ?? []) as (AffRow & BalanceActivation & { guarantee_period: string; group_key: string | null })[];
     },
   });
 
