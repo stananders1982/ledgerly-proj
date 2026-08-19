@@ -124,6 +124,41 @@ function AffiliateStatementPage() {
   const inMoneyRange = (d: string) =>
     balanceOn && inRange(d) && (!balanceStart || d >= balanceStart);
 
+  // Balance activation lives here, next to the money it controls.
+  const [activating, setActivating] = useState(false);
+  const [actForm, setActForm] = useState({ start: "", opening: "0" });
+  useEffect(() => {
+    if (activating) {
+      setActForm({ start: balanceStart ?? isoOf(new Date()), opening: String(opening || 0) });
+    }
+  }, [activating, balanceStart, opening]);
+
+  const saveActivation = useMutation({
+    mutationFn: async (mode: "on" | "off") => {
+      const patch =
+        mode === "off"
+          ? { balance_activated_at: null, balance_start_date: null, opening_balance: 0 }
+          : {
+              balance_activated_at: new Date().toISOString(),
+              balance_start_date: actForm.start,
+              opening_balance: Number(actForm.opening) || 0,
+            };
+      // Billing-group members share one balance, so they share activation too.
+      let q = supabase.from("affiliates").update(patch);
+      q = groupLabel ? q.eq("group_key", groupLabel) : q.eq("id", id);
+      const { error } = await q;
+      if (error) throw error;
+    },
+    onSuccess: (_d, mode) => {
+      toast.success(mode === "off" ? "Balance tracking turned off" : "Balance activated");
+      setActivating(false);
+      qc.invalidateQueries({ queryKey: ["affiliate-group", id] });
+      qc.invalidateQueries({ queryKey: ["affiliates-list"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"),
+  });
+
+
   const weeks = useMemo(() => {
     if (!members.length || !balanceOn) return [];
     const srcByName = new Map<string, string>();
