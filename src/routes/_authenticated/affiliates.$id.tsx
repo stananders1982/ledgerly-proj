@@ -1,11 +1,15 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Building2, TrendingUp, Wallet, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { useExporters } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +18,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { deliveryPct, sumWeeks, weeklyGuarantee, mergeWeekRows, affiliateNet, balanceActive, openingBalance, type LeadEntryLike, type WeekRow } from "@/lib/affiliate-balance";
+import { deliveryPct, sumWeeks, weekStartOf, weeklyGuarantee, mergeWeekRows, affiliateNet, balanceActive, openingBalance, type LeadEntryLike, type WeekRow } from "@/lib/affiliate-balance";
 
 type AffRow = { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number; group_key: string | null; balance_start_date: string | null; opening_balance: number | null; balance_activated_at: string | null };
 
