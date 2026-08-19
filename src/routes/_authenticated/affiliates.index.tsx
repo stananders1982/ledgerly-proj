@@ -113,7 +113,7 @@ function AffiliatesPage() {
           .gte("date", startIso)
           .lte("date", endIso),
       );
-      return (data ?? []) as { affiliate_id: string; amount: number }[];
+      return (data ?? []) as { affiliate_id: string; amount: number; date: string }[];
     },
   });
 
