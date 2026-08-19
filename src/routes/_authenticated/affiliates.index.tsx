@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, ExternalLink, Percent, Wallet, Scale, PiggyBank, Settings2 } from "lucide-react";
+import { Building2, ExternalLink, Percent, Settings2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/page-header";
@@ -10,25 +10,20 @@ import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { fmtMoney } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { EmptyState } from "@/components/empty-state";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import {
   sourceToAffiliate,
-  balanceActive,
-  effectiveStart,
-  openingBalance,
-  withinRange,
   sumWeeks,
+  weekStartOf,
   weeklyGuarantee,
   type AffiliateTerms,
   type BalanceActivation,
@@ -64,7 +59,8 @@ function AffiliatesPage() {
   const [customStart, setCustomStart] = usePersistedState<string>("affiliates:range-start", "");
   const [customEnd, setCustomEnd] = usePersistedState<string>("affiliates:range-end", "");
   const activeRange = useMemo(() => getRange(range, { start: customStart, end: customEnd }), [range, customStart, customEnd]);
-  const startIso = isoOf(activeRange.start);
+  // Affiliates settle Mon–Sun, so "Week" means the current settlement week, not the last 7 days.
+  const startIso = range === "week" ? weekStartOf(isoOf(activeRange.end)) : isoOf(activeRange.start);
   const endIso = isoOf(activeRange.end);
 
   const affQ = useQuery({
