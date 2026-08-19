@@ -969,6 +969,7 @@ export type Database = {
           custom_fields: Json
           entry_date: string
           id: string
+          invalid: number
           notes: string | null
           received: number
           reported: number
@@ -987,6 +988,7 @@ export type Database = {
           custom_fields?: Json
           entry_date?: string
           id?: string
+          invalid?: number
           notes?: string | null
           received?: number
           reported?: number
@@ -1005,6 +1007,7 @@ export type Database = {
           custom_fields?: Json
           entry_date?: string
           id?: string
+          invalid?: number
           notes?: string | null
           received?: number
           reported?: number

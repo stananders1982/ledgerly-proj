@@ -1,0 +1,1 @@
+ALTER TABLE public.daily_lead_entries ADD COLUMN IF NOT EXISTS invalid integer NOT NULL DEFAULT 0;

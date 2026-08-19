@@ -58,6 +58,7 @@ type Entry = {
   source_id: string | null;
   campaign: string | null;
   received: number;
+  invalid: number;
   activated: number;
   reported: number;
   notes: string | null;
@@ -65,6 +66,10 @@ type Entry = {
 };
 
 type Activation = { id: string; entry_id: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null; activation_date: string };
+/** Leads left after removing invalid ones — this is what counts everywhere. */
+const validReceived = (r: { received?: number | null; invalid?: number | null }) =>
+  Math.max(0, Number(r.received ?? 0) - Number(r.invalid ?? 0));
+
 type Split = { id?: string; employee_id: string; conversion_employee_id?: string | null; activated_count: number; lead_name?: string | null; potential?: string | null; activation_date: string };
 
 function LeadsPage() {
@@ -195,6 +200,8 @@ function LeadsPage() {
       { key: "source", label: "Source", filter: "select", value: (r: any) => r.lead_sources?.name ?? "" },
       { key: "model", label: "Model", filter: "select", value: (r: any) => r.lead_sources?.pricing_model ?? "" },
       { key: "received", label: "Received", filter: "none" },
+      { key: "invalid", label: "Invalid", filter: "none" },
+      { key: "valid", label: "Valid", filter: "none" },
       { key: "activated", label: "Activated", filter: "none" },
       { key: "reported", label: "Reported", filter: "none" },
       { key: "expected", label: "Expected %", filter: "none" },
@@ -213,16 +220,18 @@ function LeadsPage() {
     source: (r) => r.lead_sources?.name ?? "",
     model: (r) => r.lead_sources?.pricing_model ?? "",
     received: (r) => Number(r.received ?? 0),
+    invalid: (r) => Number(r.invalid ?? 0),
+    valid: (r) => validReceived(r),
     activated: (r) => Number(r.activated ?? 0),
     reported: (r) => Number(r.reported ?? 0),
     expected: (r) => Number(r.lead_sources?.expected_conversion_rate ?? 0),
-    reportedPct: (r) => (r.received ? Number(r.reported) / Number(r.received) : 0),
-    activatedPct: (r) => (r.received ? Number(r.activated) / Number(r.received) : 0),
+    reportedPct: (r) => (validReceived(r) ? Number(r.reported) / validReceived(r) : 0),
+    activatedPct: (r) => (validReceived(r) ? Number(r.activated) / validReceived(r) : 0),
     cost: (r) => {
       const s2 = r.lead_sources;
       if (!s2) return 0;
       const p2 = Number(s2.price);
-      return s2.pricing_model === "CPL" ? p2 * r.received : p2 * r.reported;
+      return s2.pricing_model === "CPL" ? p2 * validReceived(r) : p2 * r.reported;
     },
     savings: (r) =>
       r.lead_sources?.pricing_model === "CPA"
@@ -386,22 +395,23 @@ function LeadsPage() {
   }, [activationsQ.data, revenueQ.data, activeRange, allRows, sourceFilter]);
 
   const stats = useMemo(() => {
-    let received = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
+    let received = 0, invalid = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
     for (const r of rows) {
-      received += r.received;
+      received += validReceived(r);
+      invalid += Number(r.invalid ?? 0);
       activated += r.activated;
       reported += r.reported;
       const s = r.lead_sources;
       if (!s) continue;
       const p = Number(s.price);
-      if (s.pricing_model === "CPL") cplCost += p * r.received;
+      if (s.pricing_model === "CPL") cplCost += p * validReceived(r);
       else {
         cpaCost += p * r.reported;
         cpaSavings += p * Math.max(0, r.activated - r.reported);
       }
     }
     return {
-      received, activated, reported,
+      received, invalid, activated, reported,
       unreported: activated - reported,
       cplCost, cpaCost, cpaSavings,
       totalCost: cplCost + cpaCost,
@@ -429,6 +439,7 @@ function LeadsPage() {
         source_id: v.source_id || null,
         campaign: v.campaign || null,
         received: Number(v.received) || 0,
+        invalid: Number(v.invalid) || 0,
         activated: Number(v.activated) || 0,
         converted: Number(v.activated) || 0,
         reported: Number(v.reported) || 0,
@@ -510,7 +521,7 @@ function LeadsPage() {
   });
 
   const bulkStats = useMemo(() => ({
-    received: sel.selectedRows.reduce((a: number, r: any) => a + Number(r.received || 0), 0),
+    received: sel.selectedRows.reduce((a: number, r: any) => a + validReceived(r), 0),
     activated: sel.selectedRows.reduce((a: number, r: any) => a + Number(r.activated || 0), 0),
   }), [sel.selectedRows]);
 
@@ -550,6 +561,8 @@ function LeadsPage() {
         Date: r.entry_date,
         Source: r.lead_sources?.name ?? "",
         Received: r.received,
+        Invalid: r.invalid ?? 0,
+        Valid: validReceived(r),
         Activated: r.activated,
         Reported: r.reported,
         Notes: r.notes ?? "",
@@ -572,6 +585,7 @@ function LeadsPage() {
               { key: "source", label: "Affiliate" },
               { key: "campaign", label: "Campaign" },
               { key: "received", label: "Received", required: true },
+              { key: "invalid", label: "Invalid" },
               { key: "activated", label: "Activated" },
               { key: "reported", label: "Reported" },
               { key: "notes", label: "Notes" },
@@ -589,6 +603,7 @@ function LeadsPage() {
                   source_id: byName.get((r.source ?? "").trim().toLowerCase()) ?? null,
                   campaign: r.campaign || null,
                   received: Number(r.received) || 0,
+                  invalid: Number(r.invalid) || 0,
                   activated,
                   converted: activated,
                   reported: Number(r.reported) || 0,
@@ -779,7 +794,8 @@ function LeadsPage() {
 
 
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-        <StatCard label="Received" value={String(stats.received)} />
+        <StatCard label="Received" value={String(stats.received)} hint="Valid leads — invalid ones are excluded" />
+        <StatCard label="Invalid" value={String(stats.invalid)} tone={stats.invalid ? "negative" : undefined} hint="Not counted in totals, rates or cost" />
         <StatCard label="Activated (FTD)" value={String(activatedInRange)} tone="positive" hint="Counted by activation date" />
         <StatCard label="STD" value={String(stdCount)} tone="positive" hint="Clients who deposited again in this period" />
         <StatCard
@@ -842,7 +858,7 @@ function LeadsPage() {
             {pageItems.map((r: any) => {
               const s = r.lead_sources;
               const p = s ? Number(s.price) : 0;
-              const cost = !s ? 0 : s.pricing_model === "CPL" ? p * r.received : p * r.reported;
+              const cost = !s ? 0 : s.pricing_model === "CPL" ? p * validReceived(r) : p * r.reported;
               return (
                 <DataCard
                   key={r.id}
@@ -853,9 +869,11 @@ function LeadsPage() {
                   fields={[
                     { label: "Model", value: s ? <PricingBadge model={s.pricing_model} /> : "—" },
                     { label: "Received", value: String(r.received) },
+                    { label: "Invalid", value: String(r.invalid ?? 0) },
+                    { label: "Valid", value: String(validReceived(r)) },
                     { label: "Activated", value: String(r.activated) },
                     { label: "Reported", value: String(r.reported) },
-                    { label: "Activated %", value: r.received ? fmtPct((r.activated / r.received) * 100) : "—" },
+                    { label: "Activated %", value: validReceived(r) ? fmtPct((r.activated / validReceived(r)) * 100) : "—" },
                     { label: "Cost", value: fmtMoney(cost) },
                   ]}
                 />
@@ -877,6 +895,8 @@ function LeadsPage() {
                   {tb.show("source") && <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                   {tb.show("model") && <SortTh label="Model" k="model" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                   {tb.show("received") && <SortTh label="Received" k="received" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                  {tb.show("invalid") && <SortTh label="Invalid" k="invalid" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                  {tb.show("valid") && <SortTh label="Valid" k="valid" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                   {tb.show("activated") && <SortTh label="Activated" k="activated" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                   {tb.show("reported") && <SortTh label="Reported" k="reported" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                   {tb.show("expected") && <SortTh label="Expected %" k="expected" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
@@ -895,7 +915,7 @@ function LeadsPage() {
                   const s = r.lead_sources;
                   const p = s ? Number(s.price) : 0;
                   const cost = !s ? 0
-                    : s.pricing_model === "CPL" ? p * r.received
+                    : s.pricing_model === "CPL" ? p * validReceived(r)
                     : p * r.reported;
                   const savings = s?.pricing_model === "CPA" ? p * Math.max(0, r.activated - r.reported) : 0;
                   const splits = activationsByEntry.get(r.id) ?? [];
@@ -925,6 +945,12 @@ function LeadsPage() {
                       {tb.show("received") && (
                       <td className="py-2.5 px-2">{r.received}</td>
                       )}
+                      {tb.show("invalid") && (
+                      <td className="py-2.5 px-2 text-muted-foreground">{r.invalid ?? 0}</td>
+                      )}
+                      {tb.show("valid") && (
+                      <td className="py-2.5 px-2 font-medium">{validReceived(r)}</td>
+                      )}
                       {tb.show("activated") && (
                       <td className="py-2.5 px-2">{r.activated}</td>
                       )}
@@ -935,10 +961,10 @@ function LeadsPage() {
                       <td className="py-2.5 px-2">{s?.expected_conversion_rate ? fmtPct(Number(s.expected_conversion_rate)) : "—"}</td>
                       )}
                       {tb.show("reportedPct") && (
-                      <td className="py-2.5 px-2">{r.received ? fmtPct((r.reported / r.received) * 100) : "—"}</td>
+                      <td className="py-2.5 px-2">{validReceived(r) ? fmtPct((r.reported / validReceived(r)) * 100) : "—"}</td>
                       )}
                       {tb.show("activatedPct") && (
-                      <td className="py-2.5 px-2">{r.received ? fmtPct((r.activated / r.received) * 100) : "—"}</td>
+                      <td className="py-2.5 px-2">{validReceived(r) ? fmtPct((r.activated / validReceived(r)) * 100) : "—"}</td>
                       )}
                       {tb.show("cost") && (
                       <td className="py-2.5 px-2">{fmtMoney(cost)}</td>
@@ -990,6 +1016,7 @@ function EntryDialog({
     source_id: entry?.source_id ?? "",
     campaign: entry?.campaign ?? "",
     received: entry?.received ?? 0,
+    invalid: entry?.invalid ?? 0,
     activated: entry?.activated ?? 0,
     reported: entry?.reported ?? 0,
     notes: entry?.notes ?? "",
@@ -1050,10 +1077,14 @@ function EntryDialog({
         <Field label="Campaign (optional)">
           <Input value={form.campaign} onChange={(e) => setForm({ ...form, campaign: e.target.value })} placeholder="Summer promo" />
         </Field>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <Field label="Received">
             <Input type="number" min={0} value={form.received}
               onChange={(e) => setForm({ ...form, received: Number(e.target.value) })} />
+          </Field>
+          <Field label="Invalid">
+            <Input type="number" min={0} value={form.invalid}
+              onChange={(e) => setForm({ ...form, invalid: Number(e.target.value) })} />
           </Field>
           <Field label="Activated">
             <Input type="number" min={0} value={form.activated}
