@@ -747,18 +747,13 @@ function AffiliateStatementPage() {
       <Dialog open={activating} onOpenChange={setActivating}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{balanceOn ? "Balance settings" : "Activate balance"} — {affQ.data?.name}</DialogTitle>
+            <DialogTitle>Start charging from — {affQ.data?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Start counting from</Label>
-              <Input type="date" value={actForm.start} onChange={(e) => setActForm((f) => ({ ...f, start: e.target.value }))} />
-              <p className="text-xs text-muted-foreground">Weeks and payments before this date are ignored — nothing is calculated retroactively.</p>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Opening balance</Label>
-              <Input type="number" step="0.01" value={actForm.opening} onChange={(e) => setActForm((f) => ({ ...f, opening: e.target.value }))} />
-              <p className="text-xs text-muted-foreground">What you already owe on that date. Use a negative number for a prepaid credit.</p>
+              <Label>Start charging from</Label>
+              <Input type="date" value={actForm.start} onChange={(e) => setActForm({ start: e.target.value })} />
+              <p className="text-xs text-muted-foreground">Weeks and payments before this date are ignored completely — no old debt, no old top-ups. The balance builds up from this date and rolls forward week to week.</p>
             </div>
             {groupLabel && (
               <p className="text-xs text-muted-foreground">
@@ -775,9 +770,41 @@ function AffiliateStatementPage() {
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setActivating(false)}>Cancel</Button>
               <Button onClick={() => saveActivation.mutate("on")} disabled={saveActivation.isPending || !actForm.start}>
-                {balanceOn ? "Save" : "Activate"}
+                {balanceOn ? "Save" : "Start"}
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={paying} onOpenChange={setPaying}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add payment — {affQ.data?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Amount</Label>
+              <Input type="number" step="0.01" value={payForm.amount} onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0.00" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Date</Label>
+              <Input type="date" value={payForm.date} onChange={(e) => setPayForm((f) => ({ ...f, date: e.target.value }))} />
+              {balanceStart && payForm.date && payForm.date < balanceStart && (
+                <p className="text-xs text-amber-500">This date is before charging started ({balanceStart}), so it will not count toward the balance.</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Note (optional)</Label>
+              <Input value={payForm.notes} onChange={(e) => setPayForm((f) => ({ ...f, notes: e.target.value }))} placeholder="wire 19/08" />
+            </div>
+            <p className="text-xs text-muted-foreground">Any credit left over rolls into the next week automatically.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaying(false)}>Cancel</Button>
+            <Button onClick={() => savePayment.mutate()} disabled={savePayment.isPending || !payForm.amount || !payForm.date}>
+              Save payment
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
