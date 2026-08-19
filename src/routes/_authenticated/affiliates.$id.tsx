@@ -364,26 +364,36 @@ function AffiliateStatementPage() {
         </Card>
       </section>
 
+      {!balanceOn && (
+        <div className="mb-6 rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          Balance tracking is not activated for this affiliate, so no money is calculated. Activate it from the
+          affiliates list to choose a start date and opening balance.
+        </div>
+      )}
+
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Reported Cost ({activeRange.label})</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold">{fmtMoney(weekTotals.cost)}</CardContent>
+          <CardContent className="text-2xl font-semibold">{balanceOn ? fmtMoney(weekTotals.cost) : "—"}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Paid to affiliate</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold text-amber-500">{fmtMoney(totals.paid)}</CardContent>
+          <CardContent className="text-2xl font-semibold text-amber-500">{balanceOn ? fmtMoney(totals.paid) : "—"}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">
-            {totals.paid > weekTotals.cost ? "Credit with affiliate" : "Balance outstanding"}
+            {opening + weekTotals.cost - totals.paid < 0 ? "Credit with affiliate" : "Balance outstanding"}
           </CardTitle></CardHeader>
-          <CardContent className={cn("text-2xl font-semibold", totals.paid > weekTotals.cost ? "text-emerald-500" : "text-rose-500")}>
-            {fmtMoney(Math.abs(weekTotals.cost - totals.paid))}
+          <CardContent className={cn("text-2xl font-semibold", opening + weekTotals.cost - totals.paid < 0 ? "text-emerald-500" : "text-rose-500")}>
+            {balanceOn ? fmtMoney(Math.abs(opening + weekTotals.cost - totals.paid)) : "—"}
           </CardContent>
           <CardContent className="pt-0 text-xs text-muted-foreground">
-            {totals.paid > weekTotals.cost ? "Paid ahead of reported cost" : "Still owed to the affiliate"}
+            {!balanceOn
+              ? "Not activated"
+              : `${opening + weekTotals.cost - totals.paid < 0 ? "Paid ahead of reported cost" : "Still owed to the affiliate"}${opening ? ` · includes ${fmtMoney(opening)} opening balance` : ""}${balanceStart ? ` · from ${balanceStart}` : ""}`}
           </CardContent>
         </Card>
+
 
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Guarantee delivery</CardTitle></CardHeader>
