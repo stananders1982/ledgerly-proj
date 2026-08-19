@@ -49,12 +49,13 @@ Positive = still owed.
 ## Technical notes
 
 - Single change point: `weeklyGuarantee()` in `src/lib/affiliate-balance.ts` sets
-  `payable = guaranteed` when `guarantee_value > 0`, keeps the flat path when it is 0, and
-  adds `shortfallCost = shortfall x price` to `WeekRow`; `sumWeeks` and `mergeWeekRows`
-  aggregate the new field. Every screen already reads from this helper, so the list, detail
-  page, group billing and exports stay consistent.
-- `src/lib/__tests__/affiliate-balance.test.ts` gets cases for under-delivery, exact
-  delivery, over-delivery and the flat (no guarantee) affiliate.
+  `payable = max(reported, guaranteed)` when `guarantee_value > 0`, keeps the flat path when
+  it is 0, drops `savings` and adds `shortfallCost = shortfall x price` to `WeekRow`;
+  `sumWeeks` and `mergeWeekRows` aggregate the new field. Every screen already reads from
+  this helper, so the list, detail page, group billing and exports stay consistent.
+- `src/lib/__tests__/affiliate-balance.test.ts` is updated for the floor rule: under-delivery
+  bills the guarantee, over-delivery bills every reported FTD, exact delivery, and the flat
+  (no guarantee) affiliate.
 - No database or schema changes: price and guarantee % already live on the affiliate record
   and are editable through the existing "Edit terms" dialog; payments remain expenses tagged
   to the affiliate.
