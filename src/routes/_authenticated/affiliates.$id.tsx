@@ -1,11 +1,15 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Building2, TrendingUp, Wallet, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { useExporters } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +18,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { deliveryPct, sumWeeks, weeklyGuarantee, mergeWeekRows, affiliateNet, balanceActive, openingBalance, type LeadEntryLike, type WeekRow } from "@/lib/affiliate-balance";
+import { deliveryPct, sumWeeks, weekStartOf, weeklyGuarantee, mergeWeekRows, affiliateNet, balanceActive, openingBalance, type LeadEntryLike, type WeekRow } from "@/lib/affiliate-balance";
 
 type AffRow = { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number; group_key: string | null; balance_start_date: string | null; opening_balance: number | null; balance_activated_at: string | null };
 
@@ -37,20 +41,29 @@ function monthKey(iso: string) {
   return iso.slice(0, 7);
 }
 
+function isoOf(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function AffiliateStatementPage() {
   const { exportPDF } = useExporters();
+  const { isAdmin } = useAuth();
+  const qc = useQueryClient();
   const { id } = useParams({ from: "/_authenticated/affiliates/$id" });
   const [range, setRange] = useState<RangeKey>("month");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
-  const activeRange = useMemo(
-    () => getRange(range, { start: customStart, end: customEnd }),
-    [range, customStart, customEnd],
-  );
+  const activeRange = useMemo(() => {
+    const r = getRange(range, { start: customStart, end: customEnd });
+    // Affiliates settle Mon–Sun, so "Week" means the current settlement week.
+    if (range !== "week") return r;
+    return { ...r, start: new Date(weekStartOf(isoOf(r.end)) + "T00:00:00"), label: "This week" };
+  }, [range, customStart, customEnd]);
   const inRange = (d: string) => {
     const t = new Date(d + "T12:00:00").getTime();
     return t >= activeRange.start.getTime() && t <= activeRange.end.getTime();
   };
+
 
   // An affiliate can share a billing group with other sources (e.g. one flat and
   // one with a guarantee). Payments and balance are shared across the group.
@@ -110,6 +123,41 @@ function AffiliateStatementPage() {
   const opening = openingBalance(groupQ.data?.self);
   const inMoneyRange = (d: string) =>
     balanceOn && inRange(d) && (!balanceStart || d >= balanceStart);
+
+  // Balance activation lives here, next to the money it controls.
+  const [activating, setActivating] = useState(false);
+  const [actForm, setActForm] = useState({ start: "", opening: "0" });
+  useEffect(() => {
+    if (activating) {
+      setActForm({ start: balanceStart ?? isoOf(new Date()), opening: String(opening || 0) });
+    }
+  }, [activating, balanceStart, opening]);
+
+  const saveActivation = useMutation({
+    mutationFn: async (mode: "on" | "off") => {
+      const patch =
+        mode === "off"
+          ? { balance_activated_at: null, balance_start_date: null, opening_balance: 0 }
+          : {
+              balance_activated_at: new Date().toISOString(),
+              balance_start_date: actForm.start,
+              opening_balance: Number(actForm.opening) || 0,
+            };
+      // Billing-group members share one balance, so they share activation too.
+      let q = supabase.from("affiliates").update(patch);
+      q = groupLabel ? q.eq("group_key", groupLabel) : q.eq("id", id);
+      const { error } = await q;
+      if (error) throw error;
+    },
+    onSuccess: (_d, mode) => {
+      toast.success(mode === "off" ? "Balance tracking turned off" : "Balance activated");
+      setActivating(false);
+      qc.invalidateQueries({ queryKey: ["affiliate-group", id] });
+      qc.invalidateQueries({ queryKey: ["affiliates-list"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"),
+  });
+
 
   const weeks = useMemo(() => {
     if (!members.length || !balanceOn) return [];
@@ -364,12 +412,21 @@ function AffiliateStatementPage() {
         </Card>
       </section>
 
-      {!balanceOn && (
-        <div className="mb-6 rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-          Balance tracking is not activated for this affiliate, so no money is calculated. Activate it from the
-          affiliates list to choose a start date and opening balance.
+      {!balanceOn ? (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          <span>Balance tracking is not activated for this affiliate, so no money is calculated.</span>
+          {isAdmin && <Button size="sm" onClick={() => setActivating(true)}>Activate balance</Button>}
         </div>
+      ) : (
+        isAdmin && (
+          <div className="mb-4 flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => setActivating(true)}>
+              <Wallet className="h-3.5 w-3.5" /> Balance settings
+            </Button>
+          </div>
+        )
       )}
+
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card>
@@ -619,6 +676,45 @@ function AffiliateStatementPage() {
           <TablePagination {...pgTx} />
         </div>
       </div>
+
+      <Dialog open={activating} onOpenChange={setActivating}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{balanceOn ? "Balance settings" : "Activate balance"} — {affQ.data?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Start counting from</Label>
+              <Input type="date" value={actForm.start} onChange={(e) => setActForm((f) => ({ ...f, start: e.target.value }))} />
+              <p className="text-xs text-muted-foreground">Weeks and payments before this date are ignored — nothing is calculated retroactively.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Opening balance</Label>
+              <Input type="number" step="0.01" value={actForm.opening} onChange={(e) => setActForm((f) => ({ ...f, opening: e.target.value }))} />
+              <p className="text-xs text-muted-foreground">What you already owe on that date. Use a negative number for a prepaid credit.</p>
+            </div>
+            {groupLabel && (
+              <p className="text-xs text-muted-foreground">
+                Applies to every affiliate in billing group “{groupLabel}”, since they share one balance.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            {balanceOn ? (
+              <Button variant="ghost" className="text-destructive" onClick={() => saveActivation.mutate("off")} disabled={saveActivation.isPending}>
+                Turn off tracking
+              </Button>
+            ) : <span />}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setActivating(false)}>Cancel</Button>
+              <Button onClick={() => saveActivation.mutate("on")} disabled={saveActivation.isPending || !actForm.start}>
+                {balanceOn ? "Save" : "Activate"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
