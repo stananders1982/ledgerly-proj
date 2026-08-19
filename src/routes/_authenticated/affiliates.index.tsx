@@ -145,6 +145,7 @@ function AffiliatesPage() {
         owed: t.cost,
         savings: t.savings,
         shortfall: t.shortfall,
+        shortfallCost: t.shortfallCost,
         paid: paidByAff.get(a.id) ?? 0,
       };
     });
