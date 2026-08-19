@@ -186,6 +186,7 @@ export function mergeWeekRows(perMember: WeekRow[][]): WeekRow[] {
       prev.cost = round2(prev.cost + w.cost);
       prev.savings = round2(prev.savings + w.savings);
       prev.shortfall = round2(prev.shortfall + w.shortfall);
+      prev.shortfallCost = round2(prev.shortfallCost + w.shortfallCost);
       prev.status = prev.savings > 0 ? "over" : prev.shortfall > 0 ? "short" : "met";
     }
   }
