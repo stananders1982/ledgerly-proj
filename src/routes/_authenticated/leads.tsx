@@ -847,7 +847,13 @@ function LeadsPage() {
         <StatCard label="Received" value={String(stats.received)} hint="Valid leads — invalid ones are excluded" />
         <StatCard label="Invalid" value={String(stats.invalid)} tone={stats.invalid ? "negative" : undefined} hint="Not counted in totals, rates or cost" />
         <StatCard label="Activated (FTD)" value={String(activatedInRange)} tone="positive" hint="Counted by activation date" />
-        <StatCard label="STD" value={String(stdCount)} tone="positive" hint="Clients who deposited again in this period" />
+        <StatCard
+          label="STD"
+          value={String(stdCount)}
+          tone="positive"
+          hint={stdCount ? "Click to see who deposited again" : "Clients who deposited again in this period"}
+          onClick={stdCount ? () => setStdOpen(true) : undefined}
+        />
         <StatCard
           label="Allocated"
           value={`${allocated} / ${activatedInRange}`}
