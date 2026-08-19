@@ -354,6 +354,7 @@ function AffiliatesPage() {
                       ? <span className={cn("num font-medium", r.balance > 0 ? "text-destructive" : "text-success")}>{fmtMoney(Math.abs(r.balance))}</span>
                       : <span className="text-muted-foreground">not activated</span>,
                   },
+                ]}
 
                 actions={<Link to="/affiliates/$id" params={{ id: r.id }} className="text-primary hover:underline text-xs">Statement</Link>}
               />
