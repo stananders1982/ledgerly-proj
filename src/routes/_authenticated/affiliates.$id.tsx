@@ -412,12 +412,21 @@ function AffiliateStatementPage() {
         </Card>
       </section>
 
-      {!balanceOn && (
-        <div className="mb-6 rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-          Balance tracking is not activated for this affiliate, so no money is calculated. Activate it from the
-          affiliates list to choose a start date and opening balance.
+      {!balanceOn ? (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          <span>Balance tracking is not activated for this affiliate, so no money is calculated.</span>
+          {isAdmin && <Button size="sm" onClick={() => setActivating(true)}>Activate balance</Button>}
         </div>
+      ) : (
+        isAdmin && (
+          <div className="mb-4 flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => setActivating(true)}>
+              <Wallet className="h-3.5 w-3.5" /> Balance settings
+            </Button>
+          </div>
+        )
       )}
+
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Card>
