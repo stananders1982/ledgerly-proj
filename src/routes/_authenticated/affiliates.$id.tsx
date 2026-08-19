@@ -227,8 +227,8 @@ function AffiliateStatementPage() {
         return weeklyGuarantee(m, mine);
       }),
     );
-    return weeklyLedger(lifetime, paidByWeek);
-  }, [members, srcQ.data, entriesQ.data, balanceOn, balanceStart, paidByWeek]);
+    return weeklyLedger(lifetime, paidByWeek, opening);
+  }, [members, srcQ.data, entriesQ.data, balanceOn, balanceStart, paidByWeek, opening]);
 
   // Newest week first, so its closing balance is the live running balance.
   const runningBalance = ledger.length ? ledger[0].closing : 0;
