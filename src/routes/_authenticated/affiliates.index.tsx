@@ -284,9 +284,10 @@ function AffiliatesPage() {
                 subtitle={r.active ? `${fmtMoney(r.price)} / conversion · ${r.pct > 0 ? `${r.pct}% guarantee` : "flat, no guarantee"}` : "Inactive"}
                 fields={[
                   { label: "Leads", value: <span className="num">{r.leads}</span> },
-                  { label: "FTDs", value: <span className="num">{r.activated}</span> },
+                  { label: "Valid", value: <span className="num">{r.valid}</span> },
+                  { label: "FTDs", value: <span className="num">{r.activated}{r.activationPct == null ? "" : ` (${r.activationPct}%)`}</span> },
                   { label: "Guaranteed", value: <span className="num">{r.guaranteed}</span> },
-                  { label: "Reported", value: <span className="num">{r.reported}</span> },
+                  { label: "Reported", value: <span className="num">{r.reported}{r.reportedPct == null ? "" : ` (${r.reportedPct}%)`}</span> },
                   { label: "Owed", value: <span className="num">{fmtMoney(r.owed)}</span> },
                   { label: "Paid", value: <span className="num text-warning">−{fmtMoney(r.paid)}</span> },
                   { label: r.balance < 0 ? "Credit" : "Balance", value: <span className={cn("num font-medium", r.balance > 0 ? "text-destructive" : "text-success")}>{fmtMoney(Math.abs(r.balance))}</span> },
