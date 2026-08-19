@@ -14,9 +14,9 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { deliveryPct, sumWeeks, weeklyGuarantee, mergeWeekRows, affiliateNet, type LeadEntryLike, type WeekRow } from "@/lib/affiliate-balance";
+import { deliveryPct, sumWeeks, weeklyGuarantee, mergeWeekRows, affiliateNet, balanceActive, openingBalance, type LeadEntryLike, type WeekRow } from "@/lib/affiliate-balance";
 
-type AffRow = { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number; group_key: string | null };
+type AffRow = { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number; group_key: string | null; balance_start_date: string | null; opening_balance: number | null; balance_activated_at: string | null };
 
 
 export const Route = createFileRoute("/_authenticated/affiliates/$id")({
@@ -59,7 +59,7 @@ function AffiliateStatementPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("affiliates")
-        .select("id,name,active,cpa_rate,guarantee_value,group_key")
+        .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at")
         .eq("id", id)
         .single();
       if (error) throw error;
@@ -67,7 +67,7 @@ function AffiliateStatementPage() {
       if (!self.group_key?.trim()) return { self, members: [self] };
       const { data: rest, error: e2 } = await supabase
         .from("affiliates")
-        .select("id,name,active,cpa_rate,guarantee_value,group_key")
+        .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at")
         .eq("group_key", self.group_key)
         .order("name");
       if (e2) throw e2;
@@ -103,8 +103,16 @@ function AffiliateStatementPage() {
     },
   });
 
+  // Money only counts from the day the balance was activated — the app took over
+  // part-way through the year, so earlier weeks and payouts are never re-derived.
+  const balanceOn = balanceActive(groupQ.data?.self);
+  const balanceStart = groupQ.data?.self?.balance_start_date ?? null;
+  const opening = openingBalance(groupQ.data?.self);
+  const inMoneyRange = (d: string) =>
+    balanceOn && inRange(d) && (!balanceStart || d >= balanceStart);
+
   const weeks = useMemo(() => {
-    if (!members.length) return [];
+    if (!members.length || !balanceOn) return [];
     const srcByName = new Map<string, string>();
     for (const s of srcQ.data ?? []) srcByName.set(s.name.trim().toLowerCase(), s.id);
     // Each member settles on its own terms; weeks are then merged for the group.
@@ -112,12 +120,12 @@ function AffiliateStatementPage() {
       members.map((m) => {
         const srcId = srcByName.get(m.name.trim().toLowerCase());
         const mine = (entriesQ.data ?? []).filter(
-          (e) => e.source_id && e.source_id === srcId && inRange(e.entry_date),
+          (e) => e.source_id && e.source_id === srcId && inMoneyRange(e.entry_date),
         );
         return weeklyGuarantee(m, mine);
       }),
     );
-  }, [members, srcQ.data, entriesQ.data, activeRange]);
+  }, [members, srcQ.data, entriesQ.data, activeRange, balanceOn, balanceStart]);
 
   const weekTotals = useMemo(() => sumWeeks(weeks), [weeks]);
   const { pageItems: weekPage, ...pgWeeks } = usePagination(weeks, 30);
@@ -178,7 +186,7 @@ function AffiliateStatementPage() {
       m.withdrawals += Number(w.amount || 0);
       map.set(k, m);
     }
-    for (const e of (expQ.data ?? []).filter((x) => inRange(x.date))) {
+    for (const e of (expQ.data ?? []).filter((x) => inMoneyRange(x.date))) {
       const k = monthKey(e.date);
       const m = map.get(k) ?? blank();
       m.paid += Number(e.amount || 0);
@@ -210,9 +218,9 @@ function AffiliateStatementPage() {
 
   const transactions = useMemo(() => {
     const withs = (withQ.data ?? []).filter((x) => inRange(x.date)).map((w) => ({ type: "Withdrawal" as const, date: w.date, amount: -Number(w.amount || 0), label: w.notes || "Withdrawal", id: w.id }));
-    const exps = (expQ.data ?? []).filter((x) => inRange(x.date)).map((e) => ({ type: "Paid to affiliate" as const, date: e.date, amount: -Number(e.amount || 0), label: e.notes || "Affiliate payout", id: e.id }));
+    const exps = (expQ.data ?? []).filter((x) => inMoneyRange(x.date)).map((e) => ({ type: "Paid to affiliate" as const, date: e.date, amount: -Number(e.amount || 0), label: e.notes || "Affiliate payout", id: e.id }));
     return [...withs, ...exps].sort((a, b) => b.date.localeCompare(a.date));
-  }, [withQ.data, expQ.data, activeRange]);
+  }, [withQ.data, expQ.data, activeRange, balanceOn, balanceStart]);
   const { pageItems: txPage, ...pgTx } = usePagination(transactions, 30);
 
   const revenueMonthly = useMemo(() => {
