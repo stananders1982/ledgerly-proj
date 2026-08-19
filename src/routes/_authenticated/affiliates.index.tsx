@@ -289,6 +289,7 @@ function AffiliatesPage() {
                   { label: "Guaranteed", value: <span className="num">{r.guaranteed}</span> },
                   { label: "Reported", value: <span className="num">{r.reported}</span> },
                   { label: "Owed", value: <span className="num">{fmtMoney(r.owed)}</span> },
+                  { label: "Shortfall cost", value: <span className={cn("num", r.shortfallCost > 0 && "text-destructive")}>{fmtMoney(r.shortfallCost)}</span> },
                   { label: "Paid", value: <span className="num text-warning">−{fmtMoney(r.paid)}</span> },
                   { label: r.balance < 0 ? "Credit" : "Balance", value: <span className={cn("num font-medium", r.balance > 0 ? "text-destructive" : "text-success")}>{fmtMoney(Math.abs(r.balance))}</span> },
                 ]}
