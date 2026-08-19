@@ -24,29 +24,29 @@ const aff = (over: Partial<AffiliateTerms> = {}): AffiliateTerms => ({
 
 describe("week windows", () => {
   it("snaps any day to its Monday", () => {
-    // 2026-08-07 is a Friday.
-    expect(weekStartOf("2026-08-07")).toBe("2026-08-03");
-    expect(weekStartOf("2026-08-03")).toBe("2026-08-03");
+    // 2026-07-10 is a Friday.
+    expect(weekStartOf("2026-07-10")).toBe("2026-07-06");
+    expect(weekStartOf("2026-07-06")).toBe("2026-07-06");
     // Sunday belongs to the week that started the previous Monday.
-    expect(weekStartOf("2026-08-09")).toBe("2026-08-03");
+    expect(weekStartOf("2026-07-12")).toBe("2026-07-06");
   });
 
   it("closes the window on Sunday", () => {
-    expect(weekEndOf("2026-08-03")).toBe("2026-08-09");
+    expect(weekEndOf("2026-07-06")).toBe("2026-07-12");
   });
 });
 
 describe("weekly guarantee settlement", () => {
   it("settles each Mon–Sun week on its own", () => {
     const rows = weeklyGuarantee(aff(), [
-      { entry_date: "2026-08-03", received: 50, reported: 5, activated: 4 },
-      { entry_date: "2026-08-09", received: 50, reported: 5, activated: 3 }, // same week (Sunday)
-      { entry_date: "2026-08-10", received: 100, reported: 10, activated: 7 }, // next week
+      { entry_date: "2026-07-06", received: 50, reported: 5, activated: 4 },
+      { entry_date: "2026-07-12", received: 50, reported: 5, activated: 3 }, // same week (Sunday)
+      { entry_date: "2026-07-13", received: 100, reported: 10, activated: 7 }, // next week
     ]);
     expect(rows).toHaveLength(2);
 
-    const w1 = rows.find((r) => r.weekStart === "2026-08-03")!;
-    expect(w1.weekEnd).toBe("2026-08-09");
+    const w1 = rows.find((r) => r.weekStart === "2026-07-06")!;
+    expect(w1.weekEnd).toBe("2026-07-12");
     expect(w1.leads).toBe(100);
     expect(w1.activated).toBe(7);
     expect(w1.guaranteed).toBe(20); // 100 x 20%
@@ -57,12 +57,12 @@ describe("weekly guarantee settlement", () => {
     expect(w1.status).toBe("short");
 
     // Newest week first.
-    expect(rows[0]!.weekStart).toBe("2026-08-10");
+    expect(rows[0]!.weekStart).toBe("2026-07-13");
   });
 
   it("caps payable at the guarantee and books the excess as savings", () => {
     const [w] = weeklyGuarantee(aff(), [
-      { entry_date: "2026-08-03", received: 100, reported: 30, activated: 25 },
+      { entry_date: "2026-07-06", received: 100, reported: 30, activated: 25 },
     ]);
     expect(w!.guaranteed).toBe(20);
     expect(w!.activated).toBe(25);
@@ -75,7 +75,7 @@ describe("weekly guarantee settlement", () => {
 
   it("marks a week met when reported equals the guarantee", () => {
     const [w] = weeklyGuarantee(aff(), [
-      { entry_date: "2026-08-03", received: 100, reported: 20, activated: 18 },
+      { entry_date: "2026-07-06", received: 100, reported: 20, activated: 18 },
     ]);
     expect(w!.status).toBe("met");
     expect(w!.savings).toBe(0);
@@ -84,7 +84,7 @@ describe("weekly guarantee settlement", () => {
 
   it("bills every reported conversion when the guarantee is 0% (flat CPA)", () => {
     const [w] = weeklyGuarantee(aff({ guarantee_value: 0, cpa_rate: 300 }), [
-      { entry_date: "2026-08-03", received: 40, reported: 7, activated: 10 },
+      { entry_date: "2026-07-06", received: 40, reported: 7, activated: 10 },
     ]);
     expect(w!.guaranteed).toBe(0);
     expect(w!.activated).toBe(10);
@@ -97,8 +97,8 @@ describe("weekly guarantee settlement", () => {
 
   it("totals weeks and reports the delivery rate", () => {
     const rows = weeklyGuarantee(aff(), [
-      { entry_date: "2026-08-03", received: 100, reported: 10, activated: 8 },
-      { entry_date: "2026-08-10", received: 100, reported: 30, activated: 25 },
+      { entry_date: "2026-07-06", received: 100, reported: 10, activated: 8 },
+      { entry_date: "2026-07-13", received: 100, reported: 30, activated: 25 },
     ]);
     const t = sumWeeks(rows);
     expect(t.leads).toBe(200);
@@ -113,11 +113,64 @@ describe("weekly guarantee settlement", () => {
   });
 });
 
+describe("guarantee floor (weeks from 2026-08-17)", () => {
+  it("pays the guarantee when the affiliate under-delivers", () => {
+    const [w] = weeklyGuarantee(aff({ cpa_rate: 200, guarantee_value: 10 }), [
+      { entry_date: "2026-08-17", received: 100, reported: 8, activated: 8 },
+    ]);
+    expect(w!.guaranteed).toBe(10);
+    expect(w!.payable).toBe(10);
+    expect(w!.cost).toBe(2000);
+    expect(w!.shortfall).toBe(2);
+    expect(w!.shortfallCost).toBe(400);
+    expect(w!.savings).toBe(0);
+    expect(w!.status).toBe("short");
+  });
+
+  it("pays every reported conversion when the guarantee is beaten", () => {
+    const [w] = weeklyGuarantee(aff({ cpa_rate: 200, guarantee_value: 10 }), [
+      { entry_date: "2026-08-17", received: 100, reported: 13, activated: 13 },
+    ]);
+    expect(w!.payable).toBe(13);
+    expect(w!.cost).toBe(2600);
+    expect(w!.savings).toBe(0);
+    expect(w!.shortfallCost).toBe(0);
+    expect(w!.status).toBe("over");
+  });
+
+  it("bills exactly the guarantee when delivery matches", () => {
+    const [w] = weeklyGuarantee(aff({ cpa_rate: 200, guarantee_value: 10 }), [
+      { entry_date: "2026-08-17", received: 100, reported: 10, activated: 10 },
+    ]);
+    expect(w!.cost).toBe(2000);
+    expect(w!.shortfallCost).toBe(0);
+    expect(w!.status).toBe("met");
+  });
+
+  it("leaves flat (0% guarantee) affiliates unchanged", () => {
+    const [w] = weeklyGuarantee(aff({ guarantee_value: 0, cpa_rate: 300 }), [
+      { entry_date: "2026-08-17", received: 40, reported: 7, activated: 10 },
+    ]);
+    expect(w!.payable).toBe(7);
+    expect(w!.cost).toBe(2100);
+    expect(w!.shortfallCost).toBe(0);
+  });
+
+  it("does not touch weeks before the cutoff", () => {
+    const [w] = weeklyGuarantee(aff({ cpa_rate: 200, guarantee_value: 10 }), [
+      { entry_date: "2026-08-10", received: 100, reported: 8, activated: 8 },
+    ]);
+    expect(w!.payable).toBe(8); // old capped math
+    expect(w!.cost).toBe(1600);
+    expect(w!.shortfallCost).toBe(0);
+  });
+});
+
 describe("billing group", () => {
   it("shares one balance across sources with the same group key", () => {
     const crg = aff({ id: "a1", name: "FTDhubCRG", cpa_rate: 250, guarantee_value: 20 });
     const flat = aff({ id: "a2", name: "FTDhub-FLAT", cpa_rate: 200, guarantee_value: 0 });
-    const entries = [{ entry_date: "2026-08-03", received: 100, reported: 30, activated: 25 }];
+    const entries = [{ entry_date: "2026-07-06", received: 100, reported: 30, activated: 25 }];
 
     const merged = mergeWeekRows([
       weeklyGuarantee(crg, entries),
@@ -137,10 +190,10 @@ describe("billing group", () => {
 
   it("keeps distinct weeks separate when merging", () => {
     const merged = mergeWeekRows([
-      weeklyGuarantee(aff(), [{ entry_date: "2026-08-03", received: 10, reported: 2, activated: 1 }]),
-      weeklyGuarantee(aff({ id: "a2" }), [{ entry_date: "2026-08-10", received: 10, reported: 2, activated: 1 }]),
+      weeklyGuarantee(aff(), [{ entry_date: "2026-07-06", received: 10, reported: 2, activated: 1 }]),
+      weeklyGuarantee(aff({ id: "a2" }), [{ entry_date: "2026-07-13", received: 10, reported: 2, activated: 1 }]),
     ]);
-    expect(merged.map((w) => w.weekStart)).toEqual(["2026-08-10", "2026-08-03"]);
+    expect(merged.map((w) => w.weekStart)).toEqual(["2026-07-13", "2026-07-06"]);
   });
 });
 
