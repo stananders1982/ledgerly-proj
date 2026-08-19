@@ -22,13 +22,13 @@ export function getRange(
     case "today":
       return { start, end, label: "Today" };
     case "week": {
+      // Current settlement week: Monday → today. Never spill into last week.
       const s = new Date(start);
-      s.setDate(s.getDate() - 6);
-      // Never spill into the previous month — clamp to the 1st.
-      const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
-      const clamped = s.getTime() < monthStart.getTime() ? monthStart : s;
-      return { start: clamped, end, label: "Last 7 days" };
+      const dow = (s.getDay() + 6) % 7; // 0 = Monday
+      s.setDate(s.getDate() - dow);
+      return { start: s, end, label: "This week" };
     }
+
     case "month": {
       const s = new Date(start.getFullYear(), start.getMonth(), 1);
       return { start: s, end, label: "This month" };
