@@ -29,7 +29,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
-import { isStd, isoDay, isAgentTeam } from "@/lib/rules";
+import { stdDepositsFor, isoDay, isAgentTeam } from "@/lib/rules";
 import { SavedViews } from "@/components/saved-views";
 import { CsvImportDialog } from "@/components/csv-import";
 
@@ -82,6 +82,7 @@ function LeadsPage() {
   const [customStart, setCustomStart] = usePersistedState<string>("leads:range-start", "");
   const [customEnd, setCustomEnd] = usePersistedState<string>("leads:range-end", "");
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
+  const [stdOpen, setStdOpen] = useState(false);
   // Weekly and monthly views default to one row per affiliate instead of a row per day.
   const [groupBySource, setGroupBySource] = useState(range === "week" || range === "month");
   useEffect(() => {
@@ -384,21 +385,31 @@ function LeadsPage() {
 
 
 
-  // STD: any deposit recorded on/after the client's activation date. Counted in
-  // the period the deposit was made (the activation itself may be older).
-  const stdCount = useMemo(() => {
+  // STD: the second deposit of a client, counted in the period the deposit was
+  // made (the activation itself may be older).
+  const stdDetails = useMemo(() => {
     const win = { start: isoDay(activeRange.start), end: isoDay(activeRange.end) };
     const allowedEntries = sourceFilter.length
       ? new Set(allRows.filter((r) => sourceFilter.includes(r.source_id ?? "")).map((r) => r.id))
       : null;
     const deposits = revenueQ.data ?? [];
-    let n = 0;
+    const out: { name: string; activationDate: string; depositDate: string; amount: number }[] = [];
     for (const a of activationsQ.data ?? []) {
-      if (allowedEntries && !allowedEntries.has(a.entry_id)) continue;
-      if (isStd(a as any, deposits, win)) n += 1;
+      if (allowedEntries && !allowedEntries.has((a as any).entry_id)) continue;
+      const [dep] = stdDepositsFor(a as any, deposits as any, win);
+      if (!dep) continue;
+      out.push({
+        name: (a as any).lead_name ?? (dep as any).customer_name ?? "—",
+        activationDate: (a as any).activation_date ?? "",
+        depositDate: (dep as any).date ?? "",
+        amount: Number((dep as any).amount ?? 0),
+      });
     }
-    return n;
+    return out.sort((x, y) => (x.depositDate < y.depositDate ? 1 : -1));
   }, [activationsQ.data, revenueQ.data, activeRange, allRows, sourceFilter]);
+
+  const stdCount = stdDetails.length;
+
 
   const stats = useMemo(() => {
     let received = 0, invalid = 0, activated = 0, reported = 0, cplCost = 0, cpaCost = 0, cpaSavings = 0;
@@ -705,6 +716,42 @@ function LeadsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <Dialog open={stdOpen} onOpenChange={setStdOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Second time deposits ({stdCount})</DialogTitle>
+          </DialogHeader>
+          {stdDetails.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No STDs in this period.</p>
+          ) : (
+            <div className="max-h-[60vh] overflow-y-auto scroll-slim">
+              <table className="w-full text-sm">
+                <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th className="py-2 px-2 text-left">Client</th>
+                    <th className="py-2 px-2 text-left">Activated</th>
+                    <th className="py-2 px-2 text-left">STD date</th>
+                    <th className="py-2 px-2 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stdDetails.map((s, i) => (
+                    <tr key={`${s.name}-${i}`} className="border-b border-border/60">
+                      <td className="py-2 px-2">{s.name}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{s.activationDate || "—"}</td>
+                      <td className="py-2 px-2">{s.depositDate}</td>
+                      <td className="py-2 px-2 text-right">{fmtMoney(s.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+
+
       {issue && (
         <IssueFilterBanner
           issue={issue}
@@ -837,7 +884,13 @@ function LeadsPage() {
         <StatCard label="Received" value={String(stats.received)} hint="Valid leads — invalid ones are excluded" />
         <StatCard label="Invalid" value={String(stats.invalid)} tone={stats.invalid ? "negative" : undefined} hint="Not counted in totals, rates or cost" />
         <StatCard label="Activated (FTD)" value={String(activatedInRange)} tone="positive" hint="Counted by activation date" />
-        <StatCard label="STD" value={String(stdCount)} tone="positive" hint="Clients who deposited again in this period" />
+        <StatCard
+          label="STD"
+          value={String(stdCount)}
+          tone="positive"
+          hint={stdCount ? "Click to see who deposited again" : "Clients who deposited again in this period"}
+          onClick={stdCount ? () => setStdOpen(true) : undefined}
+        />
         <StatCard
           label="Allocated"
           value={`${allocated} / ${activatedInRange}`}

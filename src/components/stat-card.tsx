@@ -9,13 +9,23 @@ interface Props {
   icon?: LucideIcon;
   tone?: "default" | "positive" | "negative";
   hint?: ReactNode;
+  onClick?: () => void;
 }
 
 
-export function StatCard({ label, value, delta, icon: Icon, tone = "default", hint }: Props) {
+export function StatCard({ label, value, delta, icon: Icon, tone = "default", hint, onClick }: Props) {
   const trendUp = (delta ?? 0) >= 0;
   return (
-    <div className="card-surface p-4 sm:p-5 flex flex-col gap-2 sm:gap-3 relative overflow-hidden">
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      className={cn(
+        "card-surface p-4 sm:p-5 flex flex-col gap-2 sm:gap-3 relative overflow-hidden",
+        onClick && "cursor-pointer transition-colors hover:bg-accent/40",
+      )}
+    >
       <div className="flex items-start justify-between">
         <span className="text-[11px] sm:text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
         {Icon && (

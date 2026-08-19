@@ -221,10 +221,9 @@ export function depositMatchesActivation(dep: DepositLike, row: ActivationDatedL
 }
 
 /**
- * STD rule: the activation balance is the FTD, so the *second* deposit — the
- * first one recorded on or after the activation date — is the STD, and it only
- * counts when it lands in the same calendar month as the activation.
- * Later deposits (3rd, 4th, ...) are ignored.
+ * STD rule: the *second* recorded deposit on/after the activation date is the
+ * STD (the first one is the FTD deposit itself). It only counts when it lands
+ * in the same calendar month as the activation. Later deposits are ignored.
  * Optionally restrict to an STD dated inside a window (YYYY-MM-DD strings).
  */
 export function stdDepositsFor<T extends DepositLike>(
@@ -236,7 +235,7 @@ export function stdDepositsFor<T extends DepositLike>(
   const matches = deposits
     .filter((d) => !!d.date && (!act || d.date! >= act) && depositMatchesActivation(d, row))
     .sort((a, b) => (a.date! < b.date! ? -1 : a.date! > b.date! ? 1 : 0));
-  const second = matches[0];
+  const second = matches[1];
   if (!second) return [];
   // Must be in the same calendar month as the activation (FTD).
   if (act && second.date!.slice(0, 7) !== act.slice(0, 7)) return [];
@@ -244,6 +243,7 @@ export function stdDepositsFor<T extends DepositLike>(
   if (window?.end && second.date! > window.end) return [];
   return [second];
 }
+
 
 /** True when the client has a qualifying second deposit. */
 export function isStd(
