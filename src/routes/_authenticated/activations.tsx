@@ -212,6 +212,14 @@ function ActivationsPage() {
   const withdrawalRowsFor = (name?: string | null) =>
     (withdrawalsQ.data ?? []).filter((w) => matchName(w.customer_name, name));
 
+  /** Total withdrawn for a client — subtracted from the shown balance. */
+  const withdrawalsFor = (name?: string | null) =>
+    withdrawalRowsFor(name).reduce((a, w) => a + Number(w.amount || 0), 0);
+
+  /** Base balance + deposits - withdrawals. */
+  const netBalance = (r: { id?: string | null; lead_name?: string | null; balance?: number | string | null }) =>
+    Number(r.balance || 0) + depositsFor(r.lead_name, r.id) - withdrawalsFor(r.lead_name);
+
   /** Deposits made on/after activation — every one of these is an STD. */
   const stdDepositsForRow = (r: Row) => stdDepositsFor(r as any, revenueQ.data ?? []);
   const stdCountFor = (r: Row) => stdDepositsForRow(r).length;
@@ -331,7 +339,7 @@ function ActivationsPage() {
     date: (r) => actDate(r) ?? "",
     lead: (r) => r.lead_name ?? "",
     source: (r) => r.daily_lead_entries?.lead_sources?.name ?? "",
-    balance: (r) => Number(r.balance || 0) + depositsFor(r.lead_name, r.id),
+    balance: (r) => netBalance(r),
     potential: (r) => ({ low: 1, mid: 2, high: 3 } as any)[r.potential ?? ""] ?? 0,
     conversion: (r) => r.conversion_employee_id ?? "",
     retention: (r) => r.employee_id ?? "",
@@ -342,7 +350,7 @@ function ActivationsPage() {
   const navIndex = viewing ? pageItems.findIndex((r) => r.id === viewing.id) : -1;
 
   const totalBalance = rows.reduce(
-    (a, r) => a + Number(r.balance || 0) + depositsFor(r.lead_name, r.id),
+    (a, r) => a + netBalance(r),
     0,
   );
 
@@ -622,7 +630,7 @@ function ActivationsPage() {
                 subtitle={actDate(r) ? fmtDate(actDate(r)!) : undefined}
                 onClick={() => setViewing(r)}
                 fields={[
-                  { label: "Balance", value: <span className="num">{fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name, r.id))}</span> },
+                  { label: "Balance", value: <span className="num">{fmtMoney(netBalance(r))}</span> },
                   { label: "Potential", value: <PotentialBadge value={r.potential} /> },
                   { label: "Tags", value: <TagBadges tags={r.tags} /> },
                   { label: "Source", value: r.daily_lead_entries?.lead_sources?.name ?? "—" },
@@ -727,10 +735,12 @@ function ActivationsPage() {
                   )}
                   {tb.show("balance") && (
                   <td className="py-2.5 px-2">
-                    {fmtMoney(Number(r.balance || 0) + depositsFor(r.lead_name, r.id))}
-                    {depositsFor(r.lead_name, r.id) > 0 && (
+                    {fmtMoney(netBalance(r))}
+                    {(depositsFor(r.lead_name, r.id) > 0 || withdrawalsFor(r.lead_name) > 0) && (
                       <span className="ml-2 text-xs text-muted-foreground">
-                        (base {fmtMoney(Number(r.balance || 0))} + {fmtMoney(depositsFor(r.lead_name, r.id))})
+                        (base {fmtMoney(Number(r.balance || 0))}
+                        {depositsFor(r.lead_name, r.id) > 0 && <> + {fmtMoney(depositsFor(r.lead_name, r.id))}</>}
+                        {withdrawalsFor(r.lead_name) > 0 && <> − {fmtMoney(withdrawalsFor(r.lead_name))}</>})
                       </span>
                     )}
                   </td>
@@ -790,8 +800,9 @@ function ActivationsPage() {
           const wds = withdrawalRowsFor(cur.lead_name);
           const depositTotal = deposits.reduce((a, d) => a + Number(d.amount || 0), 0);
           const wdTotal = wds.reduce((a, d) => a + Number(d.amount || 0), 0);
-          const effective = Number(cur.balance || 0) + depositTotal;
-          const qualifies = qualifiesAsFtd(cur, effective, settings);
+          const grossBalance = Number(cur.balance || 0) + depositTotal;
+          const effective = grossBalance - wdTotal;
+          const qualifies = qualifiesAsFtd(cur, grossBalance, settings);
           return (
             <SheetContent
               side="right"
