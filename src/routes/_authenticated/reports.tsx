@@ -516,6 +516,25 @@ function ReportsPage() {
     }).sort((a, b) => b.revenue - a.revenue);
   }, [data.revenue, data.employees, stdActQ.data, stdRevQ.data, start, end]);
 
+  /** Client-level detail behind each agent's "Late FTDs" number. */
+  const lateFtdRowsByEmp = useMemo(() => {
+    const m = new Map<string, any[]>();
+    for (const a of ((stdActQ.data ?? []) as any[])) {
+      const q = a.qualified_at ? String(a.qualified_at).slice(0, 10) : null;
+      if (!q || q < start || q > end) continue;
+      if (!a.conversion_employee_id || !isLateRetentionFtd(a)) continue;
+      const list = m.get(a.conversion_employee_id) ?? [];
+      list.push(a);
+      m.set(a.conversion_employee_id, list);
+    }
+    for (const list of m.values()) list.sort((x, y) => String(y.qualified_at).localeCompare(String(x.qualified_at)));
+    return m;
+  }, [stdActQ.data, start, end]);
+
+  const [lateDetail, setLateDetail] = useState<{ name: string; rows: any[] } | null>(null);
+
+
+
   const playerValue = useMemo(() => {
     const entries = (pvLeadsQ.data ?? []) as any[];
     const rev = (pvRevQ.data ?? []) as any[];
