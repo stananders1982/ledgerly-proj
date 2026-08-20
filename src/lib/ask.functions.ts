@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { depositMatchesActivation, stdDepositsFor } from "@/lib/rules";
+import { computeAffiliateBalances } from "@/lib/affiliate-balance";
+
 
 /**
  * Natural-language question answering over the caller's own business data.
@@ -34,7 +36,10 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       ? { start: data.startIso, end: data.endIso ?? new Date().toISOString().slice(0, 10) }
       : null;
 
-    const [revenue, expenses, withdrawals, activations, leads, sources, employees, categories, affiliates] =
+    const [
+      revenue, expenses, withdrawals, activations, leads, sources, employees, categories, affiliates,
+      affTerms, allEntries, affPayments,
+    ] =
       await Promise.all([
         supabase.from("revenue").select("date,amount,customer_name,employee_id,employee_id_2,split_pct,affiliate_id,method,activation_id").gte("date", sinceIso),
         supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
@@ -52,7 +57,26 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         // non-admin users can attribute deposits without exposing affiliate
         // contact or commercial fields.
         supabase.rpc("list_affiliates_directory"),
+        // Affiliate balances: commercial terms, the full lead history since the
+        // charging start date, and payments recorded as affiliate expenses.
+        // Non-admin roles may not see these — balances are simply omitted then.
+        supabase
+          .from("affiliates")
+          .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at"),
+        supabase.from("daily_lead_entries").select("entry_date,received,invalid,reported,activated,source_id"),
+        supabase.from("expenses").select("affiliate_id,date,amount").not("affiliate_id", "is", null),
       ]);
+
+    // Running ledger balance per affiliate (positive = we owe them).
+    const affiliateBalances = affTerms.error
+      ? null
+      : computeAffiliateBalances(
+          (affTerms.data ?? []) as any[],
+          ((sources.data ?? []) as any[]).map((s: any) => ({ id: s.id, name: s.name })),
+          (allEntries.data ?? []) as any[],
+          (affPayments.data ?? []) as any[],
+        );
+
 
     const month = (d: string | null) => (d ?? "").slice(0, 7);
     const nameOf = (rows: any[] | null, id: string | null | undefined) =>
@@ -236,7 +260,14 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         bucket(stdRows, (r) => `${month(r.date)} | ${r.agent}`, (r) => r.amount),
       ),
 
-
+      // Affiliate running balances (whole ledger since each charging start
+      // date). Positive = we owe the affiliate, negative = we hold credit.
+      // null when the caller is not allowed to see affiliate terms.
+      affiliateBalances: affiliateBalances
+        ? Object.fromEntries(
+            affiliateBalances.map((b) => [b.name, Math.round(b.balance)]),
+          )
+        : null,
 
       totals: {
         deposits: Math.round((revenue.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0)),
@@ -284,7 +315,12 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "A question about conversion concerns ONLY team C agents. Exclude managers from agent rankings. " +
               "For 'who is leading', rank by activations by default; rank by qualified FTDs only when the question is about commission or pay, and say so. " +
 
+              "AFFILIATE BALANCES: affiliateBalances is each affiliate's (or billing group's) running ledger balance in USD — " +
+              "positive means we owe the affiliate, negative means we are in credit with them. Balances are lifetime running " +
+              "figures since each affiliate's charging start date, not limited to the selected period. Affiliates whose charging " +
+              "has not been activated are not listed. If affiliateBalances is null, say balances are not visible to this user. " +
               "If the snapshot does not contain the answer, say exactly what is missing instead of guessing." }],
+
 
           },
           { role: "user", content: [{ type: "input_text", text: `Snapshot:\n${JSON.stringify(snapshot)}\n\nQuestion: ${data.question}` }] },
