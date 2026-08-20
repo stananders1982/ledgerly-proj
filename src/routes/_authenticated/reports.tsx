@@ -1152,9 +1152,16 @@ function ReportsPage() {
                 key: "lateFtd",
                 label: "Late FTDs",
                 numeric: true,
-                render: (v) =>
+                render: (v, r) =>
                   Number(v) > 0 ? (
-                    <span className="text-warning" title="Qualified only after a retention deposit in a later month">{v}</span>
+                    <button
+                      type="button"
+                      className="text-warning underline underline-offset-2 hover:opacity-80"
+                      title="Low-potential clients that only qualified after a retention deposit — click for client details"
+                      onClick={() => setLateDetail({ name: r.name, rows: lateFtdRowsByEmp.get(r.id) ?? [] })}
+                    >
+                      {v}
+                    </button>
                   ) : (
                     0
                   ),
@@ -1168,6 +1175,52 @@ function ReportsPage() {
             rows={employeesRpt.map((e, i) => ({ ...e, rank: i + 1 }))}
             searchable
           />
+
+          <Dialog open={!!lateDetail} onOpenChange={(o) => !o && setLateDetail(null)}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Late FTDs — {lateDetail?.name}</DialogTitle>
+                <DialogDescription>
+                  Low-potential clients activated earlier that only became valid FTDs after a retention deposit in a later month.
+                </DialogDescription>
+              </DialogHeader>
+              {(lateDetail?.rows.length ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground">No late FTDs in this period.</p>
+              ) : (
+                <div className="overflow-x-auto scroll-slim max-h-[420px]">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-card">
+                      <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                        <th className="py-2 pr-3">Client</th>
+                        <th className="py-2 pr-3">Activated</th>
+                        <th className="py-2 pr-3">Qualified</th>
+                        <th className="py-2 pr-3">Potential</th>
+                        <th className="py-2">Late by</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(lateDetail?.rows ?? []).map((a: any) => (
+                        <tr key={a.id} className="border-b border-border/50">
+                          <td className="py-2 pr-3">{a.lead_name || "—"}</td>
+                          <td className="py-2 pr-3 text-muted-foreground">{fmtDate(a.activation_date)}</td>
+                          <td className="py-2 pr-3">{fmtDate(a.qualified_at)}</td>
+                          <td className="py-2 pr-3 capitalize">{a.potential ?? "—"}</td>
+                          <td className="py-2">
+                            <LateFtdBadge
+                              activationDate={a.activation_date}
+                              qualifiedAt={a.qualified_at}
+                              months={monthsLate(a)}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
         </TabsContent>
 
         <TabsContent value="payouts">
