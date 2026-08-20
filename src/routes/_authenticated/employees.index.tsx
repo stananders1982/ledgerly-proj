@@ -234,7 +234,16 @@ function EmployeesPage() {
                 {pageItems.map((e: any) => (
                   <tr key={e.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={() => { setEditing(e); setOpen(true); }}>
-                    <td className="py-3 px-4 font-medium">{e.name}</td>
+                    <td className="py-3 px-4 font-medium">
+                      <Link
+                        to="/employees/$id"
+                        params={{ id: e.id }}
+                        onClick={(ev) => ev.stopPropagation()}
+                        className="text-primary hover:underline"
+                      >
+                        {e.name}
+                      </Link>
+                    </td>
                     <td className="py-3 px-4">{e.role || "—"}</td>
                     <td className="py-3 px-4">
                       <StatusBadge tone="info">{e.team ?? "C"}</StatusBadge>
@@ -252,7 +261,6 @@ function EmployeesPage() {
                     <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
                       <button type="button" className="text-primary hover:underline text-xs mr-3"
                         onClick={() => { setEditing(e); setOpen(true); }}>Edit</button>
-                      <Link to="/employees/$id" params={{ id: e.id }} className="text-primary hover:underline text-xs mr-3">View</Link>
                       <ConfirmDelete onConfirm={() => del.mutate(e.id)} label="Delete employee?" />
                     </td>
                   </tr>
