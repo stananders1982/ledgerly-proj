@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { depositMatchesActivation, stdDepositsFor } from "@/lib/rules";
+import { computeAffiliateBalances } from "@/lib/affiliate-balance";
+
 
 /**
  * Natural-language question answering over the caller's own business data.
