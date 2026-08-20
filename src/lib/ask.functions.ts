@@ -260,7 +260,14 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         bucket(stdRows, (r) => `${month(r.date)} | ${r.agent}`, (r) => r.amount),
       ),
 
-
+      // Affiliate running balances (whole ledger since each charging start
+      // date). Positive = we owe the affiliate, negative = we hold credit.
+      // null when the caller is not allowed to see affiliate terms.
+      affiliateBalances: affiliateBalances
+        ? Object.fromEntries(
+            affiliateBalances.map((b) => [b.name, Math.round(b.balance)]),
+          )
+        : null,
 
       totals: {
         deposits: Math.round((revenue.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0)),
