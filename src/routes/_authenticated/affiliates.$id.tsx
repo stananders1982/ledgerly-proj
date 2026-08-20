@@ -473,7 +473,35 @@ function AffiliateStatementPage() {
         </Card>
       </section>
 
+      {liveAlert && (
+        <div
+          className={cn(
+            "mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border p-4 text-sm",
+            liveAlert.level === "credit-low"
+              ? "border-amber-500/40 bg-amber-500/10"
+              : "border-rose-500/40 bg-rose-500/10",
+          )}
+        >
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <div className="font-medium">Balance is close to zero</div>
+              <div className="text-xs text-muted-foreground">
+                {liveAlert.message} Alert threshold {fmtMoney(liveAlert.threshold)}
+                {lastWeekCost ? ` · last week cost ${fmtMoney(lastWeekCost)}` : ""}.
+              </div>
+            </div>
+          </div>
+          {isAdmin && (
+            <Button size="sm" onClick={() => setPaying(true)}>
+              <Wallet className="h-3.5 w-3.5" /> Add payment
+            </Button>
+          )}
+        </div>
+      )}
+
       {!balanceOn ? (
+
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
           <span>Charging has not started for this affiliate, so no money is calculated.</span>
           {isAdmin && <Button size="sm" onClick={() => setActivating(true)}>Start charging</Button>}
