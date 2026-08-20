@@ -87,6 +87,20 @@ function WithdrawalsPage() {
     queryKey: ["revenue-min"],
     queryFn: async () => await fetchAll(() => supabase.from("revenue").select("id,customer_name,amount,date,employee_id,affiliate_id").order("date", { ascending: false })),
   });
+  // Clients that exist as activations but have no deposit yet still need to be
+  // selectable — a withdrawal can happen before any income was recorded.
+  const clientsQ = useQuery({
+    queryKey: ["activation-clients-min"],
+    queryFn: async () =>
+      await fetchAll(() =>
+        supabase
+          .from("daily_lead_activations")
+          .select("id,lead_name,activation_date,conversion_employee_id,employee_id")
+          .not("lead_name", "is", null)
+          .order("activation_date", { ascending: false }),
+      ),
+  });
+
 
   const empNameById = useMemo(
     () => new Map((empQ.data ?? []).map((e: any) => [e.id, e.name])),
@@ -201,6 +215,8 @@ function WithdrawalsPage() {
               employees={empQ.data ?? []}
               affiliates={affQ.data ?? []}
               revenues={revQ.data ?? []}
+              clients={clientsQ.data ?? []}
+
               onSubmit={(v) => upsert.mutate(v)}
               loading={upsert.isPending}
             />
@@ -357,8 +373,8 @@ function WithdrawalsPage() {
 }
 
 function WithdrawalDialog({
-  row, employees, affiliates, revenues, onSubmit, loading,
-}: { row: any; employees: any[]; affiliates: any[]; revenues: any[]; onSubmit: (v: any) => void; loading: boolean }) {
+  row, employees, affiliates, revenues, clients = [], onSubmit, loading,
+}: { row: any; employees: any[]; affiliates: any[]; revenues: any[]; clients?: any[]; onSubmit: (v: any) => void; loading: boolean }) {
   const [form, setForm] = useState(() => ({
     id: row?.id,
     revenue_id: row?.revenue_id ?? "",
@@ -394,18 +410,43 @@ function WithdrawalDialog({
     });
   };
 
+  // Only surface clients that have no deposit — deposits already appear above.
+  const clientsWithoutDeposit = useMemo(() => {
+    const seen = new Set(
+      revenues.map((r: any) => String(r.customer_name ?? "").trim().toLowerCase()).filter(Boolean),
+    );
+    const out: any[] = [];
+    for (const c of clients) {
+      const k = String(c.lead_name ?? "").trim().toLowerCase();
+      if (!k || seen.has(k)) continue;
+      seen.add(k);
+      out.push(c);
+    }
+    return out;
+  }, [clients, revenues]);
+
+  const onPickClient = (c: any) => {
+    setForm({
+      ...form,
+      revenue_id: "",
+      customer_name: c.lead_name ?? form.customer_name,
+      employee_id: c.conversion_employee_id ?? c.employee_id ?? form.employee_id,
+    });
+  };
+
+
   return (
     <DialogContent>
       <DialogHeader><DialogTitle>{row?.id ? "Edit withdrawal" : "Record withdrawal"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
-        <Field label="Linked sale (optional — autofills fields)">
+        <Field label="Client (optional — autofills fields)">
           <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
                 <span className="truncate">
                   {picked
                     ? `${picked.customer_name} · ${fmtMoney(picked.amount)} · ${fmtDate(picked.date)}`
-                    : "Search client…"}
+                    : form.customer_name || "Search client…"}
                 </span>
                 <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
               </Button>
@@ -414,8 +455,8 @@ function WithdrawalDialog({
               <Command filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}>
                 <CommandInput placeholder="Search client name…" />
                 <CommandList>
-                  <CommandEmpty>No matching deposit.</CommandEmpty>
-                  <CommandGroup>
+                  <CommandEmpty>No matching client.</CommandEmpty>
+                  <CommandGroup heading="Deposits">
                     <CommandItem value="none" onSelect={() => { onPickRevenue("_none"); setPickerOpen(false); }}>
                       — None —
                     </CommandItem>
@@ -432,6 +473,22 @@ function WithdrawalDialog({
                       </CommandItem>
                     ))}
                   </CommandGroup>
+                  {clientsWithoutDeposit.length > 0 && (
+                    <CommandGroup heading="Clients with no deposit yet">
+                      {clientsWithoutDeposit.map((c) => (
+                        <CommandItem
+                          key={c.id}
+                          value={`${c.lead_name ?? ""} ${fmtDate(c.activation_date)}`}
+                          onSelect={() => { onPickClient(c); setPickerOpen(false); }}
+                        >
+                          <span className="truncate">{c.lead_name}</span>
+                          <span className="ml-auto text-xs text-muted-foreground">
+                            activated {fmtDate(c.activation_date)}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
                 </CommandList>
               </Command>
             </PopoverContent>
