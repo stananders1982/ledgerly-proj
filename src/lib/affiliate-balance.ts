@@ -318,3 +318,39 @@ export function weeklyLedger(
   }
   return out.reverse();
 }
+
+/**
+ * Balance alert: warn when the running balance sits close to zero — either the
+ * credit paid ahead is nearly used up, or the balance is about to turn into
+ * (more) debt. Off unless the affiliate has an alert threshold set.
+ */
+export type BalanceAlert = {
+  level: "credit-low" | "owing";
+  balance: number;
+  threshold: number;
+  message: string;
+};
+
+export function balanceAlert(
+  aff: { alert_threshold?: number | string | null } & BalanceActivation,
+  balance: number,
+): BalanceAlert | null {
+  if (!balanceActive(aff)) return null;
+  const threshold = Number(aff.alert_threshold || 0);
+  if (!(threshold > 0)) return null;
+  if (Math.abs(balance) > threshold) return null;
+  const amount = Math.abs(round2(balance));
+  return balance < 0
+    ? {
+        level: "credit-low",
+        balance: round2(balance),
+        threshold,
+        message: `Only ${amount.toLocaleString()} credit left — top up before the balance turns into debt.`,
+      }
+    : {
+        level: "owing",
+        balance: round2(balance),
+        threshold,
+        message: `Balance is ${amount.toLocaleString()} owed and climbing — a top-up is due.`,
+      };
+}
