@@ -2,7 +2,7 @@ import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Building2, TrendingUp, Wallet, Download } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Building2, TrendingUp, Wallet, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -240,6 +240,14 @@ function AffiliateStatementPage() {
 
   // Newest week first, so its closing balance is the live running balance.
   const runningBalance = ledger.length ? ledger[0].closing : balanceOn ? opening : 0;
+
+  // Balance alert for this affiliate, plus the most recent week's cost so you
+  // can judge how long the remaining credit lasts.
+  const liveAlert = useMemo(
+    () => (groupQ.data?.self ? balanceAlert(groupQ.data.self, runningBalance) : null),
+    [groupQ.data, runningBalance],
+  );
+  const lastWeekCost = ledger.length ? ledger[0].cost : 0;
 
   const weeks = useMemo(
     () => ledger.filter((w) => inRange(w.weekStart) || inRange(w.weekEnd)),
