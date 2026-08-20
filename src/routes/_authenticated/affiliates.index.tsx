@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, ExternalLink, Percent, Settings2 } from "lucide-react";
+import { AlertTriangle, Building2, ExternalLink, Percent, Settings2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/page-header";
@@ -20,6 +20,7 @@ import { DataCard, DataCardList } from "@/components/data-card-list";
 import { EmptyState } from "@/components/empty-state";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { usePersistedState } from "@/hooks/use-persisted-state";
+import { useAffiliateBalanceAlerts } from "@/lib/affiliate-alerts";
 import {
   sourceToAffiliate,
   sumWeeks,
@@ -257,6 +258,12 @@ function AffiliatesPage() {
                     onClick={() => navigate({ to: "/affiliates/$id", params: { id: r.id } })}
                   >
                     <td className="py-3 px-4 font-medium">
+                      {alertById.get(r.id) && (
+                        <AlertTriangle
+                          className="mr-1.5 inline h-3.5 w-3.5 text-amber-500 align-[-2px]"
+                          aria-label="Balance near zero"
+                        />
+                      )}
                       {r.name}
                       {r.groupKey && (
                         <span className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
