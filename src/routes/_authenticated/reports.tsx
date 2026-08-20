@@ -241,7 +241,7 @@ function ReportsPage() {
   });
   const empQ = useQuery({
     queryKey: ["rpt-emp"],
-    queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,name,team,salary,commission_pct,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active,role,updated_at,created_at")),
+    queryFn: async () => await fetchAll(() => supabase.from("employees").select("id,name,team,salary,commission_pct,ftd_commission,commission_tier1_max,commission_tier1_pct,commission_tier2_max,commission_tier2_pct,commission_tier3_pct,active,role,updated_at,created_at")),
   });
   const recQ = useQuery({
     queryKey: ["rpt-recurring"],
