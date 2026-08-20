@@ -5,12 +5,14 @@ import { AlertTriangle, Bell, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { cn } from "@/lib/utils";
+import { useAffiliateBalanceAlerts } from "@/lib/affiliate-alerts";
 import {
   detectAnomalies, dismissAnomaly, readDismissed, daysAgo, isoDay,
   type Anomaly,
 } from "@/lib/anomalies";
 
 const sb = supabase as any;
+
 
 /**
  * Smart alerts: everything unusual about the last few days, in one strip.
