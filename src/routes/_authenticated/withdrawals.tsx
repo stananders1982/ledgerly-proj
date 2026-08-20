@@ -414,14 +414,14 @@ function WithdrawalDialog({
     <DialogContent>
       <DialogHeader><DialogTitle>{row?.id ? "Edit withdrawal" : "Record withdrawal"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
-        <Field label="Linked sale (optional — autofills fields)">
+        <Field label="Client (optional — autofills fields)">
           <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
                 <span className="truncate">
                   {picked
                     ? `${picked.customer_name} · ${fmtMoney(picked.amount)} · ${fmtDate(picked.date)}`
-                    : "Search client…"}
+                    : form.customer_name || "Search client…"}
                 </span>
                 <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
               </Button>
@@ -430,8 +430,8 @@ function WithdrawalDialog({
               <Command filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}>
                 <CommandInput placeholder="Search client name…" />
                 <CommandList>
-                  <CommandEmpty>No matching deposit.</CommandEmpty>
-                  <CommandGroup>
+                  <CommandEmpty>No matching client.</CommandEmpty>
+                  <CommandGroup heading="Deposits">
                     <CommandItem value="none" onSelect={() => { onPickRevenue("_none"); setPickerOpen(false); }}>
                       — None —
                     </CommandItem>
@@ -448,6 +448,24 @@ function WithdrawalDialog({
                       </CommandItem>
                     ))}
                   </CommandGroup>
+                  {clientsWithoutDeposit.length > 0 && (
+                    <CommandGroup heading="Clients with no deposit yet">
+                      {clientsWithoutDeposit.map((c) => (
+                        <CommandItem
+                          key={c.id}
+                          value={`${c.lead_name ?? ""} ${fmtDate(c.activation_date)}`}
+                          onSelect={() => { onPickClient(c); setPickerOpen(false); }}
+                        >
+                          <span className="truncate">{c.lead_name}</span>
+                          <span className="ml-auto text-xs text-muted-foreground">
+                            activated {fmtDate(c.activation_date)}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                </CommandList>
+
                 </CommandList>
               </Command>
             </PopoverContent>
