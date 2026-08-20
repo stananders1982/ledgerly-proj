@@ -214,10 +214,15 @@ function EmployeeDetailPage() {
 
 
   /** FTDs credited this period that only qualified after a later retention deposit. */
-  const lateFtdCount = useMemo(
-    () => conversions.counted.filter((c: any) => isLateRetentionFtd(c)).length,
+  const lateFtds = useMemo(
+    () =>
+      conversions.counted
+        .filter((c: any) => isLateRetentionFtd(c))
+        .sort((a: any, b: any) => String(b.qualified_at).localeCompare(String(a.qualified_at))),
     [conversions],
   );
+  const lateFtdCount = lateFtds.length;
+
 
   const conversionRows = useMemo(() => [...conversions.counted, ...conversions.pending], [conversions]);
   const { pageItems: convPage, ...pgConv } = usePagination(conversionRows, 30);
