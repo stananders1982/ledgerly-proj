@@ -203,10 +203,18 @@ function EmployeesPage() {
             {pageItems.map((e: any) => (
               <DataCard
                 key={e.id}
-                title={e.name}
+                title={
+                  <Link
+                    to="/employees/$id"
+                    params={{ id: e.id }}
+                    onClick={(ev) => ev.stopPropagation()}
+                    className="text-primary hover:underline"
+                  >
+                    {e.name}
+                  </Link>
+                }
                 subtitle={e.role || undefined}
                 onClick={() => { setEditing(e); setOpen(true); }}
-                actions={<Link to="/employees/$id" params={{ id: e.id }} className="text-primary hover:underline text-xs">View</Link>}
                 fields={[
                   { label: "Team", value: <StatusBadge tone="info">{e.team ?? "C"}</StatusBadge> },
                   { label: "Salary", value: <span className="num">{fmtMoney(e.salary)}</span> },
