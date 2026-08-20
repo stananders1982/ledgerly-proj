@@ -12,9 +12,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import {
-  balanceAlert, balanceActive, openingBalance, mergeWeekRows, weeklyGuarantee,
-  weeklyLedger, weekStartOf, type BalanceAlert, type LeadEntryLike,
+  balanceAlert, computeAffiliateBalances, type BalanceAlert, type LeadEntryLike,
 } from "@/lib/affiliate-balance";
+
 
 const sb = supabase as any;
 
