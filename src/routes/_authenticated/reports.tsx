@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePagination, TablePagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { TargetBadge } from "@/routes/_authenticated/sources";
-import { isStd, isAgentTeam } from "@/lib/rules";
+import { isStd, isAgentTeam, isLateRetentionFtd, isLegacyClient } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 import { usePersistedState } from "@/hooks/use-persisted-state";
@@ -228,9 +228,9 @@ function ReportsPage() {
     queryFn: async () => await fetchAll(() => supabase.from("revenue").select("customer_name,affiliate_id,leads(affiliate_id)")),
   });
   const stdActQ = useQuery({
-    enabled: tab === "employees",
+    enabled: tab === "employees" || tab === "funnel",
     queryKey: ["rpt-std-acts"],
-    queryFn: async () => await fetchAll(() => supabase.from("daily_lead_activations").select("id,lead_name,activation_date,employee_id,conversion_employee_id")),
+    queryFn: async () => await fetchAll(() => supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,potential,answered,legacy,employee_id,conversion_employee_id")),
   });
   const stdRevQ = useQuery({
     enabled: tab === "employees",
@@ -453,6 +453,19 @@ function ReportsPage() {
     const retentionIds = new Set(
       data.employees.filter((e: any) => String(e.team ?? "R").toUpperCase() === "R").map((e: any) => e.id),
     );
+    // FTDs credited in the period (qualification clock) and how many of those
+    // only qualified because retention deposited in a later month.
+    const ftdByEmp = new Map<string, number>();
+    const lateByEmp = new Map<string, number>();
+    for (const a of acts) {
+      const q = a.qualified_at ? String(a.qualified_at).slice(0, 10) : null;
+      if (!q || q < start || q > end || isLegacyClient(a)) continue;
+      const id = a.conversion_employee_id;
+      if (!id) continue;
+      ftdByEmp.set(id, (ftdByEmp.get(id) ?? 0) + 1);
+      if (isLateRetentionFtd(a)) lateByEmp.set(id, (lateByEmp.get(id) ?? 0) + 1);
+    }
+
     const stdByEmp = new Map<string, number>();
     for (const a of acts) {
       if (!isStd(a, deps, { start, end })) continue;
@@ -460,13 +473,15 @@ function ReportsPage() {
       if (id && retentionIds.has(id)) stdByEmp.set(id, (stdByEmp.get(id) ?? 0) + 1);
     }
 
-    const byEmp = new Map<string, { name: string; team: string; revenue: number; commBase: number; leads: number; activated: number; std: number; salary: number; tiers: CommissionTiers }>();
+    const byEmp = new Map<string, { name: string; team: string; revenue: number; commBase: number; leads: number; activated: number; std: number; ftd: number; lateFtd: number; salary: number; tiers: CommissionTiers }>();
     // Managers (Team M) are excluded from the employee report entirely.
     for (const e of (data.employees as any[]).filter((x) => isAgentTeam(x.team))) byEmp.set(e.id, {
       name: e.name,
       team: String(e.team ?? "R").toUpperCase(),
       revenue: 0, commBase: 0, leads: 0, activated: 0,
       std: stdByEmp.get(e.id) ?? 0,
+      ftd: ftdByEmp.get(e.id) ?? 0,
+      lateFtd: lateByEmp.get(e.id) ?? 0,
       salary: Number(e.salary),
       tiers: {
         commission_tier1_max: Number(e.commission_tier1_max),
@@ -658,6 +673,15 @@ function ReportsPage() {
   }, [data, range]);
 
   // Conversion funnel — real counts only, no estimated stages.
+  const lateFtdCount = useMemo(
+    () =>
+      ((stdActQ.data ?? []) as any[]).filter((a) => {
+        const q = a.qualified_at ? String(a.qualified_at).slice(0, 10) : null;
+        return !!q && q >= start && q <= end && isLateRetentionFtd(a);
+      }).length,
+    [stdActQ.data, start, end],
+  );
+
   const funnel = useMemo(() => {
     const stages = [
       { name: "Leads received", value: data.received },
@@ -781,7 +805,7 @@ function ReportsPage() {
         { Line: "Profit Margin %", Amount: data.margin.toFixed(1) },
       ];
     } else if (tab === "sources") rows = sources.map((s) => ({ Source: s.name, Model: s.model, Leads: s.leads, Activated: s.activated, Reported: s.reported, Rate: s.rate.toFixed(1), Revenue: s.revenue, Cost: s.totalCost, Savings: s.savings, ROI: s.roi.toFixed(1) }));
-    else if (tab === "employees") rows = employeesRpt.map((e) => ({ Employee: e.name, STDs: e.std, Revenue: e.revenue, Commission: e.commission, Salary: e.salary, Profit: e.profit }));
+    else if (tab === "employees") rows = employeesRpt.map((e) => ({ Employee: e.name, FTDs: e.ftd, "Late FTDs": e.lateFtd, STDs: e.std, Revenue: e.revenue, Commission: e.commission, Salary: e.salary, Profit: e.profit }));
     else if (tab === "savings") rows = sources.filter((s) => s.model === "CPA").map((s) => ({ Source: s.name, Activated: s.activated, Reported: s.reported, Unreported: s.activated - s.reported, Price: s.price, Savings: s.savings }));
     else if (tab === "marketing") rows = sources.map((s) => ({ Source: s.name, Spend: s.totalCost, Leads: s.leads, CPL: s.cpl.toFixed(2), Activated: s.activated, CPA: s.cpaEff.toFixed(2), Revenue: s.revenue, ROI: s.roi.toFixed(1) }));
     else if (tab === "expenses") rows = expByCategory.map((c) => ({ Category: c.name, Amount: c.amount, Percent: data.otherExp ? ((c.amount / data.otherExp) * 100).toFixed(1) : "0" }));
@@ -1101,6 +1125,18 @@ function ReportsPage() {
             columns={[
               { key: "rank", label: "#" },
               { key: "name", label: "Employee" },
+              { key: "ftd", label: "FTDs", numeric: true },
+              {
+                key: "lateFtd",
+                label: "Late FTDs",
+                numeric: true,
+                render: (v) =>
+                  Number(v) > 0 ? (
+                    <span className="text-warning" title="Qualified only after a retention deposit in a later month">{v}</span>
+                  ) : (
+                    0
+                  ),
+              },
               { key: "std", label: "STDs", numeric: true },
               { key: "revenue", label: "Revenue", numeric: true, render: (v) => fmtMoney(v) },
               { key: "commission", label: "Commission", numeric: true, render: (v) => fmtMoney(v) },
@@ -1376,6 +1412,10 @@ function ReportsPage() {
                 </div>
               </div>
             ))}
+            <p className="text-xs text-muted-foreground pt-2 border-t border-border">
+              <strong className="text-warning">{lateFtdCount}</strong> FTD{lateFtdCount === 1 ? "" : "s"} in this period
+              qualified late — low-potential clients that only became valid after a retention deposit in a later month.
+            </p>
           </div>
         </TabsContent>
 

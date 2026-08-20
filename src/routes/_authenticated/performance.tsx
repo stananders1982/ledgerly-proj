@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { isStd, isAgentTeam } from "@/lib/rules";
+import { isStd, isAgentTeam, isLateRetentionFtd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney } from "@/lib/format";
 import { GoalBar } from "@/components/goal-bar";
@@ -222,6 +222,10 @@ function PerformancePage() {
       const pendingFtds = acts.filter(
         (a) => a.conversion_employee_id === emp.id && !a.qualified_at,
       ).length;
+      // Of those FTDs, the ones that only qualified because retention deposited later.
+      const lateFtds = acts.filter(
+        (a) => a.conversion_employee_id === emp.id && isLateRetentionFtd(a),
+      ).length;
 
       // Per-FTD rate lives on the employee record.
       const ftdRate = Number(emp.ftd_commission ?? settings.ftdCommission);
@@ -251,6 +255,7 @@ function PerformancePage() {
         targetRevenue: emp.target_revenue == null ? null : Number(emp.target_revenue),
         ftds: team === "C" ? ftds : 0,
         pendingFtds: team === "C" ? pendingFtds : 0,
+        lateFtds: team === "C" ? lateFtds : 0,
         commissionableFtds: team === "C" ? commissionableFtds : 0,
         stds: team === "R" ? stds : 0,
         // Share of this agent's clients (in range) that made a second deposit.
@@ -284,6 +289,7 @@ function PerformancePage() {
     name: (r) => r.name,
     team: (r) => TEAM_RANK[r.team] ?? 3,
     ftds: (r) => r.ftds,
+    lateFtds: (r) => r.lateFtds,
     stds: (r) => r.stds,
     clients: (r) => r.clients,
     attributed: (r) => r.attributed,
@@ -300,6 +306,7 @@ function PerformancePage() {
     const stds = rows.reduce((s, r) => s + r.stds, 0);
     return {
       ftds: rows.reduce((s, r) => s + r.ftds, 0),
+      lateFtds: rows.reduce((s, r) => s + r.lateFtds, 0),
       stds,
       stdPct: retClients > 0 ? (stds / retClients) * 100 : 0,
       revenue: rows.reduce((s, r) => s + r.attributed, 0),
@@ -410,7 +417,12 @@ function PerformancePage() {
 
 
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
-        <StatCard label="Total FTDs" value={String(totals.ftds)} tone="positive" />
+        <StatCard
+          label="Total FTDs"
+          value={String(totals.ftds)}
+          tone="positive"
+          hint={totals.lateFtds > 0 ? `${totals.lateFtds} late (retention deposit)` : undefined}
+        />
         <StatCard label="STDs" value={`${totals.stds} · ${totals.stdPct.toFixed(1)}%`} />
         <StatCard label="Attributed revenue" value={fmtMoney(totals.revenue)} tone="positive" />
         <StatCard label="Total commission" value={fmtMoney(totals.commission)} />
@@ -431,7 +443,7 @@ function PerformancePage() {
                 title={r.name}
                 subtitle={`Team ${r.team ?? "C"}`}
                 fields={[
-                  { label: "FTDs", value: <span className="num">{r.ftds}</span> },
+                  { label: "FTDs", value: <span className="num">{r.ftds}{r.lateFtds > 0 ? ` (${r.lateFtds} late)` : ""}</span> },
                   { label: "STDs", value: <span className="num">{r.team === "R" ? `${r.stds}${r.clients > 0 ? ` (${r.stdPct.toFixed(1)}%)` : ""}` : "—"}</span> },
                   { label: "Clients", value: <span className="num">{r.clients}</span> },
                   { label: "Revenue", value: <span className="num">{fmtMoney(r.attributed)}</span> },
@@ -477,10 +489,12 @@ function PerformancePage() {
                           <li><strong>FTD</strong> = an activation that has a <em>qualified_at</em> date within the selected month.</li>
                           <li><strong>Pending</strong> = activated this month but not yet qualified (no <em>qualified_at</em>).</li>
                           <li>The FTD column uses the <em>activation_date</em> clock; commission uses the <em>qualified_at</em> clock.</li>
+                          <li><strong>Late FTDs</strong> = low/unset potential clients that only qualified after a retention deposit in a later month.</li>
                         </ul>
                       </TooltipContent>
                     </Tooltip>
                   </th>
+                  <SortTh label="Late FTDs" k="lateFtds" sort={sort} toggle={toggle} />
                   <SortTh label="STDs (% clients)" k="stds" sort={sort} toggle={toggle} />
                   <SortTh label="Clients" k="clients" sort={sort} toggle={toggle} />
                   <SortTh label="Revenue" k="attributed" sort={sort} toggle={toggle} />
@@ -515,6 +529,17 @@ function PerformancePage() {
                             <span className="ml-1 text-xs text-muted-foreground">(+{r.pendingFtds} pending)</span>
                           )}
                         </>
+                      ) : "—"}
+                    </td>
+                    <td className="py-3 px-4">
+                      {r.team === "C" ? (
+                        r.lateFtds > 0 ? (
+                          <span className="text-warning" title="FTDs that only qualified because retention deposited in a later month">
+                            {r.lateFtds}
+                          </span>
+                        ) : (
+                          0
+                        )
                       ) : "—"}
                     </td>
                     <td className="py-3 px-4">

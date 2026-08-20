@@ -4,10 +4,10 @@ import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { EmployeeLink } from "@/components/employee-link";
-import { AnsweredBadge, PotentialBadge } from "@/components/status-badge";
+import { AnsweredBadge, PotentialBadge, LateFtdBadge } from "@/components/status-badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fmtDate, fmtMoney } from "@/lib/format";
-import { qualifiesAsFtd, ftdPendingReasons, depositIndex, effectiveBalanceIndexed, isAgentTeam, normalizeTeam, isLegacyClient } from "@/lib/rules";
+import { qualifiesAsFtd, ftdPendingReasons, depositIndex, effectiveBalanceIndexed, isAgentTeam, normalizeTeam, isLegacyClient, isLateRetentionFtd, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 
 type ActRow = {
@@ -49,6 +49,7 @@ export function ConversionsByAgent({
   const settings = useCompanySettings();
   const navigate = useNavigate();
   const [pendingView, setPendingView] = useState<{ title: string; rows: PendingRow[] } | null>(null);
+  const [lateView, setLateView] = useState<{ title: string; rows: PendingRow[] } | null>(null);
 
 
   const activationsQ = useQuery({
@@ -109,16 +110,24 @@ export function ConversionsByAgent({
   }, [activationsQ.data, start, end]);
 
   const byAgent = useMemo(() => {
-    const m = new Map<string, { count: number; pending: number; pendingRows: PendingRow[] }>();
+    const m = new Map<string, { count: number; pending: number; late: number; pendingRows: PendingRow[]; lateRows: PendingRow[] }>();
     for (const r of rows) {
       // Legacy (old CRM) clients are never credited to a conversion agent.
       if (isLegacyClient(r as any)) continue;
       const id = r.conversion_employee_id;
       if (!id || !isAgentId(id)) continue;
-      const e = m.get(id) ?? { count: 0, pending: 0, pendingRows: [] };
+      const e = m.get(id) ?? { count: 0, pending: 0, late: 0, pendingRows: [], lateRows: [] };
       const bal = effectiveBalanceIndexed(r as any, deposits);
 
-      if (qualifiesAsFtd(r as any, bal, settings)) e.count += 1;
+      if (qualifiesAsFtd(r as any, bal, settings)) {
+        e.count += 1;
+        // Credited to the conversion agent, but only became valid after a
+        // retention deposit in a later month.
+        if (isLateRetentionFtd(r as any)) {
+          e.late += 1;
+          e.lateRows.push({ row: r, balance: bal, reasons: [], agent: employeeName(id) });
+        }
+      }
       else {
         e.pending += 1;
         e.pendingRows.push({
@@ -141,7 +150,9 @@ export function ConversionsByAgent({
       count: byAgent.reduce((s, a) => s + a.count, 0),
       pending: byAgent.reduce((s, a) => s + a.pending, 0),
       total: byAgent.reduce((s, a) => s + a.total, 0),
+      late: byAgent.reduce((s, a) => s + a.late, 0),
       pendingRows: byAgent.flatMap((a) => a.pendingRows),
+      lateRows: byAgent.flatMap((a) => a.lateRows),
     }),
     [byAgent],
   );
@@ -165,6 +176,7 @@ export function ConversionsByAgent({
                 <tr>
                   <th className="py-2 px-4 font-medium">{card ? "Agent" : "Conversion agent"}</th>
                   <th className="py-2 px-4 font-medium">{card ? "FTDs" : "Conversions"}</th>
+                  <th className="py-2 px-4 font-medium" title="FTDs that only qualified after a retention deposit in a later month">Late</th>
                   <th className="py-2 px-4 font-medium">Pending</th>
                   <th className="py-2 px-4 font-medium">Total</th>
                 </tr>
@@ -175,6 +187,19 @@ export function ConversionsByAgent({
                   <tr key={a.id} className="border-t border-border/50">
                     <td className="py-2 px-4"><EmployeeLink id={a.id} name={a.name} /></td>
                     <td className="py-2 px-4 font-medium num">{a.count}</td>
+                    <td className="py-2 px-4 num text-muted-foreground">
+                      {a.late > 0 ? (
+                        <button
+                          type="button"
+                          className="text-warning underline underline-offset-2"
+                          onClick={() => setLateView({ title: `Late FTDs — ${a.name}`, rows: a.lateRows })}
+                        >
+                          {a.late}
+                        </button>
+                      ) : (
+                        0
+                      )}
+                    </td>
                     <td className="py-2 px-4 num text-muted-foreground">
                       {a.pending > 0 ? (
                         <button
@@ -197,6 +222,19 @@ export function ConversionsByAgent({
                   <td className="py-2 px-4">Total</td>
                   <td className="py-2 px-4 num">{totals.count}</td>
                   <td className="py-2 px-4 num text-muted-foreground">
+                    {totals.late > 0 ? (
+                      <button
+                        type="button"
+                        className="text-warning underline underline-offset-2"
+                        onClick={() => setLateView({ title: "All late FTDs", rows: totals.lateRows })}
+                      >
+                        {totals.late}
+                      </button>
+                    ) : (
+                      0
+                    )}
+                  </td>
+                  <td className="py-2 px-4 num text-muted-foreground">
                     {totals.pending > 0 ? (
                       <button
                         type="button"
@@ -216,6 +254,61 @@ export function ConversionsByAgent({
           </div>
         )}
       </div>
+
+      <Dialog open={!!lateView} onOpenChange={(o) => { if (!o) setLateView(null); }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{lateView?.title}</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            These FTDs are credited to the conversion agent in the month they became valid — the client only cleared the
+            threshold after a retention deposit in a later month.
+          </p>
+          <div className="max-h-[60vh] overflow-auto scroll-slim">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="py-2 px-3 font-medium">Client</th>
+                  <th className="py-2 px-3 font-medium">Agent</th>
+                  <th className="py-2 px-3 font-medium">Activated</th>
+                  <th className="py-2 px-3 font-medium">Qualified</th>
+                  <th className="py-2 px-3 font-medium">Balance</th>
+                  <th className="py-2 px-3 font-medium">Potential</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(lateView?.rows ?? []).map((p) => (
+                  <tr
+                    key={p.row.id}
+                    className="border-t border-border/50 cursor-pointer hover:bg-muted/30"
+                    onClick={() => {
+                      setLateView(null);
+                      navigate({ to: "/activations", search: { client: p.row.id } as any });
+                    }}
+                  >
+                    <td className="py-2 px-3">
+                      {p.row.lead_name || "—"}
+                      <LateFtdBadge
+                        className="ml-2"
+                        activationDate={actDate(p.row)}
+                        qualifiedAt={p.row.qualified_at}
+                        months={monthsLate(p.row as any)}
+                      />
+                    </td>
+                    <td className="py-2 px-3 text-muted-foreground">{p.agent}</td>
+                    <td className="py-2 px-3">{actDate(p.row) ? fmtDate(actDate(p.row)!) : "—"}</td>
+                    <td className="py-2 px-3">{p.row.qualified_at ? fmtDate(p.row.qualified_at) : "—"}</td>
+                    <td className="py-2 px-3 num">{fmtMoney(p.balance)}</td>
+                    <td className="py-2 px-3">
+                      {p.row.potential ? <PotentialBadge potential={p.row.potential} /> : <span className="text-muted-foreground">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!pendingView} onOpenChange={(o) => { if (!o) setPendingView(null); }}>
         <DialogContent className="max-w-3xl">

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import React, { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AnsweredBadge, PotentialBadge as SharedPotentialBadge } from "@/components/status-badge";
+import { AnsweredBadge, PotentialBadge as SharedPotentialBadge, LateFtdBadge } from "@/components/status-badge";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { EmployeeLink } from "@/components/employee-link";
@@ -32,7 +32,7 @@ import { usePagination, TablePagination, PageSizeSelect } from "@/components/pag
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
-import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate, depositIndex, depositTotalFor } from "@/lib/rules";
+import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate, depositIndex, depositTotalFor, isLateRetentionFtd, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { CLIENT_TAGS, TagBadges, TagPicker } from "@/components/client-tags";
 import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
@@ -305,6 +305,13 @@ function ActivationsPage() {
     [
       { key: "date", label: "Date", filter: "date", value: (r: any) => (actDate(r) ? fmtDate(actDate(r)!) : "") },
       { key: "qualified", label: "Qualified", filter: "select", value: (r: any) => (r.qualified_at ? "Qualified" : "Pending") },
+      {
+        key: "lateftd",
+        label: "FTD type",
+        filter: "select",
+        defaultHidden: true,
+        value: (r: any) => (isLateRetentionFtd(r) ? "Late (retention)" : r.qualified_at ? "On conversion" : "—"),
+      },
       { key: "lead", label: "Lead name", value: (r: any) => r.lead_name ?? "" },
       { key: "source", label: "Source", filter: "select", value: (r: any) => r.daily_lead_entries?.lead_sources?.name ?? "" },
       { key: "balance", label: "Balance", filter: "none" },
@@ -645,6 +652,7 @@ function ActivationsPage() {
                 <th className="py-3 px-2 w-8"></th>
                 {tb.show("date") && <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("qualified") && <th className="py-2.5 px-2">Qualified</th>}
+                {tb.show("lateftd") && <th className="py-2.5 px-2">FTD type</th>}
                 {tb.show("lead") && <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("source") && <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("balance") && <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
@@ -680,13 +688,23 @@ function ActivationsPage() {
                     {r.qualified_at ? (
                       <span className="text-primary">
                         {fmtDate(r.qualified_at)}
-                        {String(r.qualified_at).slice(0, 7) !== String(actDate(r) ?? "").slice(0, 7) && (
-                          <span className="ml-1 text-xs text-muted-foreground">(late)</span>
+                        {isLateRetentionFtd(r) && (
+                          <LateFtdBadge
+                            className="ml-2"
+                            activationDate={actDate(r)}
+                            qualifiedAt={r.qualified_at}
+                            months={monthsLate(r)}
+                          />
                         )}
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground">Pending</span>
                     )}
+                  </td>
+                  )}
+                  {tb.show("lateftd") && (
+                  <td className="py-2.5 px-2 text-xs text-muted-foreground">
+                    {isLateRetentionFtd(r) ? "Late (retention)" : r.qualified_at ? "On conversion" : "—"}
                   </td>
                   )}
                   {tb.show("lead") && (

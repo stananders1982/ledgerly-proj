@@ -136,6 +136,45 @@ export function countsAsConversionFtd(
 }
 
 
+/* ------------------------------------------------------------------ */
+/* Late (retention-driven) FTDs                                        */
+/* ------------------------------------------------------------------ */
+
+export type LateFtdLike = ActivationLike & {
+  legacy?: boolean | null;
+  qualified_at?: string | null;
+  activation_date?: string | null;
+  daily_lead_entries?: { entry_date?: string | null } | null;
+  entry_date?: string | null;
+};
+
+const monthOf = (d?: string | null) => (d ? String(d).slice(0, 7) : null);
+
+/**
+ * A "late FTD": the client was low / unset potential, so it could only qualify
+ * once retention pushed the balance over the threshold — and that happened in
+ * a later calendar month than the activation. The conversion agent still gets
+ * the credit, it just did not come from the conversion itself.
+ */
+export function isLateRetentionFtd(row: LateFtdLike): boolean {
+  if (!row.qualified_at || isLegacyClient(row)) return false;
+  if (row.potential === "mid" || row.potential === "high") return false;
+  const act = monthOf(activationDate(row));
+  const qual = monthOf(row.qualified_at);
+  return !!act && !!qual && qual > act;
+}
+
+/** Whole months between the activation and the qualification (0 when same month). */
+export function monthsLate(row: LateFtdLike): number {
+  const act = activationDate(row);
+  const qual = row.qualified_at;
+  if (!act || !qual) return 0;
+  const [ay, am] = String(act).slice(0, 7).split("-").map(Number);
+  const [qy, qm] = String(qual).slice(0, 7).split("-").map(Number);
+  if (!ay || !qy) return 0;
+  return Math.max(0, (qy - ay) * 12 + (qm - am));
+}
+
 /** Human-readable reasons a lead has not yet become a qualified FTD. */
 export function ftdPendingReasons(
   row: ActivationLike,

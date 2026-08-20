@@ -16,13 +16,16 @@ export function StatusBadge({
   tone = "muted",
   children,
   className,
+  title,
 }: {
   tone?: Tone;
   children: ReactNode;
   className?: string;
+  title?: string;
 }) {
   return (
     <span
+      title={title}
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium leading-none whitespace-nowrap",
         toneClass[tone],
@@ -53,4 +56,35 @@ export function PotentialBadge({ potential }: { potential?: string | null }) {
 
 export function PricingModelBadge({ model }: { model?: string | null }) {
   return <StatusBadge tone={model === "CPA" ? "accent" : "info"}>{model ?? "—"}</StatusBadge>;
+}
+
+/**
+ * Marks an FTD that only qualified because retention deposited later — the
+ * conversion agent is still credited, in the month it qualified.
+ */
+export function LateFtdBadge({
+  activationDate,
+  qualifiedAt,
+  months,
+  className,
+}: {
+  activationDate?: string | null;
+  qualifiedAt?: string | null;
+  months?: number;
+  className?: string;
+}) {
+  const parts = [
+    activationDate ? `Activated ${String(activationDate).slice(0, 10)}` : null,
+    qualifiedAt ? `qualified ${String(qualifiedAt).slice(0, 10)}` : null,
+    months && months > 0 ? `${months} month${months === 1 ? "" : "s"} later` : null,
+  ].filter(Boolean);
+  return (
+    <StatusBadge
+      tone="warning"
+      className={className}
+      title={`Late FTD - retention deposit${parts.length ? ` (${parts.join(", ")})` : ""}`}
+    >
+      Late (retention)
+    </StatusBadge>
+  );
 }

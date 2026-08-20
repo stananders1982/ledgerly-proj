@@ -8,13 +8,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { CoachingInsights } from "@/components/coaching-insights";
 import { StatCard } from "@/components/stat-card";
+import { LateFtdBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason, isStd } from "@/lib/rules";
+import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason, isStd, isLateRetentionFtd, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { useAuth } from "@/lib/auth-context";
 import { useCan } from "@/lib/permissions";
@@ -212,6 +213,12 @@ function EmployeeDetailPage() {
   }, [conversionsQ.data, depositsQ.data, settings]);
 
 
+  /** FTDs credited this period that only qualified after a later retention deposit. */
+  const lateFtdCount = useMemo(
+    () => conversions.counted.filter((c: any) => isLateRetentionFtd(c)).length,
+    [conversions],
+  );
+
   const conversionRows = useMemo(() => [...conversions.counted, ...conversions.pending], [conversions]);
   const { pageItems: convPage, ...pgConv } = usePagination(conversionRows, 30);
   const { pageItems: revPage, ...pgRev } = usePagination(revQ.data ?? [], 30);
@@ -373,7 +380,12 @@ function EmployeeDetailPage() {
         )}
         {isConversion && (
           <>
-            <StatCard label="FTDs (activations)" value={String(conversions.counted.length)} tone="positive" />
+            <StatCard
+              label="FTDs (activations)"
+              value={String(conversions.counted.length)}
+              tone="positive"
+              hint={lateFtdCount > 0 ? `${lateFtdCount} late (retention deposit)` : undefined}
+            />
             <StatCard label={`FTD commission (${fmtMoney(totals.ftdRate)}/FTD)`} value={fmtMoney(totals.ftdCommission)} tone="positive" />
           </>
         )}
@@ -446,8 +458,13 @@ function EmployeeDetailPage() {
                       {c.qualified_at ? (
                         <>
                           {fmtDate(c.qualified_at)}
-                          {String(c.qualified_at).slice(0, 7) !== String(c.activation_date ?? "").slice(0, 7) && (
-                            <span className="ml-1 text-xs text-muted-foreground">(late)</span>
+                          {isLateRetentionFtd(c) && (
+                            <LateFtdBadge
+                              className="ml-2"
+                              activationDate={c.activation_date ?? c.daily_lead_entries?.entry_date}
+                              qualifiedAt={c.qualified_at}
+                              months={monthsLate(c)}
+                            />
                           )}
                         </>
                       ) : "—"}
