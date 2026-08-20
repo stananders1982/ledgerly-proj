@@ -87,6 +87,20 @@ function WithdrawalsPage() {
     queryKey: ["revenue-min"],
     queryFn: async () => await fetchAll(() => supabase.from("revenue").select("id,customer_name,amount,date,employee_id,affiliate_id").order("date", { ascending: false })),
   });
+  // Clients that exist as activations but have no deposit yet still need to be
+  // selectable — a withdrawal can happen before any income was recorded.
+  const clientsQ = useQuery({
+    queryKey: ["activation-clients-min"],
+    queryFn: async () =>
+      await fetchAll(() =>
+        supabase
+          .from("daily_lead_activations")
+          .select("id,lead_name,activation_date,conversion_employee_id,employee_id")
+          .not("lead_name", "is", null)
+          .order("activation_date", { ascending: false }),
+      ),
+  });
+
 
   const empNameById = useMemo(
     () => new Map((empQ.data ?? []).map((e: any) => [e.id, e.name])),
