@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import React, { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AnsweredBadge, PotentialBadge as SharedPotentialBadge } from "@/components/status-badge";
+import { AnsweredBadge, PotentialBadge as SharedPotentialBadge, LateFtdBadge } from "@/components/status-badge";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { EmployeeLink } from "@/components/employee-link";
@@ -32,7 +32,7 @@ import { usePagination, TablePagination, PageSizeSelect } from "@/components/pag
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
-import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate, depositIndex, depositTotalFor } from "@/lib/rules";
+import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate, depositIndex, depositTotalFor, isLateRetentionFtd, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { CLIENT_TAGS, TagBadges, TagPicker } from "@/components/client-tags";
 import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
