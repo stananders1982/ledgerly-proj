@@ -5,12 +5,14 @@ import { AlertTriangle, Bell, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { cn } from "@/lib/utils";
+import { useAffiliateBalanceAlerts } from "@/lib/affiliate-alerts";
 import {
   detectAnomalies, dismissAnomaly, readDismissed, daysAgo, isoDay,
   type Anomaly,
 } from "@/lib/anomalies";
 
 const sb = supabase as any;
+
 
 /**
  * Smart alerts: everything unusual about the last few days, in one strip.
@@ -41,19 +43,32 @@ export function AnomalyAlerts() {
     },
   });
 
+  const balanceQ = useAffiliateBalanceAlerts();
+
   const anomalies = useMemo(() => {
-    if (!q.data) return [] as Anomaly[];
-    return detectAnomalies({
-      revenue: (q.data.revenue ?? []) as any,
-      expenses: (q.data.expenses ?? []) as any,
-      withdrawals: (q.data.withdrawals ?? []) as any,
-      activations: (q.data.activations ?? []) as any,
-      leads: (q.data.leads ?? []) as any,
-      sourcesById: new Map(((q.data.sources ?? []) as any[]).map((s) => [s.id, s.name])),
-      categoriesById: new Map(((q.data.categories ?? []) as any[]).map((c) => [c.id, c.name])),
-      employees: ((q.data.employees ?? []) as any[]).map((e) => ({ id: e.id, name: e.name, active: e.active, team: e.team })),
-    });
-  }, [q.data]);
+    const affiliate: Anomaly[] = (balanceQ.data ?? []).map((a) => ({
+      id: `aff-balance-${a.id}-${isoDay(new Date())}`,
+      severity: a.level === "credit-low" ? "warning" : "critical",
+      title: `${a.name}: balance near zero`,
+      detail: a.message,
+      to: `/affiliates/${a.id}`,
+    }));
+    if (!q.data) return affiliate;
+    return [
+      ...affiliate,
+      ...detectAnomalies({
+        revenue: (q.data.revenue ?? []) as any,
+        expenses: (q.data.expenses ?? []) as any,
+        withdrawals: (q.data.withdrawals ?? []) as any,
+        activations: (q.data.activations ?? []) as any,
+        leads: (q.data.leads ?? []) as any,
+        sourcesById: new Map(((q.data.sources ?? []) as any[]).map((s) => [s.id, s.name])),
+        categoriesById: new Map(((q.data.categories ?? []) as any[]).map((c) => [c.id, c.name])),
+        employees: ((q.data.employees ?? []) as any[]).map((e) => ({ id: e.id, name: e.name, active: e.active, team: e.team })),
+      }),
+    ];
+  }, [q.data, balanceQ.data]);
+
 
   const visible = anomalies.filter((a) => !dismissed.includes(a.id));
   if (!visible.length) return null;

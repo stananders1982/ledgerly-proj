@@ -2,7 +2,7 @@ import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Building2, TrendingUp, Wallet, Download } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Building2, TrendingUp, Wallet, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,9 +18,9 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { deliveryPct, sumWeeks, weekStartOf, weeklyGuarantee, mergeWeekRows, weeklyLedger, affiliateNet, balanceActive, openingBalance, type LeadEntryLike } from "@/lib/affiliate-balance";
+import { deliveryPct, sumWeeks, weekStartOf, weeklyGuarantee, mergeWeekRows, weeklyLedger, affiliateNet, balanceActive, openingBalance, balanceAlert, type LeadEntryLike } from "@/lib/affiliate-balance";
 
-type AffRow = { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number; group_key: string | null; balance_start_date: string | null; opening_balance: number | null; balance_activated_at: string | null };
+type AffRow = { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number; group_key: string | null; balance_start_date: string | null; opening_balance: number | null; balance_activated_at: string | null; alert_threshold: number | null };
 
 
 export const Route = createFileRoute("/_authenticated/affiliates/$id")({
@@ -72,7 +72,7 @@ function AffiliateStatementPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("affiliates")
-        .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at")
+        .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at,alert_threshold")
         .eq("id", id)
         .single();
       if (error) throw error;
@@ -80,7 +80,7 @@ function AffiliateStatementPage() {
       if (!self.group_key?.trim()) return { self, members: [self] };
       const { data: rest, error: e2 } = await supabase
         .from("affiliates")
-        .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at")
+        .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at,alert_threshold")
         .eq("group_key", self.group_key)
         .order("name");
       if (e2) throw e2;
@@ -126,21 +126,29 @@ function AffiliateStatementPage() {
   // Charging start date lives here, next to the money it controls.
   const opening = openingBalance(groupQ.data?.self);
   const [activating, setActivating] = useState(false);
-  const [actForm, setActForm] = useState({ start: "", opening: "" });
+  const [actForm, setActForm] = useState({ start: "", opening: "", threshold: "" });
+  const alertThreshold = Number(groupQ.data?.self?.alert_threshold || 0);
   useEffect(() => {
-    if (activating) setActForm({ start: balanceStart ?? isoOf(new Date()), opening: opening ? String(opening) : "" });
-  }, [activating, balanceStart, opening]);
+    if (activating)
+      setActForm({
+        start: balanceStart ?? isoOf(new Date()),
+        opening: opening ? String(opening) : "",
+        threshold: alertThreshold ? String(alertThreshold) : "",
+      });
+  }, [activating, balanceStart, opening, alertThreshold]);
 
   const saveActivation = useMutation({
     mutationFn: async (mode: "on" | "off") => {
       const patch =
         mode === "off"
-          ? { balance_activated_at: null, balance_start_date: null, opening_balance: 0 }
+          ? { balance_activated_at: null, balance_start_date: null, opening_balance: 0, alert_threshold: null }
           : {
               balance_activated_at: new Date().toISOString(),
               balance_start_date: actForm.start,
               // Only figure carried over from before the start date.
               opening_balance: Number(actForm.opening) || 0,
+              // Warn when the running balance lands inside ±threshold.
+              alert_threshold: Number(actForm.threshold) > 0 ? Number(actForm.threshold) : null,
             };
       // Billing-group members share one balance, so they share activation too.
       let q = supabase.from("affiliates").update(patch);
@@ -232,6 +240,14 @@ function AffiliateStatementPage() {
 
   // Newest week first, so its closing balance is the live running balance.
   const runningBalance = ledger.length ? ledger[0].closing : balanceOn ? opening : 0;
+
+  // Balance alert for this affiliate, plus the most recent week's cost so you
+  // can judge how long the remaining credit lasts.
+  const liveAlert = useMemo(
+    () => (groupQ.data?.self ? balanceAlert(groupQ.data.self, runningBalance) : null),
+    [groupQ.data, runningBalance],
+  );
+  const lastWeekCost = ledger.length ? ledger[0].cost : 0;
 
   const weeks = useMemo(
     () => ledger.filter((w) => inRange(w.weekStart) || inRange(w.weekEnd)),
@@ -465,7 +481,35 @@ function AffiliateStatementPage() {
         </Card>
       </section>
 
+      {liveAlert && (
+        <div
+          className={cn(
+            "mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border p-4 text-sm",
+            liveAlert.level === "credit-low"
+              ? "border-amber-500/40 bg-amber-500/10"
+              : "border-rose-500/40 bg-rose-500/10",
+          )}
+        >
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <div className="font-medium">Balance is close to zero</div>
+              <div className="text-xs text-muted-foreground">
+                {liveAlert.message} Alert threshold {fmtMoney(liveAlert.threshold)}
+                {lastWeekCost ? ` · last week cost ${fmtMoney(lastWeekCost)}` : ""}.
+              </div>
+            </div>
+          </div>
+          {isAdmin && (
+            <Button size="sm" onClick={() => setPaying(true)}>
+              <Wallet className="h-3.5 w-3.5" /> Add payment
+            </Button>
+          )}
+        </div>
+      )}
+
       {!balanceOn ? (
+
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
           <span>Charging has not started for this affiliate, so no money is calculated.</span>
           {isAdmin && <Button size="sm" onClick={() => setActivating(true)}>Start charging</Button>}
@@ -775,6 +819,19 @@ function AffiliateStatementPage() {
                   {actForm.start ? ` on ${actForm.start}` : ""}.
                 </p>
               )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Alert me when balance is within</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="e.g. 2000"
+                value={actForm.threshold}
+                onChange={(e) => setActForm((f) => ({ ...f, threshold: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                You get an alert once the balance sits between −{fmtMoney(Number(actForm.threshold) || 0)} and {fmtMoney(Number(actForm.threshold) || 0)} — credit nearly used up, or debt building back up. Leave empty for no alerts.
+              </p>
             </div>
             {groupLabel && (
               <p className="text-xs text-muted-foreground">

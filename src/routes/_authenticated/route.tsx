@@ -24,6 +24,8 @@ import { LogOut, UserCircle, Search as SearchIcon, Keyboard } from "lucide-react
 import { KeyboardShortcutsPanel, useKeyboardShortcutsPanel } from "@/components/keyboard-shortcuts";
 import { QuickCreate } from "@/components/quick-create";
 import { TaskReminders } from "@/components/task-reminders";
+import { AffiliateBalanceReminders } from "@/components/affiliate-balance-reminders";
+
 import { UnallocatedFtdAlert } from "@/components/unallocated-ftd-alert";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { OnboardingProvider } from "@/components/onboarding-wizard";
@@ -119,6 +121,8 @@ function ProtectedLayout() {
           <MobileBottomNav />
           <QuickCreate />
           <TaskReminders />
+          <AffiliateBalanceReminders />
+
         </div>
       </div>
       </OnboardingProvider>
