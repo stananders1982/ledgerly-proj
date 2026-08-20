@@ -315,7 +315,12 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "A question about conversion concerns ONLY team C agents. Exclude managers from agent rankings. " +
               "For 'who is leading', rank by activations by default; rank by qualified FTDs only when the question is about commission or pay, and say so. " +
 
+              "AFFILIATE BALANCES: affiliateBalances is each affiliate's (or billing group's) running ledger balance in USD — " +
+              "positive means we owe the affiliate, negative means we are in credit with them. Balances are lifetime running " +
+              "figures since each affiliate's charging start date, not limited to the selected period. Affiliates whose charging " +
+              "has not been activated are not listed. If affiliateBalances is null, say balances are not visible to this user. " +
               "If the snapshot does not contain the answer, say exactly what is missing instead of guessing." }],
+
 
           },
           { role: "user", content: [{ type: "input_text", text: `Snapshot:\n${JSON.stringify(snapshot)}\n\nQuestion: ${data.question}` }] },
