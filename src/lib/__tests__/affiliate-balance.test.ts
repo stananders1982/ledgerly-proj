@@ -207,3 +207,27 @@ describe("source to affiliate mapping", () => {
     expect(m.has("s2")).toBe(false);
   });
 });
+
+describe("balanceAlert", () => {
+  const base = { balance_activated_at: "2026-01-01T00:00:00Z", balance_start_date: "2026-01-01" };
+
+  it("stays silent without a threshold", () => {
+    expect(balanceAlert({ ...base }, -100)).toBeNull();
+  });
+
+  it("stays silent when the balance is far from zero", () => {
+    expect(balanceAlert({ ...base, alert_threshold: 1000 }, -5000)).toBeNull();
+  });
+
+  it("warns when the credit is nearly used up", () => {
+    expect(balanceAlert({ ...base, alert_threshold: 1000 }, -400)?.level).toBe("credit-low");
+  });
+
+  it("warns when the balance is owed", () => {
+    expect(balanceAlert({ ...base, alert_threshold: 1000 }, 250)?.level).toBe("owing");
+  });
+
+  it("stays silent when charging never started", () => {
+    expect(balanceAlert({ alert_threshold: 1000 }, 0)).toBeNull();
+  });
+});
