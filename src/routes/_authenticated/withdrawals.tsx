@@ -215,6 +215,8 @@ function WithdrawalsPage() {
               employees={empQ.data ?? []}
               affiliates={affQ.data ?? []}
               revenues={revQ.data ?? []}
+              clients={clientsQ.data ?? []}
+
               onSubmit={(v) => upsert.mutate(v)}
               loading={upsert.isPending}
             />
