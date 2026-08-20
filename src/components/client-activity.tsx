@@ -141,6 +141,8 @@ export type TimelineEvent = {
   kind: "lead" | "activation" | "deposit" | "withdrawal" | "comm";
   label: string;
   amount?: number;
+  /** Running account balance right after this event. */
+  balance?: number;
 };
 
 const KIND_META: Record<TimelineEvent["kind"], { icon: typeof Phone; tone: string }> = {
@@ -168,6 +170,9 @@ export function ClientTimeline({ events }: { events: TimelineEvent[] }) {
               <span className="font-medium">{e.label}</span>
               <span className="whitespace-nowrap text-xs text-muted-foreground">
                 {e.amount != null && <span className={cn("mr-2 num", tone)}>{fmtMoney(e.amount)}</span>}
+                {e.balance != null && (
+                  <span className="mr-2 num text-muted-foreground">bal {fmtMoney(e.balance)}</span>
+                )}
                 {fmtDate(e.date.slice(0, 10))}
               </span>
             </div>

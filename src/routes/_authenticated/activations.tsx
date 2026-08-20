@@ -803,6 +803,44 @@ function ActivationsPage() {
           const grossBalance = Number(cur.balance || 0) + depositTotal;
           const effective = grossBalance - wdTotal;
           const qualifies = qualifiesAsFtd(cur, grossBalance, settings);
+
+          // Every money movement in the account, oldest first, with a running balance.
+          const txs = [
+            ...deposits.map((d) => ({
+              date: d.date,
+              kind: "deposit" as const,
+              label: d.notes ? `Deposit — ${d.notes}` : "Deposit",
+              delta: Number(d.amount || 0),
+            })),
+            ...wds.map((w) => ({
+              date: w.date,
+              kind: "withdrawal" as const,
+              label: w.notes ? `Withdrawal — ${w.notes}` : "Withdrawal",
+              delta: -Number(w.amount || 0),
+            })),
+          ].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+
+          let running = Number(cur.balance || 0);
+          const txEvents = txs.map((t) => {
+            running += t.delta;
+            return { date: t.date, kind: t.kind, label: t.label, amount: Math.abs(t.delta), balance: running };
+          });
+
+          const timelineEvents = [
+            ...(cur.daily_lead_entries?.entry_date
+              ? [{ date: cur.daily_lead_entries.entry_date, kind: "lead" as const, label: "Lead received" }]
+              : []),
+            ...(actDate(cur)
+              ? [{
+                  date: actDate(cur)!,
+                  kind: "activation" as const,
+                  label: "Activated — opening balance",
+                  amount: Number(cur.balance || 0),
+                  balance: Number(cur.balance || 0),
+                }]
+              : []),
+            ...txEvents,
+          ] satisfies TimelineEvent[];
           return (
             <SheetContent
               side="right"
@@ -845,10 +883,8 @@ function ActivationsPage() {
               </SheetHeader>
 
               <div className="grid gap-4 py-2">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <Stat label="Effective balance" value={fmtMoney(effective)} />
-                  <Stat label="Base balance" value={fmtMoney(Number(cur.balance || 0))} />
-                  <Stat label="Deposits" value={fmtMoney(depositTotal)} />
+                <div className="grid grid-cols-2 gap-3">
+                  <Stat label="Balance" value={fmtMoney(effective)} />
                   <Stat label="Withdrawals" value={fmtMoney(wdTotal)} />
                 </div>
 
@@ -929,28 +965,7 @@ function ActivationsPage() {
 
                 <div>
                   <h3 className="mb-2 text-sm font-semibold">Lifecycle</h3>
-                  <ClientTimeline
-                    events={[
-                      ...(cur.daily_lead_entries?.entry_date
-                        ? [{ date: cur.daily_lead_entries.entry_date, kind: "lead" as const, label: "Lead received" }]
-                        : []),
-                      ...(actDate(cur)
-                        ? [{ date: actDate(cur)!, kind: "activation" as const, label: "Activated" }]
-                        : []),
-                      ...deposits.map((d) => ({
-                        date: d.date,
-                        kind: "deposit" as const,
-                        label: d.notes ? `Deposit — ${d.notes}` : "Deposit",
-                        amount: Number(d.amount || 0),
-                      })),
-                      ...wds.map((w) => ({
-                        date: w.date,
-                        kind: "withdrawal" as const,
-                        label: w.notes ? `Withdrawal — ${w.notes}` : "Withdrawal",
-                        amount: Number(w.amount || 0),
-                      })),
-                    ] satisfies TimelineEvent[]}
-                  />
+                  <ClientTimeline events={timelineEvents} />
                 </div>
 
                 <div>
