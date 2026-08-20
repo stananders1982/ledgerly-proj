@@ -121,6 +121,8 @@ function ProtectedLayout() {
           <MobileBottomNav />
           <QuickCreate />
           <TaskReminders />
+          <AffiliateBalanceReminders />
+
         </div>
       </div>
       </OnboardingProvider>
