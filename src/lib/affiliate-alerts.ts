@@ -48,55 +48,18 @@ export function computeAffiliateAlerts(
   entries: LeadEntryLike[],
   payments: { affiliate_id: string | null; date: string; amount: number }[],
 ): AffiliateAlert[] {
-  const srcByName = new Map<string, string>();
-  for (const s of sources) srcByName.set(s.name.trim().toLowerCase(), s.id);
-
-  // Group members that share a balance.
-  const groups = new Map<string, AffRow[]>();
-  for (const a of affiliates) {
-    const key = a.group_key?.trim() || `id:${a.id}`;
-    groups.set(key, [...(groups.get(key) ?? []), a]);
-  }
-
+  const byId = new Map(affiliates.map((a) => [a.id, a]));
   const out: AffiliateAlert[] = [];
-  for (const [, members] of groups) {
-    const head = members[0];
-    if (!balanceActive(head)) continue;
-    const start = head.balance_start_date;
-
-    const lifetime = mergeWeekRows(
-      members.map((m) => {
-        const srcId = srcByName.get(m.name.trim().toLowerCase());
-        const mine = entries.filter(
-          (e) => e.source_id && e.source_id === srcId && (!start || e.entry_date >= start),
-        );
-        return weeklyGuarantee(m as any, mine);
-      }),
-    );
-
-    const memberIds = new Set(members.map((m) => m.id));
-    const paidByWeek = new Map<string, number>();
-    for (const p of payments) {
-      if (!p.affiliate_id || !memberIds.has(p.affiliate_id)) continue;
-      if (start && p.date < start) continue;
-      const k = weekStartOf(p.date);
-      paidByWeek.set(k, (paidByWeek.get(k) ?? 0) + Number(p.amount || 0));
-    }
-
-    const opening = openingBalance(head);
-    const ledger = weeklyLedger(lifetime, paidByWeek, opening);
-    const balance = ledger.length ? ledger[0].closing : opening;
-
-    const alert = balanceAlert(head, balance);
+  for (const b of computeAffiliateBalances(affiliates, sources, entries, payments)) {
+    const head = byId.get(b.id);
+    if (!head) continue;
+    const alert = balanceAlert(head, b.balance);
     if (!alert) continue;
-    out.push({
-      ...alert,
-      id: head.id,
-      name: head.group_key?.trim() || members.map((m) => m.name).join(" + "),
-    });
+    out.push({ ...alert, id: b.id, name: b.name });
   }
   return out.sort((a, b) => a.balance - b.balance);
 }
+
 
 /** Live affiliate balance alerts for the current company. */
 export function useAffiliateBalanceAlerts() {
