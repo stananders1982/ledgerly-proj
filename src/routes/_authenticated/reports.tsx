@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePagination, TablePagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { TargetBadge } from "@/routes/_authenticated/sources";
-import { isStd, isAgentTeam } from "@/lib/rules";
+import { isStd, isAgentTeam, isLateRetentionFtd, isLegacyClient } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 import { usePersistedState } from "@/hooks/use-persisted-state";
