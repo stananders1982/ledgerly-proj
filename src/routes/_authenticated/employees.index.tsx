@@ -187,7 +187,7 @@ function EmployeesPage() {
         {q.error ? (
           <QueryError error={q.error} onRetry={() => q.refetch()} />
         ) : q.isLoading ? (
-          <TableSkeleton cols={6} />
+          <TableSkeleton cols={4} />
         ) : rows.length === 0 ? (
           <EmptyState
             icon={UserCog}
