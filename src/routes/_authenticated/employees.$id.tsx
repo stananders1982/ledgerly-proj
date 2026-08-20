@@ -8,13 +8,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { CoachingInsights } from "@/components/coaching-insights";
 import { StatCard } from "@/components/stat-card";
+import { LateFtdBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePagination, TablePagination } from "@/components/pagination";
-import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason, isStd } from "@/lib/rules";
+import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason, isStd, isLateRetentionFtd, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { useAuth } from "@/lib/auth-context";
 import { useCan } from "@/lib/permissions";
@@ -211,6 +212,12 @@ function EmployeeDetailPage() {
     return { all: [...counted, ...pending], counted, pending };
   }, [conversionsQ.data, depositsQ.data, settings]);
 
+
+  /** FTDs credited this period that only qualified after a later retention deposit. */
+  const lateFtdCount = useMemo(
+    () => conversions.counted.filter((c: any) => isLateRetentionFtd(c)).length,
+    [conversions],
+  );
 
   const conversionRows = useMemo(() => [...conversions.counted, ...conversions.pending], [conversions]);
   const { pageItems: convPage, ...pgConv } = usePagination(conversionRows, 30);
