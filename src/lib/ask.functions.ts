@@ -36,7 +36,10 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       ? { start: data.startIso, end: data.endIso ?? new Date().toISOString().slice(0, 10) }
       : null;
 
-    const [revenue, expenses, withdrawals, activations, leads, sources, employees, categories, affiliates] =
+    const [
+      revenue, expenses, withdrawals, activations, leads, sources, employees, categories, affiliates,
+      affTerms, allEntries, affPayments,
+    ] =
       await Promise.all([
         supabase.from("revenue").select("date,amount,customer_name,employee_id,employee_id_2,split_pct,affiliate_id,method,activation_id").gte("date", sinceIso),
         supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
@@ -54,7 +57,26 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         // non-admin users can attribute deposits without exposing affiliate
         // contact or commercial fields.
         supabase.rpc("list_affiliates_directory"),
+        // Affiliate balances: commercial terms, the full lead history since the
+        // charging start date, and payments recorded as affiliate expenses.
+        // Non-admin roles may not see these — balances are simply omitted then.
+        supabase
+          .from("affiliates")
+          .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at"),
+        supabase.from("daily_lead_entries").select("entry_date,received,invalid,reported,activated,source_id"),
+        supabase.from("expenses").select("affiliate_id,date,amount").not("affiliate_id", "is", null),
       ]);
+
+    // Running ledger balance per affiliate (positive = we owe them).
+    const affiliateBalances = affTerms.error
+      ? null
+      : computeAffiliateBalances(
+          (affTerms.data ?? []) as any[],
+          ((sources.data ?? []) as any[]).map((s: any) => ({ id: s.id, name: s.name })),
+          (allEntries.data ?? []) as any[],
+          (affPayments.data ?? []) as any[],
+        );
+
 
     const month = (d: string | null) => (d ?? "").slice(0, 7);
     const nameOf = (rows: any[] | null, id: string | null | undefined) =>
