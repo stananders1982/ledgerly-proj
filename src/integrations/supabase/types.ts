@@ -298,6 +298,7 @@ export type Database = {
       affiliates: {
         Row: {
           active: boolean
+          alert_threshold: number | null
           balance_activated_at: string | null
           balance_start_date: string | null
           company_id: string
@@ -315,6 +316,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          alert_threshold?: number | null
           balance_activated_at?: string | null
           balance_start_date?: string | null
           company_id?: string
@@ -332,6 +334,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          alert_threshold?: number | null
           balance_activated_at?: string | null
           balance_start_date?: string | null
           company_id?: string
