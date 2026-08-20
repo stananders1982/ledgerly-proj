@@ -354,3 +354,76 @@ export function balanceAlert(
         message: `Balance is ${amount.toLocaleString()} owed and climbing — a top-up is due.`,
       };
 }
+
+/* ------------------------------------------------------------------ */
+/* Running balances per billing group                                  */
+/* ------------------------------------------------------------------ */
+
+export type BalanceAffiliate = AffiliateTerms &
+  BalanceActivation & { group_key?: string | null; alert_threshold?: number | string | null };
+
+export type AffiliateBalance = {
+  id: string;
+  name: string;
+  balance: number;
+  active: boolean;
+  members: string[];
+};
+
+/**
+ * Running ledger balance for every charging-activated affiliate (billing groups
+ * settle as one). Positive = we owe the affiliate, negative = credit with them.
+ * This is the exact figure shown on the affiliate statement page.
+ */
+export function computeAffiliateBalances(
+  affiliates: BalanceAffiliate[],
+  sources: { id: string; name: string }[],
+  entries: LeadEntryLike[],
+  payments: { affiliate_id: string | null; date: string; amount: number | string | null }[],
+): AffiliateBalance[] {
+  const srcByName = new Map<string, string>();
+  for (const s of sources) srcByName.set(s.name.trim().toLowerCase(), s.id);
+
+  const groups = new Map<string, BalanceAffiliate[]>();
+  for (const a of affiliates) {
+    const key = a.group_key?.trim() || `id:${a.id}`;
+    groups.set(key, [...(groups.get(key) ?? []), a]);
+  }
+
+  const out: AffiliateBalance[] = [];
+  for (const [, members] of groups) {
+    const head = members[0];
+    if (!balanceActive(head)) continue;
+    const start = head.balance_start_date;
+
+    const lifetime = mergeWeekRows(
+      members.map((m) => {
+        const srcId = srcByName.get(m.name.trim().toLowerCase());
+        const mine = entries.filter(
+          (e) => e.source_id && e.source_id === srcId && (!start || e.entry_date >= start),
+        );
+        return weeklyGuarantee(m, mine);
+      }),
+    );
+
+    const memberIds = new Set(members.map((m) => m.id));
+    const paidByWeek = new Map<string, number>();
+    for (const p of payments) {
+      if (!p.affiliate_id || !memberIds.has(p.affiliate_id)) continue;
+      if (start && p.date < start) continue;
+      const k = weekStartOf(p.date);
+      paidByWeek.set(k, (paidByWeek.get(k) ?? 0) + Number(p.amount || 0));
+    }
+
+    const opening = openingBalance(head);
+    const ledger = weeklyLedger(lifetime, paidByWeek, opening);
+    out.push({
+      id: head.id,
+      name: head.group_key?.trim() || members.map((m) => m.name).join(" + "),
+      balance: ledger.length ? ledger[0].closing : opening,
+      active: members.some((m) => m.active !== false),
+      members: members.map((m) => m.name),
+    });
+  }
+  return out.sort((a, b) => a.balance - b.balance);
+}
