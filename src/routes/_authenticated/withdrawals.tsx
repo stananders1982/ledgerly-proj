@@ -410,6 +410,31 @@ function WithdrawalDialog({
     });
   };
 
+  // Only surface clients that have no deposit — deposits already appear above.
+  const clientsWithoutDeposit = useMemo(() => {
+    const seen = new Set(
+      revenues.map((r: any) => String(r.customer_name ?? "").trim().toLowerCase()).filter(Boolean),
+    );
+    const out: any[] = [];
+    for (const c of clients) {
+      const k = String(c.lead_name ?? "").trim().toLowerCase();
+      if (!k || seen.has(k)) continue;
+      seen.add(k);
+      out.push(c);
+    }
+    return out;
+  }, [clients, revenues]);
+
+  const onPickClient = (c: any) => {
+    setForm({
+      ...form,
+      revenue_id: "",
+      customer_name: c.lead_name ?? form.customer_name,
+      employee_id: c.conversion_employee_id ?? c.employee_id ?? form.employee_id,
+    });
+  };
+
+
   return (
     <DialogContent>
       <DialogHeader><DialogTitle>{row?.id ? "Edit withdrawal" : "Record withdrawal"}</DialogTitle></DialogHeader>
