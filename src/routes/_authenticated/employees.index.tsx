@@ -98,9 +98,7 @@ function EmployeesPage() {
   }, [q.data, issue]);
   const { sorted, sort, toggle } = useSort<any>(rows, {
     name: (e) => e.name ?? "",
-    role: (e) => e.role ?? "",
     team: (e) => e.team ?? "C",
-    email: (e) => e.email ?? "",
     salary: (e) => Number(e.salary ?? 0),
     active: (e) => !!e.active,
   });
@@ -213,12 +211,10 @@ function EmployeesPage() {
                     {e.name}
                   </Link>
                 }
-                subtitle={e.role || undefined}
                 onClick={() => { setEditing(e); setOpen(true); }}
                 fields={[
                   { label: "Team", value: <StatusBadge tone="info">{e.team ?? "C"}</StatusBadge> },
                   { label: "Salary", value: <span className="num">{fmtMoney(e.salary)}</span> },
-                  { label: "Email", value: e.email || "—" },
                   { label: "Status", value: <ActiveBadge active={!!e.active} /> },
                 ]}
               />
@@ -229,11 +225,9 @@ function EmployeesPage() {
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                   <SortTh label="Name" k="name" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Role" k="role" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Team" k="team" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <SortTh label="Email" k="email" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <SortTh label="Base salary" k="salary" sort={sort} toggle={toggle} className="py-3 px-4" />
-                  <th className="py-3 px-4"></th>
+                  <th className="py-3 px-4 text-left text-xs uppercase tracking-wider text-muted-foreground">Commissions</th>
                   <SortTh label="Active" k="active" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <th className="py-3 px-4"></th>
                 </tr>
@@ -252,11 +246,9 @@ function EmployeesPage() {
                         {e.name}
                       </Link>
                     </td>
-                    <td className="py-3 px-4">{e.role || "—"}</td>
                     <td className="py-3 px-4">
                       <StatusBadge tone="info">{e.team ?? "C"}</StatusBadge>
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground">{e.email || "—"}</td>
                     <td className="py-3 px-4">{fmtMoney(e.salary)}</td>
                     <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
                       ≤{fmtMoney(e.commission_tier1_max)}: <span className="text-foreground font-medium">{Number(e.commission_tier1_pct)}%</span>
