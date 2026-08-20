@@ -5,7 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { FileDown, FileSpreadsheet, FileText, Printer, ArrowUpDown, Bookmark, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMoney, fmtPct } from "@/lib/format";
+import { fmtMoney, fmtPct, fmtDate } from "@/lib/format";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { LateFtdBadge } from "@/components/status-badge";
 import { useExporters } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -17,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePagination, TablePagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { TargetBadge } from "@/routes/_authenticated/sources";
-import { isStd, isAgentTeam, isLateRetentionFtd, isLegacyClient } from "@/lib/rules";
+import { isStd, isAgentTeam, isLateRetentionFtd, isLegacyClient, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { commissionAmount, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 import { usePersistedState } from "@/hooks/use-persisted-state";
@@ -473,9 +475,10 @@ function ReportsPage() {
       if (id && retentionIds.has(id)) stdByEmp.set(id, (stdByEmp.get(id) ?? 0) + 1);
     }
 
-    const byEmp = new Map<string, { name: string; team: string; revenue: number; commBase: number; leads: number; activated: number; std: number; ftd: number; lateFtd: number; salary: number; tiers: CommissionTiers }>();
+    const byEmp = new Map<string, { id: string; name: string; team: string; revenue: number; commBase: number; leads: number; activated: number; std: number; ftd: number; lateFtd: number; salary: number; tiers: CommissionTiers }>();
     // Managers (Team M) are excluded from the employee report entirely.
     for (const e of (data.employees as any[]).filter((x) => isAgentTeam(x.team))) byEmp.set(e.id, {
+      id: e.id,
       name: e.name,
       team: String(e.team ?? "R").toUpperCase(),
       revenue: 0, commBase: 0, leads: 0, activated: 0,
@@ -512,6 +515,25 @@ function ReportsPage() {
       return { ...e, commission, profit: e.revenue - commission - e.salary, rate: e.leads ? (e.activated / e.leads) * 100 : 0 };
     }).sort((a, b) => b.revenue - a.revenue);
   }, [data.revenue, data.employees, stdActQ.data, stdRevQ.data, start, end]);
+
+  /** Client-level detail behind each agent's "Late FTDs" number. */
+  const lateFtdRowsByEmp = useMemo(() => {
+    const m = new Map<string, any[]>();
+    for (const a of ((stdActQ.data ?? []) as any[])) {
+      const q = a.qualified_at ? String(a.qualified_at).slice(0, 10) : null;
+      if (!q || q < start || q > end) continue;
+      if (!a.conversion_employee_id || !isLateRetentionFtd(a)) continue;
+      const list = m.get(a.conversion_employee_id) ?? [];
+      list.push(a);
+      m.set(a.conversion_employee_id, list);
+    }
+    for (const list of m.values()) list.sort((x, y) => String(y.qualified_at).localeCompare(String(x.qualified_at)));
+    return m;
+  }, [stdActQ.data, start, end]);
+
+  const [lateDetail, setLateDetail] = useState<{ name: string; rows: any[] } | null>(null);
+
+
 
   const playerValue = useMemo(() => {
     const entries = (pvLeadsQ.data ?? []) as any[];
@@ -1130,9 +1152,16 @@ function ReportsPage() {
                 key: "lateFtd",
                 label: "Late FTDs",
                 numeric: true,
-                render: (v) =>
+                render: (v, r) =>
                   Number(v) > 0 ? (
-                    <span className="text-warning" title="Qualified only after a retention deposit in a later month">{v}</span>
+                    <button
+                      type="button"
+                      className="text-warning underline underline-offset-2 hover:opacity-80"
+                      title="Low-potential clients that only qualified after a retention deposit — click for client details"
+                      onClick={() => setLateDetail({ name: r.name, rows: lateFtdRowsByEmp.get(r.id) ?? [] })}
+                    >
+                      {v}
+                    </button>
                   ) : (
                     0
                   ),
@@ -1146,6 +1175,52 @@ function ReportsPage() {
             rows={employeesRpt.map((e, i) => ({ ...e, rank: i + 1 }))}
             searchable
           />
+
+          <Dialog open={!!lateDetail} onOpenChange={(o) => !o && setLateDetail(null)}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Late FTDs — {lateDetail?.name}</DialogTitle>
+                <DialogDescription>
+                  Low-potential clients activated earlier that only became valid FTDs after a retention deposit in a later month.
+                </DialogDescription>
+              </DialogHeader>
+              {(lateDetail?.rows.length ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground">No late FTDs in this period.</p>
+              ) : (
+                <div className="overflow-x-auto scroll-slim max-h-[420px]">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-card">
+                      <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                        <th className="py-2 pr-3">Client</th>
+                        <th className="py-2 pr-3">Activated</th>
+                        <th className="py-2 pr-3">Qualified</th>
+                        <th className="py-2 pr-3">Potential</th>
+                        <th className="py-2">Late by</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(lateDetail?.rows ?? []).map((a: any) => (
+                        <tr key={a.id} className="border-b border-border/50">
+                          <td className="py-2 pr-3">{a.lead_name || "—"}</td>
+                          <td className="py-2 pr-3 text-muted-foreground">{fmtDate(a.activation_date)}</td>
+                          <td className="py-2 pr-3">{fmtDate(a.qualified_at)}</td>
+                          <td className="py-2 pr-3 capitalize">{a.potential ?? "—"}</td>
+                          <td className="py-2">
+                            <LateFtdBadge
+                              activationDate={a.activation_date}
+                              qualifiedAt={a.qualified_at}
+                              months={monthsLate(a)}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
         </TabsContent>
 
         <TabsContent value="payouts">

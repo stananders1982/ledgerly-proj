@@ -214,10 +214,15 @@ function EmployeeDetailPage() {
 
 
   /** FTDs credited this period that only qualified after a later retention deposit. */
-  const lateFtdCount = useMemo(
-    () => conversions.counted.filter((c: any) => isLateRetentionFtd(c)).length,
+  const lateFtds = useMemo(
+    () =>
+      conversions.counted
+        .filter((c: any) => isLateRetentionFtd(c))
+        .sort((a: any, b: any) => String(b.qualified_at).localeCompare(String(a.qualified_at))),
     [conversions],
   );
+  const lateFtdCount = lateFtds.length;
+
 
   const conversionRows = useMemo(() => [...conversions.counted, ...conversions.pending], [conversions]);
   const { pageItems: convPage, ...pgConv } = usePagination(conversionRows, 30);
@@ -483,6 +488,51 @@ function EmployeeDetailPage() {
         <TablePagination {...pgConv} />
       </div>
       )}
+
+      {isConversion && lateFtdCount > 0 && (
+        <div className="card-surface overflow-hidden mb-6">
+          <div className="px-5 py-3 border-b border-border">
+            <h3 className="font-display text-base font-semibold">Late FTDs ({lateFtdCount})</h3>
+            <p className="text-xs text-muted-foreground">
+              Low-potential clients activated in an earlier month that only became valid FTDs after depositing with retention — credited here.
+            </p>
+          </div>
+          <div className="overflow-x-auto scroll-slim max-h-[320px]">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-card">
+                <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                  <th className="py-2 px-4">Client</th>
+                  <th className="py-2 px-4">Activated</th>
+                  <th className="py-2 px-4">Qualified</th>
+                  <th className="py-2 px-4">Potential</th>
+                  <th className="py-2 px-4 text-right">Balance</th>
+                  <th className="py-2 px-4">Late by</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lateFtds.map((c: any) => (
+                  <tr key={`late-${c.id}`} className="border-b border-border/50">
+                    <td className="py-2 px-4">{c.lead_name || "—"}</td>
+                    <td className="py-2 px-4 text-muted-foreground">{fmtDate(c.activation_date ?? c.daily_lead_entries?.entry_date)}</td>
+                    <td className="py-2 px-4">{fmtDate(c.qualified_at)}</td>
+                    <td className="py-2 px-4 capitalize">{c.potential ?? "—"}</td>
+                    <td className="py-2 px-4 text-right">{fmtMoney(c.effectiveBalance)}</td>
+                    <td className="py-2 px-4">
+                      <LateFtdBadge
+                        activationDate={c.activation_date ?? c.daily_lead_entries?.entry_date}
+                        qualifiedAt={c.qualified_at}
+                        months={monthsLate(c)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+
 
 
       {isRetention && (
