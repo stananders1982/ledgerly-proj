@@ -373,7 +373,12 @@ function EmployeeDetailPage() {
         )}
         {isConversion && (
           <>
-            <StatCard label="FTDs (activations)" value={String(conversions.counted.length)} tone="positive" />
+            <StatCard
+              label="FTDs (activations)"
+              value={String(conversions.counted.length)}
+              tone="positive"
+              hint={lateFtdCount > 0 ? `${lateFtdCount} late (retention deposit)` : undefined}
+            />
             <StatCard label={`FTD commission (${fmtMoney(totals.ftdRate)}/FTD)`} value={fmtMoney(totals.ftdCommission)} tone="positive" />
           </>
         )}
@@ -446,8 +451,13 @@ function EmployeeDetailPage() {
                       {c.qualified_at ? (
                         <>
                           {fmtDate(c.qualified_at)}
-                          {String(c.qualified_at).slice(0, 7) !== String(c.activation_date ?? "").slice(0, 7) && (
-                            <span className="ml-1 text-xs text-muted-foreground">(late)</span>
+                          {isLateRetentionFtd(c) && (
+                            <LateFtdBadge
+                              className="ml-2"
+                              activationDate={c.activation_date ?? c.daily_lead_entries?.entry_date}
+                              qualifiedAt={c.qualified_at}
+                              months={monthsLate(c)}
+                            />
                           )}
                         </>
                       ) : "—"}
