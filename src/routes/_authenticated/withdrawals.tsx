@@ -465,8 +465,6 @@ function WithdrawalDialog({
                     </CommandGroup>
                   )}
                 </CommandList>
-
-                </CommandList>
               </Command>
             </PopoverContent>
           </Popover>
