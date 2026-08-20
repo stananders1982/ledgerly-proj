@@ -145,6 +145,14 @@ function AffiliatesPage() {
   });
   const { pageItems, ...pg } = usePagination(sorted, 30, "affiliates");
 
+  // Affiliates whose running balance sits inside their alert window.
+  const balanceAlertsQ = useAffiliateBalanceAlerts();
+  const alertById = useMemo(
+    () => new Map((balanceAlertsQ.data ?? []).map((a) => [a.id, a])),
+    [balanceAlertsQ.data],
+  );
+
+
 
 
 
