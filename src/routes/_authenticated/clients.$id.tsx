@@ -233,7 +233,7 @@ function ClientPage() {
       ...(act
         ? [{ date: act, kind: "activation" as const, label: "Activated — opening balance", amount: opening, balance: opening }]
         : []),
-      ...transactions.map((t) => ({
+      ...transactions.filter((t) => t.id !== "opening").map((t) => ({
         date: String(t.date), kind: t.kind, label: t.label, amount: Math.abs(t.delta), balance: t.balance,
       })),
       ...(commsQ.data ?? []).map((c: any) => ({
