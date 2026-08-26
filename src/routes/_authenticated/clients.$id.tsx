@@ -238,7 +238,7 @@ function ClientPage() {
     return (
       <div className="p-6">
         <p className="text-sm text-muted-foreground">This client no longer exists.</p>
-        <Button asChild variant="outline" className="mt-3"><Link to="/activations">Back to clients</Link></Button>
+        <Button asChild variant="outline" className="mt-3"><Link to="/activations" search={{}}>Back to clients</Link></Button>
       </div>
     );
   }
@@ -258,7 +258,7 @@ function ClientPage() {
           <div className="flex flex-wrap items-center gap-2">
             <FavoriteStar type="client" id={cur.id} label={cur.lead_name} />
             <Button asChild variant="outline" size="sm">
-              <Link to="/activations"><ArrowLeft className="mr-1.5 h-4 w-4" /> All clients</Link>
+              <Link to="/activations" search={{}}><ArrowLeft className="mr-1.5 h-4 w-4" /> All clients</Link>
             </Button>
             <Button size="sm" onClick={() => analyse.mutate()} disabled={analyse.isPending}>
               {analyse.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1.5 h-4 w-4" />}
