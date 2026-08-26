@@ -172,6 +172,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const nameKeyOf = (n?: string | null) => (n ?? "").trim().toLowerCase();
 
     const depositsByClient = new Map<string, { total: number; count: number; last: string | null }>();
+    const depositDatesByClient = new Map<string, string[]>();
     for (const r of revRows) {
       const key = r.activation_id ? `id:${r.activation_id}` : `name:${nameKeyOf(r.customer_name)}`;
       if (key === "name:") continue;
@@ -180,7 +181,11 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       cur.count += 1;
       if (!cur.last || String(r.date) > cur.last) cur.last = String(r.date);
       depositsByClient.set(key, cur);
+      const dates = depositDatesByClient.get(key) ?? [];
+      dates.push(String(r.date));
+      depositDatesByClient.set(key, dates);
     }
+
     const withdrawalsByClient = new Map<string, { total: number; count: number; last: string | null }>();
     for (const w of (withdrawals.data ?? []) as any[]) {
       const key = `name:${nameKeyOf(w.customer_name)}`;
