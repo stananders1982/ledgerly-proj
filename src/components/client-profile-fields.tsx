@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { fmtMoney } from "@/lib/format";
+import { isWhale } from "@/lib/whales";
 import {
   CLIENT_STATUSES, CONTACT_TIMES, GENDERS, STATUS_TONE, riskTone,
   type ClientProfile,
@@ -53,6 +55,17 @@ export function ClientProfileFields({
 }) {
   return (
     <div className={cn("grid gap-3 sm:grid-cols-2", className)}>
+      <Field label="Potential value ($)">
+        <Input
+          type="number"
+          min={0}
+          step={1000}
+          placeholder="e.g. 100000"
+          className="h-9"
+          value={value.potential_value ?? ""}
+          onChange={(e) => onChange({ potential_value: e.target.value === "" ? null : Number(e.target.value) })}
+        />
+      </Field>
       <Field label="Date of birth">
         <Input
           type="date"
@@ -133,5 +146,21 @@ export function ClientProfileFields({
         </Select>
       </Field>
     </div>
+  );
+}
+
+/** Shown next to a client name when their potential value clears the threshold. */
+export function WhaleBadge({
+  value, threshold, className,
+}: { value?: number | null; threshold: number; className?: string }) {
+  if (!isWhale(value, threshold)) return null;
+  return (
+    <Badge
+      variant="outline"
+      className={cn("border-sky-500/50 text-sky-600 dark:text-sky-400", className)}
+      title={`Potential ${fmtMoney(Number(value))}`}
+    >
+      Whale
+    </Badge>
   );
 }

@@ -12,6 +12,8 @@ export const CONTACT_TIMES = ["morning", "afternoon", "evening", "weekend"] as c
 export const GENDERS = ["male", "female", "other"] as const;
 
 export type ClientProfile = {
+  /** How much money we realistically believe this client can bring in ($). */
+  potential_value?: number | null;
   date_of_birth?: string | null;
   age?: number | null;
   gender?: string | null;
