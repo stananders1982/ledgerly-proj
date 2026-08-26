@@ -17,7 +17,8 @@ import { AttachmentsPanel } from "@/components/attachments-panel";
 import { TagBadges, TagPicker } from "@/components/client-tags";
 import { AnsweredBadge, PotentialBadge } from "@/components/status-badge";
 import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
-import { ClientProfileFields, RiskBadge, StatusBadge } from "@/components/client-profile-fields";
+import { ClientProfileFields, RiskBadge, StatusBadge, WhaleBadge } from "@/components/client-profile-fields";
+import { isNeglectedWhale, isWhale, potentialValue } from "@/lib/whales";
 import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
 import { fmtDate, fmtMoney } from "@/lib/format";
@@ -159,6 +160,7 @@ function ClientPage() {
     if (!clientQ.data) return;
     const c = clientQ.data;
     setDraft({
+      potential_value: c.potential_value ?? null,
       date_of_birth: c.date_of_birth ?? null,
       age: c.age ?? null,
       gender: c.gender ?? null,
@@ -186,6 +188,18 @@ function ClientPage() {
   const stdCount = cur ? stdDepositsFor(cur as any, deposits as any).length : 0;
   const lastDeposit = deposits.length ? deposits[deposits.length - 1].date : null;
   const lastContact = commsQ.data?.[0]?.occurred_at ?? null;
+  const whale = isWhale(cur?.potential_value, settings.whaleThreshold);
+  const neglectedWhale = cur
+    ? isNeglectedWhale(
+        {
+          startDate: activationDate(cur as any),
+          potentialValue: cur.potential_value,
+          depositDates: deposits.map((d: any) => d.date),
+          contactDates: (commsQ.data ?? []).map((c: any) => c.occurred_at),
+        },
+        settings.whaleThreshold,
+      )
+    : false;
 
   const transactions = useMemo(() => {
     const rows = [
@@ -291,11 +305,22 @@ function ClientPage() {
         <Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified FTD" : "FTD pending"}</Badge>
         {stdCount > 0 && <Badge variant="default">STD ×{stdCount}</Badge>}
         {cur.legacy && <Badge variant="outline" className="text-muted-foreground">Legacy</Badge>}
+        <WhaleBadge value={cur.potential_value} threshold={settings.whaleThreshold} />
+        {neglectedWhale && (
+          <Badge variant="outline" className="border-rose-500/50 text-rose-600 dark:text-rose-400">
+            Neglected whale
+          </Badge>
+        )}
         <RiskBadge score={cur.ai_risk_score} label={cur.ai_risk_label} />
         <TagBadges tags={cur.tags} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCard
+          label="Potential"
+          value={potentialValue(cur.potential_value) != null ? fmtMoney(Number(cur.potential_value)) : "—"}
+          hint={whale ? "Whale" : undefined}
+        />
         <StatCard label="Balance" value={fmtMoney(balance)} />
         <StatCard label="Deposits" value={fmtMoney(depositTotal)} hint={`${deposits.length} deposit${deposits.length === 1 ? "" : "s"}`} />
         <StatCard label="Withdrawals" value={fmtMoney(wdTotal)} hint={`${withdrawals.length} payout${withdrawals.length === 1 ? "" : "s"}`} />
