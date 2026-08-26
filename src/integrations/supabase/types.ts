@@ -864,63 +864,114 @@ export type Database = {
         Row: {
           activated_count: number
           activation_date: string
+          age: number | null
+          ai_analyzed_at: string | null
+          ai_next_action: string | null
+          ai_risk_label: string | null
+          ai_risk_score: number | null
+          ai_summary: string | null
           answered: boolean
           balance: number
+          city: string | null
           company_id: string
           conversion_employee_id: string | null
+          country: string | null
           created_at: string
           custom_fields: Json
+          date_of_birth: string | null
+          email: string | null
           employee_id: string
           entry_id: string | null
+          gender: string | null
           id: string
+          language: string | null
           lead_name: string | null
           legacy: boolean
           low_potential_alerted: boolean
+          next_follow_up: string | null
           notes: string | null
+          occupation: string | null
+          phone: string | null
           potential: string | null
+          preferred_contact_time: string | null
           qualified_at: string | null
+          status: string | null
           tags: string[]
           updated_at: string
         }
         Insert: {
           activated_count?: number
           activation_date?: string
+          age?: number | null
+          ai_analyzed_at?: string | null
+          ai_next_action?: string | null
+          ai_risk_label?: string | null
+          ai_risk_score?: number | null
+          ai_summary?: string | null
           answered?: boolean
           balance?: number
+          city?: string | null
           company_id?: string
           conversion_employee_id?: string | null
+          country?: string | null
           created_at?: string
           custom_fields?: Json
+          date_of_birth?: string | null
+          email?: string | null
           employee_id: string
           entry_id?: string | null
+          gender?: string | null
           id?: string
+          language?: string | null
           lead_name?: string | null
           legacy?: boolean
           low_potential_alerted?: boolean
+          next_follow_up?: string | null
           notes?: string | null
+          occupation?: string | null
+          phone?: string | null
           potential?: string | null
+          preferred_contact_time?: string | null
           qualified_at?: string | null
+          status?: string | null
           tags?: string[]
           updated_at?: string
         }
         Update: {
           activated_count?: number
           activation_date?: string
+          age?: number | null
+          ai_analyzed_at?: string | null
+          ai_next_action?: string | null
+          ai_risk_label?: string | null
+          ai_risk_score?: number | null
+          ai_summary?: string | null
           answered?: boolean
           balance?: number
+          city?: string | null
           company_id?: string
           conversion_employee_id?: string | null
+          country?: string | null
           created_at?: string
           custom_fields?: Json
+          date_of_birth?: string | null
+          email?: string | null
           employee_id?: string
           entry_id?: string | null
+          gender?: string | null
           id?: string
+          language?: string | null
           lead_name?: string | null
           legacy?: boolean
           low_potential_alerted?: boolean
+          next_follow_up?: string | null
           notes?: string | null
+          occupation?: string | null
+          phone?: string | null
           potential?: string | null
+          preferred_contact_time?: string | null
           qualified_at?: string | null
+          status?: string | null
           tags?: string[]
           updated_at?: string
         }
