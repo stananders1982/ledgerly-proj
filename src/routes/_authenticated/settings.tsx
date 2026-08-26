@@ -48,6 +48,13 @@ const FIELDS: {
     suffix: "$",
   },
   {
+    key: "whaleThreshold",
+    column: "whale_threshold",
+    label: "Whale threshold",
+    hint: "A client counts as a whale once their potential value reaches this amount.",
+    suffix: "$",
+  },
+  {
     key: "defaultActivationBalance",
     column: "default_activation_balance",
     label: "Default activation balance",
@@ -89,6 +96,7 @@ function SettingsPage() {
   const { isAdmin } = useAuth();
   const [form, setForm] = useState<Record<string, string>>({
     ftdBalanceThreshold: String(DEFAULT_SETTINGS.ftdBalanceThreshold),
+      whaleThreshold: String(DEFAULT_SETTINGS.whaleThreshold),
     defaultActivationBalance: String(DEFAULT_SETTINGS.defaultActivationBalance),
     ftdCommission: String(DEFAULT_SETTINGS.ftdCommission),
     withdrawalPenaltyPct: String(DEFAULT_SETTINGS.withdrawalPenaltyPct),
@@ -108,7 +116,7 @@ function SettingsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("company_id,ftd_balance_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct,currency,fiscal_year_start_month,brand_color,logo_url")
+        .select("company_id,ftd_balance_threshold,whale_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct,currency,fiscal_year_start_month,brand_color,logo_url")
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -120,6 +128,7 @@ function SettingsPage() {
     const s = fromRow(q.data as any);
     setForm({
       ftdBalanceThreshold: String(s.ftdBalanceThreshold),
+      whaleThreshold: String(s.whaleThreshold),
       defaultActivationBalance: String(s.defaultActivationBalance),
       ftdCommission: String(s.ftdCommission),
       withdrawalPenaltyPct: String(s.withdrawalPenaltyPct),
@@ -167,6 +176,7 @@ function SettingsPage() {
   const resetDefaults = () =>
     setForm({
       ftdBalanceThreshold: String(DEFAULT_SETTINGS.ftdBalanceThreshold),
+      whaleThreshold: String(DEFAULT_SETTINGS.whaleThreshold),
       defaultActivationBalance: String(DEFAULT_SETTINGS.defaultActivationBalance),
       ftdCommission: String(DEFAULT_SETTINGS.ftdCommission),
       withdrawalPenaltyPct: String(DEFAULT_SETTINGS.withdrawalPenaltyPct),

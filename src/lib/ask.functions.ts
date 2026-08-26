@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { isNeglectedWhale, isWhale } from "@/lib/whales";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { depositMatchesActivation, stdDepositsFor } from "@/lib/rules";
 import { computeAffiliateBalances } from "@/lib/affiliate-balance";
@@ -38,14 +39,14 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
 
     const [
       revenue, expenses, withdrawals, activations, leads, sources, employees, categories, affiliates,
-      affTerms, allEntries, affPayments,
+      affTerms, allEntries, affPayments, settingsRow,
     ] =
       await Promise.all([
         supabase.from("revenue").select("date,amount,customer_name,employee_id,employee_id_2,split_pct,affiliate_id,method,activation_id").gte("date", sinceIso),
         supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
         supabase.from("withdrawals").select("date,amount,employee_id,customer_name").gte("date", sinceIso),
         // Legacy (old CRM) clients are excluded from FTD/activation analysis.
-        supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id,balance,potential,answered,status,age,date_of_birth,gender,country,city,language,occupation,next_follow_up,preferred_contact_time,tags,notes,ai_risk_score,ai_risk_label,ai_summary").eq("legacy", false).gte("activation_date", sinceIso),
+        supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id,balance,potential,answered,status,age,date_of_birth,gender,country,city,language,occupation,next_follow_up,preferred_contact_time,tags,notes,ai_risk_score,ai_risk_label,ai_summary,potential_value").eq("legacy", false).gte("activation_date", sinceIso),
         supabase.from("daily_lead_entries").select("entry_date,received,activated,reported,cost,source_id").gte("entry_date", sinceIso),
         supabase.from("lead_sources").select("id,name,pricing_model,price"),
         // Use the same RLS-safe directory as the dashboard leaderboards. Some
@@ -65,7 +66,10 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
           .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at"),
         supabase.from("daily_lead_entries").select("entry_date,received,invalid,reported,activated,source_id"),
         supabase.from("expenses").select("affiliate_id,date,amount").not("affiliate_id", "is", null),
+        supabase.from("company_settings").select("whale_threshold").maybeSingle(),
       ]);
+
+    const whaleThreshold = Number((settingsRow as any)?.data?.whale_threshold) || 100000;
 
     // Client-level CRM context: the notes the team leaves and the touches they log.
     const [clientComments, clientComms] = await Promise.all([
@@ -168,6 +172,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const nameKeyOf = (n?: string | null) => (n ?? "").trim().toLowerCase();
 
     const depositsByClient = new Map<string, { total: number; count: number; last: string | null }>();
+    const depositDatesByClient = new Map<string, string[]>();
     for (const r of revRows) {
       const key = r.activation_id ? `id:${r.activation_id}` : `name:${nameKeyOf(r.customer_name)}`;
       if (key === "name:") continue;
@@ -176,7 +181,11 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       cur.count += 1;
       if (!cur.last || String(r.date) > cur.last) cur.last = String(r.date);
       depositsByClient.set(key, cur);
+      const dates = depositDatesByClient.get(key) ?? [];
+      dates.push(String(r.date));
+      depositDatesByClient.set(key, dates);
     }
+
     const withdrawalsByClient = new Map<string, { total: number; count: number; last: string | null }>();
     for (const w of (withdrawals.data ?? []) as any[]) {
       const key = `name:${nameKeyOf(w.customer_name)}`;
@@ -222,6 +231,8 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         qualifiedAt: a.qualified_at ?? null,
         status: a.status ?? null,
         potential: a.potential ?? null,
+        potentialValue: a.potential_value != null ? Number(a.potential_value) : null,
+        isWhale: isWhale(a.potential_value, whaleThreshold),
         answered: !!a.answered,
         age: a.age ?? null,
         gender: a.gender ?? null,
@@ -245,6 +256,15 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         lastContact: comms[0]?.at ?? null,
         recentContacts: comms,
         recentComments: commentsByClient.get(a.id) ?? [],
+        neglectedWhale: isNeglectedWhale(
+          {
+            startDate: a.activation_date,
+            potentialValue: a.potential_value,
+            depositDates: (depositDatesByClient.get(`id:${a.id}`) ?? depositDatesByClient.get(`name:${nameKeyOf(a.lead_name)}`) ?? []),
+            contactDates: comms.map((c) => c.at),
+          },
+          whaleThreshold,
+        ),
       };
     });
     // Keep the clients that matter most: biggest money first, then most recent.
@@ -256,6 +276,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     });
 
     const snapshot = {
+      whaleThreshold,
       today: new Date().toISOString().slice(0, 10),
       window: `${sinceIso} to today`,
       selectedPeriod: focusPeriod,
@@ -445,6 +466,8 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "positive means we owe the affiliate, negative means we are in credit with them. Balances are lifetime running " +
               "figures since each affiliate's charging start date, not limited to the selected period. Affiliates whose charging " +
               "has not been activated are not listed. If affiliateBalances is null, say balances are not visible to this user. " +
+              "WHALES: a client is a whale when potentialValue >= snapshot.whaleThreshold (the money we believe they can bring). " +
+              "neglectedWhale means a whale who neither deposited nor was contacted in the 14 days after activation. " +
               "CLIENTS: snapshot.clients is a per-client list — name, both agents, activation and qualification dates, CRM status, " +
               "potential, age/country/language/occupation, tags, team notes, the latest logged calls/messages (recentContacts) and " +
               "the latest team comments (recentComments), plus openingBalance, depositTotal/Count, lastDeposit, withdrawalTotal/Count, " +
