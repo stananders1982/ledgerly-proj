@@ -386,6 +386,18 @@ function ActivationsPage() {
         conversion_employee_id: v.conversion_employee_id || null,
         notes: v.notes?.trim() || null,
         tags: v.tags ?? [],
+        date_of_birth: v.date_of_birth || null,
+        age: v.age ?? null,
+        gender: v.gender || null,
+        country: v.country?.trim() || null,
+        city: v.city?.trim() || null,
+        language: v.language?.trim() || null,
+        phone: v.phone?.trim() || null,
+        email: v.email?.trim() || null,
+        occupation: v.occupation?.trim() || null,
+        status: v.status || null,
+        next_follow_up: v.next_follow_up || null,
+        preferred_contact_time: v.preferred_contact_time || null,
       } as any;
       if (!v.id) {
         const { error } = await supabase.from("daily_lead_activations").insert({
