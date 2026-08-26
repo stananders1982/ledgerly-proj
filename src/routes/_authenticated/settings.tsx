@@ -55,6 +55,27 @@ const FIELDS: {
     suffix: "$",
   },
   {
+    key: "highThreshold",
+    column: "high_threshold",
+    label: "High value threshold",
+    hint: "Potential value at which a client counts as High value (below the whale band).",
+    suffix: "$",
+  },
+  {
+    key: "midThreshold",
+    column: "mid_threshold",
+    label: "Mid value threshold",
+    hint: "Potential value at which a client counts as Mid value.",
+    suffix: "$",
+  },
+  {
+    key: "smallThreshold",
+    column: "small_threshold",
+    label: "Small value threshold",
+    hint: "Minimum potential value for a client to be rated Small rather than Unrated.",
+    suffix: "$",
+  },
+  {
     key: "defaultActivationBalance",
     column: "default_activation_balance",
     label: "Default activation balance",
@@ -97,6 +118,9 @@ function SettingsPage() {
   const [form, setForm] = useState<Record<string, string>>({
     ftdBalanceThreshold: String(DEFAULT_SETTINGS.ftdBalanceThreshold),
       whaleThreshold: String(DEFAULT_SETTINGS.whaleThreshold),
+    highThreshold: String(DEFAULT_SETTINGS.highThreshold),
+    midThreshold: String(DEFAULT_SETTINGS.midThreshold),
+    smallThreshold: String(DEFAULT_SETTINGS.smallThreshold),
     defaultActivationBalance: String(DEFAULT_SETTINGS.defaultActivationBalance),
     ftdCommission: String(DEFAULT_SETTINGS.ftdCommission),
     withdrawalPenaltyPct: String(DEFAULT_SETTINGS.withdrawalPenaltyPct),
@@ -116,7 +140,7 @@ function SettingsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("company_id,ftd_balance_threshold,whale_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct,currency,fiscal_year_start_month,brand_color,logo_url")
+        .select("company_id,ftd_balance_threshold,whale_threshold,high_threshold,mid_threshold,small_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct,currency,fiscal_year_start_month,brand_color,logo_url")
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -129,6 +153,9 @@ function SettingsPage() {
     setForm({
       ftdBalanceThreshold: String(s.ftdBalanceThreshold),
       whaleThreshold: String(s.whaleThreshold),
+      highThreshold: String(s.highThreshold),
+      midThreshold: String(s.midThreshold),
+      smallThreshold: String(s.smallThreshold),
       defaultActivationBalance: String(s.defaultActivationBalance),
       ftdCommission: String(s.ftdCommission),
       withdrawalPenaltyPct: String(s.withdrawalPenaltyPct),
@@ -177,6 +204,9 @@ function SettingsPage() {
     setForm({
       ftdBalanceThreshold: String(DEFAULT_SETTINGS.ftdBalanceThreshold),
       whaleThreshold: String(DEFAULT_SETTINGS.whaleThreshold),
+    highThreshold: String(DEFAULT_SETTINGS.highThreshold),
+    midThreshold: String(DEFAULT_SETTINGS.midThreshold),
+    smallThreshold: String(DEFAULT_SETTINGS.smallThreshold),
       defaultActivationBalance: String(DEFAULT_SETTINGS.defaultActivationBalance),
       ftdCommission: String(DEFAULT_SETTINGS.ftdCommission),
       withdrawalPenaltyPct: String(DEFAULT_SETTINGS.withdrawalPenaltyPct),

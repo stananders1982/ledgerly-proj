@@ -83,6 +83,15 @@ export const analyseClient = createServerFn({ method: "POST" })
       preferredContactTime: c.preferred_contact_time ?? null,
       nextFollowUp: c.next_follow_up ?? null,
       tags: c.tags ?? [],
+      potentialValue: c.potential_value != null ? Number(c.potential_value) : null,
+      kyc: {
+        netWorth: c.net_worth != null ? Number(c.net_worth) : null,
+        liquidFunds: c.liquid_funds != null ? Number(c.liquid_funds) : null,
+        monthlyIncome: c.monthly_income != null ? Number(c.monthly_income) : null,
+        investedElsewhere: c.exposure_elsewhere != null ? Number(c.exposure_elsewhere) : null,
+        sourceOfFunds: c.source_of_funds ?? null,
+        depositAppetite: c.deposit_appetite != null ? Number(c.deposit_appetite) : null,
+      },
       notes: c.notes ?? null,
       source: c.daily_lead_entries?.lead_sources?.name ?? null,
       leadReceived: c.daily_lead_entries?.entry_date ?? null,
@@ -123,12 +132,20 @@ export const analyseClient = createServerFn({ method: "POST" })
               "You are a retention analyst for a client-deposit business. Read one client's JSON record — profile, comments " +
               "from the team, logged calls/messages, deposits and withdrawals — and reply with ONLY a JSON object, no prose " +
               "and no code fences, shaped exactly: " +
-              '{"summary": string, "next_action": string, "risk_score": number, "risk_label": string}. ' +
+              '{"summary": string, "next_action": string, "risk_score": number, "risk_label": string, ' +
+              '"opportunity_score": number, "opportunity_label": string, "opportunity_reason": string, "suggested_potential": number}. ' +
               "summary: 2–4 short sentences on behaviour and momentum, quoting concrete numbers and dates and what the team's " +
               "comments say. next_action: one concrete step the agent should take next. risk_score: 0–100 where 100 means the " +
               "client is about to be lost or is already gone and 0 means healthy and growing; weigh withdrawal pattern, days " +
               "since the last deposit, deposit trend, unanswered contact and negative comments. risk_label: one of " +
-              '"healthy", "growing", "watch", "at risk", "churning", "lost", or "upsell". Amounts are USD. Never invent data.' }],
+              '"healthy", "growing", "watch", "at risk", "churning", "lost", or "upsell". ' +
+              "opportunity_score: 0–100 for how much MORE money we can realistically still take from this client; judge it from the " +
+              "financial KYC block (net worth, liquid funds, monthly income, money invested elsewhere, source of funds, deposit " +
+              "appetite 1–5), what the comments and calls say about their willingness and circumstances, and how much they already " +
+              "deposited versus that capacity. High score = plenty of untapped headroom. opportunity_label: exactly one of " +
+              '"whale", "warm", "tapped out", "at risk". opportunity_reason: one short sentence naming the facts behind the score. ' +
+              "suggested_potential: your own USD estimate of the total this client can ever deposit (0 if there is nothing to go on). " +
+              "Amounts are USD. Never invent data." }],
           },
           { role: "user", content: [{ type: "input_text", text: JSON.stringify(profile) }] },
         ],
@@ -157,7 +174,15 @@ export const analyseClient = createServerFn({ method: "POST" })
     if (!parsed) throw new Error("The analysis came back unreadable — try again.");
 
     const score = Math.max(0, Math.min(100, Math.round(Number(parsed.risk_score) || 0)));
+    const oppScoreRaw = Number(parsed.opportunity_score);
+    const suggested = Number(parsed.suggested_potential);
     const patch = {
+      ai_opportunity_score: Number.isFinite(oppScoreRaw)
+        ? Math.max(0, Math.min(100, Math.round(oppScoreRaw)))
+        : null,
+      ai_opportunity_label: String(parsed.opportunity_label ?? "").slice(0, 40).toLowerCase() || null,
+      ai_opportunity_reason: String(parsed.opportunity_reason ?? "").slice(0, 500) || null,
+      ai_suggested_potential: Number.isFinite(suggested) && suggested > 0 ? Math.round(suggested) : null,
       ai_summary: String(parsed.summary ?? "").slice(0, 2000) || null,
       ai_next_action: String(parsed.next_action ?? "").slice(0, 500) || null,
       ai_risk_score: score,

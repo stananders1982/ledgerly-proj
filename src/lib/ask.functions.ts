@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { isNeglectedWhale, isWhale } from "@/lib/whales";
+import { TIER_LABEL, isNeglected, isWhale, valueTier, type TierThresholds } from "@/lib/whales";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { depositMatchesActivation, stdDepositsFor } from "@/lib/rules";
 import { computeAffiliateBalances } from "@/lib/affiliate-balance";
@@ -46,7 +46,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
         supabase.from("withdrawals").select("date,amount,employee_id,customer_name").gte("date", sinceIso),
         // Legacy (old CRM) clients are excluded from FTD/activation analysis.
-        supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id,balance,potential,answered,status,age,date_of_birth,gender,country,city,language,occupation,next_follow_up,preferred_contact_time,tags,notes,ai_risk_score,ai_risk_label,ai_summary,potential_value").eq("legacy", false).gte("activation_date", sinceIso),
+        supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id,balance,potential,answered,status,age,date_of_birth,gender,country,city,language,occupation,next_follow_up,preferred_contact_time,tags,notes,ai_risk_score,ai_risk_label,ai_summary,potential_value,net_worth,liquid_funds,monthly_income,exposure_elsewhere,source_of_funds,deposit_appetite,ai_opportunity_score,ai_opportunity_label,ai_opportunity_reason,ai_suggested_potential").eq("legacy", false).gte("activation_date", sinceIso),
         supabase.from("daily_lead_entries").select("entry_date,received,activated,reported,cost,source_id").gte("entry_date", sinceIso),
         supabase.from("lead_sources").select("id,name,pricing_model,price"),
         // Use the same RLS-safe directory as the dashboard leaderboards. Some
@@ -66,10 +66,17 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
           .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at"),
         supabase.from("daily_lead_entries").select("entry_date,received,invalid,reported,activated,source_id"),
         supabase.from("expenses").select("affiliate_id,date,amount").not("affiliate_id", "is", null),
-        supabase.from("company_settings").select("whale_threshold").maybeSingle(),
+        supabase.from("company_settings").select("whale_threshold,high_threshold,mid_threshold,small_threshold").maybeSingle(),
       ]);
 
-    const whaleThreshold = Number((settingsRow as any)?.data?.whale_threshold) || 100000;
+    const settingsData = (settingsRow as any)?.data ?? {};
+    const whaleThreshold = Number(settingsData.whale_threshold) || 100000;
+    const tierThresholds: TierThresholds = {
+      whaleThreshold,
+      highThreshold: Number(settingsData.high_threshold) || 50000,
+      midThreshold: Number(settingsData.mid_threshold) || 15000,
+      smallThreshold: Number(settingsData.small_threshold) || 1,
+    };
 
     // Client-level CRM context: the notes the team leaves and the touches they log.
     const [clientComments, clientComms] = await Promise.all([
@@ -233,6 +240,19 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         potential: a.potential ?? null,
         potentialValue: a.potential_value != null ? Number(a.potential_value) : null,
         isWhale: isWhale(a.potential_value, whaleThreshold),
+        valueTier: TIER_LABEL[valueTier(a.potential_value, tierThresholds)],
+        kyc: {
+          netWorth: a.net_worth != null ? Number(a.net_worth) : null,
+          liquidFunds: a.liquid_funds != null ? Number(a.liquid_funds) : null,
+          monthlyIncome: a.monthly_income != null ? Number(a.monthly_income) : null,
+          investedElsewhere: a.exposure_elsewhere != null ? Number(a.exposure_elsewhere) : null,
+          sourceOfFunds: a.source_of_funds ?? null,
+          depositAppetite: a.deposit_appetite != null ? Number(a.deposit_appetite) : null,
+        },
+        opportunityScore: a.ai_opportunity_score != null ? Number(a.ai_opportunity_score) : null,
+        opportunityLabel: a.ai_opportunity_label ?? null,
+        opportunityReason: a.ai_opportunity_reason ?? null,
+        aiSuggestedPotential: a.ai_suggested_potential != null ? Number(a.ai_suggested_potential) : null,
         answered: !!a.answered,
         age: a.age ?? null,
         gender: a.gender ?? null,

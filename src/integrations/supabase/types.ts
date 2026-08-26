@@ -702,10 +702,13 @@ export type Database = {
           fiscal_year_start_month: number
           ftd_balance_threshold: number
           ftd_commission: number
+          high_threshold: number
           logo_url: string | null
           method_fee_card_pct: number
           method_fee_crypto_pct: number
           method_fee_wire_pct: number
+          mid_threshold: number
+          small_threshold: number
           timezone: string
           updated_at: string
           whale_threshold: number
@@ -720,10 +723,13 @@ export type Database = {
           fiscal_year_start_month?: number
           ftd_balance_threshold?: number
           ftd_commission?: number
+          high_threshold?: number
           logo_url?: string | null
           method_fee_card_pct?: number
           method_fee_crypto_pct?: number
           method_fee_wire_pct?: number
+          mid_threshold?: number
+          small_threshold?: number
           timezone?: string
           updated_at?: string
           whale_threshold?: number
@@ -738,10 +744,13 @@ export type Database = {
           fiscal_year_start_month?: number
           ftd_balance_threshold?: number
           ftd_commission?: number
+          high_threshold?: number
           logo_url?: string | null
           method_fee_card_pct?: number
           method_fee_crypto_pct?: number
           method_fee_wire_pct?: number
+          mid_threshold?: number
+          small_threshold?: number
           timezone?: string
           updated_at?: string
           whale_threshold?: number
@@ -870,8 +879,12 @@ export type Database = {
           age: number | null
           ai_analyzed_at: string | null
           ai_next_action: string | null
+          ai_opportunity_label: string | null
+          ai_opportunity_reason: string | null
+          ai_opportunity_score: number | null
           ai_risk_label: string | null
           ai_risk_score: number | null
+          ai_suggested_potential: number | null
           ai_summary: string | null
           answered: boolean
           balance: number
@@ -882,15 +895,20 @@ export type Database = {
           created_at: string
           custom_fields: Json
           date_of_birth: string | null
+          deposit_appetite: number | null
           email: string | null
           employee_id: string
           entry_id: string | null
+          exposure_elsewhere: number | null
           gender: string | null
           id: string
           language: string | null
           lead_name: string | null
           legacy: boolean
+          liquid_funds: number | null
           low_potential_alerted: boolean
+          monthly_income: number | null
+          net_worth: number | null
           next_follow_up: string | null
           notes: string | null
           occupation: string | null
@@ -899,6 +917,7 @@ export type Database = {
           potential_value: number | null
           preferred_contact_time: string | null
           qualified_at: string | null
+          source_of_funds: string | null
           status: string | null
           tags: string[]
           updated_at: string
@@ -909,8 +928,12 @@ export type Database = {
           age?: number | null
           ai_analyzed_at?: string | null
           ai_next_action?: string | null
+          ai_opportunity_label?: string | null
+          ai_opportunity_reason?: string | null
+          ai_opportunity_score?: number | null
           ai_risk_label?: string | null
           ai_risk_score?: number | null
+          ai_suggested_potential?: number | null
           ai_summary?: string | null
           answered?: boolean
           balance?: number
@@ -921,15 +944,20 @@ export type Database = {
           created_at?: string
           custom_fields?: Json
           date_of_birth?: string | null
+          deposit_appetite?: number | null
           email?: string | null
           employee_id: string
           entry_id?: string | null
+          exposure_elsewhere?: number | null
           gender?: string | null
           id?: string
           language?: string | null
           lead_name?: string | null
           legacy?: boolean
+          liquid_funds?: number | null
           low_potential_alerted?: boolean
+          monthly_income?: number | null
+          net_worth?: number | null
           next_follow_up?: string | null
           notes?: string | null
           occupation?: string | null
@@ -938,6 +966,7 @@ export type Database = {
           potential_value?: number | null
           preferred_contact_time?: string | null
           qualified_at?: string | null
+          source_of_funds?: string | null
           status?: string | null
           tags?: string[]
           updated_at?: string
@@ -948,8 +977,12 @@ export type Database = {
           age?: number | null
           ai_analyzed_at?: string | null
           ai_next_action?: string | null
+          ai_opportunity_label?: string | null
+          ai_opportunity_reason?: string | null
+          ai_opportunity_score?: number | null
           ai_risk_label?: string | null
           ai_risk_score?: number | null
+          ai_suggested_potential?: number | null
           ai_summary?: string | null
           answered?: boolean
           balance?: number
@@ -960,15 +993,20 @@ export type Database = {
           created_at?: string
           custom_fields?: Json
           date_of_birth?: string | null
+          deposit_appetite?: number | null
           email?: string | null
           employee_id?: string
           entry_id?: string | null
+          exposure_elsewhere?: number | null
           gender?: string | null
           id?: string
           language?: string | null
           lead_name?: string | null
           legacy?: boolean
+          liquid_funds?: number | null
           low_potential_alerted?: boolean
+          monthly_income?: number | null
+          net_worth?: number | null
           next_follow_up?: string | null
           notes?: string | null
           occupation?: string | null
@@ -977,6 +1015,7 @@ export type Database = {
           potential_value?: number | null
           preferred_contact_time?: string | null
           qualified_at?: string | null
+          source_of_funds?: string | null
           status?: string | null
           tags?: string[]
           updated_at?: string
