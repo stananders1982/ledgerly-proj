@@ -17,8 +17,10 @@ import { AttachmentsPanel } from "@/components/attachments-panel";
 import { TagBadges, TagPicker } from "@/components/client-tags";
 import { AnsweredBadge, PotentialBadge } from "@/components/status-badge";
 import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
-import { ClientProfileFields, RiskBadge, StatusBadge, WhaleBadge } from "@/components/client-profile-fields";
-import { isNeglectedWhale, isWhale, potentialValue } from "@/lib/whales";
+import {
+  ClientKycFields, ClientProfileFields, OpportunityBadge, RiskBadge, StatusBadge, TierBadge,
+} from "@/components/client-profile-fields";
+import { TIER_LABEL, isNeglected, potentialValue, valueTier } from "@/lib/whales";
 import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
 import { fmtDate, fmtMoney } from "@/lib/format";
@@ -173,6 +175,12 @@ function ClientPage() {
       status: c.status ?? null,
       next_follow_up: c.next_follow_up ?? null,
       preferred_contact_time: c.preferred_contact_time ?? null,
+      net_worth: c.net_worth ?? null,
+      liquid_funds: c.liquid_funds ?? null,
+      monthly_income: c.monthly_income ?? null,
+      exposure_elsewhere: c.exposure_elsewhere ?? null,
+      source_of_funds: c.source_of_funds ?? null,
+      deposit_appetite: c.deposit_appetite ?? null,
     });
     setNotes(c.notes ?? "");
   }, [clientQ.data]);
@@ -188,18 +196,15 @@ function ClientPage() {
   const stdCount = cur ? stdDepositsFor(cur as any, deposits as any).length : 0;
   const lastDeposit = deposits.length ? deposits[deposits.length - 1].date : null;
   const lastContact = commsQ.data?.[0]?.occurred_at ?? null;
-  const whale = isWhale(cur?.potential_value, settings.whaleThreshold);
-  const neglectedWhale = cur
-    ? isNeglectedWhale(
-        {
-          startDate: activationDate(cur as any),
-          potentialValue: cur.potential_value,
-          depositDates: deposits.map((d: any) => d.date),
-          contactDates: (commsQ.data ?? []).map((c: any) => c.occurred_at),
-        },
-        settings.whaleThreshold,
-      )
+  const tier = valueTier(cur?.potential_value, settings);
+  const neglected = cur
+    ? isNeglected({
+        startDate: activationDate(cur as any),
+        depositDates: deposits.map((d: any) => d.date),
+        contactDates: (commsQ.data ?? []).map((c: any) => c.occurred_at),
+      })
     : false;
+  const neglectedRated = neglected && tier !== "unrated";
 
   const transactions = useMemo(() => {
     const rows = [
@@ -305,13 +310,14 @@ function ClientPage() {
         <Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified FTD" : "FTD pending"}</Badge>
         {stdCount > 0 && <Badge variant="default">STD ×{stdCount}</Badge>}
         {cur.legacy && <Badge variant="outline" className="text-muted-foreground">Legacy</Badge>}
-        <WhaleBadge value={cur.potential_value} threshold={settings.whaleThreshold} />
-        {neglectedWhale && (
+        <TierBadge value={cur.potential_value} thresholds={settings} showUnrated />
+        {neglectedRated && (
           <Badge variant="outline" className="border-rose-500/50 text-rose-600 dark:text-rose-400">
-            Neglected whale
+            Neglected {TIER_LABEL[tier].toLowerCase()}
           </Badge>
         )}
         <RiskBadge score={cur.ai_risk_score} label={cur.ai_risk_label} />
+        <OpportunityBadge score={cur.ai_opportunity_score} label={cur.ai_opportunity_label} />
         <TagBadges tags={cur.tags} />
       </div>
 
@@ -319,7 +325,12 @@ function ClientPage() {
         <StatCard
           label="Potential"
           value={potentialValue(cur.potential_value) != null ? fmtMoney(Number(cur.potential_value)) : "—"}
-          hint={whale ? "Whale" : undefined}
+          hint={TIER_LABEL[tier]}
+        />
+        <StatCard
+          label="Headroom score"
+          value={cur.ai_opportunity_score != null ? `${cur.ai_opportunity_score}/100` : "—"}
+          hint={cur.ai_opportunity_label ?? "run an analysis"}
         />
         <StatCard label="Balance" value={fmtMoney(balance)} />
         <StatCard label="Deposits" value={fmtMoney(depositTotal)} hint={`${deposits.length} deposit${deposits.length === 1 ? "" : "s"}`} />
@@ -346,6 +357,34 @@ function ClientPage() {
                     {cur.ai_next_action}
                   </p>
                 )}
+                {(cur.ai_opportunity_score != null || cur.ai_opportunity_reason) && (
+                  <div className="rounded-lg border border-border bg-foreground/[0.02] p-3">
+                    <span className="text-xs uppercase text-muted-foreground">Deposit headroom</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <OpportunityBadge score={cur.ai_opportunity_score} label={cur.ai_opportunity_label} />
+                      {cur.ai_suggested_potential != null && (
+                        <span className="text-xs text-muted-foreground">
+                          AI estimate {fmtMoney(Number(cur.ai_suggested_potential))}
+                          {potentialValue(cur.potential_value) != null
+                            ? ` vs recorded ${fmtMoney(Number(cur.potential_value))}`
+                            : " · no potential recorded"}
+                        </span>
+                      )}
+                    </div>
+                    {cur.ai_opportunity_reason && <p className="mt-1.5">{cur.ai_opportunity_reason}</p>}
+                    {cur.ai_suggested_potential != null && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2"
+                        disabled={save.isPending}
+                        onClick={() => save.mutate({ potential_value: Number(cur.ai_suggested_potential) })}
+                      >
+                        Use AI estimate as potential
+                      </Button>
+                    )}
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Attention score <RiskBadge score={cur.ai_risk_score} label={cur.ai_risk_label} className="mx-1 align-middle" />
                   {cur.ai_analyzed_at ? `· updated ${fmtDate(String(cur.ai_analyzed_at).slice(0, 10))}` : ""}
@@ -367,6 +406,17 @@ function ClientPage() {
                   value={draft}
                   onChange={(patch) => setDraft({ ...draft, ...patch })}
                 />
+                <div className="mt-4 rounded-lg border border-border p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Financial KYC</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    What the money behind this client looks like — the headroom score is judged against this.
+                  </p>
+                  <ClientKycFields
+                    className="mt-3"
+                    value={draft}
+                    onChange={(patch) => setDraft({ ...draft, ...patch })}
+                  />
+                </div>
                 <div className="mt-3 grid gap-1.5">
                   <label className="text-xs text-muted-foreground">Tags</label>
                   <TagPicker value={cur.tags ?? []} onChange={(tags) => save.mutate({ tags })} />

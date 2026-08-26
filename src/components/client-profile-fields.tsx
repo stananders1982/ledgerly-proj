@@ -7,7 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { fmtMoney } from "@/lib/format";
-import { isWhale } from "@/lib/whales";
+import {
+  TIER_LABEL, TIER_TONE, isWhale, normaliseOpportunityTier, opportunityTone,
+  valueTier, type TierThresholds,
+} from "@/lib/whales";
 import {
   CLIENT_STATUSES, CONTACT_TIMES, GENDERS, STATUS_TONE, riskTone,
   type ClientProfile,
@@ -162,5 +165,97 @@ export function WhaleBadge({
     >
       Whale
     </Badge>
+  );
+}
+
+/** The value band a client's potential value falls into. */
+export function TierBadge({
+  value, thresholds, className, showUnrated = false,
+}: { value?: number | null; thresholds: TierThresholds; className?: string; showUnrated?: boolean }) {
+  const tier = valueTier(value, thresholds);
+  if (tier === "unrated" && !showUnrated) return null;
+  return (
+    <Badge
+      variant="outline"
+      className={cn(TIER_TONE[tier], className)}
+      title={value ? `Potential ${fmtMoney(Number(value))}` : "No potential value recorded"}
+    >
+      {TIER_LABEL[tier]}
+    </Badge>
+  );
+}
+
+/** AI read of how much more money this client can realistically put in. */
+export function OpportunityBadge({
+  score, label, className,
+}: { score?: number | null; label?: string | null; className?: string }) {
+  if (score == null && !label) return <span className="text-muted-foreground">—</span>;
+  const tier = normaliseOpportunityTier(label);
+  return (
+    <Badge variant="outline" className={cn("capitalize", opportunityTone(score), className)}>
+      {score != null ? `${score}` : ""}{score != null && label ? " · " : ""}{tier !== "unknown" ? tier : (label ?? "")}
+    </Badge>
+  );
+}
+
+const APPETITE = [
+  { v: 1, l: "1 · none" },
+  { v: 2, l: "2 · low" },
+  { v: 3, l: "3 · medium" },
+  { v: 4, l: "4 · high" },
+  { v: 5, l: "5 · ready now" },
+];
+
+/**
+ * Financial KYC: what we know about the money behind the client. This is what
+ * the potential value and the AI opportunity score are judged against.
+ */
+export function ClientKycFields({
+  value, onChange, className,
+}: {
+  value: ClientProfile;
+  onChange: (patch: Partial<ClientProfile>) => void;
+  className?: string;
+}) {
+  const numField = (key: keyof ClientProfile, label: string, placeholder?: string) => (
+    <Field label={label}>
+      <Input
+        type="number"
+        min={0}
+        step={1000}
+        placeholder={placeholder}
+        className="h-9"
+        value={(value[key] as number | null | undefined) ?? ""}
+        onChange={(e) => onChange({ [key]: e.target.value === "" ? null : Number(e.target.value) } as Partial<ClientProfile>)}
+      />
+    </Field>
+  );
+  return (
+    <div className={cn("grid gap-3 sm:grid-cols-2", className)}>
+      {numField("net_worth", "Net worth ($)", "e.g. 400000")}
+      {numField("liquid_funds", "Liquid funds ($)", "cash they can move now")}
+      {numField("monthly_income", "Monthly income ($)", "e.g. 8000")}
+      {numField("exposure_elsewhere", "Invested elsewhere ($)", "with other brokers")}
+      <Field label="Source of funds">
+        <Input
+          className="h-9"
+          placeholder="salary, business, inheritance, crypto…"
+          value={value.source_of_funds ?? ""}
+          onChange={(e) => onChange({ source_of_funds: e.target.value || null })}
+        />
+      </Field>
+      <Field label="Deposit appetite">
+        <Select
+          value={value.deposit_appetite != null ? String(value.deposit_appetite) : NONE}
+          onValueChange={(v) => onChange({ deposit_appetite: v === NONE ? null : Number(v) })}
+        >
+          <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE}>—</SelectItem>
+            {APPETITE.map((a) => <SelectItem key={a.v} value={String(a.v)}>{a.l}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </Field>
+    </div>
   );
 }

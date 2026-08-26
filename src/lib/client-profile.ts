@@ -14,6 +14,26 @@ export const GENDERS = ["male", "female", "other"] as const;
 export type ClientProfile = {
   /** How much money we realistically believe this client can bring in ($). */
   potential_value?: number | null;
+  /** Financial KYC: estimated total net worth ($). */
+  net_worth?: number | null;
+  /** Financial KYC: funds they can actually move now ($). */
+  liquid_funds?: number | null;
+  /** Financial KYC: income per month ($). */
+  monthly_income?: number | null;
+  /** Financial KYC: roughly how much sits with other brokers ($). */
+  exposure_elsewhere?: number | null;
+  /** Financial KYC: where the money comes from. */
+  source_of_funds?: string | null;
+  /** Financial KYC: 1-5 read on how ready they are to add funds. */
+  deposit_appetite?: number | null;
+  /** AI: 0-100, how much more money we can realistically take. */
+  ai_opportunity_score?: number | null;
+  /** AI: whale / warm / tapped out / at risk. */
+  ai_opportunity_label?: string | null;
+  /** AI: the facts behind the opportunity score. */
+  ai_opportunity_reason?: string | null;
+  /** AI: its own read of the potential value ($). */
+  ai_suggested_potential?: number | null;
   date_of_birth?: string | null;
   age?: number | null;
   gender?: string | null;

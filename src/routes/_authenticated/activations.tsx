@@ -41,9 +41,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { Link } from "@tanstack/react-router";
-import { ClientProfileFields, RiskBadge, StatusBadge, WhaleBadge } from "@/components/client-profile-fields";
+import {
+  ClientKycFields, ClientProfileFields, OpportunityBadge, RiskBadge, StatusBadge, TierBadge,
+} from "@/components/client-profile-fields";
 import { clientAge, type ClientProfile } from "@/lib/client-profile";
-import { isNeglectedWhale, isWhale, lastDate, potentialValue } from "@/lib/whales";
+import {
+  TIER_LABEL, TIER_RANK, VALUE_TIERS, isNeglected, lastDate, potentialValue, valueTier,
+} from "@/lib/whales";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -117,8 +121,8 @@ function ActivationsPage() {
   
   const [dupOnly, setDupOnly] = useState(false);
   const [tagFilter, setTagFilter] = useState<string>("all");
-  const [whaleFilter, setWhaleFilter] = useState<"all" | "whales" | "neglected">("all");
-  const [whaleMin, setWhaleMin] = useState<string>("");
+  const [tierFilter, setTierFilter] = useState<string>("all");
+  const [minPotential, setMinPotential] = useState<string>("");
 
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
@@ -245,19 +249,16 @@ function ActivationsPage() {
 
   const lastContactFor = (r: any) => lastDate(contactDatesFor(r.lead_name, r.id));
 
-  /** Threshold in force: the filter override when typed, otherwise the setting. */
-  const whaleThreshold = Number(whaleMin) > 0 ? Number(whaleMin) : settings.whaleThreshold;
+  /** Which value band a client falls into, using the company thresholds. */
+  const tierOf = (r: any) => valueTier(r.potential_value, settings);
 
+  /** No deposit and no contact in the 14 days after the FTD date. */
   const neglected = (r: any) =>
-    isNeglectedWhale(
-      {
-        startDate: actDate(r),
-        potentialValue: r.potential_value,
-        depositDates: depositRowsFor(r.lead_name, r.id).map((d) => d.date),
-        contactDates: contactDatesFor(r.lead_name, r.id),
-      },
-      whaleThreshold,
-    );
+    isNeglected({
+      startDate: actDate(r),
+      depositDates: depositRowsFor(r.lead_name, r.id).map((d) => d.date),
+      contactDates: contactDatesFor(r.lead_name, r.id),
+    });
 
   const daysSinceFtd = (r: any) => {
     const d = actDate(r);
@@ -329,12 +330,13 @@ function ActivationsPage() {
       }
       if (dupOnly && !dupNames.has((r.lead_name ?? "").trim().toLowerCase())) return false;
       if (tagFilter !== "all" && !(r.tags ?? []).includes(tagFilter)) return false;
-      if (whaleFilter === "whales" && !isWhale(r.potential_value, whaleThreshold)) return false;
-      if (whaleFilter === "neglected" && !neglected(r)) return false;
+      if (Number(minPotential) > 0 && (potentialValue(r.potential_value) ?? 0) < Number(minPotential)) return false;
+      if (tierFilter === "neglected" && !(neglected(r) && tierOf(r) !== "unrated")) return false;
+      if (tierFilter !== "all" && tierFilter !== "neglected" && tierOf(r) !== tierFilter) return false;
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [answeredFilter, potentialFilter, stdFilter, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch, whaleFilter, whaleThreshold, commsQ.data],
+    [answeredFilter, potentialFilter, stdFilter, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch, tierFilter, minPotential, settings, commsQ.data],
   );
 
   /** Every client regardless of the selected date range (used by issue deep-links). */
@@ -374,6 +376,8 @@ function ActivationsPage() {
       { key: "balance", label: "Balance", filter: "none" },
       { key: "potential", label: "Potential", filter: "select", value: (r: any) => r.potential ?? "" },
       { key: "potentialValue", label: "Potential $", filter: "none" },
+      { key: "tier", label: "Value tier", filter: "select", value: (r: any) => TIER_LABEL[valueTier(r.potential_value, settings)] },
+      { key: "opportunity", label: "Headroom", filter: "select", defaultHidden: true, value: (r: any) => r.ai_opportunity_label ?? "" },
       { key: "daysftd", label: "Days since FTD", filter: "none", defaultHidden: true },
       { key: "lastcontact", label: "Last contact", filter: "none", defaultHidden: true },
       { key: "tags", label: "Tags", value: (r: any) => (r.tags ?? []).join(", ") },
@@ -399,6 +403,8 @@ function ActivationsPage() {
     balance: (r) => netBalance(r),
     potential: (r) => ({ low: 1, mid: 2, high: 3 } as any)[r.potential ?? ""] ?? 0,
     potentialValue: (r) => potentialValue(r.potential_value) ?? -1,
+    tier: (r) => TIER_RANK[valueTier(r.potential_value, settings)],
+    opportunity: (r) => Number(r.ai_opportunity_score ?? -1),
     daysftd: (r) => daysSinceFtd(r) ?? -1,
     lastcontact: (r) => lastContactFor(r) ?? "",
     conversion: (r) => r.conversion_employee_id ?? "",
@@ -421,8 +427,12 @@ function ActivationsPage() {
 
   const answeredCount = rows.filter((r) => r.answered).length;
   const highCount = rows.filter((r) => r.potential === "high").length;
-  const whaleCount = rows.filter((r) => isWhale(r.potential_value, whaleThreshold)).length;
-  const neglectedCount = rows.filter((r) => neglected(r)).length;
+  const tierCounts = rows.reduce((acc: Record<string, number>, r: any) => {
+    const t = tierOf(r);
+    acc[t] = (acc[t] ?? 0) + 1;
+    return acc;
+  }, {});
+  const neglectedCount = rows.filter((r) => neglected(r) && tierOf(r) !== "unrated").length;
 
 
 
@@ -452,6 +462,12 @@ function ActivationsPage() {
         next_follow_up: v.next_follow_up || null,
         preferred_contact_time: v.preferred_contact_time || null,
         potential_value: v.potential_value ?? null,
+        net_worth: v.net_worth ?? null,
+        liquid_funds: v.liquid_funds ?? null,
+        monthly_income: v.monthly_income ?? null,
+        exposure_elsewhere: v.exposure_elsewhere ?? null,
+        source_of_funds: v.source_of_funds?.trim() || null,
+        deposit_appetite: v.deposit_appetite ?? null,
       } as any;
       if (!v.id) {
         const { error } = await supabase.from("daily_lead_activations").insert({
@@ -625,21 +641,23 @@ function ActivationsPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={whaleFilter} onValueChange={(v) => setWhaleFilter(v as any)}>
+        <Select value={tierFilter} onValueChange={setTierFilter}>
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All clients</SelectItem>
-            <SelectItem value="whales">Whales</SelectItem>
-            <SelectItem value="neglected">Neglected whales</SelectItem>
+            <SelectItem value="all">All value tiers</SelectItem>
+            {VALUE_TIERS.map((t) => (
+              <SelectItem key={t} value={t}>{TIER_LABEL[t]}</SelectItem>
+            ))}
+            <SelectItem value="neglected">Neglected (any tier)</SelectItem>
           </SelectContent>
         </Select>
         <Input
           type="number"
           min={0}
           className="h-9 w-40"
-          placeholder={`Above ${settings.whaleThreshold}`}
-          value={whaleMin}
-          onChange={(e) => setWhaleMin(e.target.value)}
+          placeholder="Min potential $"
+          value={minPotential}
+          onChange={(e) => setMinPotential(e.target.value)}
         />
         <Select value={tagFilter} onValueChange={setTagFilter}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
@@ -656,11 +674,20 @@ function ActivationsPage() {
         <StatCard label="Clients" value={String(rows.length)} icon={CheckCircle2} />
         <StatCard label="Total balance" value={fmtMoney(totalBalance)} icon={Wallet} />
         <StatCard label="Answered" value={`${answeredCount} / ${rows.length}`} icon={PhoneCall} />
-        <button type="button" className="text-left" onClick={() => setWhaleFilter("whales")}>
-          <StatCard label="Whales" value={String(whaleCount)} icon={Wallet} />
+        <button type="button" className="text-left" onClick={() => setTierFilter("whale")}>
+          <StatCard label="Whales" value={String(tierCounts["whale"] ?? 0)} icon={Wallet} />
         </button>
-        <button type="button" className="text-left" onClick={() => setWhaleFilter("neglected")}>
-          <StatCard label="Neglected whales" value={String(neglectedCount)} icon={PhoneCall} />
+        <button type="button" className="text-left" onClick={() => setTierFilter("high")}>
+          <StatCard label="High value" value={String(tierCounts["high"] ?? 0)} icon={Wallet} />
+        </button>
+        <button type="button" className="text-left" onClick={() => setTierFilter("mid")}>
+          <StatCard label="Mid value" value={String(tierCounts["mid"] ?? 0)} icon={Wallet} />
+        </button>
+        <button type="button" className="text-left" onClick={() => setTierFilter("unrated")}>
+          <StatCard label="Unrated" value={String(tierCounts["unrated"] ?? 0)} icon={Wallet} />
+        </button>
+        <button type="button" className="text-left" onClick={() => setTierFilter("neglected")}>
+          <StatCard label="Neglected clients" value={String(neglectedCount)} icon={PhoneCall} />
         </button>
       </div>
 
@@ -768,6 +795,8 @@ function ActivationsPage() {
                 {tb.show("balance") && <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("potential") && <SortTh label="Potential" k="potential" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("potentialValue") && <SortTh label="Potential $" k="potentialValue" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("tier") && <SortTh label="Value tier" k="tier" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("opportunity") && <SortTh label="Headroom" k="opportunity" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("daysftd") && <SortTh label="Days since FTD" k="daysftd" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("lastcontact") && <SortTh label="Last contact" k="lastcontact" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("tags") && <th className="py-2.5 px-2">Tags</th>}
@@ -873,12 +902,21 @@ function ActivationsPage() {
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
-                    <WhaleBadge value={r.potential_value} threshold={whaleThreshold} className="ml-2" />
-                    {neglected(r) && (
+                    {neglected(r) && tierOf(r) !== "unrated" && (
                       <Badge variant="outline" className="ml-2 border-rose-500/50 text-rose-600 dark:text-rose-400">
                         Neglected
                       </Badge>
                     )}
+                  </td>
+                  )}
+                  {tb.show("tier") && (
+                  <td className="py-2.5 px-2">
+                    <TierBadge value={r.potential_value} thresholds={settings} showUnrated />
+                  </td>
+                  )}
+                  {tb.show("opportunity") && (
+                  <td className="py-2.5 px-2">
+                    <OpportunityBadge score={r.ai_opportunity_score} label={r.ai_opportunity_label} />
                   </td>
                   )}
                   {tb.show("daysftd") && (
@@ -1031,7 +1069,8 @@ function ActivationsPage() {
                   <FavoriteStar type="client" id={cur.id} label={cur.lead_name} />
                   {cur.lead_name || "Unnamed client"}
                   <PotentialBadge value={cur.potential} />
-                  <WhaleBadge value={cur.potential_value} threshold={whaleThreshold} />
+                  <TierBadge value={cur.potential_value} thresholds={settings} showUnrated />
+                  <OpportunityBadge score={cur.ai_opportunity_score} label={cur.ai_opportunity_label} />
                   <AnsweredBadge answered={!!cur.answered} />
                 </SheetTitle>
               </SheetHeader>
@@ -1343,6 +1382,13 @@ function EditDialog({
         <div className="grid gap-2 rounded-lg border border-border p-3">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Client details</p>
           <ClientProfileFields
+            value={form}
+            onChange={(patch) => setForm({ ...form, ...patch })}
+          />
+        </div>
+        <div className="grid gap-2 rounded-lg border border-border p-3">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Financial KYC</p>
+          <ClientKycFields
             value={form}
             onChange={(patch) => setForm({ ...form, ...patch })}
           />

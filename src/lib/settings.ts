@@ -15,6 +15,12 @@ export type CompanySettings = {
   ftdBalanceThreshold: number;
   /** Potential value ($) at which a client counts as a whale. */
   whaleThreshold: number;
+  /** Potential value ($) at which a client counts as High value. */
+  highThreshold: number;
+  /** Potential value ($) at which a client counts as Mid value. */
+  midThreshold: number;
+  /** Potential value ($) at which a client counts as Small value. */
+  smallThreshold: number;
   /** Default balance credited when a lead is activated. */
 
   defaultActivationBalance: number;
@@ -41,6 +47,9 @@ export type CompanySettings = {
 export const DEFAULT_SETTINGS: CompanySettings = {
   ftdBalanceThreshold: 251,
   whaleThreshold: 100000,
+  highThreshold: 50000,
+  midThreshold: 15000,
+  smallThreshold: 1,
   defaultActivationBalance: 250,
   ftdCommission: 100,
   withdrawalPenaltyPct: 10,
@@ -56,6 +65,9 @@ export const DEFAULT_SETTINGS: CompanySettings = {
 type SettingsRow = {
   ftd_balance_threshold: number | string;
   whale_threshold?: number | string;
+  high_threshold?: number | string;
+  mid_threshold?: number | string;
+  small_threshold?: number | string;
   default_activation_balance: number | string;
   ftd_commission: number | string;
   withdrawal_penalty_pct: number | string;
@@ -77,6 +89,9 @@ export function fromRow(row?: Partial<SettingsRow> | null): CompanySettings {
   return {
     ftdBalanceThreshold: num(row.ftd_balance_threshold, DEFAULT_SETTINGS.ftdBalanceThreshold),
     whaleThreshold: num(row.whale_threshold, DEFAULT_SETTINGS.whaleThreshold),
+    highThreshold: num(row.high_threshold, DEFAULT_SETTINGS.highThreshold),
+    midThreshold: num(row.mid_threshold, DEFAULT_SETTINGS.midThreshold),
+    smallThreshold: num(row.small_threshold, DEFAULT_SETTINGS.smallThreshold),
     defaultActivationBalance: num(row.default_activation_balance, DEFAULT_SETTINGS.defaultActivationBalance),
     ftdCommission: num(row.ftd_commission, DEFAULT_SETTINGS.ftdCommission),
     withdrawalPenaltyPct: num(row.withdrawal_penalty_pct, DEFAULT_SETTINGS.withdrawalPenaltyPct),
@@ -103,7 +118,7 @@ export function useCompanySettings(): CompanySettings {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("ftd_balance_threshold,whale_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct,currency,fiscal_year_start_month,brand_color,logo_url")
+        .select("ftd_balance_threshold,whale_threshold,high_threshold,mid_threshold,small_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct,currency,fiscal_year_start_month,brand_color,logo_url")
         .maybeSingle();
       if (error) return null;
       return data;
