@@ -67,7 +67,9 @@ New sortable columns: **Tier**, **Opportunity** (score + badge) and **Liquid fun
 
 - Migration on `daily_lead_activations`: `net_worth`, `liquid_funds`, `monthly_income`, `exposure_elsewhere` (numeric, nullable), `source_of_funds` (text), `deposit_appetite` (smallint 1-5), plus AI columns `ai_opportunity_score` (int), `ai_opportunity_label` (text), `ai_opportunity_reason` (text), `ai_suggested_potential` (numeric). Existing company-scoped access rules cover them; index `ai_opportunity_score` for sorting.
 - `src/lib/client-profile.ts`: extend `ClientProfile` with the KYC + opportunity fields and add an `opportunityTone()` helper next to `riskTone()`.
-- `src/lib/whales.ts` gains the tier derivation so list, dashboard card and AI snapshot share one function; whale / neglected logic itself is untouched.
+- `company_settings` gains `high_threshold`, `mid_threshold`, `small_threshold` (numeric, defaults 50000 / 15000 / 1) alongside the existing `whale_threshold`; `src/lib/settings.ts` + the Settings page expose them.
+- `src/lib/whales.ts` gains `valueTier(potential, thresholds)` and the opportunity-tier derivation so list, cards, dashboard and AI snapshot share one function; the existing whale / neglected helpers stay and are re-expressed on top of `valueTier`.
+
 - `src/lib/client-insight.functions.ts`: include the KYC fields in the `profile` payload, widen the strict JSON contract to also return `opportunity_score`, `opportunity_label`, `opportunity_reason`, `suggested_potential`, and persist them in the same update. Same `/v1/responses` call, one round trip.
 - `src/components/client-profile-fields.tsx`: the Financial KYC inputs and the tier badge.
 - `src/routes/_authenticated/activations.tsx`: opportunity/liquid columns and the tier filter options via the existing sortable-table + saved-views plumbing.
