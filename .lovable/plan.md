@@ -55,12 +55,13 @@ The Clients page potential filter becomes:
 New sortable columns: **Tier**, **Opportunity** (score + badge) and **Liquid funds**. Potential $, Days since FTD and Last contact stay.
 
 
-## 4. Where it shows up
+## 5. Where it shows up
 
-- Client page: KYC block, opportunity score with tier badge and the AI's "why", plus the suggested-potential comparison.
-- Clients list: opportunity column, tier badges, tier filters.
-- Dashboard: the "Neglected whales" alert gains a companion count — whales with a high opportunity score that haven't been contacted in 14+ days.
-- "Ask your data": each client's KYC figures, opportunity score and tier, so "which clients still have room?" and "who has liquid funds we haven't touched?" work.
+- Client page: KYC block, value tier badge, opportunity score with tier badge and the AI's "why", plus the suggested-potential comparison.
+- Clients list: tier + opportunity columns, badges, tier filters, and count cards per tier.
+- Dashboard: the "Neglected whales" alert gains a companion count — whales and High clients with a high opportunity score that haven't been contacted in 14+ days.
+- "Ask your data": each client's KYC figures, value tier, opportunity score and tier, so "how many High clients do we have?" and "who has liquid funds we haven't touched?" work.
+
 
 ## Technical notes
 
