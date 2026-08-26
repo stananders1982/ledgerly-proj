@@ -43,6 +43,7 @@ import { usePersistedState } from "@/hooks/use-persisted-state";
 import { Link } from "@tanstack/react-router";
 import { ClientProfileFields, RiskBadge, StatusBadge, WhaleBadge } from "@/components/client-profile-fields";
 import { clientAge, type ClientProfile } from "@/lib/client-profile";
+import { isNeglectedWhale, isWhale, lastDate, potentialValue } from "@/lib/whales";
 
 export const Route = createFileRoute("/_authenticated/activations")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -116,6 +117,8 @@ function ActivationsPage() {
   
   const [dupOnly, setDupOnly] = useState(false);
   const [tagFilter, setTagFilter] = useState<string>("all");
+  const [whaleFilter, setWhaleFilter] = useState<"all" | "whales" | "neglected">("all");
+  const [whaleMin, setWhaleMin] = useState<string>("");
 
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
@@ -198,6 +201,17 @@ function ActivationsPage() {
     },
   });
 
+  const commsQ = useQuery({
+    queryKey: ["comms-for-activations"],
+    queryFn: async () => {
+      const data = await fetchAll(() => supabase
+        .from("client_communications")
+        .select("activation_id, client_name, occurred_at")
+        .order("occurred_at", { ascending: false }));
+      return (data ?? []) as { activation_id: string | null; client_name: string | null; occurred_at: string }[];
+    },
+  });
+
   // Deposits indexed by client link first; names only cover legacy rows.
   const deposits = useMemo(() => depositIndex(revenueQ.data ?? []), [revenueQ.data]);
 
@@ -223,6 +237,35 @@ function ActivationsPage() {
   /** Base balance + deposits - withdrawals. */
   const netBalance = (r: { id?: string | null; lead_name?: string | null; balance?: number | string | null }) =>
     Number(r.balance || 0) + depositsFor(r.lead_name, r.id) - withdrawalsFor(r.lead_name);
+
+  const contactDatesFor = (name?: string | null, activationId?: string | null) =>
+    (commsQ.data ?? [])
+      .filter((c) => (c.activation_id ? c.activation_id === activationId : matchName(c.client_name, name)))
+      .map((c) => c.occurred_at);
+
+  const lastContactFor = (r: any) => lastDate(contactDatesFor(r.lead_name, r.id));
+
+  /** Threshold in force: the filter override when typed, otherwise the setting. */
+  const whaleThreshold = Number(whaleMin) > 0 ? Number(whaleMin) : settings.whaleThreshold;
+
+  const neglected = (r: any) =>
+    isNeglectedWhale(
+      {
+        startDate: actDate(r),
+        potentialValue: r.potential_value,
+        depositDates: depositRowsFor(r.lead_name, r.id).map((d) => d.date),
+        contactDates: contactDatesFor(r.lead_name, r.id),
+      },
+      whaleThreshold,
+    );
+
+  const daysSinceFtd = (r: any) => {
+    const d = actDate(r);
+    if (!d) return null;
+    const t = new Date(`${d}T00:00:00`).getTime();
+    if (Number.isNaN(t)) return null;
+    return Math.max(0, Math.floor((Date.now() - t) / 86400000));
+  };
 
   /** Deposits made on/after activation — every one of these is an STD. */
   const stdDepositsForRow = (r: Row) => stdDepositsFor(r as any, revenueQ.data ?? []);
@@ -286,10 +329,12 @@ function ActivationsPage() {
       }
       if (dupOnly && !dupNames.has((r.lead_name ?? "").trim().toLowerCase())) return false;
       if (tagFilter !== "all" && !(r.tags ?? []).includes(tagFilter)) return false;
+      if (whaleFilter === "whales" && !isWhale(r.potential_value, whaleThreshold)) return false;
+      if (whaleFilter === "neglected" && !neglected(r)) return false;
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [answeredFilter, potentialFilter, stdFilter, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch],
+    [answeredFilter, potentialFilter, stdFilter, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch, whaleFilter, whaleThreshold, commsQ.data],
   );
 
   /** Every client regardless of the selected date range (used by issue deep-links). */
@@ -328,6 +373,9 @@ function ActivationsPage() {
       { key: "source", label: "Source", filter: "select", value: (r: any) => r.daily_lead_entries?.lead_sources?.name ?? "" },
       { key: "balance", label: "Balance", filter: "none" },
       { key: "potential", label: "Potential", filter: "select", value: (r: any) => r.potential ?? "" },
+      { key: "potentialValue", label: "Potential $", filter: "none" },
+      { key: "daysftd", label: "Days since FTD", filter: "none", defaultHidden: true },
+      { key: "lastcontact", label: "Last contact", filter: "none", defaultHidden: true },
       { key: "tags", label: "Tags", value: (r: any) => (r.tags ?? []).join(", ") },
       { key: "status", label: "Status", filter: "select", value: (r: any) => r.status ?? "" },
       { key: "risk", label: "Attention", filter: "select", value: (r: any) => r.ai_risk_label ?? "" },
@@ -350,6 +398,9 @@ function ActivationsPage() {
     source: (r) => r.daily_lead_entries?.lead_sources?.name ?? "",
     balance: (r) => netBalance(r),
     potential: (r) => ({ low: 1, mid: 2, high: 3 } as any)[r.potential ?? ""] ?? 0,
+    potentialValue: (r) => potentialValue(r.potential_value) ?? -1,
+    daysftd: (r) => daysSinceFtd(r) ?? -1,
+    lastcontact: (r) => lastContactFor(r) ?? "",
     conversion: (r) => r.conversion_employee_id ?? "",
     retention: (r) => r.employee_id ?? "",
     answered: (r) => !!r.answered,
@@ -370,6 +421,8 @@ function ActivationsPage() {
 
   const answeredCount = rows.filter((r) => r.answered).length;
   const highCount = rows.filter((r) => r.potential === "high").length;
+  const whaleCount = rows.filter((r) => isWhale(r.potential_value, whaleThreshold)).length;
+  const neglectedCount = rows.filter((r) => neglected(r)).length;
 
 
 
@@ -398,6 +451,7 @@ function ActivationsPage() {
         status: v.status || null,
         next_follow_up: v.next_follow_up || null,
         preferred_contact_time: v.preferred_contact_time || null,
+        potential_value: v.potential_value ?? null,
       } as any;
       if (!v.id) {
         const { error } = await supabase.from("daily_lead_activations").insert({
@@ -571,6 +625,22 @@ function ActivationsPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={whaleFilter} onValueChange={(v) => setWhaleFilter(v as any)}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All clients</SelectItem>
+            <SelectItem value="whales">Whales</SelectItem>
+            <SelectItem value="neglected">Neglected whales</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          type="number"
+          min={0}
+          className="h-9 w-40"
+          placeholder={`Above ${settings.whaleThreshold}`}
+          value={whaleMin}
+          onChange={(e) => setWhaleMin(e.target.value)}
+        />
         <Select value={tagFilter} onValueChange={setTagFilter}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -586,6 +656,12 @@ function ActivationsPage() {
         <StatCard label="Clients" value={String(rows.length)} icon={CheckCircle2} />
         <StatCard label="Total balance" value={fmtMoney(totalBalance)} icon={Wallet} />
         <StatCard label="Answered" value={`${answeredCount} / ${rows.length}`} icon={PhoneCall} />
+        <button type="button" className="text-left" onClick={() => setWhaleFilter("whales")}>
+          <StatCard label="Whales" value={String(whaleCount)} icon={Wallet} />
+        </button>
+        <button type="button" className="text-left" onClick={() => setWhaleFilter("neglected")}>
+          <StatCard label="Neglected whales" value={String(neglectedCount)} icon={PhoneCall} />
+        </button>
       </div>
 
 
@@ -691,6 +767,9 @@ function ActivationsPage() {
                 {tb.show("source") && <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("balance") && <SortTh label="Balance" k="balance" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("potential") && <SortTh label="Potential" k="potential" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("potentialValue") && <SortTh label="Potential $" k="potentialValue" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("daysftd") && <SortTh label="Days since FTD" k="daysftd" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("lastcontact") && <SortTh label="Last contact" k="lastcontact" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("tags") && <th className="py-2.5 px-2">Tags</th>}
                 {tb.show("std") && <SortTh label="STD" k="std" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("conversion") && <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
@@ -786,6 +865,27 @@ function ActivationsPage() {
 
                   {tb.show("potential") && (
                   <td className="py-2.5 px-2"><PotentialBadge value={r.potential} /></td>
+                  )}
+                  {tb.show("potentialValue") && (
+                  <td className="py-2.5 px-2">
+                    {potentialValue(r.potential_value) != null ? (
+                      <span className="num">{fmtMoney(Number(r.potential_value))}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                    <WhaleBadge value={r.potential_value} threshold={whaleThreshold} className="ml-2" />
+                    {neglected(r) && (
+                      <Badge variant="outline" className="ml-2 border-rose-500/50 text-rose-600 dark:text-rose-400">
+                        Neglected
+                      </Badge>
+                    )}
+                  </td>
+                  )}
+                  {tb.show("daysftd") && (
+                  <td className="py-2.5 px-2">{daysSinceFtd(r) ?? "—"}</td>
+                  )}
+                  {tb.show("lastcontact") && (
+                  <td className="py-2.5 px-2">{lastContactFor(r) ? fmtDate(lastContactFor(r)!) : "—"}</td>
                   )}
                   {tb.show("tags") && (
                   <td className="py-2.5 px-2"><TagBadges tags={r.tags} /></td>
@@ -931,6 +1031,7 @@ function ActivationsPage() {
                   <FavoriteStar type="client" id={cur.id} label={cur.lead_name} />
                   {cur.lead_name || "Unnamed client"}
                   <PotentialBadge value={cur.potential} />
+                  <WhaleBadge value={cur.potential_value} threshold={whaleThreshold} />
                   <AnsweredBadge answered={!!cur.answered} />
                 </SheetTitle>
               </SheetHeader>
@@ -950,6 +1051,8 @@ function ActivationsPage() {
                   <Info label="Deposit count" value={String(deposits.length)} />
                   <Info label="STD" value={<StdBadge count={stdDepositsForRow(cur).length} />} />
                   <Info label="FTD status" value={<Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified" : "Pending"}</Badge>} />
+                  <Info label="Potential value" value={potentialValue(cur.potential_value) != null ? fmtMoney(Number(cur.potential_value)) : "—"} />
+                  <Info label="Last contact" value={lastContactFor(cur) ? fmtDate(lastContactFor(cur)!) : "—"} />
                   <Info label="Tags" value={<TagBadges tags={cur.tags} />} />
                 </div>
 
@@ -1195,6 +1298,17 @@ function EditDialog({
               </SelectContent>
             </Select>
           </div>
+        </div>
+        <div className="grid gap-1.5">
+          <label className="text-xs text-muted-foreground">Potential value ($)</label>
+          <Input
+            type="number"
+            min={0}
+            step={1000}
+            placeholder="e.g. 100000"
+            value={form.potential_value ?? ""}
+            onChange={(e) => setForm({ ...form, potential_value: e.target.value === "" ? null : Number(e.target.value) })}
+          />
         </div>
         <div className="grid gap-1.5">
           <label className="text-xs text-muted-foreground">Conversion agent (Team C)</label>
