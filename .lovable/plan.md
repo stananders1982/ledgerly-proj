@@ -1,0 +1,56 @@
+# Client potential, done properly: financial KYC + AI opportunity score
+
+Today "potential value" is a single number Jack types in, and whale is simply "that number is above the threshold". That stays — but on its own it can't answer the real question: *can we get more money out of this client, and how likely is it?* So we add the financial-KYC facts behind the number, and let the AI read those facts plus the comments and communication log to produce an opportunity score and a tier label.
+
+## 1. Financial KYC block on every client
+
+A new "Financial KYC" section on the client page (and in the client edit dialog):
+
+- **Potential value ($)** — unchanged, still the headline number and still what drives the Whale threshold.
+- **Estimated net worth ($)**
+- **Liquid / investable funds ($)** — what they can actually move now.
+- **Income ($ per month)**
+- **Source of funds** — free text (salary, business, property sale, inheritance, crypto, pension…).
+- **Deposit appetite** — 1-5 read on how ready they are to add funds.
+- **Exposure elsewhere ($)** — roughly how much they already have with other brokers.
+
+All optional. Anything Jack leaves empty is simply unknown to the AI — it will say so instead of guessing.
+
+## 2. AI reads the comments and scores the opportunity
+
+The existing "Analyse this client" already reads profile, comments, calls, deposits and withdrawals and returns a risk score. It gets extended, not replaced, so one click produces both sides of the story:
+
+- **Opportunity score 0-100** — how much more money we can realistically take, and how soon. Driven by: KYC figures above, deposit history vs. stated potential, what the comments say about their financial situation and source of funds, appetite, and how recently we actually spoke to them.
+- **Opportunity tier** — one of **Whale**, **Warm**, **Tapped out**, **At risk**, **Unknown**.
+- **Suggested potential ($)** — the AI's own read of the potential from the comments and KYC, shown next to Jack's number so a stale number stands out. It never overwrites Jack's value; there's a one-click "use this" if he agrees.
+- **Why** — two or three lines quoting the concrete facts and comment lines it used, plus the recommended next step.
+
+Existing risk score / risk label stay exactly as they are — risk answers "are we losing them", opportunity answers "can we get more".
+
+## 3. Tiers and filters
+
+The Clients page potential filter becomes:
+
+- **Whales** — potential value at or above the company whale threshold (unchanged).
+- **Neglected whales** — unchanged: whale, and in the 14 days after activation no deposit and no contact.
+- **Warm / Tapped out / At risk** — by AI tier, so you can work a list of "big and still has room" separately from "already gave us everything".
+- **Above X** — free-number override (unchanged).
+
+New sortable columns: **Opportunity** (score + tier badge) and **Liquid funds**. Potential $, Days since FTD and Last contact stay.
+
+## 4. Where it shows up
+
+- Client page: KYC block, opportunity score with tier badge and the AI's "why", plus the suggested-potential comparison.
+- Clients list: opportunity column, tier badges, tier filters.
+- Dashboard: the "Neglected whales" alert gains a companion count — whales with a high opportunity score that haven't been contacted in 14+ days.
+- "Ask your data": each client's KYC figures, opportunity score and tier, so "which clients still have room?" and "who has liquid funds we haven't touched?" work.
+
+## Technical notes
+
+- Migration on `daily_lead_activations`: `net_worth`, `liquid_funds`, `monthly_income`, `exposure_elsewhere` (numeric, nullable), `source_of_funds` (text), `deposit_appetite` (smallint 1-5), plus AI columns `ai_opportunity_score` (int), `ai_opportunity_label` (text), `ai_opportunity_reason` (text), `ai_suggested_potential` (numeric). Existing company-scoped access rules cover them; index `ai_opportunity_score` for sorting.
+- `src/lib/client-profile.ts`: extend `ClientProfile` with the KYC + opportunity fields and add an `opportunityTone()` helper next to `riskTone()`.
+- `src/lib/whales.ts` gains the tier derivation so list, dashboard card and AI snapshot share one function; whale / neglected logic itself is untouched.
+- `src/lib/client-insight.functions.ts`: include the KYC fields in the `profile` payload, widen the strict JSON contract to also return `opportunity_score`, `opportunity_label`, `opportunity_reason`, `suggested_potential`, and persist them in the same update. Same `/v1/responses` call, one round trip.
+- `src/components/client-profile-fields.tsx`: the Financial KYC inputs and the tier badge.
+- `src/routes/_authenticated/activations.tsx`: opportunity/liquid columns and the tier filter options via the existing sortable-table + saved-views plumbing.
+- `src/lib/ask.functions.ts`: add the KYC and opportunity fields to the per-client snapshot.
