@@ -708,6 +708,7 @@ export type Database = {
           method_fee_wire_pct: number
           timezone: string
           updated_at: string
+          whale_threshold: number
           withdrawal_penalty_pct: number
         }
         Insert: {
@@ -725,6 +726,7 @@ export type Database = {
           method_fee_wire_pct?: number
           timezone?: string
           updated_at?: string
+          whale_threshold?: number
           withdrawal_penalty_pct?: number
         }
         Update: {
@@ -742,6 +744,7 @@ export type Database = {
           method_fee_wire_pct?: number
           timezone?: string
           updated_at?: string
+          whale_threshold?: number
           withdrawal_penalty_pct?: number
         }
         Relationships: [
@@ -893,6 +896,7 @@ export type Database = {
           occupation: string | null
           phone: string | null
           potential: string | null
+          potential_value: number | null
           preferred_contact_time: string | null
           qualified_at: string | null
           status: string | null
@@ -931,6 +935,7 @@ export type Database = {
           occupation?: string | null
           phone?: string | null
           potential?: string | null
+          potential_value?: number | null
           preferred_contact_time?: string | null
           qualified_at?: string | null
           status?: string | null
@@ -969,6 +974,7 @@ export type Database = {
           occupation?: string | null
           phone?: string | null
           potential?: string | null
+          potential_value?: number | null
           preferred_contact_time?: string | null
           qualified_at?: string | null
           status?: string | null
