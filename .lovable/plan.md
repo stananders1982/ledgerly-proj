@@ -27,29 +27,49 @@ The existing "Analyse this client" already reads profile, comments, calls, depos
 
 Existing risk score / risk label stay exactly as they are — risk answers "are we losing them", opportunity answers "can we get more".
 
-## 3. Tiers and filters
+## 3. Value tiers — whale is just the top one
+
+Potential value is split into named tiers instead of one whale/not-whale line. Each tier is a threshold in Settings, so you tune the bands per workspace:
+
+| Tier | Default band (potential value) |
+| --- | --- |
+| **Whale** | 100,000+ |
+| **High** | 50,000 - 99,999 |
+| **Mid** | 15,000 - 49,999 |
+| **Small** | 1 - 14,999 |
+| **Unrated** | no potential value filled in |
+
+Settings keeps the existing **Whale threshold** and gains **High**, **Mid** and **Small** thresholds next to it. Everything that says "whale" today (badges, filters, cards, AI) keeps working — whale is simply the top band.
+
+Each client shows its tier badge, colour-coded, next to the potential number.
+
+## 4. Filters
 
 The Clients page potential filter becomes:
 
-- **Whales** — potential value at or above the company whale threshold (unchanged).
-- **Neglected whales** — unchanged: whale, and in the 14 days after activation no deposit and no contact.
-- **Warm / Tapped out / At risk** — by AI tier, so you can work a list of "big and still has room" separately from "already gave us everything".
+- **By tier** — Whale, High, Mid, Small, Unrated (also "Whale + High" as one option for the big-money list).
+- **Neglected** — any tier, no deposit and no contact in the 14 days after activation. Combines with the tier choice, so "Neglected whales" is tier = Whale plus this toggle, and you can equally look at neglected High clients.
+- **By opportunity tier** — Warm / Tapped out / At risk from the AI, so you can work "still has room" separately from "already gave us everything".
 - **Above X** — free-number override (unchanged).
 
-New sortable columns: **Opportunity** (score + tier badge) and **Liquid funds**. Potential $, Days since FTD and Last contact stay.
+New sortable columns: **Tier**, **Opportunity** (score + badge) and **Liquid funds**. Potential $, Days since FTD and Last contact stay.
 
-## 4. Where it shows up
 
-- Client page: KYC block, opportunity score with tier badge and the AI's "why", plus the suggested-potential comparison.
-- Clients list: opportunity column, tier badges, tier filters.
-- Dashboard: the "Neglected whales" alert gains a companion count — whales with a high opportunity score that haven't been contacted in 14+ days.
-- "Ask your data": each client's KYC figures, opportunity score and tier, so "which clients still have room?" and "who has liquid funds we haven't touched?" work.
+## 5. Where it shows up
+
+- Client page: KYC block, value tier badge, opportunity score with tier badge and the AI's "why", plus the suggested-potential comparison.
+- Clients list: tier + opportunity columns, badges, tier filters, and count cards per tier.
+- Dashboard: the "Neglected whales" alert gains a companion count — whales and High clients with a high opportunity score that haven't been contacted in 14+ days.
+- "Ask your data": each client's KYC figures, value tier, opportunity score and tier, so "how many High clients do we have?" and "who has liquid funds we haven't touched?" work.
+
 
 ## Technical notes
 
 - Migration on `daily_lead_activations`: `net_worth`, `liquid_funds`, `monthly_income`, `exposure_elsewhere` (numeric, nullable), `source_of_funds` (text), `deposit_appetite` (smallint 1-5), plus AI columns `ai_opportunity_score` (int), `ai_opportunity_label` (text), `ai_opportunity_reason` (text), `ai_suggested_potential` (numeric). Existing company-scoped access rules cover them; index `ai_opportunity_score` for sorting.
 - `src/lib/client-profile.ts`: extend `ClientProfile` with the KYC + opportunity fields and add an `opportunityTone()` helper next to `riskTone()`.
-- `src/lib/whales.ts` gains the tier derivation so list, dashboard card and AI snapshot share one function; whale / neglected logic itself is untouched.
+- `company_settings` gains `high_threshold`, `mid_threshold`, `small_threshold` (numeric, defaults 50000 / 15000 / 1) alongside the existing `whale_threshold`; `src/lib/settings.ts` + the Settings page expose them.
+- `src/lib/whales.ts` gains `valueTier(potential, thresholds)` and the opportunity-tier derivation so list, cards, dashboard and AI snapshot share one function; the existing whale / neglected helpers stay and are re-expressed on top of `valueTier`.
+
 - `src/lib/client-insight.functions.ts`: include the KYC fields in the `profile` payload, widen the strict JSON contract to also return `opportunity_score`, `opportunity_label`, `opportunity_reason`, `suggested_potential`, and persist them in the same update. Same `/v1/responses` call, one round trip.
 - `src/components/client-profile-fields.tsx`: the Financial KYC inputs and the tier badge.
 - `src/routes/_authenticated/activations.tsx`: opportunity/liquid columns and the tier filter options via the existing sortable-table + saved-views plumbing.
