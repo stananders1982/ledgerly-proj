@@ -43,9 +43,9 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       await Promise.all([
         supabase.from("revenue").select("date,amount,customer_name,employee_id,employee_id_2,split_pct,affiliate_id,method,activation_id").gte("date", sinceIso),
         supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
-        supabase.from("withdrawals").select("date,amount,employee_id").gte("date", sinceIso),
+        supabase.from("withdrawals").select("date,amount,employee_id,customer_name").gte("date", sinceIso),
         // Legacy (old CRM) clients are excluded from FTD/activation analysis.
-        supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id").eq("legacy", false).gte("activation_date", sinceIso),
+        supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id,balance,potential,answered,status,age,date_of_birth,gender,country,city,language,occupation,next_follow_up,preferred_contact_time,tags,notes,ai_risk_score,ai_risk_label,ai_summary").eq("legacy", false).gte("activation_date", sinceIso),
         supabase.from("daily_lead_entries").select("entry_date,received,activated,reported,cost,source_id").gte("entry_date", sinceIso),
         supabase.from("lead_sources").select("id,name,pricing_model,price"),
         // Use the same RLS-safe directory as the dashboard leaderboards. Some
@@ -66,6 +66,21 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         supabase.from("daily_lead_entries").select("entry_date,received,invalid,reported,activated,source_id"),
         supabase.from("expenses").select("affiliate_id,date,amount").not("affiliate_id", "is", null),
       ]);
+
+    // Client-level CRM context: the notes the team leaves and the touches they log.
+    const [clientComments, clientComms] = await Promise.all([
+      supabase
+        .from("record_comments")
+        .select("entity_id,body,created_at")
+        .eq("entity_type", "client")
+        .order("created_at", { ascending: false })
+        .limit(600),
+      supabase
+        .from("client_communications")
+        .select("activation_id,channel,direction,summary,occurred_at")
+        .order("occurred_at", { ascending: false })
+        .limit(600),
+    ]);
 
     // Running ledger balance per affiliate (positive = we owe them).
     const affiliateBalances = affTerms.error
@@ -145,6 +160,100 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     }
 
 
+
+    // ---- Client layer -------------------------------------------------
+    // One compact record per client so the assistant can answer questions
+    // about a named person. Capped so the payload stays small; the cap is
+    // reported to the model so it never implies the list is exhaustive.
+    const nameKeyOf = (n?: string | null) => (n ?? "").trim().toLowerCase();
+
+    const depositsByClient = new Map<string, { total: number; count: number; last: string | null }>();
+    for (const r of revRows) {
+      const key = r.activation_id ? `id:${r.activation_id}` : `name:${nameKeyOf(r.customer_name)}`;
+      if (key === "name:") continue;
+      const cur = depositsByClient.get(key) ?? { total: 0, count: 0, last: null };
+      cur.total += Number(r.amount || 0);
+      cur.count += 1;
+      if (!cur.last || String(r.date) > cur.last) cur.last = String(r.date);
+      depositsByClient.set(key, cur);
+    }
+    const withdrawalsByClient = new Map<string, { total: number; count: number; last: string | null }>();
+    for (const w of (withdrawals.data ?? []) as any[]) {
+      const key = `name:${nameKeyOf(w.customer_name)}`;
+      if (key === "name:") continue;
+      const cur = withdrawalsByClient.get(key) ?? { total: 0, count: 0, last: null };
+      cur.total += Number(w.amount || 0);
+      cur.count += 1;
+      if (!cur.last || String(w.date) > cur.last) cur.last = String(w.date);
+      withdrawalsByClient.set(key, cur);
+    }
+    const commentsByClient = new Map<string, string[]>();
+    for (const c of ((clientComments as any).data ?? []) as any[]) {
+      const list = commentsByClient.get(c.entity_id) ?? [];
+      if (list.length < 4) list.push(String(c.body ?? "").slice(0, 240));
+      commentsByClient.set(c.entity_id, list);
+    }
+    const commsByClient = new Map<string, { at: string; channel: string; direction: string; summary: string | null }[]>();
+    for (const c of ((clientComms as any).data ?? []) as any[]) {
+      if (!c.activation_id) continue;
+      const list = commsByClient.get(c.activation_id) ?? [];
+      if (list.length < 4) {
+        list.push({
+          at: String(c.occurred_at).slice(0, 10),
+          channel: c.channel,
+          direction: c.direction,
+          summary: c.summary ? String(c.summary).slice(0, 200) : null,
+        });
+      }
+      commsByClient.set(c.activation_id, list);
+    }
+
+    const CLIENT_LIMIT = 250;
+    const clientRecords = actRows.map((a: any) => {
+      const dep = depositsByClient.get(`id:${a.id}`) ?? depositsByClient.get(`name:${nameKeyOf(a.lead_name)}`) ?? { total: 0, count: 0, last: null };
+      const wd = withdrawalsByClient.get(`name:${nameKeyOf(a.lead_name)}`) ?? { total: 0, count: 0, last: null };
+      const opening = Number(a.balance || 0);
+      const comms = commsByClient.get(a.id) ?? [];
+      return {
+        name: a.lead_name ?? "Unnamed client",
+        conversionAgent: nameOf(employees.data, a.conversion_employee_id),
+        retentionAgent: nameOf(employees.data, a.employee_id),
+        activationDate: a.activation_date ?? null,
+        qualifiedAt: a.qualified_at ?? null,
+        status: a.status ?? null,
+        potential: a.potential ?? null,
+        answered: !!a.answered,
+        age: a.age ?? null,
+        gender: a.gender ?? null,
+        country: a.country ?? null,
+        city: a.city ?? null,
+        language: a.language ?? null,
+        occupation: a.occupation ?? null,
+        nextFollowUp: a.next_follow_up ?? null,
+        tags: a.tags ?? [],
+        notes: a.notes ? String(a.notes).slice(0, 300) : null,
+        riskScore: a.ai_risk_score ?? null,
+        riskLabel: a.ai_risk_label ?? null,
+        openingBalance: Math.round(opening),
+        depositTotal: Math.round(dep.total),
+        depositCount: dep.count,
+        lastDeposit: dep.last,
+        withdrawalTotal: Math.round(wd.total),
+        withdrawalCount: wd.count,
+        lastWithdrawal: wd.last,
+        balance: Math.round(opening + dep.total - wd.total),
+        lastContact: comms[0]?.at ?? null,
+        recentContacts: comms,
+        recentComments: commentsByClient.get(a.id) ?? [],
+      };
+    });
+    // Keep the clients that matter most: biggest money first, then most recent.
+    const clientsRanked = [...clientRecords].sort((a, b) => {
+      const av = Math.abs(a.depositTotal) + Math.abs(a.withdrawalTotal) + Math.abs(a.balance);
+      const bv = Math.abs(b.depositTotal) + Math.abs(b.withdrawalTotal) + Math.abs(b.balance);
+      if (bv !== av) return bv - av;
+      return String(b.activationDate ?? "").localeCompare(String(a.activationDate ?? ""));
+    });
 
     const snapshot = {
       today: new Date().toISOString().slice(0, 10),
@@ -269,6 +378,23 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
           )
         : null,
 
+      // Every client the caller can see in this window, richest context first.
+      clients: clientsRanked.slice(0, CLIENT_LIMIT),
+      clientCount: clientRecords.length,
+      clientsTruncated: clientRecords.length > CLIENT_LIMIT,
+      withdrawalsByClient: round(
+        Object.fromEntries(
+          [...withdrawalsByClient.entries()].map(([k, v]) => [k.replace(/^name:/, ""), v.total]),
+        ),
+      ),
+      withdrawalsByMonthAndAgent: round(
+        bucket(
+          withdrawals.data,
+          (w: any) => agentKey(month(w.date), w.employee_id),
+          (w: any) => Number(w.amount || 0),
+        ),
+      ),
+
       totals: {
         deposits: Math.round((revenue.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0)),
         expenses: Math.round((expenses.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0)),
@@ -319,6 +445,14 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "positive means we owe the affiliate, negative means we are in credit with them. Balances are lifetime running " +
               "figures since each affiliate's charging start date, not limited to the selected period. Affiliates whose charging " +
               "has not been activated are not listed. If affiliateBalances is null, say balances are not visible to this user. " +
+              "CLIENTS: snapshot.clients is a per-client list — name, both agents, activation and qualification dates, CRM status, " +
+              "potential, age/country/language/occupation, tags, team notes, the latest logged calls/messages (recentContacts) and " +
+              "the latest team comments (recentComments), plus openingBalance, depositTotal/Count, lastDeposit, withdrawalTotal/Count, " +
+              "lastWithdrawal, current balance and any stored AI riskScore/riskLabel (0-100, higher = needs attention). " +
+              "Use it to answer questions about a named person, to list clients who have not deposited recently, who withdrew the most, " +
+              "who is at risk, or to slice clients by age, country, status or agent. Compare dates against snapshot.today. " +
+              "If clientsTruncated is true, say the list covers the top " +
+              "clients by money movement out of clientCount total, and never imply it is exhaustive. " +
               "If the snapshot does not contain the answer, say exactly what is missing instead of guessing." }],
 
 
