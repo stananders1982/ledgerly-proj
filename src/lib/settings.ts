@@ -13,7 +13,10 @@ import { setDisplayCurrency } from "@/lib/format";
 export type CompanySettings = {
   /** A client only counts as an FTD once the effective balance clears this. */
   ftdBalanceThreshold: number;
+  /** Potential value ($) at which a client counts as a whale. */
+  whaleThreshold: number;
   /** Default balance credited when a lead is activated. */
+
   defaultActivationBalance: number;
   /** Commission paid to the conversion agent for each qualified FTD. */
   ftdCommission: number;
