@@ -200,12 +200,28 @@ function ClientPage() {
         delta: -Number(w.amount || 0), employee_id: w.employee_id, method: null as string | null,
       })),
     ].sort((a, b) => String(a.date).localeCompare(String(b.date)));
-    let running = opening;
-    return rows.map((r) => {
+
+    const act = cur ? activationDate(cur as any) : null;
+    const openingRow =
+      opening !== 0
+        ? [{
+            id: "opening",
+            date: act ?? rows[0]?.date ?? null,
+            kind: "deposit" as const,
+            label: "Activation deposit",
+            delta: opening,
+            employee_id: cur?.conversion_employee_id ?? cur?.employee_id ?? null,
+            method: null as string | null,
+          }]
+        : [];
+
+    let running = 0;
+    return [...openingRow, ...rows].map((r) => {
       running += r.delta;
       return { ...r, balance: running };
     });
-  }, [deposits, withdrawals, opening]);
+  }, [deposits, withdrawals, opening, cur]);
+
 
   const timelineEvents = useMemo(() => {
     if (!cur) return [] as TimelineEvent[];
@@ -217,7 +233,7 @@ function ClientPage() {
       ...(act
         ? [{ date: act, kind: "activation" as const, label: "Activated — opening balance", amount: opening, balance: opening }]
         : []),
-      ...transactions.map((t) => ({
+      ...transactions.filter((t) => t.id !== "opening").map((t) => ({
         date: String(t.date), kind: t.kind, label: t.label, amount: Math.abs(t.delta), balance: t.balance,
       })),
       ...(commsQ.data ?? []).map((c: any) => ({
