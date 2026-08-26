@@ -276,15 +276,11 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         lastContact: comms[0]?.at ?? null,
         recentContacts: comms,
         recentComments: commentsByClient.get(a.id) ?? [],
-        neglectedWhale: isNeglectedWhale(
-          {
-            startDate: a.activation_date,
-            potentialValue: a.potential_value,
-            depositDates: (depositDatesByClient.get(`id:${a.id}`) ?? depositDatesByClient.get(`name:${nameKeyOf(a.lead_name)}`) ?? []),
-            contactDates: comms.map((c) => c.at),
-          },
-          whaleThreshold,
-        ),
+        neglected: isNeglected({
+          startDate: a.activation_date,
+          depositDates: (depositDatesByClient.get(`id:${a.id}`) ?? depositDatesByClient.get(`name:${nameKeyOf(a.lead_name)}`) ?? []),
+          contactDates: comms.map((c) => c.at),
+        }),
       };
     });
     // Keep the clients that matter most: biggest money first, then most recent.
@@ -297,6 +293,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
 
     const snapshot = {
       whaleThreshold,
+      tierThresholds,
       today: new Date().toISOString().slice(0, 10),
       window: `${sinceIso} to today`,
       selectedPeriod: focusPeriod,
@@ -486,8 +483,13 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "positive means we owe the affiliate, negative means we are in credit with them. Balances are lifetime running " +
               "figures since each affiliate's charging start date, not limited to the selected period. Affiliates whose charging " +
               "has not been activated are not listed. If affiliateBalances is null, say balances are not visible to this user. " +
-              "WHALES: a client is a whale when potentialValue >= snapshot.whaleThreshold (the money we believe they can bring). " +
-              "neglectedWhale means a whale who neither deposited nor was contacted in the 14 days after activation. " +
+              "VALUE TIERS: each client has valueTier (Whale / High / Mid / Small / Unrated) derived from potentialValue against " +
+              "snapshot.tierThresholds — Whale is the top band. Unrated means no potential value was filled in. " +
+              "neglected means the client neither deposited nor was contacted in the 14 days after activation; a neglected client " +
+              "in a high tier is the most urgent kind. HEADROOM: opportunityScore (0-100) with opportunityLabel and " +
+              "opportunityReason is the AI read of how much MORE money we can realistically take, judged from the kyc block " +
+              "(netWorth, liquidFunds, monthlyIncome, investedElsewhere, sourceOfFunds, depositAppetite 1-5) and the notes/calls; " +
+              "aiSuggestedPotential is its own estimate of lifetime deposit capacity. " +
               "CLIENTS: snapshot.clients is a per-client list — name, both agents, activation and qualification dates, CRM status, " +
               "potential, age/country/language/occupation, tags, team notes, the latest logged calls/messages (recentContacts) and " +
               "the latest team comments (recentComments), plus openingBalance, depositTotal/Count, lastDeposit, withdrawalTotal/Count, " +
