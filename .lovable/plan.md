@@ -27,16 +27,33 @@ The existing "Analyse this client" already reads profile, comments, calls, depos
 
 Existing risk score / risk label stay exactly as they are — risk answers "are we losing them", opportunity answers "can we get more".
 
-## 3. Tiers and filters
+## 3. Value tiers — whale is just the top one
+
+Potential value is split into named tiers instead of one whale/not-whale line. Each tier is a threshold in Settings, so you tune the bands per workspace:
+
+| Tier | Default band (potential value) |
+| --- | --- |
+| **Whale** | 100,000+ |
+| **High** | 50,000 - 99,999 |
+| **Mid** | 15,000 - 49,999 |
+| **Small** | 1 - 14,999 |
+| **Unrated** | no potential value filled in |
+
+Settings keeps the existing **Whale threshold** and gains **High**, **Mid** and **Small** thresholds next to it. Everything that says "whale" today (badges, filters, cards, AI) keeps working — whale is simply the top band.
+
+Each client shows its tier badge, colour-coded, next to the potential number.
+
+## 4. Filters
 
 The Clients page potential filter becomes:
 
-- **Whales** — potential value at or above the company whale threshold (unchanged).
-- **Neglected whales** — unchanged: whale, and in the 14 days after activation no deposit and no contact.
-- **Warm / Tapped out / At risk** — by AI tier, so you can work a list of "big and still has room" separately from "already gave us everything".
+- **By tier** — Whale, High, Mid, Small, Unrated (also "Whale + High" as one option for the big-money list).
+- **Neglected** — any tier, no deposit and no contact in the 14 days after activation. Combines with the tier choice, so "Neglected whales" is tier = Whale plus this toggle, and you can equally look at neglected High clients.
+- **By opportunity tier** — Warm / Tapped out / At risk from the AI, so you can work "still has room" separately from "already gave us everything".
 - **Above X** — free-number override (unchanged).
 
-New sortable columns: **Opportunity** (score + tier badge) and **Liquid funds**. Potential $, Days since FTD and Last contact stay.
+New sortable columns: **Tier**, **Opportunity** (score + badge) and **Liquid funds**. Potential $, Days since FTD and Last contact stay.
+
 
 ## 4. Where it shows up
 
