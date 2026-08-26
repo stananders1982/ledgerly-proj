@@ -77,7 +77,8 @@ type Row = {
   notes?: string | null;
   tags?: string[] | null;
   daily_lead_entries?: { entry_date: string; source_id: string | null; lead_sources?: { name: string } | null } | null;
-};
+} & ClientProfile;
+
 
 
 
