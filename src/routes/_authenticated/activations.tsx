@@ -41,7 +41,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { Link } from "@tanstack/react-router";
-import { ClientProfileFields, RiskBadge, StatusBadge } from "@/components/client-profile-fields";
+import { ClientProfileFields, RiskBadge, StatusBadge, WhaleBadge } from "@/components/client-profile-fields";
 import { clientAge, type ClientProfile } from "@/lib/client-profile";
 
 export const Route = createFileRoute("/_authenticated/activations")({
