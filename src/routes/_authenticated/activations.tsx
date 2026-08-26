@@ -329,6 +329,11 @@ function ActivationsPage() {
       { key: "balance", label: "Balance", filter: "none" },
       { key: "potential", label: "Potential", filter: "select", value: (r: any) => r.potential ?? "" },
       { key: "tags", label: "Tags", value: (r: any) => (r.tags ?? []).join(", ") },
+      { key: "status", label: "Status", filter: "select", value: (r: any) => r.status ?? "" },
+      { key: "risk", label: "Attention", filter: "select", value: (r: any) => r.ai_risk_label ?? "" },
+      { key: "age", label: "Age", defaultHidden: true, value: (r: any) => (clientAge(r) != null ? String(clientAge(r)) : "") },
+      { key: "country", label: "Country", filter: "select", defaultHidden: true, value: (r: any) => r.country ?? "" },
+      { key: "followup", label: "Follow-up", filter: "date", defaultHidden: true, value: (r: any) => (r.next_follow_up ? fmtDate(r.next_follow_up) : "") },
       { key: "std", label: "STD", filter: "none" },
       { key: "conversion", label: "Conversion agent", filter: "select", value: (r: any) => employeeName(r.conversion_employee_id) ?? "" },
       { key: "retention", label: "Retention agent", filter: "select", value: (r: any) => employeeName(r.employee_id) ?? "" },
@@ -349,6 +354,11 @@ function ActivationsPage() {
     retention: (r) => r.employee_id ?? "",
     answered: (r) => !!r.answered,
     std: (r) => stdCountFor(r),
+    status: (r) => r.status ?? "",
+    risk: (r) => Number(r.ai_risk_score ?? -1),
+    age: (r) => clientAge(r) ?? -1,
+    country: (r) => r.country ?? "",
+    followup: (r) => r.next_follow_up ?? "",
   });
   const { pageItems, ...pg } = usePagination(sorted, 25, "activations");
   const navIndex = viewing ? pageItems.findIndex((r) => r.id === viewing.id) : -1;
@@ -674,6 +684,11 @@ function ActivationsPage() {
                 {tb.show("conversion") && <SortTh label="Conversion agent" k="conversion" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("retention") && <SortTh label="Retention agent" k="retention" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("answered") && <SortTh label="Answered" k="answered" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("status") && <SortTh label="Status" k="status" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("risk") && <SortTh label="Attention" k="risk" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("age") && <SortTh label="Age" k="age" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("country") && <SortTh label="Country" k="country" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("followup") && <SortTh label="Follow-up" k="followup" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("legacy") && <th className="py-2.5 px-2">Origin</th>}
                 <th className="py-3 px-2 w-10 text-right"></th>
               </tr>
@@ -721,7 +736,14 @@ function ActivationsPage() {
                   )}
                   {tb.show("lead") && (
                   <td className="py-2.5 px-2 font-medium">
-                    {r.lead_name || "—"}
+                    <Link
+                      to="/clients/$id"
+                      params={{ id: r.id }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:text-primary hover:underline"
+                    >
+                      {r.lead_name || "—"}
+                    </Link>
                     {r.legacy && (
                       <Badge variant="outline" className="ml-2 border-muted-foreground/40 text-muted-foreground">
                         Legacy
@@ -772,6 +794,21 @@ function ActivationsPage() {
                       onCheckedChange={(c) => toggleAnswered.mutate({ id: r.id, answered: Boolean(c) })}
                     />
                   </td>
+                  )}
+                  {tb.show("status") && (
+                  <td className="py-2.5 px-2"><StatusBadge status={r.status} /></td>
+                  )}
+                  {tb.show("risk") && (
+                  <td className="py-2.5 px-2"><RiskBadge score={r.ai_risk_score} label={r.ai_risk_label} /></td>
+                  )}
+                  {tb.show("age") && (
+                  <td className="py-2.5 px-2">{clientAge(r) ?? "—"}</td>
+                  )}
+                  {tb.show("country") && (
+                  <td className="py-2.5 px-2">{r.country || "—"}</td>
+                  )}
+                  {tb.show("followup") && (
+                  <td className="py-2.5 px-2">{r.next_follow_up ? fmtDate(r.next_follow_up) : "—"}</td>
                   )}
                   {tb.show("legacy") && (
                   <td className="py-2.5 px-2 text-xs text-muted-foreground">
@@ -1069,6 +1106,9 @@ function ActivationsPage() {
                   description="The client record is removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
                 />
                 <div className="flex-1" />
+                <Button asChild variant="outline">
+                  <Link to="/clients/$id" params={{ id: cur.id }}>Open full profile</Link>
+                </Button>
                 <Button variant="outline" onClick={() => setViewing(null)}>Close</Button>
                 <Button onClick={() => { setViewing(null); setEditing(cur); }}>Edit client</Button>
               </SheetFooter>
@@ -1105,7 +1145,7 @@ function EditDialog({
   const [form, setForm] = useState<Row>({ ...row });
 
   return (
-    <DialogContent className="max-w-md">
+    <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto scroll-slim">
       <DialogHeader>
         <DialogTitle>{row.id ? "Client" : "Add client"}</DialogTitle>
       </DialogHeader>
@@ -1173,6 +1213,13 @@ function EditDialog({
         <div className="grid gap-1.5">
           <label className="text-xs text-muted-foreground">Tags</label>
           <TagPicker value={form.tags ?? []} onChange={(tags) => setForm({ ...form, tags })} />
+        </div>
+        <div className="grid gap-2 rounded-lg border border-border p-3">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Client details</p>
+          <ClientProfileFields
+            value={form}
+            onChange={(patch) => setForm({ ...form, ...patch })}
+          />
         </div>
         <div className="grid gap-1.5">
           <label className="text-xs text-muted-foreground">Notes</label>
