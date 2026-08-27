@@ -48,7 +48,7 @@ import {
 } from "@/components/client-profile-fields";
 import { clientAge, type ClientProfile } from "@/lib/client-profile";
 import {
-  TIER_LABEL, TIER_RANK, VALUE_TIERS, isNeglected, lastDate, potentialValue, valueTier,
+  NEGLECT_WINDOW_DAYS, TIER_LABEL, TIER_RANK, VALUE_TIERS, isNeglected, lastDate, potentialValue, valueTier,
 } from "@/lib/whales";
 
 export const Route = createFileRoute("/_authenticated/activations")({
@@ -107,6 +107,44 @@ function StdBadge({ count }: { count: number }) {
   return <Badge variant="default">STD</Badge>;
 }
 
+
+/** Clickable KPI card: explains itself, shows a hover/active state, and applies a table filter. */
+function KpiCard({
+  label,
+  value,
+  icon,
+  hint,
+  active,
+  activeLabel,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  icon: typeof Wallet;
+  hint: string;
+  active?: boolean;
+  activeLabel?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={!!active}
+      onClick={onClick}
+      className={cn(
+        "relative rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5 hover:ring-2 hover:ring-primary/30",
+        active && "ring-2 ring-primary/60",
+      )}
+    >
+      <StatCard label={label} value={value} icon={icon} hint={hint} />
+      {active && (
+        <span className="absolute -top-2 right-3 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+          {activeLabel ?? "Filtered"}
+        </span>
+      )}
+    </button>
+  );
+}
 
 function ActivationsPage() {
   const settings = useCompanySettings();
