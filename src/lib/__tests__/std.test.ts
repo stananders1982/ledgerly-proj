@@ -60,17 +60,21 @@ describe("STD is the second deposit", () => {
   });
 });
 
-describe("STD must land in the activation month", () => {
+describe("STD counts anytime after activation", () => {
   it("counts a deposit in the same calendar month", () => {
     expect(isStd(client, [dep({ date: "2026-08-31" })])).toBe(true);
   });
 
-  it("does not count a deposit that slips into the next month", () => {
-    expect(isStd(client, [dep({ date: "2026-09-01" })])).toBe(false);
+  it("counts a deposit that slips into the next month", () => {
+    expect(isStd(client, [dep({ date: "2026-09-01" })])).toBe(true);
   });
 
-  it("does not count a deposit months later", () => {
-    expect(isStd(client, [dep({ date: "2026-12-04" })])).toBe(false);
+  it("counts a deposit months later", () => {
+    expect(isStd(client, [dep({ date: "2026-12-04" })])).toBe(true);
+  });
+
+  it("counts a deposit a year later", () => {
+    expect(isStd(client, [dep({ date: "2027-08-04" })])).toBe(true);
   });
 
   it("handles an activation on the last day of the month", () => {
@@ -78,7 +82,7 @@ describe("STD must land in the activation month", () => {
     const sameDay = dep({ activation_id: "act-9", customer_name: "Zoe Ray", date: "2026-08-31" });
     const nextDay = dep({ activation_id: "act-9", customer_name: "Zoe Ray", date: "2026-09-01" });
     expect(isStd(lastDay, [sameDay])).toBe(true);
-    expect(isStd(lastDay, [nextDay])).toBe(false);
+    expect(isStd(lastDay, [nextDay])).toBe(true);
     // The next-day deposit must not push the same-day one out either.
     expect(stdDepositsFor(lastDay, [nextDay, sameDay])).toHaveLength(1);
   });
@@ -87,7 +91,7 @@ describe("STD must land in the activation month", () => {
     const feb = { id: "act-2", lead_name: "Ivy Poe", activation_date: "2026-02-27" };
     const d = (date: string) => dep({ activation_id: "act-2", customer_name: "Ivy Poe", date });
     expect(isStd(feb, [d("2026-02-28")])).toBe(true);
-    expect(isStd(feb, [d("2026-03-01")])).toBe(false);
+    expect(isStd(feb, [d("2026-03-01")])).toBe(true);
   });
 });
 
