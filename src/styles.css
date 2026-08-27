@@ -529,3 +529,31 @@ main[role="main"] {
   transition: opacity 0.2s ease;
 }
 
+
+/* Drag-to-resize handles injected into table headers by TableFrame */
+[data-resizable="1"] thead th { position: relative; }
+[data-resize-handle] {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 7px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 25;
+  touch-action: none;
+  user-select: none;
+}
+[data-resize-handle]::after {
+  content: "";
+  position: absolute;
+  top: 15%;
+  bottom: 15%;
+  left: 3px;
+  width: 1px;
+  background: transparent;
+  transition: background 0.12s ease;
+}
+[data-resizable="1"] thead th:hover [data-resize-handle]::after,
+[data-resize-handle]:hover::after {
+  background: color-mix(in oklab, var(--primary) 65%, transparent);
+}

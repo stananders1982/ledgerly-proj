@@ -749,7 +749,7 @@ function ActivationsPage() {
         </div>
       </div>
 
-      <TableFrame fit={tb.fit}>
+      <TableFrame fit={tb.fit} resizeKey="clients">
         {q.isLoading ? (
           <TableSkeleton cols={9} />
         ) : rows.length === 0 ? (
