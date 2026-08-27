@@ -46,7 +46,7 @@ export function useSort<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, sort]);
 
-  return { sorted, sort, toggle };
+  return { sorted, sort, toggle, setSort };
 }
 
 export function SortTh({
