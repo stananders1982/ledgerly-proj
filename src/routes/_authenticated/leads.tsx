@@ -29,7 +29,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { TableFrame } from "@/components/table-frame";
-import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TableKeyboardHint } from "@/components/table-toolbox";
 import { stdDepositsFor, isoDay, isAgentTeam } from "@/lib/rules";
 import { SavedViews } from "@/components/saved-views";
 import { CsvImportDialog } from "@/components/csv-import";
@@ -951,7 +951,8 @@ function LeadsPage() {
             </Button>
           </div>
         </div>
-        {!groupBySource && <><FitToggle tb={tb} /><ColumnsMenu tb={tb} /></>}
+        {!groupBySource && <><FitToggle tb={tb} />
+          <TableKeyboardHint /><ColumnsMenu tb={tb} /></>}
       </div>
 
       <div className="card-surface overflow-hidden">

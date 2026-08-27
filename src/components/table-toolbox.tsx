@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarIcon, Maximize2, Minimize2, Settings2, X } from "lucide-react";
+import { CalendarIcon, Keyboard, Maximize2, Minimize2, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
@@ -555,5 +555,36 @@ export function TotalsRow<T>({
         ))}
       </tr>
     </tfoot>
+  );
+}
+
+/** Small legend for the table keyboard shortcuts handled by TableFrame. */
+export function TableKeyboardHint({ className }: { className?: string }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon" className={className} aria-label="Table keyboard shortcuts">
+          <Keyboard className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuLabel>Table keyboard shortcuts</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {[
+          ["Click table, then \u2190 \u2192 \u2191 \u2193", "Scroll (hold Shift for faster)"],
+          ["Page Up / Page Down", "Scroll a screen"],
+          ["Home / End", "Jump to first / last column"],
+          ["H", "Focus sort headers (\u2190 \u2192 to move, Enter to sort)"],
+          ["F", "Focus column filters (\u2190 \u2192 to move, Enter to open)"],
+          ["Esc", "Back to the table"],
+          ["Drag header edge", "Resize column (double-click resets)"],
+        ].map(([k, d]) => (
+          <div key={k} className="flex items-start justify-between gap-3 px-2 py-1.5 text-xs">
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">{k}</kbd>
+            <span className="text-right text-muted-foreground">{d}</span>
+          </div>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

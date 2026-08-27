@@ -27,7 +27,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { TableFrame } from "@/components/table-frame";
-import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TotalsRow } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TableKeyboardHint, TotalsRow } from "@/components/table-toolbox";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { useQuickCreate } from "@/lib/quick-create";
@@ -274,6 +274,7 @@ function ExpensesPage() {
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
         <FitToggle tb={tb} />
+          <TableKeyboardHint />
         <ColumnsMenu tb={tb} />
       </div>
 
