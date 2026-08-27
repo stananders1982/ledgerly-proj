@@ -26,7 +26,8 @@ import { AttachmentsPanel } from "@/components/attachments-panel";
 import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { ActivatedLeadsByEmployee } from "@/components/activated-leads-by-employee";
-import { CheckCircle2, PhoneCall, Wallet, Copy, Plus } from "lucide-react";
+import { CheckCircle2, PhoneCall, Wallet, Copy, Plus, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
@@ -400,7 +401,7 @@ function ActivationsPage() {
     { allTimeRows: rowsAllTime, allTimeKeys: ["lead"] },
   );
 
-  const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
+  const { sorted, sort, toggle, setSort } = useSort<any>(tb.filtered, {
     date: (r) => actDate(r) ?? "",
     lead: (r) => r.lead_name ?? "",
     source: (r) => r.daily_lead_entries?.lead_sources?.name ?? "",
