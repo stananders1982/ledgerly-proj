@@ -31,7 +31,8 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useTableToolbox, ColumnsMenu, FilterRow } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle } from "@/components/table-toolbox";
+import { TableFrame } from "@/components/table-frame";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate, depositIndex, depositTotalFor, isLateRetentionFtd, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { CLIENT_TAGS, TagBadges, TagPicker } from "@/components/client-tags";
@@ -363,20 +364,21 @@ function ActivationsPage() {
     "activations",
     [
       { key: "date", label: "Date", filter: "date", value: (r: any) => (actDate(r) ? fmtDate(actDate(r)!) : "") },
-      { key: "qualified", label: "Qualified", filter: "select", value: (r: any) => (r.qualified_at ? "Qualified" : "Pending") },
+      { key: "qualified", label: "Qualified", filter: "select", options: ["Qualified", "Pending"], value: (r: any) => (r.qualified_at ? "Qualified" : "Pending") },
       {
         key: "lateftd",
         label: "FTD type",
         filter: "select",
         defaultHidden: true,
+        options: ["Late (retention)", "On conversion", "—"],
         value: (r: any) => (isLateRetentionFtd(r) ? "Late (retention)" : r.qualified_at ? "On conversion" : "—"),
       },
       { key: "lead", label: "Lead name", value: (r: any) => r.lead_name ?? "" },
       { key: "source", label: "Source", filter: "select", value: (r: any) => r.daily_lead_entries?.lead_sources?.name ?? "" },
       { key: "balance", label: "Balance", filter: "none" },
-      { key: "potential", label: "Potential", filter: "select", value: (r: any) => r.potential ?? "" },
+      { key: "potential", label: "Potential", filter: "select", options: ["low", "mid", "high"], value: (r: any) => r.potential ?? "" },
       { key: "potentialValue", label: "Potential $", filter: "none" },
-      { key: "tier", label: "Value tier", filter: "select", value: (r: any) => TIER_LABEL[valueTier(r.potential_value, settings)] },
+      { key: "tier", label: "Value tier", filter: "select", options: Object.values(TIER_LABEL), value: (r: any) => TIER_LABEL[valueTier(r.potential_value, settings)] },
       { key: "opportunity", label: "Headroom", filter: "select", defaultHidden: true, value: (r: any) => r.ai_opportunity_label ?? "" },
       { key: "daysftd", label: "Days since FTD", filter: "none", defaultHidden: true },
       { key: "lastcontact", label: "Last contact", filter: "none", defaultHidden: true },
@@ -389,8 +391,8 @@ function ActivationsPage() {
       { key: "std", label: "STD", filter: "none" },
       { key: "conversion", label: "Conversion agent", filter: "select", value: (r: any) => employeeName(r.conversion_employee_id) ?? "" },
       { key: "retention", label: "Retention agent", filter: "select", value: (r: any) => employeeName(r.employee_id) ?? "" },
-      { key: "answered", label: "Answered", filter: "select", value: (r: any) => (r.answered ? "Yes" : "No") },
-      { key: "legacy", label: "Origin", filter: "select", value: (r: any) => (r.legacy ? "Legacy (old CRM)" : "New lead") },
+      { key: "answered", label: "Answered", filter: "select", options: ["Yes", "No"], value: (r: any) => (r.answered ? "Yes" : "No") },
+      { key: "legacy", label: "Origin", filter: "select", options: ["New lead", "Legacy (old CRM)"], value: (r: any) => (r.legacy ? "Legacy (old CRM)" : "New lead") },
     ],
     rows,
     { allTimeRows: rowsAllTime, allTimeKeys: ["lead"] },
@@ -741,10 +743,13 @@ function ActivationsPage() {
 
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
-        <ColumnsMenu tb={tb} />
+        <div className="flex items-center gap-2">
+          <FitToggle tb={tb} />
+          <ColumnsMenu tb={tb} />
+        </div>
       </div>
 
-      <div className="rounded-lg border border-border overflow-hidden">
+      <TableFrame fit={tb.fit}>
         {q.isLoading ? (
           <TableSkeleton cols={9} />
         ) : rows.length === 0 ? (
@@ -773,7 +778,7 @@ function ActivationsPage() {
           <table className="w-full table-auto text-xs">
             <thead className="table-head bg-muted/40 text-left text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="py-2.5 px-2 w-10">
+                <th className="py-2.5 px-2 w-10 pin-left left-0">
                   <Checkbox
                     checked={pageItems.length > 0 && pageItems.every((r: any) => selected.has(r.id))}
                     onCheckedChange={(c) =>
@@ -786,7 +791,7 @@ function ActivationsPage() {
                     aria-label="Select all on page"
                   />
                 </th>
-                <th className="py-3 px-2 w-8"></th>
+                <th className="py-3 px-2 w-8 pin-left left-9"></th>
                 {tb.show("date") && <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("qualified") && <th className="py-2.5 px-2">Qualified</th>}
                 {tb.show("lateftd") && <th className="py-2.5 px-2">FTD type</th>}
@@ -812,7 +817,7 @@ function ActivationsPage() {
                 {tb.show("legacy") && <th className="py-2.5 px-2">Origin</th>}
                 <th className="py-3 px-2 w-10 text-right"></th>
               </tr>
-              <FilterRow tb={tb} leading={2} trailing={1} />
+              <FilterRow tb={tb} leading={2} trailing={1} leadingClasses={["pin-left left-0", "pin-left left-9"]} />
             </thead>
             <tbody>
               {pageItems.map((r: any) => (
@@ -821,10 +826,10 @@ function ActivationsPage() {
                   className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                   onClick={() => setViewing(r)}
                 >
-                  <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
+                  <td className="py-2.5 px-2 pin-left left-0" onClick={(e) => e.stopPropagation()}>
                     <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleSelected(r.id)} aria-label="Select client" />
                   </td>
-                  <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
+                  <td className="py-3 px-2 pin-left left-9" onClick={(e) => e.stopPropagation()}>
                     <FavoriteStar type="client" id={r.id} label={r.lead_name} />
                   </td>
                   {tb.show("date") && (
@@ -977,10 +982,10 @@ function ActivationsPage() {
             </tbody>
           </table>
           </div>
-          <TablePagination {...pg} />
           </>
         )}
-      </div>
+      </TableFrame>
+      {!q.isLoading && rows.length > 0 && <TablePagination {...pg} />}
 
 
 

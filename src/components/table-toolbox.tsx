@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarIcon, Settings2, X } from "lucide-react";
+import { CalendarIcon, Maximize2, Minimize2, Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
@@ -30,6 +30,8 @@ export type ColDef<T> = {
   filter?: "text" | "select" | "date" | "none";
   /** Value used for filtering and for building select options. */
   value?: (row: T) => unknown;
+  /** Fixed option list for `select` filters, so every choice shows even if absent from the data. */
+  options?: string[];
   /** Column can't be hidden (e.g. the primary name column). */
   locked?: boolean;
   /** Hidden by default on first load. */
@@ -199,6 +201,25 @@ export function useTableToolbox<T>(
   }, [hidden, lsKey]);
 
 
+  // Fit-to-width squeezes the table so all visible columns land inside the viewport.
+  const fitKey = `table-fit:${storageKey}`;
+  const [fit, setFitState] = useState(false);
+  useEffect(() => {
+    try {
+      setFitState(window.localStorage.getItem(fitKey) === "1");
+    } catch {
+      /* ignore */
+    }
+  }, [fitKey]);
+  const setFit = (v: boolean) => {
+    setFitState(v);
+    try {
+      window.localStorage.setItem(fitKey, v ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  };
+
   const show = (key: string) => !hidden.includes(key);
 
   const toggleColumn = (key: string) =>
@@ -242,6 +263,14 @@ export function useTableToolbox<T>(
   }, [rows, filters, opts?.allTimeRows]);
 
   const optionsFor = (col: ColDef<T>) => {
+    if (col.options?.length) {
+      const set = new Set(col.options);
+      if (col.value) for (const r of rows) {
+        const v = str(col.value(r));
+        if (v) set.add(v);
+      }
+      return [...set];
+    }
     if (!col.value) return [];
     const set = new Set<string>();
     for (const r of rows) {
@@ -263,6 +292,8 @@ export function useTableToolbox<T>(
     activeFilterCount,
     filtered,
     optionsFor,
+    fit,
+    setFit,
   };
 }
 
@@ -300,6 +331,21 @@ export function ColumnsMenu<T>({ tb, className }: { tb: TableToolbox<T>; classNa
         <DropdownMenuItem onSelect={() => tb.setHidden([])}>Show all</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** Toggle that squeezes a wide table so every visible column fits on screen. */
+export function FitToggle<T>({ tb, className }: { tb: TableToolbox<T>; className?: string }) {
+  return (
+    <Button
+      variant={tb.fit ? "default" : "outline"}
+      onClick={() => tb.setFit(!tb.fit)}
+      className={className}
+      title={tb.fit ? "Back to normal size" : "Fit all columns on screen"}
+    >
+      {tb.fit ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+      Fit
+    </Button>
   );
 }
 
@@ -402,16 +448,19 @@ export function FilterRow<T>({
   tb,
   leading = 0,
   trailing = 0,
+  leadingClasses = [],
 }: {
   tb: TableToolbox<T>;
   leading?: number;
   trailing?: number;
+  /** Extra classes per leading cell, e.g. to pin them alongside the header row. */
+  leadingClasses?: string[];
 }) {
   const visible = tb.cols.filter((c) => tb.show(c.key));
   return (
     <tr className="border-b border-border bg-muted/30">
       {Array.from({ length: leading }).map((_, i) => (
-        <th key={`l${i}`} className="px-2 py-2" />
+        <th key={`l${i}`} className={cn("px-2 py-2", leadingClasses[i])} />
       ))}
       {visible.map((c) => (
         <th key={c.key} className="px-1.5 py-2 align-middle font-normal">

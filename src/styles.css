@@ -414,6 +414,100 @@
   font-size: 0.8125rem;
 }
 
+/* Fit-to-width mode: squeeze a wide table into the viewport */
+[data-fit="1"] table {
+  font-size: 0.6875rem;
+  line-height: 1.1rem;
+  width: 100%;
+  /* fixed layout guarantees the table never exceeds the viewport width */
+  table-layout: fixed;
+}
+[data-fit="1"] table th,
+[data-fit="1"] table td {
+  padding-left: 0.3rem;
+  padding-right: 0.3rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+[data-fit="1"] table thead th {
+  font-size: 0.625rem;
+  letter-spacing: 0;
+}
+[data-fit="1"] table :is(.badge, [data-slot="badge"]) {
+  font-size: 0.625rem;
+}
+/* filter controls and sort headers must be allowed to shrink, or they force the
+   table wider than the viewport even with a fixed layout */
+[data-fit="1"] table :is(input, [data-slot="select-trigger"]) {
+  min-width: 3rem;
+  width: 100%;
+  font-size: 0.625rem;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+[data-fit="1"] table button {
+  min-width: 0;
+}
+[data-fit="1"] table :is([data-slot="checkbox"], [role="checkbox"]) {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
+}
+[data-fit="1"] table svg {
+  flex: none;
+}
+[data-fit="1"] table :is(.badge, [data-slot="badge"], .inline-flex.rounded-full) {
+  white-space: nowrap;
+  width: max-content;
+  max-width: 100%;
+  padding-left: 0.3rem;
+  padding-right: 0.3rem;
+}
+[data-fit="1"] table th * {
+  white-space: normal;
+  min-width: 0;
+}
+
+/* Scroll affordances on the shared table frame */
+.table-fade-left,
+.table-fade-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.75rem;
+  pointer-events: none;
+  z-index: 20;
+  border-radius: inherit;
+}
+.table-fade-left {
+  left: 0;
+  background: linear-gradient(to right, color-mix(in oklab, var(--foreground) 12%, transparent), transparent);
+}
+.table-fade-right {
+  right: 0;
+  background: linear-gradient(to left, color-mix(in oklab, var(--foreground) 12%, transparent), transparent);
+}
+
+/* Pinned left columns keep row identity visible while scrolling sideways */
+.pin-left {
+  position: sticky;
+  z-index: 5;
+  background: var(--card);
+}
+table tbody tr:nth-child(even) .pin-left {
+  background: color-mix(in oklab, var(--muted) 42%, var(--card));
+}
+table tbody tr:hover .pin-left {
+  background: color-mix(in oklab, var(--primary) 8%, var(--card));
+}
+thead .pin-left {
+  z-index: 15;
+  background: color-mix(in oklab, var(--muted) 40%, var(--card));
+}
+
+
 /* Page-level fade-in for route transitions */
 .page-fade-in {
   animation: pageFadeIn 0.3s ease-out both;
