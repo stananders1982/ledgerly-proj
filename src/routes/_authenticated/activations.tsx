@@ -722,6 +722,11 @@ function ActivationsPage() {
             ))}
           </SelectContent>
         </Select>
+        {(answeredFilter !== "all" || tierFilter !== "all" || potentialFilter !== "all" || stdFilter !== "all" || tagFilter !== "all" || dupOnly || minPotential) && (
+          <Button variant="ghost" size="sm" className="h-9 gap-1 text-muted-foreground" onClick={clearFilters}>
+            <X className="h-3.5 w-3.5" /> Clear filters
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 mb-6">
