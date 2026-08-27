@@ -260,10 +260,12 @@ export function depositMatchesActivation(dep: DepositLike, row: ActivationDatedL
 }
 
 /**
- * STD rule: the *second* recorded deposit on/after the activation date is the
- * STD (the first one is the FTD deposit itself). It only counts when it lands
- * in the same calendar month as the activation. Later deposits are ignored.
- * Optionally restrict to an STD dated inside a window (YYYY-MM-DD strings).
+ * STD rule: the client's *second* deposit is the STD. The first deposit is the
+ * FTD itself (the activation balance, which is not a revenue row), so the STD
+ * is the first recorded revenue deposit on/after the activation date. It
+ * counts no matter how long after the activation it happens — even a year
+ * later. Optionally restrict to an STD dated inside a window (YYYY-MM-DD
+ * strings), e.g. the page's selected date range.
  */
 export function stdDepositsFor<T extends DepositLike>(
   row: ActivationDatedLike,
@@ -274,13 +276,11 @@ export function stdDepositsFor<T extends DepositLike>(
   const matches = deposits
     .filter((d) => !!d.date && (!act || d.date! >= act) && depositMatchesActivation(d, row))
     .sort((a, b) => (a.date! < b.date! ? -1 : a.date! > b.date! ? 1 : 0));
-  const second = matches[1];
-  if (!second) return [];
-  // Must be in the same calendar month as the activation (FTD).
-  if (act && second.date!.slice(0, 7) !== act.slice(0, 7)) return [];
-  if (window?.start && second.date! < window.start) return [];
-  if (window?.end && second.date! > window.end) return [];
-  return [second];
+  const std = matches[0];
+  if (!std) return [];
+  if (window?.start && std.date! < window.start) return [];
+  if (window?.end && std.date! > window.end) return [];
+  return [std];
 }
 
 
