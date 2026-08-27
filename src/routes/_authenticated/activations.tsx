@@ -676,24 +676,74 @@ function ActivationsPage() {
       </div>
 
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 mb-6">
-        <StatCard label="Clients" value={String(rows.length)} icon={CheckCircle2} />
-        <StatCard label="Total balance" value={fmtMoney(totalBalance)} icon={Wallet} />
-        <StatCard label="Answered" value={`${answeredCount} / ${rows.length}`} icon={PhoneCall} />
-        <button type="button" className="text-left" onClick={() => setTierFilter("whale")}>
-          <StatCard label="Whales" value={String(tierCounts["whale"] ?? 0)} icon={Wallet} />
-        </button>
-        <button type="button" className="text-left" onClick={() => setTierFilter("high")}>
-          <StatCard label="High value" value={String(tierCounts["high"] ?? 0)} icon={Wallet} />
-        </button>
-        <button type="button" className="text-left" onClick={() => setTierFilter("mid")}>
-          <StatCard label="Mid value" value={String(tierCounts["mid"] ?? 0)} icon={Wallet} />
-        </button>
-        <button type="button" className="text-left" onClick={() => setTierFilter("unrated")}>
-          <StatCard label="Unrated" value={String(tierCounts["unrated"] ?? 0)} icon={Wallet} />
-        </button>
-        <button type="button" className="text-left" onClick={() => setTierFilter("neglected")}>
-          <StatCard label="Neglected clients" value={String(neglectedCount)} icon={PhoneCall} />
-        </button>
+        <KpiCard
+          label="Clients"
+          value={String(rows.length)}
+          icon={CheckCircle2}
+          hint="Clients matching your filters in this period. Click to clear all filters."
+          onClick={clearFilters}
+        />
+        <KpiCard
+          label="Total balance"
+          value={fmtMoney(totalBalance)}
+          icon={Wallet}
+          hint="Deposits minus withdrawals across these clients. Click to sort by balance."
+          active={sort?.key === "balance"}
+          onClick={() =>
+            setSort((s) =>
+              s?.key === "balance" ? (s.dir === "desc" ? { key: "balance", dir: "asc" } : null) : { key: "balance", dir: "desc" },
+            )
+          }
+        />
+        <KpiCard
+          label="Answered"
+          value={`${answeredCount} / ${rows.length}`}
+          icon={PhoneCall}
+          hint="Clients the retention agent has spoken to. Click to cycle the answer filter."
+          active={answeredFilter !== "all"}
+          activeLabel={answeredFilter === "no" ? "Not answered" : answeredFilter === "yes" ? "Answered" : undefined}
+          onClick={() => setAnsweredFilter((v) => (v === "all" ? "no" : v === "no" ? "yes" : "all"))}
+        />
+        <KpiCard
+          label="Whales"
+          value={String(tierCounts["whale"] ?? 0)}
+          icon={Wallet}
+          hint={`Potential of ${fmtMoney(settings.whaleThreshold)}+ — your top clients. Click to list them.`}
+          active={tierFilter === "whale"}
+          onClick={() => setTierFilter((v) => (v === "whale" ? "all" : "whale"))}
+        />
+        <KpiCard
+          label="High value"
+          value={String(tierCounts["high"] ?? 0)}
+          icon={Wallet}
+          hint={`Potential between ${fmtMoney(settings.highThreshold)} and ${fmtMoney(settings.whaleThreshold)}. Click to list them.`}
+          active={tierFilter === "high"}
+          onClick={() => setTierFilter((v) => (v === "high" ? "all" : "high"))}
+        />
+        <KpiCard
+          label="Mid value"
+          value={String(tierCounts["mid"] ?? 0)}
+          icon={Wallet}
+          hint={`Potential between ${fmtMoney(settings.midThreshold)} and ${fmtMoney(settings.highThreshold)}. Click to list them.`}
+          active={tierFilter === "mid"}
+          onClick={() => setTierFilter((v) => (v === "mid" ? "all" : "mid"))}
+        />
+        <KpiCard
+          label="Unrated"
+          value={String(tierCounts["unrated"] ?? 0)}
+          icon={Wallet}
+          hint="No potential set yet. Click to see who needs a rating."
+          active={tierFilter === "unrated"}
+          onClick={() => setTierFilter((v) => (v === "unrated" ? "all" : "unrated"))}
+        />
+        <KpiCard
+          label="Neglected clients"
+          value={String(neglectedCount)}
+          icon={PhoneCall}
+          hint={`No deposit and no contact in the first ${NEGLECT_WINDOW_DAYS} days after FTD. Click to act.`}
+          active={tierFilter === "neglected"}
+          onClick={() => setTierFilter((v) => (v === "neglected" ? "all" : "neglected"))}
+        />
       </div>
 
 
