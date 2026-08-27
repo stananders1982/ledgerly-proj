@@ -450,12 +450,18 @@
 [data-fit="1"] table button {
   min-width: 0;
 }
-[data-fit="1"] table :is([data-slot="checkbox"], [data-slot="switch"], svg) {
-  width: auto;
+[data-fit="1"] table [data-slot="checkbox"] {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
+}
+[data-fit="1"] table svg {
   flex: none;
 }
 [data-fit="1"] table :is(.badge, [data-slot="badge"]) {
   white-space: nowrap;
+  width: max-content;
+  max-width: 100%;
   padding-left: 0.3rem;
   padding-right: 0.3rem;
 }
