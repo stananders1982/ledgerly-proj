@@ -197,7 +197,7 @@ function ClientPage() {
   const deposits = depositsQ.data ?? [];
   const withdrawals = withdrawalsQ.data ?? [];
   const depositTotal = deposits.reduce((a, d) => a + Number(d.amount || 0), 0);
-  const wdTotal = withdrawals.reduce((a, d) => a + Number(d.amount || 0), 0);
+  const wdTotal = withdrawals.reduce((a: number, d: any) => a + Number(d.amount || 0), 0);
   const cur = clientQ.data;
   const opening = Number(cur?.balance || 0);
   const balance = opening + depositTotal - wdTotal;
