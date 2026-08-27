@@ -440,12 +440,24 @@
 }
 /* filter controls and sort headers must be allowed to shrink, or they force the
    table wider than the viewport even with a fixed layout */
-[data-fit="1"] table :is(input, button, [data-slot="select-trigger"]) {
+[data-fit="1"] table :is(input, [data-slot="select-trigger"]) {
   min-width: 0;
   width: 100%;
   font-size: 0.625rem;
   padding-left: 0.25rem;
   padding-right: 0.25rem;
+}
+[data-fit="1"] table button {
+  min-width: 0;
+}
+[data-fit="1"] table :is([data-slot="checkbox"], [data-slot="switch"], svg) {
+  width: auto;
+  flex: none;
+}
+[data-fit="1"] table :is(.badge, [data-slot="badge"]) {
+  white-space: nowrap;
+  padding-left: 0.3rem;
+  padding-right: 0.3rem;
 }
 [data-fit="1"] table th * {
   white-space: normal;
