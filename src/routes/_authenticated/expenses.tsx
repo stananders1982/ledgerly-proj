@@ -26,7 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
-import { useTableToolbox, ColumnsMenu, FilterRow, TotalsRow } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TotalsRow } from "@/components/table-toolbox";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { useQuickCreate } from "@/lib/quick-create";
@@ -272,6 +272,7 @@ function ExpensesPage() {
 
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
+        <FitToggle tb={tb} />
         <ColumnsMenu tb={tb} />
       </div>
 
@@ -299,7 +300,7 @@ function ExpensesPage() {
               />
             ))}
           </DataCardList>
-          <div className="hidden md:block overflow-x-auto scroll-slim">
+          <div className="hidden md:block overflow-x-auto scroll-slim" data-fit={tb.fit ? "1" : undefined}>
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
