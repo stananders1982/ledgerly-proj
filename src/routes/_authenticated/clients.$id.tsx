@@ -24,6 +24,7 @@ import { TIER_LABEL, isNeglected, potentialValue, valueTier } from "@/lib/whales
 import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
 import { fmtDate, fmtMoney } from "@/lib/format";
+import { fetchAll } from "@/lib/fetch-all";
 import { qualifiesAsFtd, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 
