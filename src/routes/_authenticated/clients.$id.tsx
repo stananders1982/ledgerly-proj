@@ -93,14 +93,20 @@ function ClientPage() {
     queryKey: ["client-deposits", id, name],
     enabled: !!clientQ.data,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("revenue")
-        .select("id,customer_name,amount,date,notes,method,method_provider,employee_id,activation_id")
-        .order("date", { ascending: true });
-      if (error) throw error;
-      return (data ?? []).filter((r: any) =>
-        r.activation_id ? r.activation_id === id : matchName(r.customer_name, name),
-      ) as any[];
+      const cols = "id,customer_name,amount,date,notes,method,method_provider,employee_id,activation_id";
+      const byActivation = await fetchAll<any>(() =>
+        supabase.from("revenue").select(cols).eq("activation_id", id).order("date", { ascending: true }),
+      );
+      const byName = name
+        ? await fetchAll<any>(() =>
+            supabase.from("revenue").select(cols).is("activation_id", null).ilike("customer_name", name.trim()).order("date", { ascending: true }),
+          )
+        : [];
+      const seen = new Set<string>();
+      return [...byActivation, ...byName]
+        .filter((r) => (seen.has(r.id) ? false : (seen.add(r.id), true)))
+        .filter((r: any) => (r.activation_id ? r.activation_id === id : matchName(r.customer_name, name)))
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)));
     },
   });
 
@@ -108,14 +114,17 @@ function ClientPage() {
     queryKey: ["client-withdrawals", id, name],
     enabled: !!clientQ.data && !!name,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("withdrawals")
-        .select("id,customer_name,amount,date,notes,employee_id")
-        .order("date", { ascending: true });
-      if (error) throw error;
-      return (data ?? []).filter((w: any) => matchName(w.customer_name, name)) as any[];
+      const rows = await fetchAll<any>(() =>
+        supabase
+          .from("withdrawals")
+          .select("id,customer_name,amount,date,notes,employee_id")
+          .ilike("customer_name", (name ?? "").trim())
+          .order("date", { ascending: true }),
+      );
+      return rows.filter((w: any) => matchName(w.customer_name, name));
     },
   });
+
 
   const commsQ = useQuery({
     queryKey: ["client-comms", id],
