@@ -126,10 +126,11 @@ describe("activation date resolution", () => {
     expect(activationDate({})).toBeNull();
   });
 
-  it("uses the lead entry month when no activation date is recorded", () => {
+  it("uses the lead entry date when no activation date is recorded", () => {
     const backfilled = { id: "act-3", lead_name: "Ann Smith", entry_date: "2026-04-10" };
     expect(isStd(backfilled, [dep({ activation_id: "act-3", date: "2026-04-20" })])).toBe(true);
-    expect(isStd(backfilled, [dep({ activation_id: "act-3", date: "2026-08-20" })])).toBe(false);
+    expect(isStd(backfilled, [dep({ activation_id: "act-3", date: "2026-08-20" })])).toBe(true);
+    expect(isStd(backfilled, [dep({ activation_id: "act-3", date: "2026-04-09" })])).toBe(false);
   });
 });
 
