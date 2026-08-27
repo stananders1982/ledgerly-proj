@@ -139,7 +139,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     // Retention work uses the SAME rule as the app's performance page:
     // a client belongs to the retention agent on their activation row, the
     // activation balance is the FTD, and the first deposit on/after the
-    // activation date (same calendar month) is the STD.
+    // activation date (whenever it happens) is the STD.
     const actRows = (activations.data ?? []) as any[];
     const revRows = (revenue.data ?? []) as any[];
     const stdRows: { date: string; amount: number; agent: string }[] = [];
@@ -400,8 +400,8 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
         (r) => `${month(r.date)} | ${r.agent}`,
         () => 1,
       ),
-      // STDs exactly as the app counts them (second deposit, same month as the
-      // activation). This is the retention scoreboard.
+      // STDs exactly as the app counts them (the client's second deposit,
+      // whenever it happens after activation). This is the retention scoreboard.
       stdCountByMonthAndAgent: bucket(stdRows, (r) => `${month(r.date)} | ${r.agent}`, () => 1),
       stdAmountByMonthAndAgent: round(
         bucket(stdRows, (r) => `${month(r.date)} | ${r.agent}`, (r) => r.amount),
