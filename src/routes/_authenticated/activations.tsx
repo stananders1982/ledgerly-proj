@@ -26,7 +26,8 @@ import { AttachmentsPanel } from "@/components/attachments-panel";
 import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { ActivatedLeadsByEmployee } from "@/components/activated-leads-by-employee";
-import { CheckCircle2, PhoneCall, Wallet, Copy, Plus } from "lucide-react";
+import { CheckCircle2, PhoneCall, Wallet, Copy, Plus, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
@@ -47,7 +48,7 @@ import {
 } from "@/components/client-profile-fields";
 import { clientAge, type ClientProfile } from "@/lib/client-profile";
 import {
-  TIER_LABEL, TIER_RANK, VALUE_TIERS, isNeglected, lastDate, potentialValue, valueTier,
+  NEGLECT_WINDOW_DAYS, TIER_LABEL, TIER_RANK, VALUE_TIERS, isNeglected, lastDate, potentialValue, valueTier,
 } from "@/lib/whales";
 
 export const Route = createFileRoute("/_authenticated/activations")({
@@ -107,6 +108,44 @@ function StdBadge({ count }: { count: number }) {
 }
 
 
+/** Clickable KPI card: explains itself, shows a hover/active state, and applies a table filter. */
+function KpiCard({
+  label,
+  value,
+  icon,
+  hint,
+  active,
+  activeLabel,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  icon: typeof Wallet;
+  hint: string;
+  active?: boolean;
+  activeLabel?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={!!active}
+      onClick={onClick}
+      className={cn(
+        "relative rounded-xl text-left transition-all duration-200 hover:-translate-y-0.5 hover:ring-2 hover:ring-primary/30",
+        active && "ring-2 ring-primary/60",
+      )}
+    >
+      <StatCard label={label} value={value} icon={icon} hint={hint} />
+      {active && (
+        <span className="absolute -top-2 right-3 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+          {activeLabel ?? "Filtered"}
+        </span>
+      )}
+    </button>
+  );
+}
+
 function ActivationsPage() {
   const settings = useCompanySettings();
   const qc = useQueryClient();
@@ -124,6 +163,17 @@ function ActivationsPage() {
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [minPotential, setMinPotential] = useState<string>("");
+
+  const clearFilters = useCallback(() => {
+    setAnsweredFilter("all");
+    setPotentialFilter("all");
+    setStdFilter("all");
+    setDupOnly(false);
+    setTagFilter("all");
+    setTierFilter("all");
+    setMinPotential("");
+  }, []);
+
 
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
@@ -400,7 +450,7 @@ function ActivationsPage() {
     { allTimeRows: rowsAllTime, allTimeKeys: ["lead"] },
   );
 
-  const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
+  const { sorted, sort, toggle, setSort } = useSort<any>(tb.filtered, {
     date: (r) => actDate(r) ?? "",
     lead: (r) => r.lead_name ?? "",
     source: (r) => r.daily_lead_entries?.lead_sources?.name ?? "",
@@ -672,27 +722,82 @@ function ActivationsPage() {
             ))}
           </SelectContent>
         </Select>
+        {(answeredFilter !== "all" || tierFilter !== "all" || potentialFilter !== "all" || stdFilter !== "all" || tagFilter !== "all" || dupOnly || minPotential) && (
+          <Button variant="ghost" size="sm" className="h-9 gap-1 text-muted-foreground" onClick={clearFilters}>
+            <X className="h-3.5 w-3.5" /> Clear filters
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 mb-6">
-        <StatCard label="Clients" value={String(rows.length)} icon={CheckCircle2} />
-        <StatCard label="Total balance" value={fmtMoney(totalBalance)} icon={Wallet} />
-        <StatCard label="Answered" value={`${answeredCount} / ${rows.length}`} icon={PhoneCall} />
-        <button type="button" className="text-left" onClick={() => setTierFilter("whale")}>
-          <StatCard label="Whales" value={String(tierCounts["whale"] ?? 0)} icon={Wallet} />
-        </button>
-        <button type="button" className="text-left" onClick={() => setTierFilter("high")}>
-          <StatCard label="High value" value={String(tierCounts["high"] ?? 0)} icon={Wallet} />
-        </button>
-        <button type="button" className="text-left" onClick={() => setTierFilter("mid")}>
-          <StatCard label="Mid value" value={String(tierCounts["mid"] ?? 0)} icon={Wallet} />
-        </button>
-        <button type="button" className="text-left" onClick={() => setTierFilter("unrated")}>
-          <StatCard label="Unrated" value={String(tierCounts["unrated"] ?? 0)} icon={Wallet} />
-        </button>
-        <button type="button" className="text-left" onClick={() => setTierFilter("neglected")}>
-          <StatCard label="Neglected clients" value={String(neglectedCount)} icon={PhoneCall} />
-        </button>
+        <KpiCard
+          label="Clients"
+          value={String(rows.length)}
+          icon={CheckCircle2}
+          hint="Clients matching your filters in this period. Click to clear all filters."
+          onClick={clearFilters}
+        />
+        <KpiCard
+          label="Total balance"
+          value={fmtMoney(totalBalance)}
+          icon={Wallet}
+          hint="Deposits minus withdrawals across these clients. Click to sort by balance."
+          active={sort?.key === "balance"}
+          onClick={() =>
+            setSort((s) =>
+              s?.key === "balance" ? (s.dir === "desc" ? { key: "balance", dir: "asc" } : null) : { key: "balance", dir: "desc" },
+            )
+          }
+        />
+        <KpiCard
+          label="Answered"
+          value={`${answeredCount} / ${rows.length}`}
+          icon={PhoneCall}
+          hint="Clients the retention agent has spoken to. Click to cycle the answer filter."
+          active={answeredFilter !== "all"}
+          activeLabel={answeredFilter === "no" ? "Not answered" : answeredFilter === "yes" ? "Answered" : undefined}
+          onClick={() => setAnsweredFilter((v) => (v === "all" ? "no" : v === "no" ? "yes" : "all"))}
+        />
+        <KpiCard
+          label="Whales"
+          value={String(tierCounts["whale"] ?? 0)}
+          icon={Wallet}
+          hint={`Potential of ${fmtMoney(settings.whaleThreshold)}+ — your top clients. Click to list them.`}
+          active={tierFilter === "whale"}
+          onClick={() => setTierFilter((v) => (v === "whale" ? "all" : "whale"))}
+        />
+        <KpiCard
+          label="High value"
+          value={String(tierCounts["high"] ?? 0)}
+          icon={Wallet}
+          hint={`Potential between ${fmtMoney(settings.highThreshold)} and ${fmtMoney(settings.whaleThreshold)}. Click to list them.`}
+          active={tierFilter === "high"}
+          onClick={() => setTierFilter((v) => (v === "high" ? "all" : "high"))}
+        />
+        <KpiCard
+          label="Mid value"
+          value={String(tierCounts["mid"] ?? 0)}
+          icon={Wallet}
+          hint={`Potential between ${fmtMoney(settings.midThreshold)} and ${fmtMoney(settings.highThreshold)}. Click to list them.`}
+          active={tierFilter === "mid"}
+          onClick={() => setTierFilter((v) => (v === "mid" ? "all" : "mid"))}
+        />
+        <KpiCard
+          label="Unrated"
+          value={String(tierCounts["unrated"] ?? 0)}
+          icon={Wallet}
+          hint="No potential set yet. Click to see who needs a rating."
+          active={tierFilter === "unrated"}
+          onClick={() => setTierFilter((v) => (v === "unrated" ? "all" : "unrated"))}
+        />
+        <KpiCard
+          label="Neglected clients"
+          value={String(neglectedCount)}
+          icon={PhoneCall}
+          hint={`No deposit and no contact in the first ${NEGLECT_WINDOW_DAYS} days after FTD. Click to act.`}
+          active={tierFilter === "neglected"}
+          onClick={() => setTierFilter((v) => (v === "neglected" ? "all" : "neglected"))}
+        />
       </div>
 
 
