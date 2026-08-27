@@ -429,7 +429,7 @@
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 [data-fit="1"] table thead th {
   font-size: 0.625rem;
@@ -441,7 +441,7 @@
 /* filter controls and sort headers must be allowed to shrink, or they force the
    table wider than the viewport even with a fixed layout */
 [data-fit="1"] table :is(input, [data-slot="select-trigger"]) {
-  min-width: 0;
+  min-width: 3rem;
   width: 100%;
   font-size: 0.625rem;
   padding-left: 0.25rem;
