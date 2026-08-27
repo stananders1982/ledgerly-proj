@@ -31,7 +31,7 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TableKeyboardHint } from "@/components/table-toolbox";
 import { TableFrame } from "@/components/table-frame";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate, depositIndex, depositTotalFor, isLateRetentionFtd, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
@@ -745,11 +745,12 @@ function ActivationsPage() {
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
         <div className="flex items-center gap-2">
           <FitToggle tb={tb} />
+          <TableKeyboardHint />
           <ColumnsMenu tb={tb} />
         </div>
       </div>
 
-      <TableFrame fit={tb.fit}>
+      <TableFrame fit={tb.fit} resizeKey="clients">
         {q.isLoading ? (
           <TableSkeleton cols={9} />
         ) : rows.length === 0 ? (

@@ -27,7 +27,8 @@ import { StatCard } from "@/components/stat-card";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
-import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TotalsRow } from "@/components/table-toolbox";
+import { TableFrame } from "@/components/table-frame";
+import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TableKeyboardHint, TotalsRow } from "@/components/table-toolbox";
 import { withdrawalPenalty } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
@@ -261,6 +262,7 @@ function WithdrawalsPage() {
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
         <FitToggle tb={tb} />
+          <TableKeyboardHint />
         <ColumnsMenu tb={tb} />
       </div>
 
@@ -289,7 +291,7 @@ function WithdrawalsPage() {
               />
             ))}
           </DataCardList>
-          <div className="hidden md:block overflow-x-auto scroll-slim" data-fit={tb.fit ? "1" : undefined}>
+          <TableFrame fit={tb.fit} resizeKey="withdrawals" bordered={false} className="hidden md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
@@ -364,7 +366,7 @@ function WithdrawalsPage() {
                 label="Page total"
               />
             </table>
-          </div>
+          </TableFrame>
           <TablePagination {...pg} />
           </>
         )}
