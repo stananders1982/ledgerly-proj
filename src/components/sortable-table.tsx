@@ -71,7 +71,7 @@ export function SortTh({
           e.stopPropagation();
           toggle(k);
         }}
-        className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-foreground transition-colors"
+        className={`inline-flex items-center gap-1 uppercase tracking-wider transition-colors hover:text-foreground ${active ? "text-primary" : ""}`}
       >
         {label}
         {active ? (
