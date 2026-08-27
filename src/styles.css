@@ -114,9 +114,12 @@
 
 
 .dark {
-  --radius: 0.75rem;
-  --background: oklch(0.16 0.015 260);
-  --foreground: oklch(0.97 0.01 250);
+  --radius: 0.7rem;
+  --background: oklch(0.15 0.014 262);
+  --foreground: oklch(0.97 0.008 250);
+  --surface-2: oklch(0.19 0.016 262);
+  --money-up: oklch(0.78 0.17 162);
+  --money-down: oklch(0.7 0.2 25);
   --card: oklch(0.205 0.018 260);
   --card-foreground: oklch(0.97 0.01 250);
   --popover: oklch(0.21 0.018 260);
