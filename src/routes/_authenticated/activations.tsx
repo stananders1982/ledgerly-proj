@@ -391,7 +391,7 @@ function ActivationsPage() {
       { key: "std", label: "STD", filter: "none", defaultHidden: true },
       { key: "conversion", label: "Conversion agent", filter: "select", value: (r: any) => employeeName(r.conversion_employee_id) ?? "" },
       { key: "retention", label: "Retention agent", filter: "select", value: (r: any) => employeeName(r.employee_id) ?? "" },
-      { key: "answered", label: "Answered", filter: "select", options: ["Yes", "No"], value: (r: any) => (r.answered ? "Yes" : "No") },
+      { key: "answered", label: "Answered", filter: "select", options: ["Answered", "Not answered"], value: (r: any) => (r.answered ? "Answered" : "Not answered") },
       { key: "legacy", label: "Origin", filter: "select", defaultHidden: true, options: ["New lead", "Legacy (old CRM)"], value: (r: any) => (r.legacy ? "Legacy (old CRM)" : "New lead") },
     ],
     rows,
