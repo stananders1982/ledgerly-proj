@@ -164,6 +164,17 @@ function ActivationsPage() {
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [minPotential, setMinPotential] = useState<string>("");
 
+  const clearFilters = useCallback(() => {
+    setAnsweredFilter("all");
+    setPotentialFilter("all");
+    setStdFilter("all");
+    setDupOnly(false);
+    setTagFilter("all");
+    setTierFilter("all");
+    setMinPotential("");
+  }, []);
+
+
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
