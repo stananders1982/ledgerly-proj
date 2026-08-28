@@ -30,9 +30,9 @@ export function AnomalyAlerts() {
     queryFn: async () => {
       const [revenue, expenses, withdrawals, activations, leads, sources, categories, employees] =
         await Promise.all([
-          fetchAll(() => sb.from("revenue").select("date,amount,employee_id").gte("date", since)),
-          fetchAll(() => sb.from("expenses").select("date,amount,category_id").gte("date", since)),
-          fetchAll(() => sb.from("withdrawals").select("date,amount").gte("date", since)),
+          fetchAll(() => sb.from("revenue").select("date,amount,currency,employee_id").gte("date", since)),
+          fetchAll(() => sb.from("expenses").select("date,amount,currency,category_id").gte("date", since)),
+          fetchAll(() => sb.from("withdrawals").select("date,amount,currency").gte("date", since)),
           fetchAll(() => sb.from("daily_lead_activations").select("activation_date,created_at,employee_id,conversion_employee_id").eq("legacy", false).gte("activation_date", since)),
           fetchAll(() => sb.from("daily_lead_entries").select("entry_date,received,source_id").gte("entry_date", since)),
           fetchAll(() => sb.from("lead_sources").select("id,name")),
