@@ -1,10 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useFxRates, fxRate, fmtPrecise, getDisplayCurrency } from "@/lib/fx-bridge";
-
-export { };
-
-import { getDisplayCurrency as _gdc } from "@/lib/format";
+import { useFxRates, fxRate, fmtPrecise } from "@/lib/fx";
+import { getDisplayCurrency } from "@/lib/format";
 
 /**
  * Amount input + currency selector with a live conversion preview.
@@ -22,7 +19,7 @@ export function AmountWithCurrency({
   onCurrencyChange: (v: string) => void;
 }) {
   const { currencies, fetchedAt } = useFxRates();
-  const base = _gdc();
+  const base = getDisplayCurrency();
   const amount = Number(value) || 0;
   const rate = fxRate(currency, base);
   const showPreview = currency !== base && amount > 0;
@@ -41,7 +38,7 @@ export function AmountWithCurrency({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {currencies.map((c) => (
+            {currencies.map((c: string) => (
               <SelectItem key={c} value={c}>{c}</SelectItem>
             ))}
           </SelectContent>
