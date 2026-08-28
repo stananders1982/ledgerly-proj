@@ -423,6 +423,7 @@ function WithdrawalDialog({
       employee_id: r?.employee_id ?? form.employee_id,
       affiliate_id: r?.affiliate_id ?? form.affiliate_id,
       amount: r?.amount ?? form.amount,
+      currency: r?.currency ?? form.currency,
     });
   };
 
