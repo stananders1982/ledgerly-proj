@@ -19,7 +19,8 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { fmtDate, fmtMoney, todayISO } from "@/lib/format";
+import { fmtDate, fmtMoney, todayISO, getDisplayCurrency } from "@/lib/format";
+import { toBase } from "@/lib/fx";
 import { EmptyState } from "@/components/empty-state";
 import { CommentThread } from "@/components/comment-thread";
 import { AttachmentsPanel } from "@/components/attachments-panel";
@@ -248,10 +249,10 @@ function ActivationsPage() {
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("withdrawals")
-        .select("id, customer_name, amount, date, notes")
+        .select("id, customer_name, amount, currency, date, notes")
         .order("date", { ascending: false }));
       return (data ?? []) as {
-        id: string; customer_name: string | null; amount: number; date: string; notes: string | null;
+        id: string; customer_name: string | null; amount: number; currency: string | null; date: string; notes: string | null;
       }[];
     },
   });
@@ -287,7 +288,7 @@ function ActivationsPage() {
 
   /** Total withdrawn for a client — subtracted from the shown balance. */
   const withdrawalsFor = (name?: string | null) =>
-    withdrawalRowsFor(name).reduce((a, w) => a + Number(w.amount || 0), 0);
+    withdrawalRowsFor(name).reduce((a, w) => a + toBase(w.amount, w.currency, getDisplayCurrency()), 0);
 
   /** Base balance + deposits - withdrawals. */
   const netBalance = (r: { id?: string | null; lead_name?: string | null; balance?: number | string | null }) =>
@@ -1102,8 +1103,9 @@ function ActivationsPage() {
           const cur = (q.data ?? []).find((r) => r.id === viewing.id) ?? viewing;
           const deposits = depositRowsFor(cur.lead_name, cur.id);
           const wds = withdrawalRowsFor(cur.lead_name);
-          const depositTotal = deposits.reduce((a, d) => a + Number(d.amount || 0), 0);
-          const wdTotal = wds.reduce((a, d) => a + Number(d.amount || 0), 0);
+          const baseCcy = getDisplayCurrency();
+          const depositTotal = deposits.reduce((a, d) => a + toBase(d.amount, (d as any).currency, baseCcy), 0);
+          const wdTotal = wds.reduce((a, d) => a + toBase(d.amount, d.currency, baseCcy), 0);
           const grossBalance = Number(cur.balance || 0) + depositTotal;
           const effective = grossBalance - wdTotal;
           const qualifies = qualifiesAsFtd(cur, grossBalance, settings);
@@ -1114,13 +1116,13 @@ function ActivationsPage() {
               date: d.date,
               kind: "deposit" as const,
               label: d.notes ? `Deposit — ${d.notes}` : "Deposit",
-              delta: Number(d.amount || 0),
+              delta: toBase(d.amount, (d as any).currency, baseCcy),
             })),
             ...wds.map((w) => ({
               date: w.date,
               kind: "withdrawal" as const,
               label: w.notes ? `Withdrawal — ${w.notes}` : "Withdrawal",
-              delta: -Number(w.amount || 0),
+              delta: -toBase(w.amount, w.currency, baseCcy),
             })),
           ].sort((a, b) => String(a.date).localeCompare(String(b.date)));
 

@@ -68,9 +68,9 @@ export function ConversionsByAgent({
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("revenue")
-        .select("id, activation_id, customer_name, amount, date, notes, employee_id, affiliate_id")
+        .select("id, activation_id, customer_name, amount, currency, date, notes, employee_id, affiliate_id")
         .order("date", { ascending: false }));
-      return (data ?? []) as { customer_name: string | null; amount: number }[];
+      return (data ?? []) as { customer_name: string | null; amount: number; currency: string | null }[];
     },
   });
 

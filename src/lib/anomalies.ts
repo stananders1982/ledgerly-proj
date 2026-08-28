@@ -5,6 +5,9 @@
  * against the trailing baseline. No network, no React.
  */
 
+
+import { toBase } from "./fx";
+import { getDisplayCurrency } from "./format";
 export type AnomalySeverity = "critical" | "warning" | "info";
 
 export interface Anomaly {
@@ -17,9 +20,9 @@ export interface Anomaly {
 }
 
 export interface AnomalyInput {
-  revenue: { date: string; amount: number; employee_id?: string | null }[];
-  expenses: { date: string; amount: number; category_id?: string | null }[];
-  withdrawals: { date: string; amount: number }[];
+  revenue: { date: string; amount: number; currency?: string | null; employee_id?: string | null }[];
+  expenses: { date: string; amount: number; currency?: string | null; category_id?: string | null }[];
+  withdrawals: { date: string; amount: number; currency?: string | null }[];
   activations: {
     activation_date: string | null;
     created_at: string;
@@ -56,11 +59,11 @@ function stdev(xs: number[]) {
 }
 
 /** Daily totals for the `days` days before `endExclusive`. */
-function dailyTotals(rows: { date: string; amount: number }[], days: number, endExclusive: string) {
+function dailyTotals(rows: { date: string; amount: number; currency?: string | null }[], days: number, endExclusive: string) {
   const byDay = new Map<string, number>();
   for (const r of rows) {
     if (!r.date || r.date >= endExclusive) continue;
-    byDay.set(r.date, (byDay.get(r.date) ?? 0) + Number(r.amount || 0));
+    byDay.set(r.date, (byDay.get(r.date) ?? 0) + toBase(r.amount, r.currency, getDisplayCurrency()));
   }
   const out: number[] = [];
   const end = new Date(endExclusive + "T12:00:00");
@@ -80,7 +83,7 @@ export function detectAnomalies(input: AnomalyInput, today = new Date()): Anomal
   const revBaseline = dailyTotals(input.revenue, 30, yesterdayIso);
   const revYesterday = input.revenue
     .filter((r) => r.date === yesterdayIso)
-    .reduce((s, r) => s + Number(r.amount || 0), 0);
+    .reduce((s, r) => s + toBase(r.amount, r.currency, getDisplayCurrency()), 0);
   const revMean = mean(revBaseline);
   const revSd = stdev(revBaseline);
   if (revMean > 0 && revSd > 0 && revBaseline.filter(Boolean).length >= 8) {
@@ -108,7 +111,7 @@ export function detectAnomalies(input: AnomalyInput, today = new Date()): Anomal
   const wdBaseline = dailyTotals(input.withdrawals, 30, yesterdayIso);
   const wdRecent = input.withdrawals
     .filter((w) => w.date >= isoDay(daysAgo(7, today)) && w.date <= todayIso)
-    .reduce((s, w) => s + Number(w.amount || 0), 0);
+    .reduce((s, w) => s + toBase(w.amount, w.currency, getDisplayCurrency()), 0);
   const wdWeekBaseline = mean(wdBaseline) * 7;
   if (wdWeekBaseline > 0 && wdRecent > wdWeekBaseline * 2) {
     out.push({
@@ -192,7 +195,7 @@ export function detectAnomalies(input: AnomalyInput, today = new Date()): Anomal
   for (const e of input.expenses) {
     if (!e.category_id) continue;
     const arr = byCat.get(e.category_id) ?? [];
-    arr.push({ date: e.date, amount: Number(e.amount || 0) });
+    arr.push({ date: e.date, amount: toBase(e.amount, e.currency, getDisplayCurrency()) });
     byCat.set(e.category_id, arr);
   }
   const cut = isoDay(daysAgo(14, today));

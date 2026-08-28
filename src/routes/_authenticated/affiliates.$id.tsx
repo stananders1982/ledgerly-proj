@@ -13,7 +13,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useExporters } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fmtMoney } from "@/lib/format";
+import { fmtMoney, getDisplayCurrency } from "@/lib/format";
+import { toBase } from "@/lib/fx";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
@@ -186,10 +187,10 @@ function AffiliateStatementPage() {
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("withdrawals")
-        .select("id,date,amount,notes,created_at")
+        .select("id,date,amount,currency,notes,created_at")
         .eq("affiliate_id", id)
         .order("date", { ascending: false }));
-      return (data ?? []) as { id: string; date: string; amount: number; notes: string | null; created_at: string }[];
+      return (data ?? []) as { id: string; date: string; amount: number; currency: string | null; notes: string | null; created_at: string }[];
     },
   });
 
@@ -215,7 +216,7 @@ function AffiliateStatementPage() {
     for (const e of expQ.data ?? []) {
       if (balanceStart && e.date < balanceStart) continue;
       const k = weekStartOf(e.date);
-      m.set(k, (m.get(k) ?? 0) + Number(e.amount || 0));
+      m.set(k, (m.get(k) ?? 0) + toBase(e.amount, (e as any).currency, getDisplayCurrency()));
     }
     return m;
   }, [expQ.data, balanceOn, balanceStart]);
@@ -289,24 +290,25 @@ function AffiliateStatementPage() {
 
 
   const monthly = useMemo(() => {
+    const baseCcy = getDisplayCurrency();
     const blank = () => ({ revenue: 0, withdrawals: 0, paid: 0 });
     const map = new Map<string, { revenue: number; withdrawals: number; paid: number }>();
     for (const r of (revQ.data ?? []).filter((x) => inRange(x.date))) {
       const k = monthKey(r.date);
       const m = map.get(k) ?? blank();
-      m.revenue += Number(r.amount || 0);
+      m.revenue += toBase(r.amount, (r as any).currency, baseCcy);
       map.set(k, m);
     }
     for (const w of (withQ.data ?? []).filter((x) => inRange(x.date))) {
       const k = monthKey(w.date);
       const m = map.get(k) ?? blank();
-      m.withdrawals += Number(w.amount || 0);
+      m.withdrawals += toBase(w.amount, w.currency, baseCcy);
       map.set(k, m);
     }
     for (const e of (expQ.data ?? []).filter((x) => inMoneyRange(x.date))) {
       const k = monthKey(e.date);
       const m = map.get(k) ?? blank();
-      m.paid += Number(e.amount || 0);
+      m.paid += toBase(e.amount, (e as any).currency, baseCcy);
       map.set(k, m);
     }
     return [...map.entries()]
@@ -334,8 +336,9 @@ function AffiliateStatementPage() {
   const { pageItems: monthlyPage, ...pgMonthly } = usePagination(sorted, 30);
 
   const transactions = useMemo(() => {
-    const withs = (withQ.data ?? []).filter((x) => inRange(x.date)).map((w) => ({ type: "Withdrawal" as const, date: w.date, amount: -Number(w.amount || 0), label: w.notes || "Withdrawal", id: w.id }));
-    const exps = (expQ.data ?? []).filter((x) => inMoneyRange(x.date)).map((e) => ({ type: "Paid to affiliate" as const, date: e.date, amount: -Number(e.amount || 0), label: e.notes || "Affiliate payout", id: e.id }));
+    const baseCcy = getDisplayCurrency();
+    const withs = (withQ.data ?? []).filter((x) => inRange(x.date)).map((w) => ({ type: "Withdrawal" as const, date: w.date, amount: -toBase(w.amount, w.currency, baseCcy), label: w.notes || "Withdrawal", id: w.id }));
+    const exps = (expQ.data ?? []).filter((x) => inMoneyRange(x.date)).map((e) => ({ type: "Paid to affiliate" as const, date: e.date, amount: -toBase(e.amount, (e as any).currency, baseCcy), label: e.notes || "Affiliate payout", id: e.id }));
     return [...withs, ...exps].sort((a, b) => b.date.localeCompare(a.date));
   }, [withQ.data, expQ.data, activeRange, balanceOn, balanceStart]);
   const { pageItems: txPage, ...pgTx } = usePagination(transactions, 30);
@@ -345,7 +348,7 @@ function AffiliateStatementPage() {
     for (const r of (revQ.data ?? []).filter((x) => inRange(x.date))) {
       const k = monthKey(r.date);
       const m = map.get(k) ?? { amount: 0, deposits: 0, clients: new Set<string>() };
-      m.amount += Number(r.amount || 0);
+      m.amount += toBase(r.amount, (r as any).currency, getDisplayCurrency());
       m.deposits += 1;
       if (r.customer_name) m.clients.add(r.customer_name.trim().toLowerCase());
       map.set(k, m);

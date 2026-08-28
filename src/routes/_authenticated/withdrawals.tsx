@@ -18,7 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { fmtDate, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
+import { toBase, sumBase, originalLabel } from "@/lib/fx";
+import { AmountWithCurrency } from "@/components/amount-with-currency";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
@@ -150,14 +152,15 @@ function WithdrawalsPage() {
   const { pageItems, ...pg } = usePagination(sorted, 25, "withdrawals");
 
   const stats = useMemo(() => {
+    const base = getDisplayCurrency();
     const list = inRange;
-    const total = list.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const allTotal = (wQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const total = sumBase(list, base, (r: any) => r);
+    const allTotal = sumBase(wQ.data ?? [], base, (r: any) => r);
     const penalty = list.reduce((s: number, r: any) => s + Number(r.employee_penalty), 0);
 
     const byEmp = new Map<string, number>();
     list.forEach((r: any) => {
-      const totalAmount = Number(r.amount) || 0;
+      const totalAmount = toBase(r.amount, r.currency, base);
       const pct = Number(r.split_pct ?? 100) / 100;
       if (r.employee_id) {
         const n = r.employees?.name ?? empNameById.get(r.employee_id) ?? "?";
@@ -175,6 +178,9 @@ function WithdrawalsPage() {
   const upsert = useMutation({
     mutationFn: async (v: any) => {
       const amount = Number(v.amount) || 0;
+      const base = getDisplayCurrency();
+      // Penalty is computed in workspace currency so payroll math stays consistent.
+      const baseAmount = toBase(amount, v.currency ?? null, base);
       const payload = {
         revenue_id: v.revenue_id || null,
         customer_name: v.customer_name,
@@ -183,7 +189,8 @@ function WithdrawalsPage() {
         split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
         affiliate_id: v.affiliate_id || null,
         amount,
-        employee_penalty: +withdrawalPenalty(amount, settings).toFixed(2),
+        currency: v.currency && v.currency !== base ? v.currency : null,
+        employee_penalty: +withdrawalPenalty(baseAmount, settings).toFixed(2),
         date: v.date,
         notes: v.notes || null,
       };
@@ -317,7 +324,12 @@ function WithdrawalsPage() {
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     )}
                     {tb.show("amount") && (
-                    <td className="py-3 px-4 text-destructive font-medium">−{fmtMoney(r.amount)}</td>
+                    <td className="py-3 px-4 text-destructive font-medium">
+                      −{fmtMoney(toBase(r.amount, r.currency, getDisplayCurrency()))}
+                      {originalLabel(r.amount, r.currency, getDisplayCurrency()) && (
+                        <span className="block text-xs font-normal text-muted-foreground">−{originalLabel(r.amount, r.currency, getDisplayCurrency())}</span>
+                      )}
+                    </td>
                     )}
                     {tb.show("agent") && (
                     <td className="py-3 px-4">
@@ -359,7 +371,7 @@ function WithdrawalsPage() {
                 rows={pageItems as any[]}
                 trailing={1}
                 totals={{
-                  amount: (r: any) => Number(r.amount || 0),
+                  amount: (r: any) => toBase(r.amount, r.currency, getDisplayCurrency()),
                   penalty: (r: any) => Number(r.employee_penalty || 0),
                 }}
                 format={(n) => `−${fmtMoney(n)}`}
@@ -387,6 +399,7 @@ function WithdrawalDialog({
     split_pct: row?.split_pct ?? 50,
     affiliate_id: row?.affiliate_id ?? "",
     amount: row?.amount ?? "",
+    currency: row?.currency ?? getDisplayCurrency(),
     date: row?.date ?? new Date().toISOString().slice(0, 10),
     notes: row?.notes ?? "",
   }));
@@ -394,7 +407,7 @@ function WithdrawalDialog({
   const [pickerOpen, setPickerOpen] = useState(false);
   const picked = revenues.find((x) => x.id === form.revenue_id);
   const settings = useCompanySettings();
-  const penaltyPreview = withdrawalPenalty(form.amount, settings);
+  const penaltyPreview = withdrawalPenalty(toBase(form.amount, form.currency, getDisplayCurrency()), settings);
   const hasSplit = !!form.employee_id_2;
 
   const onPickRevenue = (id: string) => {
@@ -410,6 +423,7 @@ function WithdrawalDialog({
       employee_id: r?.employee_id ?? form.employee_id,
       affiliate_id: r?.affiliate_id ?? form.affiliate_id,
       amount: r?.amount ?? form.amount,
+      currency: r?.currency ?? form.currency,
     });
   };
 
@@ -499,7 +513,7 @@ function WithdrawalDialog({
         </Field>
         <Field label="Customer name"><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
+          <Field label="Amount"><AmountWithCurrency value={form.amount} currency={form.currency} onValueChange={(v) => setForm({ ...form, amount: v })} onCurrencyChange={(c) => setForm({ ...form, currency: c })} /></Field>
           <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         </div>
         <Field label={hasSplit ? `Sales agent 1 (${Number(form.split_pct)}%)` : "Sales agent"}>

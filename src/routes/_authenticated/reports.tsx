@@ -5,7 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { FileDown, FileSpreadsheet, FileText, Printer, ArrowUpDown, Bookmark, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMoney, fmtPct, fmtDate } from "@/lib/format";
+import { fmtMoney, fmtPct, fmtDate, getDisplayCurrency } from "@/lib/format";
+import { toBase } from "@/lib/fx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { LateFtdBadge } from "@/components/status-badge";
 import { useExporters } from "@/lib/permissions";
@@ -92,8 +93,9 @@ function summarize(entries: any[], revenue: any[], expenses: any[], employees: a
     }
   }
   const unreported = activated - reported;
-  const income = revenue.reduce((s, r) => s + Number(r.amount), 0);
-  const otherExp = expenses.reduce((s, r) => s + Number(r.amount), 0);
+  const baseCcy = getDisplayCurrency();
+  const income = revenue.reduce((s, r) => s + toBase(r.amount, (r as any).currency, baseCcy), 0);
+  const otherExp = expenses.reduce((s, r) => s + toBase(r.amount, (r as any).currency, baseCcy), 0);
   const activeEmp = employees.filter((e) => e.active);
   // Salaries include managers (fixed cost); commission never does.
   const salaries = activeEmp.reduce((s, e) => s + Number(e.salary), 0);
@@ -338,7 +340,7 @@ function ReportsPage() {
       const affName = affIdToName.get(affId);
       if (!affName) continue;
       const src = nameToSource.get(affName);
-      if (src) src.revenue += Number(rev.amount) || 0;
+      if (src) src.revenue += toBase(rev.amount, (rev as any).currency, getDisplayCurrency());
     }
     return Array.from(map.values()).map((r) => {
       const cost = r.model === "CPL" ? r.price * r.leads : r.price * r.reported;
@@ -399,7 +401,7 @@ function ReportsPage() {
       const aff = affById.get(x.affiliate_id);
       if (!aff) continue;
       const month = String(x.date).slice(0, 7);
-      const amt = Number(x.amount) || 0;
+      const amt = toBase(x.amount, (x as any).currency, getDisplayCurrency());
       const { row, a } = touch(aff.id, aff.name, month, "Manual");
       row.cost += amt; a.cost += amt;
     }
@@ -410,7 +412,7 @@ function ReportsPage() {
       const aff = affById.get(affId);
       if (!aff) continue;
       const month = String(rev.date).slice(0, 7);
-      const amt = Number(rev.amount) || 0;
+      const amt = toBase(rev.amount, (rev as any).currency, getDisplayCurrency());
       const { row, a } = touch(aff.id, aff.name, month, "");
       row.revenue += amt; a.revenue += amt;
     }
@@ -430,7 +432,7 @@ function ReportsPage() {
       const aff = affById.get(affId);
       if (!aff) continue;
       const month = String(w.date).slice(0, 7);
-      const amt = Number(w.amount) || 0;
+      const amt = toBase(w.amount, w.currency, getDisplayCurrency());
       const { row, a } = touch(aff.id, aff.name, month, "");
       row.withdrawals += amt; a.withdrawals += amt;
     }
@@ -495,9 +497,9 @@ function ReportsPage() {
       },
     });
     for (const r of rev) {
-      const amt = Number(r.amount);
+      const amt = toBase(r.amount, (r as any).currency, getDisplayCurrency());
       // Commission base: deposit-method fee deducted first.
-      const base = commissionableAmount(r.amount, r.method, settings);
+      const base = commissionableAmount(amt, r.method, settings);
       const pct = Number(r.split_pct ?? 100);
       if (r.employee_id) {
         const x = byEmp.get(r.employee_id);
@@ -561,7 +563,7 @@ function ReportsPage() {
     }
     // Revenue per affiliate: prefer direct revenue.affiliate_id, fallback to leads.affiliate_id
     for (const r of rev) {
-      const amt = Number(r.amount);
+      const amt = toBase(r.amount, (r as any).currency, getDisplayCurrency());
       const pct = Number(r.split_pct ?? 100);
       const affId = r.affiliate_id ?? r.leads?.affiliate_id;
       if (affId) { const x = getA(affId); x.revenue += amt; byAff.set(affId, x); }
@@ -674,7 +676,7 @@ function ReportsPage() {
     const map = new Map<string, number>();
     for (const e of data.expenses) {
       const k = (e as any).expense_categories?.name ?? "Uncategorized";
-      map.set(k, (map.get(k) ?? 0) + Number(e.amount));
+      map.set(k, (map.get(k) ?? 0) + toBase(e.amount, (e as any).currency, getDisplayCurrency()));
     }
     return Array.from(map.entries()).map(([name, amount]) => ({ name, amount }));
   }, [data.expenses]);
@@ -719,7 +721,7 @@ function ReportsPage() {
   // Revenue groupings
   const revByDay = useMemo(() => {
     const map = new Map<string, number>();
-    for (const r of data.revenue) map.set(r.date, (map.get(r.date) ?? 0) + Number(r.amount));
+    for (const r of data.revenue) map.set(r.date, (map.get(r.date) ?? 0) + toBase(r.amount, (r as any).currency, getDisplayCurrency()));
     return Array.from(map.entries()).map(([date, amount]) => ({ date, amount })).sort((a, b) => a.date.localeCompare(b.date));
   }, [data.revenue]);
 
@@ -728,7 +730,7 @@ function ReportsPage() {
     const map = new Map<string, number>();
     for (const e of data.expenses) {
       const k = (e.date ?? "").slice(0, 7);
-      map.set(k, (map.get(k) ?? 0) + Number(e.amount));
+      map.set(k, (map.get(k) ?? 0) + toBase(e.amount, (e as any).currency, getDisplayCurrency()));
     }
     return Array.from(map.entries()).map(([month, amount]) => ({ month, amount })).sort((a, b) => a.month.localeCompare(b.month));
   }, [data.expenses]);
@@ -742,8 +744,8 @@ function ReportsPage() {
       map.set(k, row);
       return row;
     };
-    for (const r of data.revenue) touch(r.date).revenue += Number(r.amount) || 0;
-    for (const e of data.expenses) touch(e.date).cost += Number(e.amount) || 0;
+    for (const r of data.revenue) touch(r.date).revenue += toBase(r.amount, (r as any).currency, getDisplayCurrency());
+    for (const e of data.expenses) touch(e.date).cost += toBase(e.amount, (e as any).currency, getDisplayCurrency());
     for (const e of data.entries) {
       const row = touch(e.entry_date);
       row.cost += Number(e.cost ?? 0);
@@ -1466,7 +1468,7 @@ function ReportsPage() {
                 rows={Object.values(data.revenue.reduce((acc: any, r: any) => {
                   const k = r.customer_name || "—";
                   acc[k] = acc[k] || { customer_name: k, amount: 0 };
-                  acc[k].amount += Number(r.amount);
+                  acc[k].amount += toBase(r.amount, r.currency, getDisplayCurrency());
                   return acc;
                 }, {}))}
               />

@@ -1272,6 +1272,7 @@ export type Database = {
           category_id: string | null
           company_id: string
           created_at: string
+          currency: string | null
           date: string
           id: string
           notes: string | null
@@ -1283,6 +1284,7 @@ export type Database = {
           category_id?: string | null
           company_id?: string
           created_at?: string
+          currency?: string | null
           date?: string
           id?: string
           notes?: string | null
@@ -1294,6 +1296,7 @@ export type Database = {
           category_id?: string | null
           company_id?: string
           created_at?: string
+          currency?: string | null
           date?: string
           id?: string
           notes?: string | null
@@ -1905,6 +1908,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          currency: string | null
           custom_fields: Json
           customer_name: string
           date: string
@@ -1927,6 +1931,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          currency?: string | null
           custom_fields?: Json
           customer_name: string
           date?: string
@@ -1949,6 +1954,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          currency?: string | null
           custom_fields?: Json
           customer_name?: string
           date?: string
@@ -2247,6 +2253,7 @@ export type Database = {
           amount: number
           company_id: string
           created_at: string
+          currency: string | null
           customer_name: string
           date: string
           employee_id: string | null
@@ -2263,6 +2270,7 @@ export type Database = {
           amount?: number
           company_id?: string
           created_at?: string
+          currency?: string | null
           customer_name: string
           date?: string
           employee_id?: string | null
@@ -2279,6 +2287,7 @@ export type Database = {
           amount?: number
           company_id?: string
           created_at?: string
+          currency?: string | null
           customer_name?: string
           date?: string
           employee_id?: string | null

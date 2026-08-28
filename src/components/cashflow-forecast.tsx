@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { toBase } from "@/lib/fx";
+import { getDisplayCurrency } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
@@ -103,9 +105,9 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
     queryFn: async () => {
       const data = await fetchAll(() => sb
         .from("revenue")
-        .select("amount,date")
+        .select("amount,currency,date")
         .gte("date", lookbackStart));
-      return (data ?? []) as { amount: number; date: string }[];
+      return (data ?? []) as { amount: number; currency: string | null; date: string }[];
     },
   });
 
@@ -115,7 +117,7 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
     // --- Learn the shape of the last 90 days --------------------------------
     const byDayHistory = new Map<string, number>();
     for (const r of revQ.data ?? []) {
-      byDayHistory.set(r.date, (byDayHistory.get(r.date) ?? 0) + Number(r.amount || 0));
+      byDayHistory.set(r.date, (byDayHistory.get(r.date) ?? 0) + toBase(r.amount, r.currency, getDisplayCurrency()));
     }
     const history: { date: Date; v: number }[] = [];
     for (let i = lookback; i >= 1; i--) {

@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { toBase } from "@/lib/fx";
+import { getDisplayCurrency } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
@@ -24,7 +26,7 @@ const iso = (d: Date) => {
 /** Split-adjusted per-agent totals: agent 1 gets split_pct, agent 2 the rest. */
 function accumulate(rows: SplitRow[], into: Map<string, number>) {
   for (const r of rows) {
-    const total = Number(r.amount || 0);
+    const total = toBase(r.amount, (r as any).currency, getDisplayCurrency());
     const pct = Number(r.split_pct ?? 100) / 100;
     if (r.employee_id) {
       into.set(r.employee_id, (into.get(r.employee_id) ?? 0) + total * (r.employee_id_2 ? pct : 1));
@@ -49,7 +51,7 @@ export function RetentionScoreboard({ start, end }: { start: Date; end: Date }) 
       (await fetchAll(() =>
         supabase
           .from("revenue")
-          .select("amount,employee_id,employee_id_2,split_pct")
+          .select("amount,currency,employee_id,employee_id_2,split_pct")
           .gte("date", startIso)
           .lte("date", endIso),
       )) as unknown as SplitRow[],
@@ -61,7 +63,7 @@ export function RetentionScoreboard({ start, end }: { start: Date; end: Date }) 
       (await fetchAll(() =>
         supabase
           .from("withdrawals")
-          .select("amount,employee_id,employee_id_2,split_pct")
+          .select("amount,currency,employee_id,employee_id_2,split_pct")
           .gte("date", startIso)
           .lte("date", endIso),
       )) as unknown as SplitRow[],

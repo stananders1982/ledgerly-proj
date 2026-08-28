@@ -19,7 +19,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { fmtDate, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
+import { toBase, sumBase, originalLabel } from "@/lib/fx";
+import { AmountWithCurrency } from "@/components/amount-with-currency";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -189,13 +191,14 @@ function RevenuePage() {
 
 
   const stats = useMemo(() => {
+    const base = getDisplayCurrency();
     const list = filtered;
-    const total = list.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const allTotal = (revQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const total = sumBase(list, base, (r: any) => r);
+    const allTotal = sumBase(revQ.data ?? [], base, (r: any) => r);
     const byEmp = new Map<string, number>();
     const byAff = new Map<string, number>();
     list.forEach((r: any) => {
-      const amt = Number(r.amount);
+      const amt = toBase(r.amount, r.currency, base);
       const pct = Number(r.split_pct ?? 100);
       if (r.employee_id) {
         const n1 = getEmployeeName(r.employee_id, r.employees) ?? "?";
@@ -262,6 +265,7 @@ function RevenuePage() {
       const payload = {
         customer_name: v.customer_name,
         amount: Number(v.amount) || 0,
+        currency: v.currency && v.currency !== getDisplayCurrency() ? v.currency : null,
         date: v.date,
         affiliate_id: v.affiliate_id || null,
         employee_id: v.employee_id || null,
@@ -288,7 +292,7 @@ function RevenuePage() {
 
   const sel = useRowSelection<any>(filtered);
 
-  const selectedTotal = sel.selectedRows.reduce((a: number, r: any) => a + Number(r.amount || 0), 0);
+  const selectedTotal = sel.selectedRows.reduce((a: number, r: any) => a + toBase(r.amount, r.currency, getDisplayCurrency()), 0);
 
   const bulkDelete = useMutation({
     mutationFn: async () => {
@@ -531,7 +535,7 @@ function RevenuePage() {
                 rows={pageItems as any[]}
                 leading={1}
                 trailing={1}
-                totals={{ amount: (r: any) => Number(r.amount || 0) }}
+                totals={{ amount: (r: any) => toBase(r.amount, r.currency, getDisplayCurrency()) }}
                 format={(n) => fmtMoney(n)}
                 label="Page total"
               />
@@ -581,7 +585,12 @@ function RevenueRow({
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     )}
                     {show("amount") && (
-                    <td className="py-3 px-4 text-primary font-medium">{fmtMoney(r.amount)}</td>
+                    <td className="py-3 px-4 text-primary font-medium">
+                      {fmtMoney(toBase(r.amount, r.currency, getDisplayCurrency()))}
+                      {originalLabel(r.amount, r.currency, getDisplayCurrency()) && (
+                        <span className="block text-xs font-normal text-muted-foreground">{originalLabel(r.amount, r.currency, getDisplayCurrency())}</span>
+                      )}
+                    </td>
                     )}
                     {show("employee") && (
                     <td className="py-3 px-4">
@@ -640,6 +649,7 @@ function RevenueDialog({
     id: rev?.id,
     customer_name: rev?.customer_name ?? "",
     amount: rev?.amount ?? "",
+    currency: rev?.currency ?? getDisplayCurrency(),
     date: rev?.date ?? new Date().toISOString().slice(0, 10),
     affiliate_id: rev?.affiliate_id ?? "",
     employee_id: rev?.employee_id ?? "",
@@ -825,7 +835,7 @@ function RevenueDialog({
         )}
 
         <div className={detailsHidden ? "" : "grid grid-cols-2 gap-3"}>
-          <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
+          <Field label="Amount"><AmountWithCurrency value={form.amount} currency={form.currency} onValueChange={(v) => setForm({ ...form, amount: v })} onCurrencyChange={(c) => setForm({ ...form, currency: c })} /></Field>
           {!detailsHidden && (
             <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
           )}

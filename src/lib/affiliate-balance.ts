@@ -15,6 +15,9 @@
  */
 
 
+import { toBase } from "@/lib/fx";
+import { getDisplayCurrency } from "@/lib/format";
+
 export type AffiliateTerms = {
   id: string;
   name: string;
@@ -412,7 +415,7 @@ export function computeAffiliateBalances(
       if (!p.affiliate_id || !memberIds.has(p.affiliate_id)) continue;
       if (start && p.date < start) continue;
       const k = weekStartOf(p.date);
-      paidByWeek.set(k, (paidByWeek.get(k) ?? 0) + Number(p.amount || 0));
+      paidByWeek.set(k, (paidByWeek.get(k) ?? 0) + toBase(p.amount, (p as any).currency ?? null, getDisplayCurrency()));
     }
 
     const opening = openingBalance(head);

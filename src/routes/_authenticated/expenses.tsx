@@ -16,7 +16,9 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { fmtDate, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
+import { toBase, sumBase, originalLabel } from "@/lib/fx";
+import { AmountWithCurrency } from "@/components/amount-with-currency";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
@@ -107,13 +109,14 @@ function ExpensesPage() {
   const { pageItems, ...pg } = usePagination(sorted, 25, "expenses");
 
   const stats = useMemo(() => {
-    const total = filtered.reduce((s: number, e: any) => s + Number(e.amount), 0);
+    const base = getDisplayCurrency();
+    const total = sumBase(filtered, base, (e: any) => e);
     const byCat = new Map<string, number>();
     filtered.forEach((e: any) => {
       const k = e.expense_categories?.name ?? "Uncategorized";
-      byCat.set(k, (byCat.get(k) ?? 0) + Number(e.amount));
+      byCat.set(k, (byCat.get(k) ?? 0) + toBase(e.amount, e.currency, base));
     });
-    const allTotal = (expQ.data ?? []).reduce((s: number, e: any) => s + Number(e.amount), 0);
+    const allTotal = sumBase(expQ.data ?? [], base, (e: any) => e);
     return { total, allTotal, count: filtered.length, byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]) };
   }, [filtered, expQ.data]);
 
@@ -121,6 +124,7 @@ function ExpensesPage() {
     mutationFn: async (v: any) => {
       const payload = {
         amount: Number(v.amount) || 0,
+        currency: v.currency && v.currency !== getDisplayCurrency() ? v.currency : null,
         category_id: v.category_id || null,
         affiliate_id: v.affiliate_id || null,
         date: v.date,
@@ -148,7 +152,7 @@ function ExpensesPage() {
     });
   const selectedTotal = filtered
     .filter((e: any) => selected.has(e.id))
-    .reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+    .reduce((s: number, e: any) => s + toBase(e.amount, e.currency, getDisplayCurrency()), 0);
 
   const bulkDelete = useMutation({
     mutationFn: async () => {
@@ -338,7 +342,14 @@ function ExpensesPage() {
                     {tb.show("date") && <td className="py-3 px-4 text-muted-foreground">{fmtDate(e.date)}</td>}
                     {tb.show("category") && <td className="py-3 px-4"><Badge variant="outline">{e.expense_categories?.name ?? "—"}</Badge></td>}
                     {tb.show("affiliate") && <td className="py-3 px-4 text-muted-foreground">{e.affiliates?.name ?? "—"}</td>}
-                    {tb.show("amount") && <td className="py-3 px-4 font-medium">{fmtMoney(e.amount)}</td>}
+                    {tb.show("amount") && (
+                    <td className="py-3 px-4 font-medium">
+                      {fmtMoney(toBase(e.amount, e.currency, getDisplayCurrency()))}
+                      {originalLabel(e.amount, e.currency, getDisplayCurrency()) && (
+                        <span className="block text-xs font-normal text-muted-foreground">{originalLabel(e.amount, e.currency, getDisplayCurrency())}</span>
+                      )}
+                    </td>
+                    )}
                     {tb.show("notes") && <td className="py-3 px-4 text-muted-foreground">{e.notes || "—"}</td>}
                     <td className="py-3 px-4 text-right" onClick={(ev) => ev.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(e.id)} label="Delete expense?" />
@@ -351,7 +362,7 @@ function ExpensesPage() {
                 rows={pageItems as any[]}
                 leading={1}
                 trailing={1}
-                totals={{ amount: (e: any) => Number(e.amount || 0) }}
+                totals={{ amount: (e: any) => toBase(e.amount, e.currency, getDisplayCurrency()) }}
                 format={(n) => fmtMoney(n)}
                 label="Page total"
               />
@@ -371,6 +382,7 @@ function ExpenseDialog({
   const [form, setForm] = useState(() => ({
     id: exp?.id,
     amount: exp?.amount ?? "",
+    currency: exp?.currency ?? getDisplayCurrency(),
     category_id: exp?.category_id ?? "",
     affiliate_id: exp?.affiliate_id ?? "",
     date: exp?.date ?? new Date().toISOString().slice(0, 10),
@@ -381,7 +393,7 @@ function ExpenseDialog({
       <DialogHeader><DialogTitle>{exp?.id ? "Edit expense" : "New expense"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 py-2">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
+          <Field label="Amount"><AmountWithCurrency value={form.amount} currency={form.currency} onValueChange={(v) => setForm({ ...form, amount: v })} onCurrencyChange={(c) => setForm({ ...form, currency: c })} /></Field>
           <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         </div>
         <Field label="Category">
