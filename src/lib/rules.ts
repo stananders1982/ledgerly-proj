@@ -59,12 +59,13 @@ export function depositIndex(
     activation_id?: string | null;
     customer_name?: string | null;
     amount?: number | string | null;
+    currency?: string | null;
   }[],
 ): DepositIndex {
   const byActivation = new Map<string, number>();
   const byName = new Map<string, number>();
   for (const r of rows) {
-    const amt = Number(r.amount || 0);
+    const amt = toBase(r.amount, r.currency ?? null, getDisplayCurrency());
     if (r.activation_id) {
       byActivation.set(r.activation_id, (byActivation.get(r.activation_id) ?? 0) + amt);
       continue;
