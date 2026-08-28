@@ -371,7 +371,7 @@ function WithdrawalsPage() {
                 rows={pageItems as any[]}
                 trailing={1}
                 totals={{
-                  amount: (r: any) => Number(r.amount || 0),
+                  amount: (r: any) => toBase(r.amount, r.currency, getDisplayCurrency()),
                   penalty: (r: any) => Number(r.employee_penalty || 0),
                 }}
                 format={(n) => `−${fmtMoney(n)}`}

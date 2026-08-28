@@ -535,7 +535,7 @@ function RevenuePage() {
                 rows={pageItems as any[]}
                 leading={1}
                 trailing={1}
-                totals={{ amount: (r: any) => Number(r.amount || 0) }}
+                totals={{ amount: (r: any) => toBase(r.amount, r.currency, getDisplayCurrency()) }}
                 format={(n) => fmtMoney(n)}
                 label="Page total"
               />
