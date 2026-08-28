@@ -324,7 +324,12 @@ function WithdrawalsPage() {
                     <td className="py-3 px-4 font-medium">{r.customer_name}</td>
                     )}
                     {tb.show("amount") && (
-                    <td className="py-3 px-4 text-destructive font-medium">−{fmtMoney(r.amount)}</td>
+                    <td className="py-3 px-4 text-destructive font-medium">
+                      −{fmtMoney(toBase(r.amount, r.currency, getDisplayCurrency()))}
+                      {originalLabel(r.amount, r.currency, getDisplayCurrency()) && (
+                        <span className="block text-xs font-normal text-muted-foreground">−{originalLabel(r.amount, r.currency, getDisplayCurrency())}</span>
+                      )}
+                    </td>
                     )}
                     {tb.show("agent") && (
                     <td className="py-3 px-4">
@@ -394,6 +399,7 @@ function WithdrawalDialog({
     split_pct: row?.split_pct ?? 50,
     affiliate_id: row?.affiliate_id ?? "",
     amount: row?.amount ?? "",
+    currency: row?.currency ?? getDisplayCurrency(),
     date: row?.date ?? new Date().toISOString().slice(0, 10),
     notes: row?.notes ?? "",
   }));
@@ -401,7 +407,7 @@ function WithdrawalDialog({
   const [pickerOpen, setPickerOpen] = useState(false);
   const picked = revenues.find((x) => x.id === form.revenue_id);
   const settings = useCompanySettings();
-  const penaltyPreview = withdrawalPenalty(form.amount, settings);
+  const penaltyPreview = withdrawalPenalty(toBase(form.amount, form.currency, getDisplayCurrency()), settings);
   const hasSplit = !!form.employee_id_2;
 
   const onPickRevenue = (id: string) => {
@@ -506,7 +512,7 @@ function WithdrawalDialog({
         </Field>
         <Field label="Customer name"><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Amount"><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
+          <Field label="Amount"><AmountWithCurrency value={form.amount} currency={form.currency} onValueChange={(v) => setForm({ ...form, amount: v })} onCurrencyChange={(c) => setForm({ ...form, currency: c })} /></Field>
           <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         </div>
         <Field label={hasSplit ? `Sales agent 1 (${Number(form.split_pct)}%)` : "Sales agent"}>
