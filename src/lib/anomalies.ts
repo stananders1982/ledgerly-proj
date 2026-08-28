@@ -5,6 +5,9 @@
  * against the trailing baseline. No network, no React.
  */
 
+
+import { toBase } from "./fx";
+import { getDisplayCurrency } from "./format";
 export type AnomalySeverity = "critical" | "warning" | "info";
 
 export interface Anomaly {
