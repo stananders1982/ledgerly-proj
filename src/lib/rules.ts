@@ -6,6 +6,8 @@
  */
 
 import { DEFAULT_SETTINGS, type CompanySettings } from "./settings";
+import { toBase } from "./fx";
+import { getDisplayCurrency } from "./format";
 
 /**
  * These are the platform defaults. Prefer `useCompanySettings()` in pages and
