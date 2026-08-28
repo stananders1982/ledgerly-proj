@@ -59,7 +59,7 @@ function stdev(xs: number[]) {
 }
 
 /** Daily totals for the `days` days before `endExclusive`. */
-function dailyTotals(rows: { date: string; amount: number }[], days: number, endExclusive: string) {
+function dailyTotals(rows: { date: string; amount: number; currency?: string | null }[], days: number, endExclusive: string) {
   const byDay = new Map<string, number>();
   for (const r of rows) {
     if (!r.date || r.date >= endExclusive) continue;
