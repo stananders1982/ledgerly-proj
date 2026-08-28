@@ -35,7 +35,7 @@ export function CoachingInsights({ employeeId, month }: { employeeId: string; mo
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const [revenue, activations] = await Promise.all([
-        fetchAll(() => sb.from("revenue").select("date,amount,employee_id,employee_id_2,customer_name").gte("date", since)),
+        fetchAll(() => sb.from("revenue").select("date,amount,currency,employee_id,employee_id_2,customer_name").gte("date", since)),
         fetchAll(() =>
           sb
             .from("daily_lead_activations")
@@ -66,7 +66,7 @@ export function CoachingInsights({ employeeId, month }: { employeeId: string; mo
         if (k) counts.set(k, (counts.get(k) ?? 0) + 1);
       }
       const stds = [...counts.values()].filter((c) => c >= 2).length;
-      const amount = deposits.reduce((s, d) => s + Number(d.amount || 0), 0);
+      const amount = deposits.reduce((s, d) => s + toBase(d.amount, d.currency, getDisplayCurrency()), 0);
       return {
         ftds: mine.length,
         answered: mine.filter((a: any) => a.answered).length,
