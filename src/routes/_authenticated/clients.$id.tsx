@@ -23,7 +23,8 @@ import {
 import { TIER_LABEL, isNeglected, potentialValue, valueTier } from "@/lib/whales";
 import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
-import { fmtDate, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
+import { toBase } from "@/lib/fx";
 import { fetchAll } from "@/lib/fetch-all";
 import { qualifiesAsFtd, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
@@ -197,8 +198,9 @@ function ClientPage() {
 
   const deposits = depositsQ.data ?? [];
   const withdrawals = withdrawalsQ.data ?? [];
-  const depositTotal = deposits.reduce((a, d) => a + Number(d.amount || 0), 0);
-  const wdTotal = withdrawals.reduce((a: number, d: any) => a + Number(d.amount || 0), 0);
+  const baseCcy = getDisplayCurrency();
+  const depositTotal = deposits.reduce((a, d) => a + toBase(d.amount, d.currency, baseCcy), 0);
+  const wdTotal = withdrawals.reduce((a: number, d: any) => a + toBase(d.amount, d.currency, baseCcy), 0);
   const cur = clientQ.data;
   const opening = Number(cur?.balance || 0);
   const balance = opening + depositTotal - wdTotal;
@@ -221,12 +223,12 @@ function ClientPage() {
       ...deposits.map((d: any) => ({
         id: `d-${d.id}`, date: d.date, kind: "deposit" as const,
         label: d.notes ? `Deposit — ${d.notes}` : "Deposit",
-        delta: Number(d.amount || 0), employee_id: d.employee_id, method: d.method,
+        delta: toBase(d.amount, d.currency, baseCcy), employee_id: d.employee_id, method: d.method,
       })),
       ...withdrawals.map((w: any) => ({
         id: `w-${w.id}`, date: w.date, kind: "withdrawal" as const,
         label: w.notes ? `Withdrawal — ${w.notes}` : "Withdrawal",
-        delta: -Number(w.amount || 0), employee_id: w.employee_id, method: null as string | null,
+        delta: -toBase(w.amount, w.currency, baseCcy), employee_id: w.employee_id, method: null as string | null,
       })),
     ].sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
