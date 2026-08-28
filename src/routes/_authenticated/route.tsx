@@ -10,6 +10,7 @@ import { DensityToggle } from "@/components/density-provider";
 import { LiveClock } from "@/components/live-clock";
 import { useAuth } from "@/lib/auth-context";
 import { useWorkspaceBranding } from "@/lib/settings";
+import { useFxRates } from "@/lib/fx";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -42,6 +43,7 @@ function ProtectedLayout() {
   const palette = useCommandPalette();
   const shortcuts = useKeyboardShortcutsPanel();
   useWorkspaceBranding();
+  useFxRates();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: pathname }, replace: true });
