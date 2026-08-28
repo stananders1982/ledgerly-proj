@@ -249,10 +249,10 @@ function ActivationsPage() {
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("withdrawals")
-        .select("id, customer_name, amount, date, notes")
+        .select("id, customer_name, amount, currency, date, notes")
         .order("date", { ascending: false }));
       return (data ?? []) as {
-        id: string; customer_name: string | null; amount: number; date: string; notes: string | null;
+        id: string; customer_name: string | null; amount: number; currency: string | null; date: string; notes: string | null;
       }[];
     },
   });
