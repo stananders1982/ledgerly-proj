@@ -73,13 +73,13 @@ export function useAffiliateBalanceAlerts() {
         fetchAll(() =>
           sb.from("daily_lead_entries").select("entry_date,received,invalid,reported,activated,source_id"),
         ),
-        fetchAll(() => sb.from("expenses").select("affiliate_id,date,amount").not("affiliate_id", "is", null)),
+        fetchAll(() => sb.from("expenses").select("affiliate_id,date,amount,currency").not("affiliate_id", "is", null)),
       ]);
       return computeAffiliateAlerts(
         (affiliates ?? []) as AffRow[],
         (sources ?? []) as { id: string; name: string }[],
         (entries ?? []) as LeadEntryLike[],
-        (payments ?? []) as { affiliate_id: string | null; date: string; amount: number }[],
+        (payments ?? []) as { affiliate_id: string | null; date: string; amount: number; currency?: string | null }[],
       );
     },
   });
