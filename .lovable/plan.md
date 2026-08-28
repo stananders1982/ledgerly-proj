@@ -12,7 +12,7 @@ Record a deposit (or withdrawal / expense) in AUD, EUR, NZD, GBP, etc. The entry
 
 ## Currencies
 
-USD, EUR, GBP, AUD, NZD, CAD, CHF, JPY, ILS, ZAR, plus any others the rate feed supports. The dropdown is searchable.
+USD, EUR, GBP, AUD, NZD. The dropdown is searchable.
 
 ## Technical notes
 
