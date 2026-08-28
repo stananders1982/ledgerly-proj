@@ -20,9 +20,9 @@ export interface Anomaly {
 }
 
 export interface AnomalyInput {
-  revenue: { date: string; amount: number; employee_id?: string | null }[];
-  expenses: { date: string; amount: number; category_id?: string | null }[];
-  withdrawals: { date: string; amount: number }[];
+  revenue: { date: string; amount: number; currency?: string | null; employee_id?: string | null }[];
+  expenses: { date: string; amount: number; currency?: string | null; category_id?: string | null }[];
+  withdrawals: { date: string; amount: number; currency?: string | null }[];
   activations: {
     activation_date: string | null;
     created_at: string;
