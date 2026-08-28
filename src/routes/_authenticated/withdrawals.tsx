@@ -18,7 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { fmtDate, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
+import { toBase, sumBase, originalLabel } from "@/lib/fx";
+import { AmountWithCurrency } from "@/components/amount-with-currency";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
@@ -150,14 +152,15 @@ function WithdrawalsPage() {
   const { pageItems, ...pg } = usePagination(sorted, 25, "withdrawals");
 
   const stats = useMemo(() => {
+    const base = getDisplayCurrency();
     const list = inRange;
-    const total = list.reduce((s: number, r: any) => s + Number(r.amount), 0);
-    const allTotal = (wQ.data ?? []).reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const total = sumBase(list, base, (r: any) => r);
+    const allTotal = sumBase(wQ.data ?? [], base, (r: any) => r);
     const penalty = list.reduce((s: number, r: any) => s + Number(r.employee_penalty), 0);
 
     const byEmp = new Map<string, number>();
     list.forEach((r: any) => {
-      const totalAmount = Number(r.amount) || 0;
+      const totalAmount = toBase(r.amount, r.currency, base);
       const pct = Number(r.split_pct ?? 100) / 100;
       if (r.employee_id) {
         const n = r.employees?.name ?? empNameById.get(r.employee_id) ?? "?";
@@ -175,6 +178,9 @@ function WithdrawalsPage() {
   const upsert = useMutation({
     mutationFn: async (v: any) => {
       const amount = Number(v.amount) || 0;
+      const base = getDisplayCurrency();
+      // Penalty is computed in workspace currency so payroll math stays consistent.
+      const baseAmount = toBase(amount, v.currency ?? null, base);
       const payload = {
         revenue_id: v.revenue_id || null,
         customer_name: v.customer_name,
@@ -183,7 +189,8 @@ function WithdrawalsPage() {
         split_pct: v.employee_id_2 ? (Number(v.split_pct) || 50) : 100,
         affiliate_id: v.affiliate_id || null,
         amount,
-        employee_penalty: +withdrawalPenalty(amount, settings).toFixed(2),
+        currency: v.currency && v.currency !== base ? v.currency : null,
+        employee_penalty: +withdrawalPenalty(baseAmount, settings).toFixed(2),
         date: v.date,
         notes: v.notes || null,
       };
