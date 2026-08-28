@@ -15,7 +15,8 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { isStd, isAgentTeam, isLateRetentionFtd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
-import { fmtMoney } from "@/lib/format";
+import { fmtMoney, getDisplayCurrency } from "@/lib/format";
+import { toBase } from "@/lib/fx";
 import { GoalBar } from "@/components/goal-bar";
 import { commissionAmount, commissionRate, commissionableAmount, type CommissionTiers } from "@/lib/commission";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -179,13 +180,14 @@ function PerformancePage() {
         if (r.employee_id_2 === emp.id) return amt * ((100 - pct) / 100);
         return 0;
       };
+      const baseCcy = getDisplayCurrency();
       // Gross revenue attributed to the agent (display).
-      const attributed = (revQ.data ?? []).reduce((s: number, r: any) => s + share(r, Number(r.amount || 0)), 0);
+      const attributed = (revQ.data ?? []).reduce((s: number, r: any) => s + share(r, toBase(r.amount, r.currency, baseCcy)), 0);
       // Commission base: configured deposit-method fee deducted first.
-      const commBase = (revQ.data ?? []).reduce((s: number, r: any) => s + share(r, commissionableAmount(r.amount, r.method, settings)), 0);
+      const commBase = (revQ.data ?? []).reduce((s: number, r: any) => s + share(r, commissionableAmount(toBase(r.amount, r.currency, baseCcy), r.method, settings)), 0);
 
       const wds = (withQ.data ?? []).filter((w: any) => w.employee_id === emp.id);
-      const withdrawn = wds.reduce((s: number, w: any) => s + Number(w.amount || 0), 0);
+      const withdrawn = wds.reduce((s: number, w: any) => s + toBase(w.amount, w.currency, baseCcy), 0);
       const penalty = wds.reduce((s: number, w: any) => s + Number(w.employee_penalty || 0), 0);
 
       const tiers: CommissionTiers = {
