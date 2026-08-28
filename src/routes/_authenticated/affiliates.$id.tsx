@@ -187,10 +187,10 @@ function AffiliateStatementPage() {
     queryFn: async () => {
       const data = await fetchAll(() => supabase
         .from("withdrawals")
-        .select("id,date,amount,notes,created_at")
+        .select("id,date,amount,currency,notes,created_at")
         .eq("affiliate_id", id)
         .order("date", { ascending: false }));
-      return (data ?? []) as { id: string; date: string; amount: number; notes: string | null; created_at: string }[];
+      return (data ?? []) as { id: string; date: string; amount: number; currency: string | null; notes: string | null; created_at: string }[];
     },
   });
 
