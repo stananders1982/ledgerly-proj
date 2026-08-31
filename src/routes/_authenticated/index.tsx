@@ -529,6 +529,24 @@ function Dashboard() {
       </section>
       )}
 
+      {show("dash:kpis") && (
+      <section className="glass-surface p-5 mb-10">
+        <ChartHeader title="Cash & runway" subtitle="What actually reached the bank, and how long it lasts" icon={Wallet} />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-3">
+          <Row label="Cash on hand" value={fmtMoney(m.cashPosition)} accent={m.cashPosition >= 0 ? "green" : "red"} />
+          <Row label="Monthly burn" value={fmtMoney(m.monthlyBurn)} />
+          <Row
+            label="Runway"
+            value={m.runwayMonths == null ? "∞" : `${m.runwayMonths.toFixed(1)} mo`}
+            accent={m.runwayMonths != null && m.runwayMonths < 3 ? "red" : "green"}
+            icon={CalendarClock}
+          />
+          <Row label="Processing fees" value={fmtMoney(m.processingFees)} accent="red" />
+          <Row label="Net received" value={fmtMoney(m.netIncome)} accent="green" />
+        </div>
+      </section>
+      )}
+
       {/* Business engine */}
       {show("dash:engine") && (
       <section className="mb-10">
