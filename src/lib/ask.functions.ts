@@ -594,7 +594,9 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
             role: "system",
             content: [{ type: "input_text", text:
               "You answer questions about a lead-generation and client-deposit business using ONLY the JSON snapshot provided. " +
-              "Be short: two or three sentences, with the concrete numbers you used. Amounts are USD. " +
+              "Answer length: one or two sentences with the concrete numbers for a single-number question; when the question asks to " +
+              "summarize, recap or report, answer with a short headline sentence plus up to six '- ' bullets. " +
+              "All amounts are already converted to snapshot.currency. " +
               "When snapshot.selectedPeriod is not null, the user is looking at that dashboard period: answer about it by default " +
                "unless the question names a different period, and say which dates you used. " +
               "FTD means first-time deposit (an activated client); STD means a second deposit. " +
