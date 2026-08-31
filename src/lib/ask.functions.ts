@@ -313,13 +313,128 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       return String(b.activationDate ?? "").localeCompare(String(a.activationDate ?? ""));
     });
 
+    // ---- Rates and sales recap ----------------------------------------
+    // Pre-computed so percentage and "summarize sales" questions are answered
+    // from exact numbers instead of the model counting the client list.
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const periodStart = focusPeriod?.start ?? sinceIso;
+    const periodEnd = focusPeriod?.end ?? todayIso;
+    const dayMs = 86_400_000;
+    const spanDays = Math.max(
+      1,
+      Math.round((Date.parse(periodEnd) - Date.parse(periodStart)) / dayMs) + 1,
+    );
+    const prevEnd = new Date(Date.parse(periodStart) - dayMs).toISOString().slice(0, 10);
+    const prevStart = new Date(Date.parse(periodStart) - spanDays * dayMs).toISOString().slice(0, 10);
+    const inRange = (d: string, from: string, to: string) => d >= from && d <= to;
+
+    // Every deposit, converted, with the client's deposit ordinal (1 = FTD, 2 = STD).
+    const depRowsByKey = new Map<string, (SaleRow & { key: string })[]>();
+    for (const r of revRows) {
+      const key = r.activation_id ? `id:${r.activation_id}` : `name:${nameKeyOf(r.customer_name)}`;
+      if (key === "name:" || !r.date) continue;
+      const list = depRowsByKey.get(key) ?? [];
+      list.push({
+        key,
+        date: String(r.date),
+        amount: conv(r.amount, r.currency),
+        client: r.customer_name || "unknown",
+        agent: nameOf(employees.data, r.employee_id),
+        source: nameOf(affiliates.data, r.affiliate_id),
+        method: r.method || "unspecified",
+        currency: r.currency || baseCurrency,
+        ordinal: 0,
+      });
+      depRowsByKey.set(key, list);
+    }
+    const saleRows: SaleRow[] = [];
+    for (const list of depRowsByKey.values()) {
+      list.sort((a, b) => a.date.localeCompare(b.date));
+      list.forEach((d, i) => {
+        d.ordinal = i + 1;
+        saleRows.push(d);
+      });
+    }
+
+    const withdrawalsConvByClient = new Map<string, { total: number; count: number }>();
+    let withdrawalsInPeriod = 0;
+    for (const w of (withdrawals.data ?? []) as any[]) {
+      const amount = conv(w.amount, w.currency);
+      if (w.date && inRange(String(w.date), periodStart, periodEnd)) withdrawalsInPeriod += amount;
+      const key = nameKeyOf(w.customer_name);
+      if (!key) continue;
+      const cur = withdrawalsConvByClient.get(key) ?? { total: 0, count: 0 };
+      cur.total += amount;
+      cur.count += 1;
+      withdrawalsConvByClient.set(key, cur);
+    }
+    const expensesInPeriod = ((expenses.data ?? []) as any[]).reduce(
+      (s, e) => (e.date && inRange(String(e.date), periodStart, periodEnd) ? s + conv(e.amount, e.currency) : s),
+      0,
+    );
+
+    const statOf = (a: any, from?: string, to?: string): ClientStat => {
+      const key = depRowsByKey.has(`id:${a.id}`) ? `id:${a.id}` : `name:${nameKeyOf(a.lead_name)}`;
+      const all = depRowsByKey.get(key) ?? [];
+      const deps = from && to ? all.filter((d) => inRange(d.date, from, to)) : all;
+      const wd = withdrawalsConvByClient.get(nameKeyOf(a.lead_name)) ?? { total: 0, count: 0 };
+      const comms = commsByClient.get(a.id) ?? [];
+      return {
+        name: a.lead_name ?? "Unnamed client",
+        tier: TIER_LABEL[valueTier(a.potential_value, tierThresholds)],
+        country: a.country ?? null,
+        conversionAgent: nameOf(employees.data, a.conversion_employee_id),
+        retentionAgent: nameOf(employees.data, a.employee_id),
+        depositCount: deps.length,
+        depositTotal: deps.reduce((s, d) => s + d.amount, 0),
+        withdrawalCount: wd.count,
+        withdrawalTotal: wd.total,
+        answered: !!a.answered,
+        qualified: !!a.qualified_at,
+        neglected: isNeglected({
+          startDate: a.activation_date,
+          depositDates: all.map((d) => d.date),
+          contactDates: comms.map((c) => c.at),
+        }),
+        activationDate: a.activation_date ?? null,
+      };
+    };
+
+    const windowStats = actRows.map((a) => statOf(a));
+    const periodClients = actRows.filter(
+      (a: any) => a.activation_date && inRange(String(a.activation_date), periodStart, periodEnd),
+    );
+    const periodStats = periodClients.map((a) => statOf(a, periodStart, periodEnd));
+
+    const rates = {
+      window: computeRates(windowStats, `all clients since ${sinceIso} (lifetime deposits)`),
+      selectedPeriod: computeRates(
+        periodStats,
+        `clients activated ${periodStart} to ${periodEnd} (deposits inside that period)`,
+      ),
+    };
+
+    const salesSummary = computeSalesSummary({
+      label: focusPeriod ? "selected dashboard period" : "last 6 months",
+      start: periodStart,
+      end: periodEnd,
+      rows: saleRows.filter((r) => inRange(r.date, periodStart, periodEnd)),
+      previousRows: saleRows.filter((r) => inRange(r.date, prevStart, prevEnd)),
+      previousLabel: `${prevStart} to ${prevEnd}`,
+      withdrawals: withdrawalsInPeriod,
+      expenses: expensesInPeriod,
+      monthlyRows: saleRows,
+    });
+
     const snapshot = {
       whaleThreshold,
       tierThresholds,
-      today: new Date().toISOString().slice(0, 10),
+      today: todayIso,
       window: `${sinceIso} to today`,
       selectedPeriod: focusPeriod,
-      currency: "USD",
+      currency: baseCurrency,
+      rates,
+      salesSummary,
       monthly: {
         deposits: round(bucket(revenue.data, (r: any) => month(r.date), (r: any) => Number(r.amount || 0))),
         expenses: round(bucket(expenses.data, (r: any) => month(r.date), (r: any) => Number(r.amount || 0))),
