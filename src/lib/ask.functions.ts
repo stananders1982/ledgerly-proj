@@ -637,6 +637,17 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "who is at risk, or to slice clients by age, country, status or agent. Compare dates against snapshot.today. " +
               "If clientsTruncated is true, say the list covers the top " +
               "clients by money movement out of clientCount total, and never imply it is exhaustive. " +
+              "PERCENTAGES: snapshot.rates already holds every client ratio — use those numbers verbatim and NEVER recount the client " +
+              "list. rates.selectedPeriod covers clients activated inside the selected period (deposits counted inside it); " +
+              "rates.window covers all clients in the 6-month window with lifetime deposits. Each block has depositRatePct " +
+              "(clients who deposited at least once), stdRatePct and stdRateOfDepositorsPct (second deposit), repeatRatePct (3+), " +
+              "answeredRatePct, qualifiedRatePct, neglectedRatePct, withdrawalRatePct, average/median deposit per depositing client, " +
+              "and byTier / byCountry / byConversionAgent / byRetentionAgent breakdowns. Always state the denominator, " +
+              "e.g. '62 of 210 clients = 29.5%'. " +
+              "SALES SUMMARY: for 'summarize sales', revenue recaps or 'how did we do', use snapshot.salesSummary — totalDeposits, " +
+              "depositCount, uniqueDepositingClients, averageTicket, largestDeposit, newMoney (first deposits) vs secondDeposits vs " +
+              "returningMoney, previousPeriod change, bestMonth/worstMonth, topAgents, topSources, topClients, byMethod, " +
+              "byOriginalCurrency and netAfterWithdrawalsAndExpenses. Quote its dates. " +
               "If the snapshot does not contain the answer, say exactly what is missing instead of guessing." }],
 
 
