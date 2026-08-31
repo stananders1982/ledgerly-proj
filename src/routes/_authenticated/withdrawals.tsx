@@ -378,6 +378,18 @@ function WithdrawalsPage() {
                       {r.revenue ? `${r.revenue.customer_name} · ${fmtMoney(r.revenue.amount)}` : "—"}
                     </td>
                     )}
+                    {tb.show("status") && (
+                    <td className="py-3 px-4">
+                      <Badge variant="outline" className={WITHDRAWAL_STATUS_TONE[r.status ?? "paid"]}>
+                        {WITHDRAWAL_STATUS_LABELS[r.status ?? "paid"] ?? "Paid"}
+                      </Badge>
+                      {isPendingPayout(r) && payoutAgeDays(r) !== null && (
+                        <span className={`block text-xs ${isOverduePayout(r, settings) ? "text-destructive" : "text-muted-foreground"}`}>
+                          waiting {payoutAgeDays(r)}d
+                        </span>
+                      )}
+                    </td>
+                    )}
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <ConfirmDelete onConfirm={() => del.mutate(r.id)} label="Delete withdrawal?" />
                     </td>
@@ -577,6 +589,26 @@ function WithdrawalDialog({
           Agent penalty ({settings.withdrawalPenaltyPct}%): <span className="text-destructive font-medium">−{fmtMoney(penaltyPreview)}</span>
           {hasSplit && <span> · split {Number(form.split_pct)}% / {100 - Number(form.split_pct)}%</span>}
         </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Payout status">
+            <Select value={form.status || "paid"} onValueChange={(v) => setForm({ ...form, status: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {WITHDRAWAL_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>{WITHDRAWAL_STATUS_LABELS[s]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Requested on">
+            <Input
+              type="date"
+              value={form.requested_at ? String(form.requested_at).slice(0, 10) : ""}
+              onChange={(e) => setForm({ ...form, requested_at: e.target.value })}
+            />
+          </Field>
+        </div>
+
         <Field label="Notes"><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
       </div>
       <DialogFooter>
