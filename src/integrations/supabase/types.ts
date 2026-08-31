@@ -713,6 +713,7 @@ export type Database = {
           updated_at: string
           whale_threshold: number
           withdrawal_penalty_pct: number
+          withdrawal_sla_days: number
         }
         Insert: {
           brand_color?: string | null
@@ -734,6 +735,7 @@ export type Database = {
           updated_at?: string
           whale_threshold?: number
           withdrawal_penalty_pct?: number
+          withdrawal_sla_days?: number
         }
         Update: {
           brand_color?: string | null
@@ -755,6 +757,7 @@ export type Database = {
           updated_at?: string
           whale_threshold?: number
           withdrawal_penalty_pct?: number
+          withdrawal_sla_days?: number
         }
         Relationships: [
           {
@@ -902,7 +905,9 @@ export type Database = {
           exposure_elsewhere: number | null
           gender: string | null
           id: string
+          kyc: Json
           language: string | null
+          last_scored_at: string | null
           lead_name: string | null
           legacy: boolean
           liquid_funds: number | null
@@ -951,7 +956,9 @@ export type Database = {
           exposure_elsewhere?: number | null
           gender?: string | null
           id?: string
+          kyc?: Json
           language?: string | null
+          last_scored_at?: string | null
           lead_name?: string | null
           legacy?: boolean
           liquid_funds?: number | null
@@ -1000,7 +1007,9 @@ export type Database = {
           exposure_elsewhere?: number | null
           gender?: string | null
           id?: string
+          kyc?: Json
           language?: string | null
+          last_scored_at?: string | null
           lead_name?: string | null
           legacy?: boolean
           liquid_funds?: number | null
@@ -1410,6 +1419,48 @@ export type Database = {
           },
         ]
       }
+      job_runs: {
+        Row: {
+          created_at: string
+          id: string
+          job_key: string
+          last_error: string | null
+          last_ok_at: string | null
+          last_run_at: string | null
+          lease_until: string | null
+          pause_reason: string | null
+          paused: boolean
+          processed_total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_key: string
+          last_error?: string | null
+          last_ok_at?: string | null
+          last_run_at?: string | null
+          lease_until?: string | null
+          pause_reason?: string | null
+          paused?: boolean
+          processed_total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_key?: string
+          last_error?: string | null
+          last_ok_at?: string | null
+          last_run_at?: string | null
+          lease_until?: string | null
+          pause_reason?: string | null
+          paused?: boolean
+          processed_total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_sources: {
         Row: {
           active: boolean
@@ -1685,6 +1736,50 @@ export type Database = {
           },
         ]
       }
+      period_closes: {
+        Row: {
+          closed_at: string
+          closed_by: string | null
+          company_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          period_month: string
+          updated_at: string
+          user_email: string | null
+        }
+        Insert: {
+          closed_at?: string
+          closed_by?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_month: string
+          updated_at?: string
+          user_email?: string | null
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_month?: string
+          updated_at?: string
+          user_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "period_closes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1914,6 +2009,8 @@ export type Database = {
           date: string
           employee_id: string | null
           employee_id_2: string | null
+          fee_amount: number
+          fee_pct: number
           id: string
           lead_id: string | null
           method: string | null
@@ -1937,6 +2034,8 @@ export type Database = {
           date?: string
           employee_id?: string | null
           employee_id_2?: string | null
+          fee_amount?: number
+          fee_pct?: number
           id?: string
           lead_id?: string | null
           method?: string | null
@@ -1960,6 +2059,8 @@ export type Database = {
           date?: string
           employee_id?: string | null
           employee_id_2?: string | null
+          fee_amount?: number
+          fee_pct?: number
           id?: string
           lead_id?: string | null
           method?: string | null
@@ -2095,6 +2196,7 @@ export type Database = {
       tasks: {
         Row: {
           activation_id: string | null
+          auto_key: string | null
           client_name: string | null
           company_id: string
           completed_at: string | null
@@ -2113,6 +2215,7 @@ export type Database = {
         }
         Insert: {
           activation_id?: string | null
+          auto_key?: string | null
           client_name?: string | null
           company_id?: string
           completed_at?: string | null
@@ -2131,6 +2234,7 @@ export type Database = {
         }
         Update: {
           activation_id?: string | null
+          auto_key?: string | null
           client_name?: string | null
           company_id?: string
           completed_at?: string | null
@@ -2261,8 +2365,10 @@ export type Database = {
           employee_penalty: number
           id: string
           notes: string | null
+          requested_at: string | null
           revenue_id: string | null
           split_pct: number
+          status: string
           updated_at: string
         }
         Insert: {
@@ -2278,8 +2384,10 @@ export type Database = {
           employee_penalty?: number
           id?: string
           notes?: string | null
+          requested_at?: string | null
           revenue_id?: string | null
           split_pct?: number
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -2295,8 +2403,10 @@ export type Database = {
           employee_penalty?: number
           id?: string
           notes?: string | null
+          requested_at?: string | null
           revenue_id?: string | null
           split_pct?: number
+          status?: string
           updated_at?: string
         }
         Relationships: [
