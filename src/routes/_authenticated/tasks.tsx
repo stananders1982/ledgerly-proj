@@ -23,7 +23,11 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { toast } from "sonner";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, ListTodo, Plus, AlarmClock } from "lucide-react";
+import { CheckCircle2, ListTodo, Plus, AlarmClock, Sparkles } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { runClientAutomation } from "@/lib/automation.functions";
+import { useAuth } from "@/lib/auth-context";
 
 const sb = supabase as any;
 
@@ -190,12 +194,38 @@ function TasksPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  // Client-care sweep: opens follow-up tasks for clients who have gone quiet.
+  // Runs at most once a day; the server enforces the lock and the daily limit.
+  const { isAdmin } = useAuth();
+  const runSweep = useServerFn(runClientAutomation);
+  const sweep = useMutation({
+    mutationFn: () => runSweep({ data: undefined } as any),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      if (res?.created) toast.success(`Opened ${res.created} follow-up task${res.created === 1 ? "" : "s"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const swept = useRef(false);
+  useEffect(() => {
+    if (!isAdmin || swept.current) return;
+    swept.current = true;
+    sweep.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
+
   return (
     <div>
       <PageHeader
         title="Tasks & Follow-ups"
         description="Reminders for client follow-ups and internal to-dos."
         actions={
+          <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button variant="outline" disabled={sweep.isPending} onClick={() => sweep.mutate()}>
+              <Sparkles className="h-4 w-4" /> {sweep.isPending ? "Checking…" : "Find quiet clients"}
+            </Button>
+          )}
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4" /> New task</Button>
@@ -209,6 +239,7 @@ function TasksPage() {
               onSubmit={(v) => upsert.mutate(v)}
             />
           </Dialog>
+          </div>
         }
       />
 
