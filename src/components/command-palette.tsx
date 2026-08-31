@@ -58,10 +58,20 @@ function useEntitySearch(enabled: boolean) {
           .from("daily_lead_activations")
           .select("id,lead_name")
           .not("lead_name", "is", null)
-          .order("created_at", { ascending: false })
-          .limit(100),
+          .order("lead_name"),
       );
       return (data ?? []) as { id: string; lead_name: string }[];
+    },
+  });
+
+  const leadsQ = useQuery({
+    enabled,
+    queryKey: ["cmd-leads"],
+    queryFn: async () => {
+      const data = await fetchAll(() =>
+        supabase.from("leads").select("id,name").order("name"),
+      );
+      return (data ?? []) as { id: string; name: string }[];
     },
   });
 
