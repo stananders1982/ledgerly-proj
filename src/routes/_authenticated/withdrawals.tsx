@@ -431,6 +431,8 @@ function WithdrawalDialog({
     amount: row?.amount ?? "",
     currency: row?.currency ?? getDisplayCurrency(),
     date: row?.date ?? new Date().toISOString().slice(0, 10),
+    status: row?.status ?? "paid",
+    requested_at: row?.requested_at ? String(row.requested_at).slice(0, 10) : "",
     notes: row?.notes ?? "",
   }));
 
