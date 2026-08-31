@@ -59,6 +59,7 @@ import { toBase, toDisplay, fromWorkspace, FX_CURRENCIES, CURRENCY_SYMBOLS } fro
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
+import { feeTotals, cashRunway } from "@/lib/profitability";
 import { useCompanySettings, SETTINGS_QUERY_KEY } from "@/lib/settings";
 import { CashflowForecast } from "@/components/cashflow-forecast";
 import { ActivityFeed } from "@/components/activity-feed";
@@ -409,7 +410,7 @@ function Dashboard() {
       roi,
       series: profitSeries, sourceRows,
     };
-  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, range.start, range.end, displayCur]);
+  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, cashQ.data, settings, rangeKey, range.start, range.end, displayCur]);
 
 
   const prev = useMemo(() => {
