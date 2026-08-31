@@ -59,7 +59,7 @@ import { toBase, FX_CURRENCIES, CURRENCY_SYMBOLS, useFxRates } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
-import { feeTotals, cashRunway } from "@/lib/profitability";
+import { cashRunway } from "@/lib/profitability";
 import { useCompanySettings, SETTINGS_QUERY_KEY } from "@/lib/settings";
 import { CashflowForecast } from "@/components/cashflow-forecast";
 import { ActivityFeed } from "@/components/activity-feed";
@@ -158,6 +158,19 @@ function Dashboard() {
     return (Number(amount) || 0) * (targetRate / sourceRate);
   };
   const workspaceAmount = (amount: number | string | null | undefined) => displayAmount(amount, "USD");
+  const displayFeeTotals = (rows: any[]) => {
+    let gross = 0;
+    let fees = 0;
+    for (const row of rows) {
+      const amount = displayAmount(row.amount, row.currency);
+      const storedFee = Number(row.fee_amount ?? 0);
+      const feePct = Number(row.fee_pct ?? 0) ||
+        (row.method === "card" ? settings.methodFeeCardPct : row.method === "crypto" ? settings.methodFeeCryptoPct : settings.methodFeeWirePct);
+      gross += amount;
+      fees += storedFee > 0 ? displayAmount(storedFee, row.currency) : amount * feePct / 100;
+    }
+    return { gross, fees, net: gross - fees };
+  };
 
   const iso = (d: Date) => {
     const y = d.getFullYear();
@@ -325,7 +338,7 @@ function Dashboard() {
     const expTotal = leadCost + otherExp + salaries + commissions;
     const profit = income - expTotal;
 
-    const feeInfo = feeTotals(rangeRev as any[], settings);
+    const feeInfo = displayFeeTotals(rangeRev as any[]);
     const netIncome = feeInfo.net;
 
     const rec = (recQ.data ?? []) as any[];
@@ -395,7 +408,7 @@ function Dashboard() {
 
     // Cash on hand and runway.
     const cash = cashQ.data;
-    const cashIn = cash ? feeTotals(cash.rev as any[], settings).net : 0;
+    const cashIn = cash ? displayFeeTotals(cash.rev as any[]).net : 0;
     const cashOutExp = cash ? (cash.exp as any[]).reduce((s2: number, r: any) => s2 + displayAmount(r.amount, r.currency), 0) : 0;
     const cashOutWd = cash
       ? (cash.wd as any[]).filter((w: any) => String(w.status ?? "paid") !== "rejected")
