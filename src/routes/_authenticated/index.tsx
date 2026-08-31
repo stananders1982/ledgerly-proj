@@ -54,7 +54,7 @@ import {
   YAxis,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMoney, fmtPct, getDisplayCurrency, setCurrencyOverride, useDisplayCurrency } from "@/lib/format";
+import { fmtMoney, fmtPct, getDisplayCurrency, setCurrencyOverride, setDisplayCurrency, useDisplayCurrency } from "@/lib/format";
 import { toBase, toDisplay, fromWorkspace, FX_CURRENCIES, CURRENCY_SYMBOLS, useFxRates } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -111,6 +111,7 @@ function DashboardCurrencyPicker() {
     },
     onSuccess: (_d, currency) => {
       setCurrencyOverride(null); // drop any stale browser-local override
+      setDisplayCurrency(currency); // update dashboard calculations immediately
       qc.invalidateQueries({ queryKey: SETTINGS_QUERY_KEY });
       qc.invalidateQueries({ queryKey: ["company-settings-page"] });
       toast.success(`Workspace currency set to ${currency}`);
