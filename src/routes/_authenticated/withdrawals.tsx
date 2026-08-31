@@ -26,6 +26,10 @@ import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
+import {
+  WITHDRAWAL_STATUSES, WITHDRAWAL_STATUS_LABELS, WITHDRAWAL_STATUS_TONE,
+  isPendingPayout, payoutAgeDays, isOverduePayout,
+} from "@/lib/withdrawal-status";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
@@ -136,6 +140,7 @@ function WithdrawalsPage() {
       { key: "penalty", label: "Penalty (10%)", value: (r: any) => r.employee_penalty },
       { key: "source", label: "Source", filter: "select", value: (r: any) => r.affiliates?.name ?? "" },
       { key: "sale", label: "Linked sale", value: (r: any) => r.revenue?.customer_name ?? "" },
+      { key: "status", label: "Status", filter: "select", value: (r: any) => WITHDRAWAL_STATUS_LABELS[r.status ?? "paid"] ?? "Paid" },
     ],
     rows,
   );
@@ -148,6 +153,7 @@ function WithdrawalsPage() {
     penalty: (r) => Number(r.employee_penalty ?? 0),
     source: (r) => r.affiliates?.name ?? "",
     sale: (r) => r.revenue?.customer_name ?? "",
+    status: (r) => String(r.status ?? "paid"),
   });
   const { pageItems, ...pg } = usePagination(sorted, 25, "withdrawals");
 
@@ -171,8 +177,11 @@ function WithdrawalsPage() {
         byEmp.set(n, (byEmp.get(n) ?? 0) + totalAmount * (1 - pct));
       }
     });
-    return { total, allTotal, count: list.length, penalty, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [inRange, wQ.data, empNameById]);
+    const pendingList = (wQ.data ?? []).filter((r: any) => isPendingPayout(r));
+    const pending = pendingList.reduce((sum: number, r: any) => sum + toDisplay(r.amount, r.currency), 0);
+    const overdue = pendingList.filter((r: any) => isOverduePayout(r, settings)).length;
+    return { total, allTotal, pending, pendingCount: pendingList.length, overdue, count: list.length, penalty, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]) };
+  }, [inRange, wQ.data, empNameById, settings]);
 
 
   const upsert = useMutation({
@@ -192,6 +201,8 @@ function WithdrawalsPage() {
         currency: v.currency && v.currency !== base ? v.currency : null,
         employee_penalty: +withdrawalPenalty(baseAmount, settings).toFixed(2),
         date: v.date,
+        status: v.status || "paid",
+        requested_at: v.requested_at || null,
         notes: v.notes || null,
       };
       const { error } = v.id
@@ -250,6 +261,12 @@ function WithdrawalsPage() {
         <StatCard label="All-time withdrawn" value={fmtMoney(stats.allTotal)} />
         <StatCard label="Withdrawals" value={String(stats.count)} />
         <StatCard label="Agent penalties (10%)" value={fmtMoney(stats.penalty)} />
+        <StatCard
+          label="Pending payouts"
+          value={fmtMoney(stats.pending)}
+          tone={stats.overdue ? "negative" : "default"}
+          hint={`${stats.pendingCount} awaiting payment${stats.overdue ? ` · ${stats.overdue} past the ${settings.withdrawalSlaDays}-day SLA` : ""}`}
+        />
       </section>
 
 
@@ -309,6 +326,7 @@ function WithdrawalsPage() {
                   {tb.show("penalty") && <SortTh label="Penalty (10%)" k="penalty" sort={sort} toggle={toggle} className="py-3 px-4" />}
                   {tb.show("source") && <SortTh label="Source" k="source" sort={sort} toggle={toggle} className="py-3 px-4" />}
                   {tb.show("sale") && <SortTh label="Linked sale" k="sale" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("status") && <SortTh label="Status" k="status" sort={sort} toggle={toggle} className="py-3 px-4" />}
                   <th className="py-3 px-4"></th>
                 </tr>
                 <FilterRow tb={tb} trailing={1} />
