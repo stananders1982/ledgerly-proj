@@ -166,7 +166,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Search pages, clients, employees, affiliates..." />
+      <CommandInput placeholder="Search pages, clients, leads, employees, affiliates..." value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         {favorites.length > 0 && (
