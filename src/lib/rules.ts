@@ -6,7 +6,7 @@
  */
 
 import { DEFAULT_SETTINGS, type CompanySettings } from "./settings";
-import { toBase } from "./fx";
+import { toDisplay } from "./fx";
 import { getDisplayCurrency } from "./format";
 
 /**

@@ -6,7 +6,7 @@
  */
 
 
-import { toBase } from "./fx";
+import { toDisplay } from "./fx";
 import { getDisplayCurrency } from "./format";
 export type AnomalySeverity = "critical" | "warning" | "info";
 
