@@ -1,41 +1,41 @@
-# Suggested improvements — financial control & client management
+# Financial & client-management upgrade
 
-A curated list of improvements for Ledgerly, ranked by impact. Tell me which ones to build (numbers are fine, e.g. "1, 2, 5") and I'll implement them.
+Building all suggested improvements except client balance alerts (#5, skipped). Delivered in four phases so you can use each piece as it lands.
 
-## Financial
+## Phase 1 — True money numbers
 
-1. **Real profit per client.** Today a client shows deposits and withdrawals, but not their true cost. Combine their lead cost (source CPL/CPA), payment-method fees (wire/card/crypto %), and agent commissions so each client page and the Clients list show **net profit per client**. Instantly answers "which clients actually make us money."
+**Payment processing fees.** The fee percentages already in Settings (wire / card / crypto) start being applied. Every deposit shows gross, fee and net. Reports gain a "Processing fees" line, and P&L profit is based on net received.
 
-2. **Payment method fee tracking.** Methods (card/wire/crypto) already have fee % in settings, but fees aren't deducted anywhere. Apply them automatically: every deposit records a computed fee, and Reports get a "Processing fees" line so P&L shows **net received**, not just gross.
+**Profit per client.** Each client gets a real profitability figure: deposits minus withdrawals, minus their lead cost (from the source's CPL/CPA price), minus processing fees, minus the agent commission earned on them. Shown on the client profile and as a sortable column on the Clients list, so you can see who actually makes money.
 
-3. **Monthly close / reconciliation workflow.** Revenue already has `reconciled_at`, but there's no UI flow. Add a "Close the month" page: list unreconciled deposits/withdrawals, tick them off against bank statements, lock the month, and flag any edits to closed periods in the activity log.
+**Cash runway card on the dashboard.** Current net cash position divided by average monthly burn = months of runway, with a trend line next to the existing forecast.
 
-4. **Cash runway & burn rate on the dashboard.** You have fixed monthly costs and 90-day forecast — extend it into a "Runway" card: current net cash position ÷ average monthly burn = months of runway, with a trend line.
+## Phase 2 — Control over the books
 
-5. **Client balance alerts.** You already alert on affiliate balances. Add the mirror: alert when a funded client's balance drops below a threshold (e.g. under $500 or under 20% of total deposited) — that's the moment retention should call before the client goes quiet.
+**Monthly close / reconciliation.** New page listing every deposit and withdrawal in a month with a tick box for "matches the bank". Progress bar shows how much is reconciled. Closing a month locks it — later edits to a closed month are blocked for non-admins and always flagged in the activity log.
 
-6. **Withdrawal aging / pending withdrawals.** Track withdrawal requests vs completed payouts (status: requested → processed). Overdue pending withdrawals get surfaced on the dashboard — unhappy clients waiting on money are your biggest churn risk.
+**Withdrawal status & aging.** Withdrawals get a status (requested → processing → paid, or rejected) and a requested date. A dashboard card shows pending payouts and how long each has been waiting, with an overdue badge past a configurable number of days.
 
-## Client management
+## Phase 3 — Client management automation
 
-7. **Automated follow-up task engine.** When a client's `next_follow_up` date arrives, or a whale goes 7 days without contact, auto-create a task assigned to the retention agent. Today follow-up dates exist but nothing acts on them.
+**Follow-up task engine.** A scheduled job creates tasks automatically: when a client's follow-up date arrives, and when a high-value client goes past the neglect window with no contact. Tasks are assigned to the client's retention agent and deduplicated so you never get the same task twice.
 
-8. **Duplicate & merge clients.** Same person entered twice ("Bob Smith" / "bob smith") splits their deposits and breaks balances. Add a merge tool: pick two clients, preview the combined ledger, merge into one record.
+**Nightly client scoring.** Risk and opportunity scores refresh automatically each night for active clients instead of only when someone presses "Analyse". Scores are computed in small batches with strict limits, so cost stays predictable, and the manual button still works for an instant re-read.
 
-9. **Client assignment rules & re-assignment.** Bulk "reassign clients" tool (e.g. agent leaves → move their 40 clients to another retention agent), plus an audit trail entry per move. Possibly round-robin auto-assignment for new activations.
+**Weekly digest.** On login each Monday, each user sees a summary panel: their clients' deposits last week, upcoming follow-ups, neglected high-value clients and newly at-risk clients.
 
-10. **Weekly client digest email/summary.** Every Monday morning: auto-generated summary per agent — their clients' deposits last week, upcoming follow-ups, neglected whales, at-risk clients (AI scores). Shown in-app on login (no email infra needed to start).
+## Phase 4 — Data hygiene
 
-11. **Deposit velocity & churn prediction per client.** Beyond the one-off AI analysis: automatically re-score every active client nightly (days since last deposit vs their usual cadence, balance trend) so the Clients list "at risk" badges are always fresh instead of needing a manual button click.
+**Duplicate detection & merge.** The Data Quality page lists likely duplicate clients (same name / phone / email). A merge tool shows the combined ledger side by side and merges deposits, withdrawals, comments, communications, tasks and attachments into one record.
 
-12. **Client documents & KYC status.** Attachments exist, but add a simple KYC checklist per client (ID verified, proof of funds, agreement signed) with a status badge on the list — critical for a finance operation.
+**Bulk reassignment.** Select clients (or all of one agent's clients) and reassign the retention or conversion agent in one action, with an audit entry for each move.
 
-## My recommendation
-
-Start with **1, 2, 5, 7** — they directly connect money to client action: know who is profitable, know the real net numbers, and get told the moment a valuable client needs attention.
+**KYC checklist.** Per client: ID verified, proof of address, proof of funds, agreement signed — each with a date and who ticked it. A KYC status badge appears on the Clients list and can be filtered on.
 
 ## Technical notes
 
-- Profit-per-client reuses existing `toBase` FX conversion and commission tiers; fee % fields already exist in `company_settings` (`method_fee_wire_pct`, etc.).
-- Auto-task engine and nightly re-scoring run as scheduled server jobs (pg_cron → public API route, pattern already used for recurring expenses).
-- Merge tool updates `activation_id`/`customer_name` references across `revenue`, `withdrawals`, `tasks`, `client_communications`, `record_comments` in one transaction via a server function.
+- Fees and profit-per-client are computed in a shared helper (`src/lib/profitability.ts`) reusing existing FX conversion (`toBase`/`toDisplay`), commission tiers and lead-source pricing, so every page shows the same figure.
+- Migrations: `fee_amount`/`fee_pct` on `revenue`; `status`, `requested_at` on `withdrawals`; a `period_closes` table for monthly close; `kyc` jsonb plus `last_scored_at` on `daily_lead_activations`; a `job_runs` lease/status table for the scheduled jobs.
+- Scheduled work (follow-up tasks, nightly scoring, weekly digest build) runs as bounded batch jobs behind `src/routes/api/public/v1/jobs/*` routes called by pg_cron, with a single-flight lock, per-run item caps, idempotent progress marking and a circuit breaker that pauses the job on AI credit/permission errors.
+- Client merge runs in one server function that repoints `revenue`, `withdrawals`, `tasks`, `client_communications`, `record_comments` and `attachments` before deleting the losing record.
+- Month locking is enforced in the database (trigger checking `period_closes`) as well as in the UI, so it can't be bypassed.
