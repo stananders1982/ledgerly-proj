@@ -176,7 +176,7 @@ function MonthlyClosePage() {
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Monthly close"
-        subtitle="Reconcile each month's deposits, then lock it so the books stop moving."
+        description="Reconcile each month's deposits, then lock it so the books stop moving."
       />
 
       <section className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
