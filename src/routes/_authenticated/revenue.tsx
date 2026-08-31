@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
 import { sumBase, originalLabel, toDisplay } from "@/lib/fx";
 import { AmountWithCurrency } from "@/components/amount-with-currency";
+import { methodFeePct, feeTotals, depositFee, depositNet } from "@/lib/profitability";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -195,6 +196,7 @@ function RevenuePage() {
     const list = filtered;
     const total = sumBase(list, base, (r: any) => r);
     const allTotal = sumBase(revQ.data ?? [], base, (r: any) => r);
+    const feesInfo = feeTotals(list as any, settings);
     const byEmp = new Map<string, number>();
     const byAff = new Map<string, number>();
     list.forEach((r: any) => {
@@ -211,8 +213,8 @@ function RevenuePage() {
       const aff = getAffiliateName(r.affiliate_id, r.affiliates);
       if (aff) byAff.set(aff, (byAff.get(aff) ?? 0) + amt);
     });
-    return { total, allTotal, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
-  }, [filtered, revQ.data, employeeNameById, affiliateNameById]);
+    return { total, allTotal, fees: feesInfo.fees, net: feesInfo.net, count: list.length, byEmp: [...byEmp.entries()].sort((a, b) => b[1] - a[1]), byAff: [...byAff.entries()].sort((a, b) => b[1] - a[1]) };
+  }, [filtered, revQ.data, employeeNameById, affiliateNameById, settings]);
 
   // Flag an obvious re-entry (same client, same amount, same day) before saving.
   const [dupPending, setDupPending] = useState<any | null>(null);
@@ -274,6 +276,8 @@ function RevenuePage() {
         notes: v.notes || null,
         method: v.method || null,
         method_provider: v.method_provider || null,
+        fee_pct: methodFeePct(v.method, settings),
+        fee_amount: (Number(v.amount) || 0) * (methodFeePct(v.method, settings) / 100),
         // Direct link to the client record, so renaming a client keeps history intact.
         activation_id: activationId,
       };
