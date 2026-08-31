@@ -54,7 +54,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct, getDisplayCurrency, getCurrencyOverride, setCurrencyOverride, useDisplayCurrency } from "@/lib/format";
-import { FX_CURRENCIES, CURRENCY_SYMBOLS, toDisplay } from "@/lib/fx";
+import { toBase, toDisplay, fromWorkspace, FX_CURRENCIES, CURRENCY_SYMBOLS } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
