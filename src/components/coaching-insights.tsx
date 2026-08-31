@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { toBase } from "@/lib/fx";
+import { toBase, toDisplay } from "@/lib/fx";
 import { getDisplayCurrency } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { Lightbulb } from "lucide-react";

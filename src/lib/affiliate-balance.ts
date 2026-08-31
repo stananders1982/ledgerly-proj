@@ -15,7 +15,7 @@
  */
 
 
-import { toBase } from "@/lib/fx";
+import { toBase, toDisplay } from "@/lib/fx";
 import { getDisplayCurrency } from "@/lib/format";
 
 export type AffiliateTerms = {

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toBase } from "@/lib/fx";
+import { toBase, toDisplay } from "@/lib/fx";
 import { cn } from "@/lib/utils";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason, isStd, isLateRetentionFtd, monthsLate } from "@/lib/rules";

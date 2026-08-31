@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toBase, sumBase, originalLabel } from "@/lib/fx";
+import { toBase, sumBase, originalLabel, toDisplay } from "@/lib/fx";
 import { AmountWithCurrency } from "@/components/amount-with-currency";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";

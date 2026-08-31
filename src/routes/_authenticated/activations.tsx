@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney, todayISO, getDisplayCurrency } from "@/lib/format";
-import { toBase } from "@/lib/fx";
+import { toBase, toDisplay } from "@/lib/fx";
 import { EmptyState } from "@/components/empty-state";
 import { CommentThread } from "@/components/comment-thread";
 import { AttachmentsPanel } from "@/components/attachments-panel";

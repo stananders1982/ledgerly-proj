@@ -6,7 +6,7 @@ import { FileDown, FileSpreadsheet, FileText, Printer, ArrowUpDown, Bookmark, X 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct, fmtDate, getDisplayCurrency } from "@/lib/format";
-import { toBase } from "@/lib/fx";
+import { toBase, toDisplay } from "@/lib/fx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { LateFtdBadge } from "@/components/status-badge";
 import { useExporters } from "@/lib/permissions";

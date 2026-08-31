@@ -14,7 +14,7 @@ import { useExporters } from "@/lib/permissions";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toBase } from "@/lib/fx";
+import { toBase, toDisplay } from "@/lib/fx";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
