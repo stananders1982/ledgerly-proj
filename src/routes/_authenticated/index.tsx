@@ -226,7 +226,8 @@ function Dashboard() {
     };
 
     const a = agg(rangeEntries);
-    const leadCost = a.cplCost + a.cpaPayable;
+    // Lead costs are count × price — implicitly workspace currency, so scale to display.
+    const leadCost = fromWorkspace(a.cplCost + a.cpaPayable);
 
     const rangeRev = (revQ.data ?? []);
     const rangeExp = (expQ.data ?? []);
@@ -251,7 +252,7 @@ function Dashboard() {
     const otherExp = rangeExp.reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
     const employees = (empQ.data ?? []) as any[];
     const salariesMonthly = employees.reduce((s: number, e: any) => s + Number(e.salary), 0);
-    const salaries = salariesMonthly * monthMultiplier;
+    const salaries = fromWorkspace(salariesMonthly) * monthMultiplier;
 
 
     // Per-employee commission using tiered rate on their attributed revenue in range
