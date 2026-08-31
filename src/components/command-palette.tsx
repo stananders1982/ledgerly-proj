@@ -99,11 +99,16 @@ function useEntitySearch(enabled: boolean) {
   return { clientsQ, leadsQ, employeesQ, affiliatesQ };
 }
 
+function matchesQuery(name: string, query: string) {
+  return name.toLowerCase().includes(query.trim().toLowerCase());
+}
+
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const navigate = useNavigate();
   const { isAdmin, navKeys, permsLoaded } = useAuth();
-  const { clientsQ, employeesQ, affiliatesQ } = useEntitySearch(open);
+  const { clientsQ, leadsQ, employeesQ, affiliatesQ } = useEntitySearch(open);
   const { favorites } = useFavorites();
+  const [query, setQuery] = useState("");
 
   const allowed = NAV_ITEMS.filter((item) => {
     if (isAdmin) return true;
