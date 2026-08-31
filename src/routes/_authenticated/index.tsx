@@ -475,7 +475,7 @@ function Dashboard() {
   const show = sections.can;
 
   return (
-    <div className="aurora-bg page-fade-in">
+    <div className="aurora-bg page-fade-in" data-currency-state={`${displayCur}:${fx.rates[displayCur] ?? 1}`}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-8">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-foreground/5 border border-border px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">
