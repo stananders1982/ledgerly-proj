@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { isAgentTeam } from "@/lib/rules";
 import { fetchAll } from "@/lib/fetch-all";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DashboardRangePicker, useDashRange } from "@/components/dashboard-range-picker";
@@ -154,10 +154,11 @@ function Dashboard() {
   const dash = useDashRange();
   const rangeKey = dash.state.key;
   const [displayCur, setDashboardCurrency] = useState(settings.currency);
+  const currencyChosen = useRef(false);
   const fx = useFxRates();
 
   useEffect(() => {
-    setDashboardCurrency(settings.currency);
+    if (!currencyChosen.current) setDashboardCurrency(settings.currency);
   }, [settings.currency]);
   const displayAmount = (amount: number | string | null | undefined, currency?: string | null) => {
     const source = currency ?? "USD";
@@ -490,7 +491,10 @@ function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <DashboardCurrencyPicker onCurrencyChange={setDashboardCurrency} />
+          <DashboardCurrencyPicker onCurrencyChange={(currency) => {
+            currencyChosen.current = true;
+            setDashboardCurrency(currency);
+          }} />
           <DashboardRangePicker value={dash.state} onChange={dash.setState} label={rangeLabel} />
         </div>
       </div>
