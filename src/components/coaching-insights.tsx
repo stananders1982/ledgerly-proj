@@ -68,7 +68,7 @@ export function CoachingInsights({ employeeId, month }: { employeeId: string; mo
         if (k) counts.set(k, (counts.get(k) ?? 0) + 1);
       }
       const stds = [...counts.values()].filter((c) => c >= 2).length;
-      const amount = deposits.reduce((s, d) => s + toBase(d.amount, d.currency, getDisplayCurrency()), 0);
+      const amount = deposits.reduce((s, d) => s + toDisplay(d.amount, d.currency), 0);
       return {
         ftds: mine.length,
         answered: mine.filter((a: any) => a.answered).length,

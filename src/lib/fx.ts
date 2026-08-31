@@ -54,7 +54,7 @@ export function toBase(amount: number | string | null | undefined, currency: str
  * `toBase`, which skips conversion for null currencies.
  */
 export function toDisplay(amount: number | string | null | undefined, currency: string | null | undefined): number {
-  return toBase(amount, currency ?? getWorkspaceCurrency(), getDisplayCurrency());
+  return toDisplay(amount, currency ?? getWorkspaceCurrency());
 }
 
 /** Convenience for summing mixed-currency rows into the base currency. */

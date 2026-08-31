@@ -117,7 +117,7 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
     // --- Learn the shape of the last 90 days --------------------------------
     const byDayHistory = new Map<string, number>();
     for (const r of revQ.data ?? []) {
-      byDayHistory.set(r.date, (byDayHistory.get(r.date) ?? 0) + toBase(r.amount, r.currency, getDisplayCurrency()));
+      byDayHistory.set(r.date, (byDayHistory.get(r.date) ?? 0) + toDisplay(r.amount, r.currency));
     }
     const history: { date: Date; v: number }[] = [];
     for (let i = lookback; i >= 1; i--) {

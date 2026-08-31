@@ -67,7 +67,7 @@ export function depositIndex(
   const byActivation = new Map<string, number>();
   const byName = new Map<string, number>();
   for (const r of rows) {
-    const amt = toBase(r.amount, r.currency ?? null, getDisplayCurrency());
+    const amt = toDisplay(r.amount, r.currency ?? null);
     if (r.activation_id) {
       byActivation.set(r.activation_id, (byActivation.get(r.activation_id) ?? 0) + amt);
       continue;

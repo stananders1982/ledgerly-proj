@@ -560,7 +560,7 @@ function EmployeeDetailPage() {
                 <tbody>
                   {revPage.map((r: any) => {
                     const pct = Number(r.split_pct ?? 100);
-                    const share = r.employee_id === id ? toBase(r.amount, r.currency, getDisplayCurrency()) * (pct / 100) : toBase(r.amount, r.currency, getDisplayCurrency()) * ((100 - pct) / 100);
+                    const share = r.employee_id === id ? toDisplay(r.amount, r.currency) * (pct / 100) : toDisplay(r.amount, r.currency) * ((100 - pct) / 100);
                     return (
                       <tr key={r.id} className="border-b border-border/50">
                         <td className="py-2 px-4 text-muted-foreground">{fmtDate(r.date)}</td>

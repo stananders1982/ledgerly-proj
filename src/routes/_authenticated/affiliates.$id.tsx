@@ -216,7 +216,7 @@ function AffiliateStatementPage() {
     for (const e of expQ.data ?? []) {
       if (balanceStart && e.date < balanceStart) continue;
       const k = weekStartOf(e.date);
-      m.set(k, (m.get(k) ?? 0) + toBase(e.amount, (e as any).currency, getDisplayCurrency()));
+      m.set(k, (m.get(k) ?? 0) + toDisplay(e.amount, (e as any).currency));
     }
     return m;
   }, [expQ.data, balanceOn, balanceStart]);
@@ -348,7 +348,7 @@ function AffiliateStatementPage() {
     for (const r of (revQ.data ?? []).filter((x) => inRange(x.date))) {
       const k = monthKey(r.date);
       const m = map.get(k) ?? { amount: 0, deposits: 0, clients: new Set<string>() };
-      m.amount += toBase(r.amount, (r as any).currency, getDisplayCurrency());
+      m.amount += toDisplay(r.amount, (r as any).currency);
       m.deposits += 1;
       if (r.customer_name) m.clients.add(r.customer_name.trim().toLowerCase());
       map.set(k, m);

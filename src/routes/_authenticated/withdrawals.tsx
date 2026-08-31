@@ -325,7 +325,7 @@ function WithdrawalsPage() {
                     )}
                     {tb.show("amount") && (
                     <td className="py-3 px-4 text-destructive font-medium">
-                      −{fmtMoney(toBase(r.amount, r.currency, getDisplayCurrency()))}
+                      −{fmtMoney(toDisplay(r.amount, r.currency))}
                       {originalLabel(r.amount, r.currency, getDisplayCurrency()) && (
                         <span className="block text-xs font-normal text-muted-foreground">−{originalLabel(r.amount, r.currency, getDisplayCurrency())}</span>
                       )}
@@ -371,7 +371,7 @@ function WithdrawalsPage() {
                 rows={pageItems as any[]}
                 trailing={1}
                 totals={{
-                  amount: (r: any) => toBase(r.amount, r.currency, getDisplayCurrency()),
+                  amount: (r: any) => toDisplay(r.amount, r.currency),
                   penalty: (r: any) => Number(r.employee_penalty || 0),
                 }}
                 format={(n) => `−${fmtMoney(n)}`}
@@ -407,7 +407,7 @@ function WithdrawalDialog({
   const [pickerOpen, setPickerOpen] = useState(false);
   const picked = revenues.find((x) => x.id === form.revenue_id);
   const settings = useCompanySettings();
-  const penaltyPreview = withdrawalPenalty(toBase(form.amount, form.currency, getDisplayCurrency()), settings);
+  const penaltyPreview = withdrawalPenalty(toDisplay(form.amount, form.currency), settings);
   const hasSplit = !!form.employee_id_2;
 
   const onPickRevenue = (id: string) => {

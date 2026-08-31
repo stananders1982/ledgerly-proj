@@ -288,7 +288,7 @@ function ActivationsPage() {
 
   /** Total withdrawn for a client — subtracted from the shown balance. */
   const withdrawalsFor = (name?: string | null) =>
-    withdrawalRowsFor(name).reduce((a, w) => a + toBase(w.amount, w.currency, getDisplayCurrency()), 0);
+    withdrawalRowsFor(name).reduce((a, w) => a + toDisplay(w.amount, w.currency), 0);
 
   /** Base balance + deposits - withdrawals. */
   const netBalance = (r: { id?: string | null; lead_name?: string | null; balance?: number | string | null }) =>
