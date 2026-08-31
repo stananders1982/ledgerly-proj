@@ -126,11 +126,25 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       seen.add(name.toLowerCase());
       rows.push({ id: c.id, name });
     }
-    return rows.slice(0, 20);
-  }, [clientsQ.data]);
+    return rows.filter((r) => matchesQuery(r.name, query)).slice(0, 20);
+  }, [clientsQ.data, query]);
 
-  const employees = useMemo(() => (employeesQ.data ?? []).slice(0, 20), [employeesQ.data]);
-  const affiliates = useMemo(() => (affiliatesQ.data ?? []).slice(0, 20), [affiliatesQ.data]);
+  const leads = useMemo(
+    () =>
+      (leadsQ.data ?? [])
+        .filter((l) => l.name?.trim() && matchesQuery(l.name, query))
+        .slice(0, 20),
+    [leadsQ.data, query],
+  );
+
+  const employees = useMemo(
+    () => (employeesQ.data ?? []).filter((e) => matchesQuery(e.name, query)).slice(0, 20),
+    [employeesQ.data, query],
+  );
+  const affiliates = useMemo(
+    () => (affiliatesQ.data ?? []).filter((a) => matchesQuery(a.name, query)).slice(0, 20),
+    [affiliatesQ.data, query],
+  );
 
   const go = (to: string) => {
     onOpenChange(false);
