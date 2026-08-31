@@ -17,12 +17,25 @@ import { getFxRates } from "@/lib/fx.functions";
  */
 export const askBusinessQuestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { question: string; startIso?: string; endIso?: string }) => {
+  .inputValidator((input: {
+    question: string;
+    startIso?: string;
+    endIso?: string;
+    history?: { question: string; answer: string }[];
+  }) => {
     const question = String(input?.question ?? "").trim();
     if (!question) throw new Error("Ask a question first.");
     if (question.length > 500) throw new Error("Question is too long.");
     const day = (v: unknown) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "")) ? String(v) : undefined);
-    return { question, startIso: day(input?.startIso), endIso: day(input?.endIso) };
+    // Only the last few turns travel back, so "and last month?" resolves.
+    const history = (Array.isArray(input?.history) ? input.history : [])
+      .slice(-3)
+      .map((h) => ({
+        question: String(h?.question ?? "").slice(0, 500),
+        answer: String(h?.answer ?? "").slice(0, 1200),
+      }))
+      .filter((h) => h.question && h.answer);
+    return { question, startIso: day(input?.startIso), endIso: day(input?.endIso), history };
   })
   .handler(async ({ data, context }) => {
     const apiKey = process.env["LOVABLE_API_KEY"];
