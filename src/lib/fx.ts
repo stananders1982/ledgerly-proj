@@ -3,6 +3,7 @@
  * `getFxRates` server function) and are pushed into module state so any
  * non-React helper can convert synchronously.
  */
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getFxRates } from "@/lib/fx.functions";
 import { getWorkspaceCurrency, getDisplayCurrency } from "@/lib/format";
@@ -84,6 +85,7 @@ export const FX_QUERY_KEY = ["fx-rates"] as const;
 
 /** Loads live rates once per session and publishes them to the module state. */
 export function useFxRates() {
+  const [appliedAt, setAppliedAt] = useState(ratesFetchedAt);
   const q = useQuery({
     queryKey: FX_QUERY_KEY,
     staleTime: 10 * 60 * 1000,
@@ -91,17 +93,16 @@ export function useFxRates() {
     queryFn: () => getFxRates(),
   });
 
-  // Publish fetched rates before consumers calculate during this render.
-  // An effect runs too late: currency-dependent memos can otherwise cache the
-  // initial 1:1 fallback and only update their symbol, not their value.
-  if (q.data && q.data.fetchedAt > ratesFetchedAt) {
+  useEffect(() => {
+    if (!q.data) return;
     setFxRates(q.data.baseRates, q.data.fetchedAt);
-  }
+    setAppliedAt(q.data.fetchedAt);
+  }, [q.data]);
 
   return {
     rates: q.data?.baseRates ?? baseRates,
     currencies: (q.data?.currencies ?? FX_CURRENCIES) as readonly string[],
-    fetchedAt: q.data?.fetchedAt ?? ratesFetchedAt,
+    fetchedAt: appliedAt,
     loading: q.isLoading,
     error: q.isError,
   };
