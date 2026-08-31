@@ -429,6 +429,10 @@ function ClientPage() {
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
           <section className="card-surface p-5">
+            <ClientJourney stages={journeyStages} nextSteps={journeyNextSteps} />
+          </section>
+
+          <section className="card-surface p-5">
             <h2 className="font-display text-base font-semibold">AI insight</h2>
             {cur.ai_summary ? (
               <div className="mt-3 space-y-3 text-sm">
