@@ -665,6 +665,10 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
 
 
           },
+          ...data.history.flatMap((h) => [
+            { role: "user", content: [{ type: "input_text", text: h.question }] },
+            { role: "assistant", content: [{ type: "output_text", text: h.answer }] },
+          ]),
           { role: "user", content: [{ type: "input_text", text: `Snapshot:\n${JSON.stringify(snapshot)}\n\nQuestion: ${data.question}` }] },
         ],
       }),
