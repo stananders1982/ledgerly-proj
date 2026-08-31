@@ -278,11 +278,11 @@ function Dashboard() {
     const rec = (recQ.data ?? []) as any[];
     const monthlyEquiv = (amt: number, f: string) =>
       f === "weekly" ? amt * 52 / 12 : f === "quarterly" ? amt / 3 : f === "yearly" ? amt / 12 : amt;
-    const recurringMonthly = rec.reduce((s, r) => s + monthlyEquiv(Number(r.amount), r.frequency), 0);
-    const fixedMonthly = recurringMonthly + salariesMonthly;
+    const recurringMonthly = fromWorkspace(rec.reduce((s, r) => s + monthlyEquiv(Number(r.amount), r.frequency), 0));
+    const fixedMonthly = recurringMonthly + fromWorkspace(salariesMonthly);
     const in30 = new Date(); in30.setDate(in30.getDate() + 30);
-    const upcoming30 = rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
-      .reduce((s, r) => s + Number(r.amount), 0);
+    const upcoming30 = fromWorkspace(rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
+      .reduce((s, r) => s + Number(r.amount), 0));
 
     // Build daily series across the selected range
     const dayList: string[] = [];
@@ -304,7 +304,7 @@ function Dashboard() {
       const s = e.lead_sources;
       if (s) {
         const p = Number(s.price);
-        cur.cost += s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
+        cur.cost += fromWorkspace(s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0));
       }
       leadDay.set(e.entry_date, cur);
     });
@@ -328,7 +328,7 @@ function Dashboard() {
       cur.activated += e.activated ?? 0;
       cur.expected += ((e.received ?? 0) * (Number(s.expected_conversion_rate) || 0)) / 100;
       const p = Number(s.price);
-      cur.cost += s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
+      cur.cost += fromWorkspace(s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0));
       bySource.set(key, cur);
     });
     const sourceRows = [...bySource.values()]
