@@ -276,6 +276,76 @@ function ClientPage() {
     ] satisfies TimelineEvent[];
   }, [cur, opening, transactions, commsQ.data]);
 
+  const journeyStages = useMemo<JourneyStage[]>(() => {
+    if (!cur) return [];
+    const act = activationDate(cur as any);
+    const first = deposits[0] as any | undefined;
+    const stds = stdDepositsFor(cur as any, deposits as any);
+    const secondDep = stds[0] as any | undefined;
+    const comms = commsQ.data ?? [];
+    const lastComm = comms[0] as any | undefined;
+    return [
+      {
+        key: "lead",
+        label: "Lead received",
+        date: cur.daily_lead_entries?.entry_date ?? null,
+        detail: cur.daily_lead_entries?.lead_sources?.name ?? null,
+        done: !!cur.daily_lead_entries?.entry_date,
+      },
+      {
+        key: "activation",
+        label: "Activated",
+        date: act,
+        detail: opening ? `opening ${fmtMoney(opening)}` : null,
+        done: !!act,
+      },
+      {
+        key: "first-deposit",
+        label: "First deposit",
+        date: first?.date ?? null,
+        detail: first ? fmtMoney(toBase(first.amount, first.currency, baseCcy)) : null,
+        done: !!first,
+      },
+      {
+        key: "qualified",
+        label: "Qualified FTD",
+        date: cur.qualified_at ? String(cur.qualified_at).slice(0, 10) : null,
+        detail: qualifies && !cur.qualified_at ? "meets threshold" : null,
+        done: !!cur.qualified_at || qualifies,
+      },
+      {
+        key: "std",
+        label: "Repeat deposit (STD)",
+        date: secondDep?.date ?? null,
+        detail: stdCount > 1 ? `${stdCount} repeat deposits` : null,
+        done: stdCount > 0,
+      },
+      {
+        key: "contact",
+        label: "Contacted",
+        date: lastComm?.occurred_at ?? null,
+        detail: lastComm ? `${comms.length} touch${comms.length === 1 ? "" : "es"} · last ${lastComm.channel}` : null,
+        done: comms.length > 0,
+      },
+    ];
+  }, [cur, deposits, commsQ.data, opening, qualifies, stdCount, baseCcy]);
+
+  const journeyNextSteps = useMemo(() => {
+    const out: { label: string; value: string; icon?: "date" | "ai" }[] = [];
+    if (cur?.next_follow_up) out.push({ label: "Follow-up due", value: fmtDate(String(cur.next_follow_up).slice(0, 10)) });
+    if (cur?.ai_next_action) out.push({ label: "Suggested action", value: String(cur.ai_next_action), icon: "ai" });
+    if (!out.length) {
+      out.push({
+        label: "Next",
+        value: neglected
+          ? "No contact or deposit in the last 14 days — reach out."
+          : "Set a follow-up date or log the next contact.",
+      });
+    }
+    return out;
+  }, [cur?.next_follow_up, cur?.ai_next_action, neglected]);
+
+
   const employeeName = (eid?: string | null) =>
     (employeesQ.data ?? []).find((e) => e.id === eid)?.name ?? "—";
 
