@@ -110,11 +110,19 @@ export const Route = createFileRoute("/api/public/hooks/client-automation")({
             }
 
             if (rows.length) {
-              const { error, count } = await supabase
+              // The auto_key index is partial, so filter against existing keys
+              // instead of relying on upsert conflict resolution.
+              const { data: existing } = await supabase
                 .from("tasks")
-                .upsert(rows as never, { onConflict: "company_id,auto_key", ignoreDuplicates: true, count: "exact" });
-              if (error) throw error;
-              created = count ?? rows.length;
+                .select("auto_key")
+                .in("auto_key", rows.map((r) => r.auto_key as string));
+              const seen = new Set((existing ?? []).map((t) => t.auto_key));
+              const fresh = rows.filter((r) => !seen.has(r.auto_key as string));
+              if (fresh.length) {
+                const { error } = await supabase.from("tasks").insert(fresh as never);
+                if (error) throw error;
+                created = fresh.length;
+              }
             }
           }
 
