@@ -237,7 +237,7 @@ function Dashboard() {
 
   const recQ = useQuery({
     queryKey: ["dash-recurring"],
-    queryFn: async () => await fetchAll(() => supabase.from("recurring_expenses").select("amount,currency,frequency,next_due_date,active,end_date").eq("active", true)),
+    queryFn: async () => await fetchAll(() => supabase.from("recurring_expenses").select("amount,frequency,next_due_date,active,end_date").eq("active", true)),
   });
 
 
@@ -323,11 +323,11 @@ function Dashboard() {
     const rec = (recQ.data ?? []) as any[];
     const monthlyEquiv = (amt: number, f: string) =>
       f === "weekly" ? amt * 52 / 12 : f === "quarterly" ? amt / 3 : f === "yearly" ? amt / 12 : amt;
-    const recurringMonthly = rec.reduce((s, r) => s + monthlyEquiv(toDisplay(r.amount, r.currency), r.frequency), 0);
+    const recurringMonthly = fromWorkspace(rec.reduce((s, r) => s + monthlyEquiv(Number(r.amount), r.frequency), 0));
     const fixedMonthly = recurringMonthly + fromWorkspace(salariesMonthly);
     const in30 = new Date(); in30.setDate(in30.getDate() + 30);
-    const upcoming30 = rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
-      .reduce((s, r) => s + toDisplay(r.amount, r.currency), 0);
+    const upcoming30 = fromWorkspace(rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
+      .reduce((s, r) => s + Number(r.amount), 0));
 
     // Build daily series across the selected range
     const dayList: string[] = [];
