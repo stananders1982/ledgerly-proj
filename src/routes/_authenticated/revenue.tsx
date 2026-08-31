@@ -665,6 +665,7 @@ function RevenueDialog({
   rev, employees, affiliates, activations, phoneByName, onSubmit, loading,
 }: { rev: any; employees: any[]; affiliates: any[]; activations: any[]; phoneByName: Record<string, string>; onSubmit: (v: any) => void; loading: boolean }) {
 
+  const settings = useCompanySettings();
   const [form, setForm] = useState(() => ({
     id: rev?.id,
     customer_name: rev?.customer_name ?? "",
