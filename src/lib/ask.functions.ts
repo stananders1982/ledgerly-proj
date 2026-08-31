@@ -3,6 +3,8 @@ import { TIER_LABEL, isNeglected, isWhale, valueTier, type TierThresholds } from
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { depositMatchesActivation, stdDepositsFor } from "@/lib/rules";
 import { computeAffiliateBalances } from "@/lib/affiliate-balance";
+import { computeRates, computeSalesSummary, type ClientStat, type SaleRow } from "@/lib/ask-stats";
+import { getFxRates } from "@/lib/fx.functions";
 
 
 /**
@@ -15,12 +17,25 @@ import { computeAffiliateBalances } from "@/lib/affiliate-balance";
  */
 export const askBusinessQuestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { question: string; startIso?: string; endIso?: string }) => {
+  .inputValidator((input: {
+    question: string;
+    startIso?: string;
+    endIso?: string;
+    history?: { question: string; answer: string }[];
+  }) => {
     const question = String(input?.question ?? "").trim();
     if (!question) throw new Error("Ask a question first.");
     if (question.length > 500) throw new Error("Question is too long.");
     const day = (v: unknown) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "")) ? String(v) : undefined);
-    return { question, startIso: day(input?.startIso), endIso: day(input?.endIso) };
+    // Only the last few turns travel back, so "and last month?" resolves.
+    const history = (Array.isArray(input?.history) ? input.history : [])
+      .slice(-3)
+      .map((h) => ({
+        question: String(h?.question ?? "").slice(0, 500),
+        answer: String(h?.answer ?? "").slice(0, 1200),
+      }))
+      .filter((h) => h.question && h.answer);
+    return { question, startIso: day(input?.startIso), endIso: day(input?.endIso), history };
   })
   .handler(async ({ data, context }) => {
     const apiKey = process.env["LOVABLE_API_KEY"];
@@ -42,9 +57,9 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       affTerms, allEntries, affPayments, settingsRow,
     ] =
       await Promise.all([
-        supabase.from("revenue").select("date,amount,customer_name,employee_id,employee_id_2,split_pct,affiliate_id,method,activation_id").gte("date", sinceIso),
-        supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
-        supabase.from("withdrawals").select("date,amount,employee_id,customer_name").gte("date", sinceIso),
+        supabase.from("revenue").select("date,amount,currency,customer_name,employee_id,employee_id_2,split_pct,affiliate_id,method,activation_id").gte("date", sinceIso),
+        supabase.from("expenses").select("date,amount,currency,category_id").gte("date", sinceIso),
+        supabase.from("withdrawals").select("date,amount,currency,employee_id,customer_name").gte("date", sinceIso),
         // Legacy (old CRM) clients are excluded from FTD/activation analysis.
         supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id,balance,potential,answered,status,age,date_of_birth,gender,country,city,language,occupation,next_follow_up,preferred_contact_time,tags,notes,ai_risk_score,ai_risk_label,ai_summary,potential_value,net_worth,liquid_funds,monthly_income,exposure_elsewhere,source_of_funds,deposit_appetite,ai_opportunity_score,ai_opportunity_label,ai_opportunity_reason,ai_suggested_potential").eq("legacy", false).gte("activation_date", sinceIso),
         supabase.from("daily_lead_entries").select("entry_date,received,activated,reported,cost,source_id").gte("entry_date", sinceIso),
@@ -66,7 +81,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
           .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at"),
         supabase.from("daily_lead_entries").select("entry_date,received,invalid,reported,activated,source_id"),
         supabase.from("expenses").select("affiliate_id,date,amount").not("affiliate_id", "is", null),
-        supabase.from("company_settings").select("whale_threshold,high_threshold,mid_threshold,small_threshold").maybeSingle(),
+        supabase.from("company_settings").select("currency,whale_threshold,high_threshold,mid_threshold,small_threshold").maybeSingle(),
       ]);
 
     const settingsData = (settingsRow as any)?.data ?? {};
@@ -77,6 +92,26 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       midThreshold: Number(settingsData.mid_threshold) || 15000,
       smallThreshold: Number(settingsData.small_threshold) || 1,
     };
+
+    // Money is stored in the currency it was taken in; the recap must be in one
+    // currency. Live rates, falling back to "no conversion" if the feed fails.
+    const baseCurrency = String(settingsData.currency || "USD");
+    let fxBaseRates: Record<string, number> = {};
+    try {
+      fxBaseRates = ((await getFxRates()) as any)?.baseRates ?? {};
+    } catch {
+      fxBaseRates = {};
+    }
+    const conv = (amount: unknown, currency?: string | null) => {
+      const a = Number(amount) || 0;
+      const c = currency || baseCurrency;
+      if (c === baseCurrency) return a;
+      const from = fxBaseRates[c];
+      const to = fxBaseRates[baseCurrency];
+      if (!from || !to) return a;
+      return a * (to / from);
+    };
+
 
     // Client-level CRM context: the notes the team leaves and the touches they log.
     const [clientComments, clientComms] = await Promise.all([
@@ -291,13 +326,128 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       return String(b.activationDate ?? "").localeCompare(String(a.activationDate ?? ""));
     });
 
+    // ---- Rates and sales recap ----------------------------------------
+    // Pre-computed so percentage and "summarize sales" questions are answered
+    // from exact numbers instead of the model counting the client list.
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const periodStart = focusPeriod?.start ?? sinceIso;
+    const periodEnd = focusPeriod?.end ?? todayIso;
+    const dayMs = 86_400_000;
+    const spanDays = Math.max(
+      1,
+      Math.round((Date.parse(periodEnd) - Date.parse(periodStart)) / dayMs) + 1,
+    );
+    const prevEnd = new Date(Date.parse(periodStart) - dayMs).toISOString().slice(0, 10);
+    const prevStart = new Date(Date.parse(periodStart) - spanDays * dayMs).toISOString().slice(0, 10);
+    const inRange = (d: string, from: string, to: string) => d >= from && d <= to;
+
+    // Every deposit, converted, with the client's deposit ordinal (1 = FTD, 2 = STD).
+    const depRowsByKey = new Map<string, (SaleRow & { key: string })[]>();
+    for (const r of revRows) {
+      const key = r.activation_id ? `id:${r.activation_id}` : `name:${nameKeyOf(r.customer_name)}`;
+      if (key === "name:" || !r.date) continue;
+      const list = depRowsByKey.get(key) ?? [];
+      list.push({
+        key,
+        date: String(r.date),
+        amount: conv(r.amount, r.currency),
+        client: r.customer_name || "unknown",
+        agent: nameOf(employees.data, r.employee_id),
+        source: nameOf(affiliates.data, r.affiliate_id),
+        method: r.method || "unspecified",
+        currency: r.currency || baseCurrency,
+        ordinal: 0,
+      });
+      depRowsByKey.set(key, list);
+    }
+    const saleRows: SaleRow[] = [];
+    for (const list of depRowsByKey.values()) {
+      list.sort((a, b) => a.date.localeCompare(b.date));
+      list.forEach((d, i) => {
+        d.ordinal = i + 1;
+        saleRows.push(d);
+      });
+    }
+
+    const withdrawalsConvByClient = new Map<string, { total: number; count: number }>();
+    let withdrawalsInPeriod = 0;
+    for (const w of (withdrawals.data ?? []) as any[]) {
+      const amount = conv(w.amount, w.currency);
+      if (w.date && inRange(String(w.date), periodStart, periodEnd)) withdrawalsInPeriod += amount;
+      const key = nameKeyOf(w.customer_name);
+      if (!key) continue;
+      const cur = withdrawalsConvByClient.get(key) ?? { total: 0, count: 0 };
+      cur.total += amount;
+      cur.count += 1;
+      withdrawalsConvByClient.set(key, cur);
+    }
+    const expensesInPeriod = ((expenses.data ?? []) as any[]).reduce(
+      (s, e) => (e.date && inRange(String(e.date), periodStart, periodEnd) ? s + conv(e.amount, e.currency) : s),
+      0,
+    );
+
+    const statOf = (a: any, from?: string, to?: string): ClientStat => {
+      const key = depRowsByKey.has(`id:${a.id}`) ? `id:${a.id}` : `name:${nameKeyOf(a.lead_name)}`;
+      const all = depRowsByKey.get(key) ?? [];
+      const deps = from && to ? all.filter((d) => inRange(d.date, from, to)) : all;
+      const wd = withdrawalsConvByClient.get(nameKeyOf(a.lead_name)) ?? { total: 0, count: 0 };
+      const comms = commsByClient.get(a.id) ?? [];
+      return {
+        name: a.lead_name ?? "Unnamed client",
+        tier: TIER_LABEL[valueTier(a.potential_value, tierThresholds)],
+        country: a.country ?? null,
+        conversionAgent: nameOf(employees.data, a.conversion_employee_id),
+        retentionAgent: nameOf(employees.data, a.employee_id),
+        depositCount: deps.length,
+        depositTotal: deps.reduce((s, d) => s + d.amount, 0),
+        withdrawalCount: wd.count,
+        withdrawalTotal: wd.total,
+        answered: !!a.answered,
+        qualified: !!a.qualified_at,
+        neglected: isNeglected({
+          startDate: a.activation_date,
+          depositDates: all.map((d) => d.date),
+          contactDates: comms.map((c) => c.at),
+        }),
+        activationDate: a.activation_date ?? null,
+      };
+    };
+
+    const windowStats = actRows.map((a) => statOf(a));
+    const periodClients = actRows.filter(
+      (a: any) => a.activation_date && inRange(String(a.activation_date), periodStart, periodEnd),
+    );
+    const periodStats = periodClients.map((a) => statOf(a, periodStart, periodEnd));
+
+    const rates = {
+      window: computeRates(windowStats, `all clients since ${sinceIso} (lifetime deposits)`),
+      selectedPeriod: computeRates(
+        periodStats,
+        `clients activated ${periodStart} to ${periodEnd} (deposits inside that period)`,
+      ),
+    };
+
+    const salesSummary = computeSalesSummary({
+      label: focusPeriod ? "selected dashboard period" : "last 6 months",
+      start: periodStart,
+      end: periodEnd,
+      rows: saleRows.filter((r) => inRange(r.date, periodStart, periodEnd)),
+      previousRows: saleRows.filter((r) => inRange(r.date, prevStart, prevEnd)),
+      previousLabel: `${prevStart} to ${prevEnd}`,
+      withdrawals: withdrawalsInPeriod,
+      expenses: expensesInPeriod,
+      monthlyRows: saleRows,
+    });
+
     const snapshot = {
       whaleThreshold,
       tierThresholds,
-      today: new Date().toISOString().slice(0, 10),
+      today: todayIso,
       window: `${sinceIso} to today`,
       selectedPeriod: focusPeriod,
-      currency: "USD",
+      currency: baseCurrency,
+      rates,
+      salesSummary,
       monthly: {
         deposits: round(bucket(revenue.data, (r: any) => month(r.date), (r: any) => Number(r.amount || 0))),
         expenses: round(bucket(expenses.data, (r: any) => month(r.date), (r: any) => Number(r.amount || 0))),
@@ -457,7 +607,9 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
             role: "system",
             content: [{ type: "input_text", text:
               "You answer questions about a lead-generation and client-deposit business using ONLY the JSON snapshot provided. " +
-              "Be short: two or three sentences, with the concrete numbers you used. Amounts are USD. " +
+              "Answer length: one or two sentences with the concrete numbers for a single-number question; when the question asks to " +
+              "summarize, recap or report, answer with a short headline sentence plus up to six '- ' bullets. " +
+              "All amounts are already converted to snapshot.currency. " +
               "When snapshot.selectedPeriod is not null, the user is looking at that dashboard period: answer about it by default " +
                "unless the question names a different period, and say which dates you used. " +
               "FTD means first-time deposit (an activated client); STD means a second deposit. " +
@@ -498,10 +650,25 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "who is at risk, or to slice clients by age, country, status or agent. Compare dates against snapshot.today. " +
               "If clientsTruncated is true, say the list covers the top " +
               "clients by money movement out of clientCount total, and never imply it is exhaustive. " +
+              "PERCENTAGES: snapshot.rates already holds every client ratio — use those numbers verbatim and NEVER recount the client " +
+              "list. rates.selectedPeriod covers clients activated inside the selected period (deposits counted inside it); " +
+              "rates.window covers all clients in the 6-month window with lifetime deposits. Each block has depositRatePct " +
+              "(clients who deposited at least once), stdRatePct and stdRateOfDepositorsPct (second deposit), repeatRatePct (3+), " +
+              "answeredRatePct, qualifiedRatePct, neglectedRatePct, withdrawalRatePct, average/median deposit per depositing client, " +
+              "and byTier / byCountry / byConversionAgent / byRetentionAgent breakdowns. Always state the denominator, " +
+              "e.g. '62 of 210 clients = 29.5%'. " +
+              "SALES SUMMARY: for 'summarize sales', revenue recaps or 'how did we do', use snapshot.salesSummary — totalDeposits, " +
+              "depositCount, uniqueDepositingClients, averageTicket, largestDeposit, newMoney (first deposits) vs secondDeposits vs " +
+              "returningMoney, previousPeriod change, bestMonth/worstMonth, topAgents, topSources, topClients, byMethod, " +
+              "byOriginalCurrency and netAfterWithdrawalsAndExpenses. Quote its dates. " +
               "If the snapshot does not contain the answer, say exactly what is missing instead of guessing." }],
 
 
           },
+          ...data.history.flatMap((h) => [
+            { role: "user", content: [{ type: "input_text", text: h.question }] },
+            { role: "assistant", content: [{ type: "output_text", text: h.answer }] },
+          ]),
           { role: "user", content: [{ type: "input_text", text: `Snapshot:\n${JSON.stringify(snapshot)}\n\nQuestion: ${data.question}` }] },
         ],
       }),
