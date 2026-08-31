@@ -800,7 +800,7 @@ function ActivationsPage() {
           label="Neglected clients"
           value={String(neglectedCount)}
           icon={PhoneCall}
-          hint={`No deposit and no contact in the first ${NEGLECT_WINDOW_DAYS} days after FTD. Click to act.`}
+          hint={`No deposit and no contact for the full ${NEGLECT_WINDOW_DAYS} days after FTD. Only counted once the window has fully passed. Click to act.`}
           active={tierFilter === "neglected"}
           onClick={() => setTierFilter((v) => (v === "neglected" ? "all" : "neglected"))}
         />
