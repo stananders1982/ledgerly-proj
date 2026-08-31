@@ -25,10 +25,13 @@ import { TIER_LABEL, isNeglected, potentialValue, valueTier } from "@/lib/whales
 import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toDisplay } from "@/lib/fx";
+import { toDisplay, fromWorkspace } from "@/lib/fx";
+import { depositFee, feeTotals, leadCostPerClient } from "@/lib/profitability";
+import { ClientKycChecklist, KycBadge } from "@/components/client-kyc-checklist";
 import { fetchAll } from "@/lib/fetch-all";
 import { qualifiesAsFtd, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({
@@ -67,13 +70,14 @@ function ClientPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const settings = useCompanySettings();
+  const { user } = useAuth();
 
   const clientQ = useQuery({
     queryKey: ["client", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_lead_activations")
-        .select("*, daily_lead_entries(entry_date, lead_sources(name))")
+        .select("*, daily_lead_entries(entry_date, cost, activated, lead_sources(name))")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -96,7 +100,7 @@ function ClientPage() {
     queryKey: ["client-deposits", id, name],
     enabled: !!clientQ.data,
     queryFn: async () => {
-      const cols = "id,customer_name,amount,date,notes,method,method_provider,employee_id,activation_id";
+      const cols = "id,customer_name,amount,currency,date,notes,method,method_provider,fee_pct,fee_amount,employee_id,activation_id";
       const byActivation = await fetchAll<any>(() =>
         supabase.from("revenue").select(cols).eq("activation_id", id).order("date", { ascending: true }),
       );
@@ -205,6 +209,10 @@ function ClientPage() {
   const cur = clientQ.data;
   const opening = Number(cur?.balance || 0);
   const balance = opening + depositTotal - wdTotal;
+  // Client P&L: net of processing fees, payouts and the cost of acquiring them.
+  const feeInfo = feeTotals(deposits as any[], settings);
+  const acquisitionCost = fromWorkspace(leadCostPerClient((clientQ.data as any)?.daily_lead_entries ?? null));
+  const clientProfitValue = feeInfo.net - wdTotal - acquisitionCost;
   const qualifies = cur ? qualifiesAsFtd(cur as any, opening + depositTotal, settings) : false;
   const stdCount = cur ? stdDepositsFor(cur as any, deposits as any).length : 0;
   const lastDeposit = deposits.length ? deposits[deposits.length - 1].date : null;
@@ -401,6 +409,7 @@ function ClientPage() {
         )}
         <RiskBadge score={cur.ai_risk_score} label={cur.ai_risk_label} />
         <OpportunityBadge score={cur.ai_opportunity_score} label={cur.ai_opportunity_label} />
+        <KycBadge value={(cur as any).kyc} />
         <TagBadges tags={cur.tags} />
       </div>
 
@@ -419,6 +428,12 @@ function ClientPage() {
         <StatCard label="Deposits" value={fmtMoney(depositTotal)} hint={`${deposits.length} deposit${deposits.length === 1 ? "" : "s"}`} />
         <StatCard label="Withdrawals" value={fmtMoney(wdTotal)} hint={`${withdrawals.length} payout${withdrawals.length === 1 ? "" : "s"}`} />
         <StatCard label="Net to us" value={fmtMoney(depositTotal - wdTotal)} />
+        <StatCard
+          label="Profit"
+          value={fmtMoney(clientProfitValue)}
+          tone={clientProfitValue >= 0 ? "positive" : "negative"}
+          hint={`Deposits −${fmtMoney(feeInfo.fees)} fees −${fmtMoney(wdTotal)} payouts −${fmtMoney(acquisitionCost)} acquisition`}
+        />
         <StatCard
           label="Since last deposit"
           value={sinceDeposit == null ? "—" : `${sinceDeposit}d`}
@@ -504,6 +519,19 @@ function ClientPage() {
                     onChange={(patch) => setDraft({ ...draft, ...patch })}
                   />
                 </div>
+                <div className="mt-4 rounded-lg border border-border p-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Compliance checklist</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Documents collected for this client. Each tick records who ticked it and when.
+                  </p>
+                  <ClientKycChecklist
+                    className="mt-3"
+                    value={(cur as any).kyc}
+                    by={user?.email ?? null}
+                    onChange={(next) => save.mutate({ kyc: next })}
+                  />
+                </div>
+
                 <div className="mt-3 grid gap-1.5">
                   <label className="text-xs text-muted-foreground">Tags</label>
                   <TagPicker value={cur.tags ?? []} onChange={(tags) => save.mutate({ tags })} />

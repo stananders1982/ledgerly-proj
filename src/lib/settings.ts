@@ -42,6 +42,8 @@ export type CompanySettings = {
   brandColor: string | null;
   /** Optional workspace logo shown in the sidebar. */
   logoUrl: string | null;
+  /** Days a requested withdrawal may age before it counts as overdue. */
+  withdrawalSlaDays: number;
 };
 
 export const DEFAULT_SETTINGS: CompanySettings = {
@@ -60,6 +62,7 @@ export const DEFAULT_SETTINGS: CompanySettings = {
   fiscalYearStartMonth: 1,
   brandColor: null,
   logoUrl: null,
+  withdrawalSlaDays: 3,
 };
 
 type SettingsRow = {
@@ -78,6 +81,7 @@ type SettingsRow = {
   fiscal_year_start_month: number | string | null;
   brand_color: string | null;
   logo_url: string | null;
+  withdrawal_sla_days?: number | string | null;
 };
 
 export function fromRow(row?: Partial<SettingsRow> | null): CompanySettings {
@@ -102,6 +106,7 @@ export function fromRow(row?: Partial<SettingsRow> | null): CompanySettings {
     fiscalYearStartMonth: num(row.fiscal_year_start_month, DEFAULT_SETTINGS.fiscalYearStartMonth),
     brandColor: row.brand_color ?? null,
     logoUrl: row.logo_url ?? null,
+    withdrawalSlaDays: num(row.withdrawal_sla_days, DEFAULT_SETTINGS.withdrawalSlaDays),
   };
 }
 
@@ -118,7 +123,7 @@ export function useCompanySettings(): CompanySettings {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("ftd_balance_threshold,whale_threshold,high_threshold,mid_threshold,small_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct,currency,fiscal_year_start_month,brand_color,logo_url")
+        .select("ftd_balance_threshold,whale_threshold,high_threshold,mid_threshold,small_threshold,default_activation_balance,ftd_commission,withdrawal_penalty_pct,method_fee_wire_pct,method_fee_card_pct,method_fee_crypto_pct,currency,fiscal_year_start_month,brand_color,logo_url,withdrawal_sla_days")
         .maybeSingle();
       if (error) return null;
       return data;
