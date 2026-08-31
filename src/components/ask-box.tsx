@@ -145,11 +145,11 @@ export function AskBox({
               /^[-•*]\s/.test(line.trim()) ? (
                 <div key={i} className="flex gap-2 pl-1">
                   <span className="text-primary">•</span>
-                  <span>{line.trim().replace(/^[-•*]\s/, "")}</span>
+                  <span>{rich(line.trim().replace(/^[-•*]\s/, ""))}</span>
                 </div>
               ) : (
                 <p key={i} className={i ? "mt-2" : undefined}>
-                  {line}
+                  {rich(line)}
                 </p>
               ),
             )}
