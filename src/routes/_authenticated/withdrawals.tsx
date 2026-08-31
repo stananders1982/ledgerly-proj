@@ -25,6 +25,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { EmptyState } from "@/components/empty-state";
+import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/stat-card";
 import {
   WITHDRAWAL_STATUSES, WITHDRAWAL_STATUS_LABELS, WITHDRAWAL_STATUS_TONE,
