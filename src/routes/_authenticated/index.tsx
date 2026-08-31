@@ -100,10 +100,12 @@ function DashboardCurrencyPicker() {
 
   const save = useMutation({
     mutationFn: async (currency: string) => {
+      const { data: cid, error: cErr } = await supabase.rpc("current_company_id");
+      if (cErr) throw cErr;
       const { error } = await supabase
         .from("company_settings")
         .update({ currency })
-        .eq("company_id", (settings as any).companyId ?? (await supabase.rpc("current_company_id")).data);
+        .eq("company_id", cid);
       if (error) throw error;
     },
     onSuccess: (_d, currency) => {
