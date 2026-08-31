@@ -89,7 +89,6 @@ export function useFxRates() {
 
   useEffect(() => {
     if (q.data) setFxRates(q.data.baseRates, q.data.fetchedAt);
-    if (typeof window !== "undefined") (window as any).__fxDebug = { data: q.data, baseRates, error: q.error };
   }, [q.data]);
 
   return {
