@@ -89,6 +89,33 @@ const toneStyles: Record<Tone, { glow: string; ring: string; text: string; strok
 };
 
 
+/** Currency selector for the dashboard — overrides the workspace display currency
+ *  for this browser (persisted), so all totals and widgets convert live. */
+function DashboardCurrencyPicker() {
+  const current = useDisplayCurrency();
+  const override = getCurrencyOverride();
+  return (
+    <Select value={override ?? "workspace"} onValueChange={(v) => setCurrencyOverride(v === "workspace" ? null : v)}>
+      <SelectTrigger
+        className="h-9 w-auto min-w-[7rem] gap-1.5 rounded-full border-border bg-foreground/5 px-3 text-xs font-medium"
+        aria-label="Display currency"
+        title="Display currency — all dashboard totals convert to this"
+      >
+        <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="end">
+        <SelectItem value="workspace">Workspace currency</SelectItem>
+        {FX_CURRENCIES.map((c) => (
+          <SelectItem key={c} value={c}>
+            {c} {CURRENCY_SYMBOLS[c] ?? ""}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function Dashboard() {
   const qc = useQueryClient();
   const settings = useCompanySettings();
