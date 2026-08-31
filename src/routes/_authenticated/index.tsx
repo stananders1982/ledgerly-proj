@@ -344,7 +344,7 @@ function Dashboard() {
       income, leadCost, otherExp, salaries, commissions, expTotal, profit,
       received: a.received, activated: a.activated, reported: a.reported,
       unreported: a.activated - a.reported,
-      cplCost: a.cplCost, cpaPayable: a.cpaPayable, cpaSavings: a.cpaSavings,
+      cplCost: fromWorkspace(a.cplCost), cpaPayable: fromWorkspace(a.cpaPayable), cpaSavings: fromWorkspace(a.cpaSavings),
       rate, expectedRate,
       expectedActivations: a.expectedActivations,
       activationSurplus: a.activated - a.expectedActivations,
@@ -359,16 +359,17 @@ function Dashboard() {
     const base = getDisplayCurrency();
     const rev = (prevRevQ.data ?? []).reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
     const otherExp = (prevExpQ.data ?? []).reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
-    let received = 0, activated = 0, leadCost = 0;
+    let received = 0, activated = 0, leadCostRaw = 0;
     for (const e of (prevLeadsQ.data ?? []) as any[]) {
       received += e.received ?? 0;
       activated += e.activated ?? 0;
       const src = e.lead_sources;
       if (src) {
         const p = Number(src.price) || 0;
-        leadCost += src.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
+        leadCostRaw += src.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
       }
     }
+    const leadCost = fromWorkspace(leadCostRaw);
     // Salaries/commissions are period-scaled the same way, so compare the
     // variable part plus the same fixed baseline for a like-for-like delta.
     const expTotal = otherExp + leadCost + m.salaries + m.commissions;
