@@ -58,10 +58,20 @@ function useEntitySearch(enabled: boolean) {
           .from("daily_lead_activations")
           .select("id,lead_name")
           .not("lead_name", "is", null)
-          .order("created_at", { ascending: false })
-          .limit(100),
+          .order("lead_name"),
       );
       return (data ?? []) as { id: string; lead_name: string }[];
+    },
+  });
+
+  const leadsQ = useQuery({
+    enabled,
+    queryKey: ["cmd-leads"],
+    queryFn: async () => {
+      const data = await fetchAll(() =>
+        supabase.from("leads").select("id,name").order("name"),
+      );
+      return (data ?? []) as { id: string; name: string }[];
     },
   });
 
@@ -86,14 +96,19 @@ function useEntitySearch(enabled: boolean) {
     queryKey: ["cmd-affiliates"],
   });
 
-  return { clientsQ, employeesQ, affiliatesQ };
+  return { clientsQ, leadsQ, employeesQ, affiliatesQ };
+}
+
+function matchesQuery(name: string, query: string) {
+  return name.toLowerCase().includes(query.trim().toLowerCase());
 }
 
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const navigate = useNavigate();
   const { isAdmin, navKeys, permsLoaded } = useAuth();
-  const { clientsQ, employeesQ, affiliatesQ } = useEntitySearch(open);
+  const { clientsQ, leadsQ, employeesQ, affiliatesQ } = useEntitySearch(open);
   const { favorites } = useFavorites();
+  const [query, setQuery] = useState("");
 
   const allowed = NAV_ITEMS.filter((item) => {
     if (isAdmin) return true;
@@ -111,11 +126,25 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       seen.add(name.toLowerCase());
       rows.push({ id: c.id, name });
     }
-    return rows.slice(0, 20);
-  }, [clientsQ.data]);
+    return rows.filter((r) => matchesQuery(r.name, query)).slice(0, 20);
+  }, [clientsQ.data, query]);
 
-  const employees = useMemo(() => (employeesQ.data ?? []).slice(0, 20), [employeesQ.data]);
-  const affiliates = useMemo(() => (affiliatesQ.data ?? []).slice(0, 20), [affiliatesQ.data]);
+  const leads = useMemo(
+    () =>
+      (leadsQ.data ?? [])
+        .filter((l) => l.name?.trim() && matchesQuery(l.name, query))
+        .slice(0, 20),
+    [leadsQ.data, query],
+  );
+
+  const employees = useMemo(
+    () => (employeesQ.data ?? []).filter((e) => matchesQuery(e.name, query)).slice(0, 20),
+    [employeesQ.data, query],
+  );
+  const affiliates = useMemo(
+    () => (affiliatesQ.data ?? []).filter((a) => matchesQuery(a.name, query)).slice(0, 20),
+    [affiliatesQ.data, query],
+  );
 
   const go = (to: string) => {
     onOpenChange(false);
@@ -136,8 +165,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const actions = QUICK_ACTIONS.filter((a) => allowed.some((i) => i.key === a.key));
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Search pages, clients, employees, affiliates..." />
+    <CommandDialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) setQuery(""); }}>
+      <CommandInput placeholder="Search pages, clients, leads, employees, affiliates..." value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         {favorites.length > 0 && (
@@ -204,6 +233,26 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 >
                   <Users className="mr-2 h-4 w-4" />
                   {c.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+        {leads.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Leads">
+              {leads.map((l) => (
+                <CommandItem
+                  key={l.id}
+                  value={`lead ${l.name}`}
+                  onSelect={() => {
+                    onOpenChange(false);
+                    navigate({ to: "/leads", search: { issue: undefined } });
+                  }}
+                >
+                  <Target className="mr-2 h-4 w-4" />
+                  {l.name}
                 </CommandItem>
               ))}
             </CommandGroup>
