@@ -45,8 +45,8 @@ export function RecurringRevenueTab() {
   const [editing, setEditing] = useState<any | null>(null);
 
   useEffect(() => {
-    import("@/lib/recurring.functions")
-      .then(({ generateDueRecurringRevenue }) => generateDueRecurringRevenue())
+    import("@/lib/recurring-run")
+      .then(({ runDueRecurringRevenue }) => runDueRecurringRevenue())
       .then((res) => {
         if (res?.count > 0) {
           toast.success(`Generated ${res.count} due income record${res.count === 1 ? "" : "s"}`);
@@ -144,8 +144,8 @@ export function RecurringRevenueTab() {
 
   const runNow = useMutation({
     mutationFn: async () => {
-      const { generateDueRecurringRevenue } = await import("@/lib/recurring.functions");
-      return (await generateDueRecurringRevenue()).count;
+      const { runDueRecurringRevenue } = await import("@/lib/recurring-run");
+      return (await runDueRecurringRevenue()).count;
     },
     onSuccess: (n) => {
       toast.success(`Generated ${n ?? 0} income record${n === 1 ? "" : "s"}`);
