@@ -7,7 +7,7 @@
 
 import { DEFAULT_SETTINGS, type CompanySettings } from "./settings";
 import { toDisplay, fromWorkspace } from "./fx";
-import { commissionAmount, type CommissionTiers } from "./commission";
+import { commissionAmount, methodFeePct, type CommissionTiers } from "./commission";
 import { nameKey } from "./rules";
 
 /* ------------------------------------------------------------------ */
@@ -22,22 +22,8 @@ export const DEPOSIT_METHODS: { value: MethodKey; label: string }[] = [
   { value: "crypto", label: "Crypto" },
 ];
 
-/** Fee percentage configured for a deposit method (0 when unknown). */
-export function methodFeePct(
-  method: string | null | undefined,
-  settings: CompanySettings = DEFAULT_SETTINGS,
-): number {
-  switch (String(method ?? "").toLowerCase()) {
-    case "wire":
-      return settings.methodFeeWirePct;
-    case "card":
-      return settings.methodFeeCardPct;
-    case "crypto":
-      return settings.methodFeeCryptoPct;
-    default:
-      return 0;
-  }
-}
+export { methodFeePct };
+
 
 export type FeeRow = {
   amount?: number | string | null;
