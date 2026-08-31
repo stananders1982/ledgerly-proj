@@ -54,7 +54,7 @@ import {
   YAxis,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMoney, fmtPct, getDisplayCurrency, setCurrencyOverride, setDisplayCurrency, useDisplayCurrency } from "@/lib/format";
+import { fmtMoney, fmtPct, getDisplayCurrency, setCurrencyOverride, setDisplayCurrency } from "@/lib/format";
 import { toBase, FX_CURRENCIES, CURRENCY_SYMBOLS, useFxRates } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -94,7 +94,7 @@ const toneStyles: Record<Tone, { glow: string; ring: string; text: string; strok
 /** Currency selector for the dashboard — sets the workspace currency in
  *  company settings, so the display currency is consistent everywhere
  *  (dashboard, reports, Settings) and for every user of the workspace. */
-function DashboardCurrencyPicker() {
+function DashboardCurrencyPicker({ onCurrencyChange }: { onCurrencyChange: (currency: string) => void }) {
   const qc = useQueryClient();
   const settings = useCompanySettings();
   const { isAdmin } = useAuth();
@@ -125,6 +125,7 @@ function DashboardCurrencyPicker() {
       disabled={!isAdmin || save.isPending}
       onValueChange={(currency) => {
         setCurrencyOverride(currency);
+        onCurrencyChange(currency);
         save.mutate(currency);
       }}
     >
@@ -152,8 +153,12 @@ function Dashboard() {
   const settings = useCompanySettings();
   const dash = useDashRange();
   const rangeKey = dash.state.key;
-  const displayCur = useDisplayCurrency();
+  const [displayCur, setDashboardCurrency] = useState(settings.currency);
   const fx = useFxRates();
+
+  useEffect(() => {
+    setDashboardCurrency(settings.currency);
+  }, [settings.currency]);
   const displayAmount = (amount: number | string | null | undefined, currency?: string | null) => {
     const source = currency ?? "USD";
     const sourceRate = fx.rates[source] ?? 1;
@@ -485,7 +490,7 @@ function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <DashboardCurrencyPicker />
+          <DashboardCurrencyPicker onCurrencyChange={setDashboardCurrency} />
           <DashboardRangePicker value={dash.state} onChange={dash.setState} label={rangeLabel} />
         </div>
       </div>
