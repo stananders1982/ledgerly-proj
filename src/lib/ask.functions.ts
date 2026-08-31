@@ -68,7 +68,7 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
           .select("id,name,active,cpa_rate,guarantee_value,group_key,balance_start_date,opening_balance,balance_activated_at"),
         supabase.from("daily_lead_entries").select("entry_date,received,invalid,reported,activated,source_id"),
         supabase.from("expenses").select("affiliate_id,date,amount").not("affiliate_id", "is", null),
-        supabase.from("company_settings").select("whale_threshold,high_threshold,mid_threshold,small_threshold").maybeSingle(),
+        supabase.from("company_settings").select("currency,whale_threshold,high_threshold,mid_threshold,small_threshold").maybeSingle(),
       ]);
 
     const settingsData = (settingsRow as any)?.data ?? {};
@@ -79,6 +79,26 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       midThreshold: Number(settingsData.mid_threshold) || 15000,
       smallThreshold: Number(settingsData.small_threshold) || 1,
     };
+
+    // Money is stored in the currency it was taken in; the recap must be in one
+    // currency. Live rates, falling back to "no conversion" if the feed fails.
+    const baseCurrency = String(settingsData.currency || "USD");
+    let fxBaseRates: Record<string, number> = {};
+    try {
+      fxBaseRates = ((await getFxRates()) as any)?.baseRates ?? {};
+    } catch {
+      fxBaseRates = {};
+    }
+    const conv = (amount: unknown, currency?: string | null) => {
+      const a = Number(amount) || 0;
+      const c = currency || baseCurrency;
+      if (c === baseCurrency) return a;
+      const from = fxBaseRates[c];
+      const to = fxBaseRates[baseCurrency];
+      if (!from || !to) return a;
+      return a * (to / from);
+    };
+
 
     // Client-level CRM context: the notes the team leaves and the touches they log.
     const [clientComments, clientComms] = await Promise.all([
