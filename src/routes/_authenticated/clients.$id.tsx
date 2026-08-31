@@ -557,9 +557,6 @@ function ClientPage() {
             )}
           </section>
 
-          <section className="card-surface p-5">
-            <ClientJourney stages={journeyStages} nextSteps={journeyNextSteps} />
-          </section>
 
           <section className="card-surface p-5">
             <h2 className="mb-3 font-display text-base font-semibold">Lifecycle</h2>
