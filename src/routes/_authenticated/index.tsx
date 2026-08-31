@@ -54,7 +54,7 @@ import {
   YAxis,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMoney, fmtPct, getDisplayCurrency, setCurrencyOverride, setDisplayCurrency } from "@/lib/format";
+import { fmtMoney, fmtPct, getDisplayCurrency, setCurrencyOverride, setDisplayCurrency, useDisplayCurrency } from "@/lib/format";
 import { toBase, FX_CURRENCIES, CURRENCY_SYMBOLS, useFxRates } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -110,7 +110,6 @@ function DashboardCurrencyPicker() {
       if (error) throw error;
     },
     onSuccess: (_d, currency) => {
-      setCurrencyOverride(null); // drop any stale browser-local override
       setDisplayCurrency(currency); // update dashboard calculations immediately
       qc.setQueryData(SETTINGS_QUERY_KEY, (current: any) => current ? { ...current, currency } : current);
       qc.invalidateQueries({ queryKey: SETTINGS_QUERY_KEY });
@@ -124,7 +123,10 @@ function DashboardCurrencyPicker() {
     <Select
       value={settings.currency}
       disabled={!isAdmin || save.isPending}
-      onValueChange={(v) => save.mutate(v)}
+      onValueChange={(currency) => {
+        setCurrencyOverride(currency);
+        save.mutate(currency);
+      }}
     >
       <SelectTrigger
         className="h-9 w-auto min-w-[7rem] gap-1.5 rounded-full border-border bg-foreground/5 px-3 text-xs font-medium"
@@ -150,7 +152,7 @@ function Dashboard() {
   const settings = useCompanySettings();
   const dash = useDashRange();
   const rangeKey = dash.state.key;
-  const displayCur = settings.currency;
+  const displayCur = useDisplayCurrency();
   const fx = useFxRates();
   const displayAmount = (amount: number | string | null | undefined, currency?: string | null) => {
     const source = currency ?? "USD";
