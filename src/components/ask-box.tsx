@@ -42,6 +42,12 @@ function followUpsFor(question: string): string[] {
 
 type Turn = { question: string; answer: string };
 
+/** Render **bold** segments the model emits without pulling in a markdown lib. */
+const rich = (text: string) =>
+  text.split(/\*\*(.+?)\*\*/g).map((part, i) =>
+    i % 2 ? <strong key={i} className="font-semibold text-foreground">{part}</strong> : <span key={i}>{part}</span>,
+  );
+
 /** Ask a question about the business in plain language. */
 export function AskBox({
   startIso,
