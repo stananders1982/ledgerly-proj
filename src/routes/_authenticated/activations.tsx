@@ -470,6 +470,7 @@ function ActivationsPage() {
     answered: (r) => !!r.answered,
     std: (r) => stdCountFor(r),
     status: (r) => r.status ?? "",
+    kyc: (r) => ({ complete: 3, partial: 2, missing: 1 } as any)[kycStatus(r.kyc)],
     risk: (r) => Number(r.ai_risk_score ?? -1),
     age: (r) => clientAge(r) ?? -1,
     country: (r) => r.country ?? "",
@@ -1016,6 +1017,7 @@ function ActivationsPage() {
                 {tb.show("age") && <SortTh label="Age" k="age" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("country") && <SortTh label="Country" k="country" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("followup") && <SortTh label="Follow-up" k="followup" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("kyc") && <SortTh label="KYC" k="kyc" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("legacy") && <th className="py-2.5 px-2">Origin</th>}
                 <th className="py-3 px-2 w-10 text-right"></th>
               </tr>
@@ -1166,6 +1168,9 @@ function ActivationsPage() {
                   )}
                   {tb.show("followup") && (
                   <td className="py-2.5 px-2">{r.next_follow_up ? fmtDate(r.next_follow_up) : "—"}</td>
+                  )}
+                  {tb.show("kyc") && (
+                  <td className="py-2.5 px-2"><KycBadge value={r.kyc} /></td>
                   )}
                   {tb.show("legacy") && (
                   <td className="py-2.5 px-2 text-xs text-muted-foreground">
