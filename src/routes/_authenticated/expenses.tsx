@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toBase, sumBase, originalLabel, toDisplay } from "@/lib/fx";
+import { sumBase, originalLabel, toDisplay } from "@/lib/fx";
 import { AmountWithCurrency } from "@/components/amount-with-currency";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
@@ -114,7 +114,7 @@ function ExpensesPage() {
     const byCat = new Map<string, number>();
     filtered.forEach((e: any) => {
       const k = e.expense_categories?.name ?? "Uncategorized";
-      byCat.set(k, (byCat.get(k) ?? 0) + toBase(e.amount, e.currency, base));
+      byCat.set(k, (byCat.get(k) ?? 0) + toDisplay(e.amount, e.currency));
     });
     const allTotal = sumBase(expQ.data ?? [], base, (e: any) => e);
     return { total, allTotal, count: filtered.length, byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]) };

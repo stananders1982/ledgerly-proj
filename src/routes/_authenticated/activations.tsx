@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney, todayISO, getDisplayCurrency } from "@/lib/format";
-import { toBase, toDisplay } from "@/lib/fx";
+import { toDisplay } from "@/lib/fx";
 import { EmptyState } from "@/components/empty-state";
 import { CommentThread } from "@/components/comment-thread";
 import { AttachmentsPanel } from "@/components/attachments-panel";
@@ -1109,8 +1109,8 @@ function ActivationsPage() {
           const deposits = depositRowsFor(cur.lead_name, cur.id);
           const wds = withdrawalRowsFor(cur.lead_name);
           const baseCcy = getDisplayCurrency();
-          const depositTotal = deposits.reduce((a, d) => a + toBase(d.amount, (d as any).currency, baseCcy), 0);
-          const wdTotal = wds.reduce((a, d) => a + toBase(d.amount, d.currency, baseCcy), 0);
+          const depositTotal = deposits.reduce((a, d) => a + toDisplay(d.amount, (d as any).currency), 0);
+          const wdTotal = wds.reduce((a, d) => a + toDisplay(d.amount, d.currency), 0);
           const grossBalance = Number(cur.balance || 0) + depositTotal;
           const effective = grossBalance - wdTotal;
           const qualifies = qualifiesAsFtd(cur, grossBalance, settings);
@@ -1121,13 +1121,13 @@ function ActivationsPage() {
               date: d.date,
               kind: "deposit" as const,
               label: d.notes ? `Deposit — ${d.notes}` : "Deposit",
-              delta: toBase(d.amount, (d as any).currency, baseCcy),
+              delta: toDisplay(d.amount, (d as any).currency),
             })),
             ...wds.map((w) => ({
               date: w.date,
               kind: "withdrawal" as const,
               label: w.notes ? `Withdrawal — ${w.notes}` : "Withdrawal",
-              delta: -toBase(w.amount, w.currency, baseCcy),
+              delta: -toDisplay(w.amount, w.currency),
             })),
           ].sort((a, b) => String(a.date).localeCompare(String(b.date)));
 

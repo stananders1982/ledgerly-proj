@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toBase, toDisplay } from "@/lib/fx";
+import { toDisplay } from "@/lib/fx";
 import { cn } from "@/lib/utils";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason, isStd, isLateRetentionFtd, monthsLate } from "@/lib/rules";
@@ -247,11 +247,11 @@ function EmployeeDetailPage() {
       return 0;
     };
     const baseCcy = getDisplayCurrency();
-    const attributed = rev.reduce((s: number, r: any) => s + share(r, toBase(r.amount, r.currency, baseCcy)), 0);
+    const attributed = rev.reduce((s: number, r: any) => s + share(r, toDisplay(r.amount, r.currency)), 0);
     // Commission base after the configured deposit-method fee.
-    const commBase = rev.reduce((s: number, r: any) => s + share(r, commissionableAmount(toBase(r.amount, r.currency, baseCcy), r.method, settings)), 0);
+    const commBase = rev.reduce((s: number, r: any) => s + share(r, commissionableAmount(toDisplay(r.amount, r.currency), r.method, settings)), 0);
 
-    const withdrawn = wds.reduce((s: number, w: any) => s + toBase(w.amount, w.currency, baseCcy), 0);
+    const withdrawn = wds.reduce((s: number, w: any) => s + toDisplay(w.amount, w.currency), 0);
     const penalty = wds.reduce((s: number, w: any) => s + Number(w.employee_penalty), 0);
 
     const tiers: CommissionTiers | null = emp ? {

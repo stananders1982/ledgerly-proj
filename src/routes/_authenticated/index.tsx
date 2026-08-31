@@ -54,7 +54,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct, getDisplayCurrency, getCurrencyOverride, setCurrencyOverride, useDisplayCurrency } from "@/lib/format";
-import { toBase, FX_CURRENCIES, CURRENCY_SYMBOLS } from "@/lib/fx";
+import { FX_CURRENCIES, CURRENCY_SYMBOLS, toDisplay } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
@@ -247,8 +247,8 @@ function Dashboard() {
       days / 30;
 
     const base = getDisplayCurrency();
-    const income = rangeRev.reduce((s: number, r: any) => s + toBase(r.amount, r.currency, base), 0);
-    const otherExp = rangeExp.reduce((s: number, r: any) => s + toBase(r.amount, r.currency, base), 0);
+    const income = rangeRev.reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
+    const otherExp = rangeExp.reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
     const employees = (empQ.data ?? []) as any[];
     const salariesMonthly = employees.reduce((s: number, e: any) => s + Number(e.salary), 0);
     const salaries = salariesMonthly * monthMultiplier;
@@ -257,7 +257,7 @@ function Dashboard() {
     // Per-employee commission using tiered rate on their attributed revenue in range
     const perEmp = new Map<string, number>();
     for (const r of rangeRev as any[]) {
-      const amt = commissionableAmount(toBase(r.amount, r.currency, base), r.method, settings);
+      const amt = commissionableAmount(toDisplay(r.amount, r.currency), r.method, settings);
       if (r.employee_id_2 && r.split_pct != null) {
         const pct = Number(r.split_pct) / 100;
         if (r.employee_id) perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt * pct);
@@ -292,9 +292,9 @@ function Dashboard() {
       dayList.push(`${y}-${mo}-${da}`);
     }
     const revMap = new Map<string, number>();
-    rangeRev.forEach((r: any) => revMap.set(r.date, (revMap.get(r.date) ?? 0) + toBase(r.amount, r.currency, base)));
+    rangeRev.forEach((r: any) => revMap.set(r.date, (revMap.get(r.date) ?? 0) + toDisplay(r.amount, r.currency)));
     const expMap = new Map<string, number>();
-    rangeExp.forEach((r: any) => expMap.set(r.date, (expMap.get(r.date) ?? 0) + toBase(r.amount, r.currency, base)));
+    rangeExp.forEach((r: any) => expMap.set(r.date, (expMap.get(r.date) ?? 0) + toDisplay(r.amount, r.currency)));
     const leadDay = new Map<string, { received: number; activated: number; cost: number }>();
     entries.forEach((e: any) => {
       const cur = leadDay.get(e.entry_date) ?? { received: 0, activated: 0, cost: 0 };
@@ -356,8 +356,8 @@ function Dashboard() {
 
   const prev = useMemo(() => {
     const base = getDisplayCurrency();
-    const rev = (prevRevQ.data ?? []).reduce((s: number, r: any) => s + toBase(r.amount, r.currency, base), 0);
-    const otherExp = (prevExpQ.data ?? []).reduce((s: number, r: any) => s + toBase(r.amount, r.currency, base), 0);
+    const rev = (prevRevQ.data ?? []).reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
+    const otherExp = (prevExpQ.data ?? []).reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
     let received = 0, activated = 0, leadCost = 0;
     for (const e of (prevLeadsQ.data ?? []) as any[]) {
       received += e.received ?? 0;

@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toBase, sumBase, originalLabel, toDisplay } from "@/lib/fx";
+import { sumBase, originalLabel, toDisplay } from "@/lib/fx";
 import { AmountWithCurrency } from "@/components/amount-with-currency";
 import {
   AlertDialog,
@@ -198,7 +198,7 @@ function RevenuePage() {
     const byEmp = new Map<string, number>();
     const byAff = new Map<string, number>();
     list.forEach((r: any) => {
-      const amt = toBase(r.amount, r.currency, base);
+      const amt = toDisplay(r.amount, r.currency);
       const pct = Number(r.split_pct ?? 100);
       if (r.employee_id) {
         const n1 = getEmployeeName(r.employee_id, r.employees) ?? "?";

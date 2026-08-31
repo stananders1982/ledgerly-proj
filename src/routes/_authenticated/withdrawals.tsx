@@ -19,7 +19,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toBase, sumBase, originalLabel, toDisplay } from "@/lib/fx";
+import { sumBase, originalLabel, toDisplay } from "@/lib/fx";
 import { AmountWithCurrency } from "@/components/amount-with-currency";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
@@ -160,7 +160,7 @@ function WithdrawalsPage() {
 
     const byEmp = new Map<string, number>();
     list.forEach((r: any) => {
-      const totalAmount = toBase(r.amount, r.currency, base);
+      const totalAmount = toDisplay(r.amount, r.currency);
       const pct = Number(r.split_pct ?? 100) / 100;
       if (r.employee_id) {
         const n = r.employees?.name ?? empNameById.get(r.employee_id) ?? "?";
@@ -180,7 +180,7 @@ function WithdrawalsPage() {
       const amount = Number(v.amount) || 0;
       const base = getDisplayCurrency();
       // Penalty is computed in workspace currency so payroll math stays consistent.
-      const baseAmount = toBase(amount, v.currency ?? null, base);
+      const baseAmount = toDisplay(amount, v.currency ?? null);
       const payload = {
         revenue_id: v.revenue_id || null,
         customer_name: v.customer_name,

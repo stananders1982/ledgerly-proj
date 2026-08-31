@@ -6,7 +6,7 @@ import { FileDown, FileSpreadsheet, FileText, Printer, ArrowUpDown, Bookmark, X 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct, fmtDate, getDisplayCurrency } from "@/lib/format";
-import { toBase, toDisplay } from "@/lib/fx";
+import { toDisplay } from "@/lib/fx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { LateFtdBadge } from "@/components/status-badge";
 import { useExporters } from "@/lib/permissions";
@@ -94,8 +94,8 @@ function summarize(entries: any[], revenue: any[], expenses: any[], employees: a
   }
   const unreported = activated - reported;
   const baseCcy = getDisplayCurrency();
-  const income = revenue.reduce((s, r) => s + toBase(r.amount, (r as any).currency, baseCcy), 0);
-  const otherExp = expenses.reduce((s, r) => s + toBase(r.amount, (r as any).currency, baseCcy), 0);
+  const income = revenue.reduce((s, r) => s + toDisplay(r.amount, (r as any).currency), 0);
+  const otherExp = expenses.reduce((s, r) => s + toDisplay(r.amount, (r as any).currency), 0);
   const activeEmp = employees.filter((e) => e.active);
   // Salaries include managers (fixed cost); commission never does.
   const salaries = activeEmp.reduce((s, e) => s + Number(e.salary), 0);
