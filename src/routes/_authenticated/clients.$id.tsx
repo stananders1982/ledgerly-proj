@@ -31,6 +31,7 @@ import { ClientKycChecklist, KycBadge } from "@/components/client-kyc-checklist"
 import { fetchAll } from "@/lib/fetch-all";
 import { qualifiesAsFtd, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({
@@ -69,6 +70,7 @@ function ClientPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const settings = useCompanySettings();
+  const { user } = useAuth();
 
   const clientQ = useQuery({
     queryKey: ["client", id],
@@ -525,7 +527,7 @@ function ClientPage() {
                   <ClientKycChecklist
                     className="mt-3"
                     value={(cur as any).kyc}
-                    by={null}
+                    by={user?.email ?? null}
                     onChange={(next) => save.mutate({ kyc: next })}
                   />
                 </div>
