@@ -3,6 +3,8 @@ import { TIER_LABEL, isNeglected, isWhale, valueTier, type TierThresholds } from
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { depositMatchesActivation, stdDepositsFor } from "@/lib/rules";
 import { computeAffiliateBalances } from "@/lib/affiliate-balance";
+import { computeRates, computeSalesSummary, type ClientStat, type SaleRow } from "@/lib/ask-stats";
+import { getFxRates } from "@/lib/fx.functions";
 
 
 /**
