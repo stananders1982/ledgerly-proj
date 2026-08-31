@@ -18,15 +18,24 @@ export function TaskReminders() {
   useEffect(() => {
     if (!user) return;
     const today = new Date().toISOString().slice(0, 10);
-    let stamp: string | null = null;
     try {
-      stamp = localStorage.getItem(STAMP_KEY);
+      if (localStorage.getItem(STAMP_KEY) === today) return;
+      // Stamp immediately so remounts/tabs don't race into duplicate inserts.
+      localStorage.setItem(STAMP_KEY, today);
     } catch {
       return;
     }
-    if (stamp === today) return;
 
     (async () => {
+      // Cross-device guard: skip if today's reminder already exists.
+      const { data: existing } = await supabase
+        .from("notifications")
+        .select("id")
+        .eq("type", "task_due")
+        .gte("created_at", `${today}T00:00:00Z`)
+        .limit(1);
+      if (existing?.length) return;
+
       const { data: tasks } = await supabase
         .from("tasks")
         .select("id,title,due_date,status,client_name")
@@ -34,10 +43,7 @@ export function TaskReminders() {
         .not("due_date", "is", null)
         .lte("due_date", today);
 
-      if (!tasks?.length) {
-        try { localStorage.setItem(STAMP_KEY, today); } catch { /* ignore */ }
-        return;
-      }
+      if (!tasks?.length) return;
 
       const { data: cid } = await supabase.rpc("current_company_id");
       const overdue = tasks.filter((t: any) => t.due_date < today).length;
@@ -54,12 +60,12 @@ export function TaskReminders() {
         company_id: cid as any,
       } as any);
 
-      try { localStorage.setItem(STAMP_KEY, today); } catch { /* ignore */ }
       qc.invalidateQueries({ queryKey: ["notifications"] });
     })().catch(() => {
       /* reminders are best-effort */
     });
   }, [user, qc]);
+
 
   return null;
 }

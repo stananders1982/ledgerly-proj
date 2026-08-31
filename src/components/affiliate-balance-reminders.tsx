@@ -20,15 +20,23 @@ export function AffiliateBalanceReminders() {
   useEffect(() => {
     if (!user || !alerts?.length) return;
     const today = new Date().toISOString().slice(0, 10);
-    let stamp: string | null = null;
     try {
-      stamp = localStorage.getItem(STAMP_KEY);
+      if (localStorage.getItem(STAMP_KEY) === today) return;
+      // Stamp first so remounts and extra tabs can't insert twice.
+      localStorage.setItem(STAMP_KEY, today);
     } catch {
       return;
     }
-    if (stamp === today) return;
 
     (async () => {
+      const { data: existing } = await supabase
+        .from("notifications")
+        .select("id")
+        .eq("type", "affiliate_balance")
+        .gte("created_at", `${today}T00:00:00Z`)
+        .limit(1);
+      if (existing?.length) return;
+
       const { data: cid } = await supabase.rpc("current_company_id");
       const rows = alerts.map((a) => ({
         type: "affiliate_balance",
@@ -38,12 +46,12 @@ export function AffiliateBalanceReminders() {
         company_id: cid as any,
       }));
       await supabase.from("notifications").insert(rows as any);
-      try { localStorage.setItem(STAMP_KEY, today); } catch { /* ignore */ }
       qc.invalidateQueries({ queryKey: ["notifications"] });
     })().catch(() => {
       /* reminders are best-effort */
     });
   }, [user, alerts, qc]);
+
 
   return null;
 }
