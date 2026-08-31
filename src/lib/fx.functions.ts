@@ -51,6 +51,7 @@ async function fetchRates(): Promise<CacheEntry> {
  */
 export const getFxRates = createServerFn({ method: "GET" }).handler(async () => {
   const { rates, fetchedAt } = await fetchRates();
+  console.log("[fx] rates:", JSON.stringify(rates));
   const table: Record<string, Record<string, number>> = {};
   for (const base of SUPPORTED) table[base] = normalize(rates, base);
   return {
