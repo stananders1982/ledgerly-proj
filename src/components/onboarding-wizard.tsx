@@ -51,7 +51,9 @@ const TIMEZONES = [
   "America/Chicago",
   "America/Los_Angeles",
 ];
-const CURRENCIES = ["USD", "EUR", "GBP", "ILS", "AED", "CAD", "AUD"];
+import { FX_CURRENCIES } from "@/lib/fx";
+
+const CURRENCIES = [...FX_CURRENCIES];
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);

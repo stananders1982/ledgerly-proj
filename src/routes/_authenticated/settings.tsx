@@ -30,7 +30,9 @@ export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
 });
 
-const CURRENCIES = ["USD", "EUR", "GBP", "ILS", "AUD", "CAD", "CHF", "AED", "JPY"];
+import { FX_CURRENCIES } from "@/lib/fx";
+
+const CURRENCIES = [...FX_CURRENCIES];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const FIELDS: {
