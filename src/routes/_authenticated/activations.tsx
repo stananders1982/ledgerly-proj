@@ -33,6 +33,8 @@ import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { KYC_STATUS_LABELS, kycStatus } from "@/lib/kyc";
+import { KycBadge } from "@/components/client-kyc-checklist";
 import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TableKeyboardHint } from "@/components/table-toolbox";
 import { TableFrame } from "@/components/table-frame";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate, depositIndex, depositTotalFor, isLateRetentionFtd, monthsLate } from "@/lib/rules";
@@ -445,6 +447,7 @@ function ActivationsPage() {
       { key: "age", label: "Age", defaultHidden: true, value: (r: any) => (clientAge(r) != null ? String(clientAge(r)) : "") },
       { key: "country", label: "Country", filter: "select", defaultHidden: true, value: (r: any) => r.country ?? "" },
       { key: "followup", label: "Follow-up", filter: "date", defaultHidden: true, value: (r: any) => (r.next_follow_up ? fmtDate(r.next_follow_up) : "") },
+      { key: "kyc", label: "KYC", filter: "select", defaultHidden: true, options: Object.values(KYC_STATUS_LABELS), value: (r: any) => KYC_STATUS_LABELS[kycStatus(r.kyc)] },
       { key: "legacy", label: "Origin", filter: "select", defaultHidden: true, options: ["New lead", "Legacy (old CRM)"], value: (r: any) => (r.legacy ? "Legacy (old CRM)" : "New lead") },
     ],
     rows,
@@ -558,7 +561,7 @@ function ActivationsPage() {
     });
 
   const bulkUpdate = useMutation({
-    mutationFn: async (patch: { answered?: boolean; potential?: string }) => {
+    mutationFn: async (patch: { answered?: boolean; potential?: string; employee_id?: string | null; conversion_employee_id?: string | null }) => {
       const ids = [...selected];
       if (!ids.length) return 0;
       const { error } = await supabase.from("daily_lead_activations").update(patch as any).in("id", ids);
@@ -589,6 +592,62 @@ function ActivationsPage() {
       setViewing(null);
       setEditing(null);
       if (count) toast.success(`Deleted ${count} client${count === 1 ? "" : "s"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  /**
+   * Merge duplicate client records: everything attached to the extra rows is
+   * repointed at the keeper (the oldest activation), then the extras go away.
+   */
+  const mergeClients = useMutation({
+    mutationFn: async () => {
+      const ids = [...selected];
+      if (ids.length < 2) throw new Error("Pick at least two clients to merge");
+      const picked = (rowsAllTime as any[]).filter((r) => ids.includes(r.id));
+      const keeper = [...picked].sort((a, b) =>
+        String(actDate(a) ?? a.created_at).localeCompare(String(actDate(b) ?? b.created_at)),
+      )[0];
+      if (!keeper) throw new Error("Could not find the records to merge");
+      const losers = ids.filter((id) => id !== keeper.id);
+
+      for (const [table, col] of [
+        ["revenue", "activation_id"],
+        ["client_communications", "activation_id"],
+        ["tasks", "activation_id"],
+        ["notifications", "lead_activation_id"],
+      ] as const) {
+        const { error } = await supabase.from(table).update({ [col]: keeper.id } as any).in(col, losers);
+        if (error) throw error;
+      }
+
+      // Keep the richest profile: fill blanks on the keeper from the extras.
+      const fill: Record<string, unknown> = {};
+      const fields = ["phone", "email", "country", "city", "language", "occupation", "gender",
+        "date_of_birth", "potential", "potential_value", "notes", "status", "conversion_employee_id", "employee_id"];
+      for (const f of fields) {
+        if (keeper[f] == null || keeper[f] === "") {
+          const donor = picked.find((r) => r.id !== keeper.id && r[f] != null && r[f] !== "");
+          if (donor) fill[f] = donor[f];
+        }
+      }
+      const balance = picked.reduce((a, r) => a + Number(r.balance || 0), 0);
+      const { error: upErr } = await supabase
+        .from("daily_lead_activations")
+        .update({ ...fill, balance } as any)
+        .eq("id", keeper.id);
+      if (upErr) throw upErr;
+
+      const { error: delErr } = await supabase.from("daily_lead_activations").delete().in("id", losers);
+      if (delErr) throw delErr;
+      return { keeper: keeper.lead_name as string, merged: losers.length };
+    },
+    onSuccess: ({ keeper, merged }) => {
+      qc.invalidateQueries({ queryKey: ["activated-leads"] });
+      qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
+      qc.invalidateQueries({ queryKey: ["revenue-for-activations"] });
+      setSelected(new Set());
+      toast.success(`Merged ${merged} record${merged === 1 ? "" : "s"} into ${keeper || "the keeper"}`);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -836,6 +895,35 @@ function ActivationsPage() {
               <SelectItem value="high">High</SelectItem>
             </SelectContent>
           </Select>
+          <Select onValueChange={(v) => bulkUpdate.mutate({ employee_id: v === "none" ? null : v })}>
+            <SelectTrigger className="h-8 w-[190px]"><SelectValue placeholder="Set retention agent" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Unassigned</SelectItem>
+              {(employeesQ.data ?? []).filter((e) => e.active !== false && e.team === "R").map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select onValueChange={(v) => bulkUpdate.mutate({ conversion_employee_id: v === "none" ? null : v })}>
+            <SelectTrigger className="h-8 w-[195px]"><SelectValue placeholder="Set conversion agent" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Unassigned</SelectItem>
+              {(employeesQ.data ?? []).filter((e) => e.active !== false && e.team === "C").map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selected.size > 1 && (
+            <ConfirmDelete
+              text={`Merge ${selected.size}`}
+              variant="outline"
+              disabled={mergeClients.isPending}
+              onConfirm={() => mergeClients.mutate()}
+              label={`Merge ${selected.size} client records?`}
+              description="Deposits, withdrawals, tasks and notes move onto the oldest record, balances are added together, and the extra records are removed. This can't be undone."
+              confirmText="Merge"
+            />
+          )}
           <ConfirmDelete
             text={`Delete ${selected.size}`}
             disabled={bulkDelete.isPending}
