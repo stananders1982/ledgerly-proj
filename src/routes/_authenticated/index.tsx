@@ -186,7 +186,7 @@ function Dashboard() {
 
   const revQ = useQuery({
     queryKey: ["dash-rev", startIso, endIso],
-    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("amount,date,method,employee_id,employee_id_2,split_pct").gte("date", startIso).lte("date", endIso)),
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("amount,currency,date,method,fee_pct,fee_amount,employee_id,employee_id_2,split_pct").gte("date", startIso).lte("date", endIso)),
   });
   const expQ = useQuery({
     queryKey: ["dash-exp", startIso, endIso],
@@ -217,6 +217,20 @@ function Dashboard() {
       .from("daily_lead_entries")
       .select("received,activated,reported,lead_sources(pricing_model,price)")
       .gte("entry_date", prevRange.start).lte("entry_date", prevRange.end)),
+  });
+
+  // All-time cash position, for the runway card.
+  const cashQ = useQuery({
+    queryKey: ["dash-cash"],
+    staleTime: 120_000,
+    queryFn: async () => {
+      const [rev, exp, wd] = await Promise.all([
+        fetchAll(() => supabase.from("revenue").select("amount,currency,method,fee_pct,fee_amount")),
+        fetchAll(() => supabase.from("expenses").select("amount,currency")),
+        fetchAll(() => supabase.from("withdrawals").select("amount,currency,status")),
+      ]);
+      return { rev, exp, wd };
+    },
   });
 
   const recQ = useQuery({
@@ -301,6 +315,9 @@ function Dashboard() {
     const expTotal = leadCost + otherExp + salaries + commissions;
     const profit = income - expTotal;
 
+    const feeInfo = feeTotals(rangeRev as any[], settings);
+    const netIncome = feeInfo.net;
+
     const rec = (recQ.data ?? []) as any[];
     const monthlyEquiv = (amt: number, f: string) =>
       f === "weekly" ? amt * 52 / 12 : f === "quarterly" ? amt / 3 : f === "yearly" ? amt / 12 : amt;
@@ -366,8 +383,22 @@ function Dashboard() {
     const expectedRate = a.received ? (a.expectedActivations / a.received) * 100 : 0;
     const roi = expTotal ? ((income - expTotal) / expTotal) * 100 : 0;
 
+    // Cash on hand and runway.
+    const cash = cashQ.data;
+    const cashIn = cash ? feeTotals(cash.rev as any[], settings).net : 0;
+    const cashOutExp = cash ? (cash.exp as any[]).reduce((s2: number, r: any) => s2 + toDisplay(r.amount, r.currency), 0) : 0;
+    const cashOutWd = cash
+      ? (cash.wd as any[]).filter((w: any) => String(w.status ?? "paid") !== "rejected")
+          .reduce((s2: number, w: any) => s2 + toDisplay(w.amount, w.currency), 0)
+      : 0;
+    const cashPosition = cashIn - cashOutExp - cashOutWd;
+    const monthlyBurn = fixedMonthly + (otherExp / Math.max(1, days)) * 30;
+    const runway = cashRunway({ cashPosition, monthlyBurn });
+
     return {
-      income, leadCost, otherExp, salaries, commissions, expTotal, profit,
+      income, netIncome, processingFees: feeInfo.fees,
+      cashPosition, monthlyBurn, runwayMonths: runway.months,
+      leadCost, otherExp, salaries, commissions, expTotal, profit,
       received: a.received, activated: a.activated, reported: a.reported,
       unreported: a.activated - a.reported,
       cplCost: fromWorkspace(a.cplCost), cpaPayable: fromWorkspace(a.cpaPayable), cpaSavings: fromWorkspace(a.cpaSavings),
