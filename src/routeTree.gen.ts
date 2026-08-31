@@ -47,7 +47,6 @@ import { Route as AuthenticatedAffiliatesIdRouteImport } from './routes/_authent
 import { Route as ApiPublicV1LeadsRouteImport } from './routes/api/public/v1/leads'
 import { Route as ApiPublicV1DepositsRouteImport } from './routes/api/public/v1/deposits'
 import { Route as ApiPublicV1ActivationsRouteImport } from './routes/api/public/v1/activations'
-import { Route as ApiPublicHooksClientAutomationRouteImport } from './routes/api/public/hooks/client-automation'
 import { Route as ApiPublicV1ReportsSummaryRouteImport } from './routes/api/public/v1/reports/summary'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -250,12 +249,6 @@ const ApiPublicV1ActivationsRoute = ApiPublicV1ActivationsRouteImport.update({
   path: '/api/public/v1/activations',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicHooksClientAutomationRoute =
-  ApiPublicHooksClientAutomationRouteImport.update({
-    id: '/api/public/hooks/client-automation',
-    path: '/api/public/hooks/client-automation',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicV1ReportsSummaryRoute =
   ApiPublicV1ReportsSummaryRouteImport.update({
     id: '/api/public/v1/reports/summary',
@@ -298,7 +291,6 @@ export interface FileRoutesByFullPath {
   '/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/employees/': typeof AuthenticatedEmployeesIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
-  '/api/public/hooks/client-automation': typeof ApiPublicHooksClientAutomationRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
@@ -339,7 +331,6 @@ export interface FileRoutesByTo {
   '/assistant': typeof AuthenticatedAssistantIndexRoute
   '/employees': typeof AuthenticatedEmployeesIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
-  '/api/public/hooks/client-automation': typeof ApiPublicHooksClientAutomationRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
@@ -382,7 +373,6 @@ export interface FileRoutesById {
   '/_authenticated/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/_authenticated/employees/': typeof AuthenticatedEmployeesIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
-  '/api/public/hooks/client-automation': typeof ApiPublicHooksClientAutomationRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
@@ -425,7 +415,6 @@ export interface FileRouteTypes {
     | '/assistant/'
     | '/employees/'
     | '/users/'
-    | '/api/public/hooks/client-automation'
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
     | '/api/public/v1/leads'
@@ -466,7 +455,6 @@ export interface FileRouteTypes {
     | '/assistant'
     | '/employees'
     | '/users'
-    | '/api/public/hooks/client-automation'
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
     | '/api/public/v1/leads'
@@ -508,7 +496,6 @@ export interface FileRouteTypes {
     | '/_authenticated/assistant/'
     | '/_authenticated/employees/'
     | '/_authenticated/users/'
-    | '/api/public/hooks/client-automation'
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
     | '/api/public/v1/leads'
@@ -520,7 +507,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiAdminChatRoute: typeof ApiAdminChatRoute
-  ApiPublicHooksClientAutomationRoute: typeof ApiPublicHooksClientAutomationRoute
   ApiPublicV1ActivationsRoute: typeof ApiPublicV1ActivationsRoute
   ApiPublicV1DepositsRoute: typeof ApiPublicV1DepositsRoute
   ApiPublicV1LeadsRoute: typeof ApiPublicV1LeadsRoute
@@ -795,13 +781,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1ActivationsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/client-automation': {
-      id: '/api/public/hooks/client-automation'
-      path: '/api/public/hooks/client-automation'
-      fullPath: '/api/public/hooks/client-automation'
-      preLoaderRoute: typeof ApiPublicHooksClientAutomationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/v1/reports/summary': {
       id: '/api/public/v1/reports/summary'
       path: '/api/public/v1/reports/summary'
@@ -888,7 +867,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiAdminChatRoute: ApiAdminChatRoute,
-  ApiPublicHooksClientAutomationRoute: ApiPublicHooksClientAutomationRoute,
   ApiPublicV1ActivationsRoute: ApiPublicV1ActivationsRoute,
   ApiPublicV1DepositsRoute: ApiPublicV1DepositsRoute,
   ApiPublicV1LeadsRoute: ApiPublicV1LeadsRoute,
