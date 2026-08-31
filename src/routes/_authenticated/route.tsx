@@ -43,13 +43,15 @@ function ProtectedLayout() {
   const palette = useCommandPalette();
   const shortcuts = useKeyboardShortcutsPanel();
   useWorkspaceBranding();
-  useFxRates();
+  const fx = useFxRates();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: pathname }, replace: true });
   }, [loading, user, navigate, pathname]);
 
-  if (loading || !user) {
+  // Wait for FX rates before rendering pages: totals are computed in memos that
+  // won't recompute when rates arrive later.
+  if (loading || !user || fx.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
