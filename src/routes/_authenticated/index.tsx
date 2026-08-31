@@ -194,8 +194,8 @@ function Dashboard() {
 
   // Auto-generate any due recurring expenses so dashboard reflects them
   useEffect(() => {
-    import("@/lib/recurring.functions").then(({ generateDueRecurringExpenses }) =>
-      generateDueRecurringExpenses().then((res) => {
+    import("@/lib/recurring-run").then(({ runDueRecurringExpenses }) =>
+      runDueRecurringExpenses().then((res) => {
         if (res?.count > 0) {
           qc.invalidateQueries({ queryKey: ["dash-exp"] });
           qc.invalidateQueries({ queryKey: ["expenses-list"] });

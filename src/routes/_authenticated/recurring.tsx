@@ -60,8 +60,8 @@ function RecurringPage() {
 
   // Auto-generate due entries on page load
   useEffect(() => {
-    import("@/lib/recurring.functions").then(({ generateDueRecurringExpenses }) =>
-      generateDueRecurringExpenses().then((res) => {
+    import("@/lib/recurring-run").then(({ runDueRecurringExpenses }) =>
+      runDueRecurringExpenses().then((res) => {
         if (res?.count > 0) {
           toast.success(`Generated ${res.count} due expense${res.count === 1 ? "" : "s"}`);
           qc.invalidateQueries({ queryKey: ["recurring"] });
@@ -142,8 +142,8 @@ function RecurringPage() {
 
   const runNow = useMutation({
     mutationFn: async () => {
-      const { generateDueRecurringExpenses } = await import("@/lib/recurring.functions");
-      const res = await generateDueRecurringExpenses();
+      const { runDueRecurringExpenses } = await import("@/lib/recurring-run");
+      const res = await runDueRecurringExpenses();
       return res.count;
     },
     onSuccess: (n) => {
