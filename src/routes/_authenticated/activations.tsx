@@ -621,28 +621,33 @@ function ActivationsPage() {
         title="Clients"
         description="Every client with its balance, potential, agents and answer status."
         actions={
-          <Button
-            variant="outline"
-            onClick={() =>
-              setEditing({
-                id: "",
-                entry_id: "",
-                employee_id: "",
-                conversion_employee_id: null,
-                activated_count: 1,
-                lead_name: "",
-                balance: 0,
-                potential: null,
-                answered: false,
-                activation_date: todayISO(),
-                legacy: true,
-                notes: null,
-                tags: [],
-              })
-            }
-          >
-            <Plus className="h-4 w-4" /> Add client
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="font-normal text-muted-foreground">
+              Today: {fmtDate(todayISO())}
+            </Badge>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setEditing({
+                  id: "",
+                  entry_id: "",
+                  employee_id: "",
+                  conversion_employee_id: null,
+                  activated_count: 1,
+                  lead_name: "",
+                  balance: 0,
+                  potential: null,
+                  answered: false,
+                  activation_date: todayISO(),
+                  legacy: true,
+                  notes: null,
+                  tags: [],
+                })
+              }
+            >
+              <Plus className="h-4 w-4" /> Add client
+            </Button>
+          </div>
         }
       />
 
