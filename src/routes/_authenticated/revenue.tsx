@@ -175,6 +175,7 @@ function RevenuePage() {
       { key: "date", label: "Date", filter: "date", value: (r: any) => fmtDate(r.date) },
       { key: "customer", label: "Customer", value: (r: any) => r.customer_name ?? "" },
       { key: "amount", label: "Amount", value: (r: any) => r.amount },
+      { key: "net", label: "Net", value: (r: any) => depositNet(r, settings) },
       { key: "employee", label: "Employee", filter: "select", value: (r: any) => getEmployeeName(r.employee_id, r.employees) ?? "" },
       { key: "affiliate", label: "Affiliate", filter: "select", value: (r: any) => getAffiliateName(r.affiliate_id, r.affiliates) ?? "" },
     ],
@@ -185,6 +186,7 @@ function RevenuePage() {
     date: (r) => r.date,
     customer: (r) => r.customer_name,
     amount: (r) => Number(r.amount ?? 0),
+    net: (r) => depositNet(r, settings),
     employee: (r) => getEmployeeName(r.employee_id, r.employees) ?? "",
     affiliate: (r) => getAffiliateName(r.affiliate_id, r.affiliates) ?? "",
   });
@@ -438,6 +440,8 @@ function RevenuePage() {
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label={activeRange.label} value={fmtMoney(stats.total)} tone="positive" />
         <StatCard label="All-time revenue" value={fmtMoney(stats.allTotal)} />
+        <StatCard label="Processing fees" value={fmtMoney(stats.fees)} tone="negative" hint="Card / wire / crypto fees charged on deposits in this period, using the rates in Settings." />
+        <StatCard label="Net received" value={fmtMoney(stats.net)} tone="positive" hint="What actually reaches the bank: gross deposits minus processing fees." />
         <StatCard label="Transactions" value={String(stats.count)} />
         <StatCard label="Avg deal" value={fmtMoney(stats.count ? stats.total / stats.count : 0)} />
       </section>
@@ -511,6 +515,7 @@ function RevenuePage() {
                   {tb.show("date") && <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-3 px-4" />}
                   {tb.show("customer") && <SortTh label="Customer" k="customer" sort={sort} toggle={toggle} className="py-3 px-4" />}
                   {tb.show("amount") && <SortTh label="Amount" k="amount" sort={sort} toggle={toggle} className="py-3 px-4" />}
+                  {tb.show("net") && <SortTh label="Net" k="net" sort={sort} toggle={toggle} className="py-3 px-4" />}
                   {tb.show("employee") && <SortTh label="Employee" k="employee" sort={sort} toggle={toggle} className="py-3 px-4" />}
                   {tb.show("affiliate") && <SortTh label="Affiliate" k="affiliate" sort={sort} toggle={toggle} className="py-3 px-4" />}
                   <th className="py-3 px-4"></th>
@@ -539,7 +544,7 @@ function RevenuePage() {
                 rows={pageItems as any[]}
                 leading={1}
                 trailing={1}
-                totals={{ amount: (r: any) => toDisplay(r.amount, r.currency) }}
+                totals={{ amount: (r: any) => toDisplay(r.amount, r.currency), net: (r: any) => depositNet(r, settings) }}
                 format={(n) => fmtMoney(n)}
                 label="Page total"
               />
@@ -576,6 +581,7 @@ function RevenueRow({
   onToggleSelect?: () => void;
   show: (key: string) => boolean;
 }) {
+  const settings = useCompanySettings();
   return (
                   <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30 cursor-pointer"
                       onClick={onEdit}>
@@ -593,6 +599,16 @@ function RevenueRow({
                       {fmtMoney(toDisplay(r.amount, r.currency))}
                       {originalLabel(r.amount, r.currency, getDisplayCurrency()) && (
                         <span className="block text-xs font-normal text-muted-foreground">{originalLabel(r.amount, r.currency, getDisplayCurrency())}</span>
+                      )}
+                    </td>
+                    )}
+                    {show("net") && (
+                    <td className="py-3 px-4 num">
+                      {fmtMoney(depositNet(r, settings))}
+                      {depositFee(r, settings) > 0 && (
+                        <span className="block text-xs font-normal text-muted-foreground">
+                          −{fmtMoney(depositFee(r, settings))} fee
+                        </span>
                       )}
                     </td>
                     )}
