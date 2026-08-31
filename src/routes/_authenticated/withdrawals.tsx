@@ -19,7 +19,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toBase, sumBase, originalLabel } from "@/lib/fx";
+import { sumBase, originalLabel, toDisplay } from "@/lib/fx";
 import { AmountWithCurrency } from "@/components/amount-with-currency";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
@@ -160,7 +160,7 @@ function WithdrawalsPage() {
 
     const byEmp = new Map<string, number>();
     list.forEach((r: any) => {
-      const totalAmount = toBase(r.amount, r.currency, base);
+      const totalAmount = toDisplay(r.amount, r.currency);
       const pct = Number(r.split_pct ?? 100) / 100;
       if (r.employee_id) {
         const n = r.employees?.name ?? empNameById.get(r.employee_id) ?? "?";
@@ -180,7 +180,7 @@ function WithdrawalsPage() {
       const amount = Number(v.amount) || 0;
       const base = getDisplayCurrency();
       // Penalty is computed in workspace currency so payroll math stays consistent.
-      const baseAmount = toBase(amount, v.currency ?? null, base);
+      const baseAmount = toDisplay(amount, v.currency ?? null);
       const payload = {
         revenue_id: v.revenue_id || null,
         customer_name: v.customer_name,
@@ -325,7 +325,7 @@ function WithdrawalsPage() {
                     )}
                     {tb.show("amount") && (
                     <td className="py-3 px-4 text-destructive font-medium">
-                      −{fmtMoney(toBase(r.amount, r.currency, getDisplayCurrency()))}
+                      −{fmtMoney(toDisplay(r.amount, r.currency))}
                       {originalLabel(r.amount, r.currency, getDisplayCurrency()) && (
                         <span className="block text-xs font-normal text-muted-foreground">−{originalLabel(r.amount, r.currency, getDisplayCurrency())}</span>
                       )}
@@ -371,7 +371,7 @@ function WithdrawalsPage() {
                 rows={pageItems as any[]}
                 trailing={1}
                 totals={{
-                  amount: (r: any) => toBase(r.amount, r.currency, getDisplayCurrency()),
+                  amount: (r: any) => toDisplay(r.amount, r.currency),
                   penalty: (r: any) => Number(r.employee_penalty || 0),
                 }}
                 format={(n) => `−${fmtMoney(n)}`}
@@ -407,7 +407,7 @@ function WithdrawalDialog({
   const [pickerOpen, setPickerOpen] = useState(false);
   const picked = revenues.find((x) => x.id === form.revenue_id);
   const settings = useCompanySettings();
-  const penaltyPreview = withdrawalPenalty(toBase(form.amount, form.currency, getDisplayCurrency()), settings);
+  const penaltyPreview = withdrawalPenalty(toDisplay(form.amount, form.currency), settings);
   const hasSplit = !!form.employee_id_2;
 
   const onPickRevenue = (id: string) => {

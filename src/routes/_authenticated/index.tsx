@@ -54,7 +54,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct, getDisplayCurrency, getCurrencyOverride, setCurrencyOverride, useDisplayCurrency } from "@/lib/format";
-import { toBase, FX_CURRENCIES, CURRENCY_SYMBOLS } from "@/lib/fx";
+import { toBase, toDisplay, fromWorkspace, FX_CURRENCIES, CURRENCY_SYMBOLS } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
@@ -226,7 +226,8 @@ function Dashboard() {
     };
 
     const a = agg(rangeEntries);
-    const leadCost = a.cplCost + a.cpaPayable;
+    // Lead costs are count × price — implicitly workspace currency, so scale to display.
+    const leadCost = fromWorkspace(a.cplCost + a.cpaPayable);
 
     const rangeRev = (revQ.data ?? []);
     const rangeExp = (expQ.data ?? []);
@@ -247,17 +248,17 @@ function Dashboard() {
       days / 30;
 
     const base = getDisplayCurrency();
-    const income = rangeRev.reduce((s: number, r: any) => s + toBase(r.amount, r.currency, base), 0);
-    const otherExp = rangeExp.reduce((s: number, r: any) => s + toBase(r.amount, r.currency, base), 0);
+    const income = rangeRev.reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
+    const otherExp = rangeExp.reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
     const employees = (empQ.data ?? []) as any[];
     const salariesMonthly = employees.reduce((s: number, e: any) => s + Number(e.salary), 0);
-    const salaries = salariesMonthly * monthMultiplier;
+    const salaries = fromWorkspace(salariesMonthly) * monthMultiplier;
 
 
     // Per-employee commission using tiered rate on their attributed revenue in range
     const perEmp = new Map<string, number>();
     for (const r of rangeRev as any[]) {
-      const amt = commissionableAmount(toBase(r.amount, r.currency, base), r.method, settings);
+      const amt = commissionableAmount(toDisplay(r.amount, r.currency), r.method, settings);
       if (r.employee_id_2 && r.split_pct != null) {
         const pct = Number(r.split_pct) / 100;
         if (r.employee_id) perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt * pct);
@@ -277,11 +278,11 @@ function Dashboard() {
     const rec = (recQ.data ?? []) as any[];
     const monthlyEquiv = (amt: number, f: string) =>
       f === "weekly" ? amt * 52 / 12 : f === "quarterly" ? amt / 3 : f === "yearly" ? amt / 12 : amt;
-    const recurringMonthly = rec.reduce((s, r) => s + monthlyEquiv(Number(r.amount), r.frequency), 0);
-    const fixedMonthly = recurringMonthly + salariesMonthly;
+    const recurringMonthly = fromWorkspace(rec.reduce((s, r) => s + monthlyEquiv(Number(r.amount), r.frequency), 0));
+    const fixedMonthly = recurringMonthly + fromWorkspace(salariesMonthly);
     const in30 = new Date(); in30.setDate(in30.getDate() + 30);
-    const upcoming30 = rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
-      .reduce((s, r) => s + Number(r.amount), 0);
+    const upcoming30 = fromWorkspace(rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
+      .reduce((s, r) => s + Number(r.amount), 0));
 
     // Build daily series across the selected range
     const dayList: string[] = [];
@@ -292,9 +293,9 @@ function Dashboard() {
       dayList.push(`${y}-${mo}-${da}`);
     }
     const revMap = new Map<string, number>();
-    rangeRev.forEach((r: any) => revMap.set(r.date, (revMap.get(r.date) ?? 0) + toBase(r.amount, r.currency, base)));
+    rangeRev.forEach((r: any) => revMap.set(r.date, (revMap.get(r.date) ?? 0) + toDisplay(r.amount, r.currency)));
     const expMap = new Map<string, number>();
-    rangeExp.forEach((r: any) => expMap.set(r.date, (expMap.get(r.date) ?? 0) + toBase(r.amount, r.currency, base)));
+    rangeExp.forEach((r: any) => expMap.set(r.date, (expMap.get(r.date) ?? 0) + toDisplay(r.amount, r.currency)));
     const leadDay = new Map<string, { received: number; activated: number; cost: number }>();
     entries.forEach((e: any) => {
       const cur = leadDay.get(e.entry_date) ?? { received: 0, activated: 0, cost: 0 };
@@ -303,7 +304,7 @@ function Dashboard() {
       const s = e.lead_sources;
       if (s) {
         const p = Number(s.price);
-        cur.cost += s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
+        cur.cost += fromWorkspace(s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0));
       }
       leadDay.set(e.entry_date, cur);
     });
@@ -327,7 +328,7 @@ function Dashboard() {
       cur.activated += e.activated ?? 0;
       cur.expected += ((e.received ?? 0) * (Number(s.expected_conversion_rate) || 0)) / 100;
       const p = Number(s.price);
-      cur.cost += s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
+      cur.cost += fromWorkspace(s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0));
       bySource.set(key, cur);
     });
     const sourceRows = [...bySource.values()]
@@ -343,7 +344,7 @@ function Dashboard() {
       income, leadCost, otherExp, salaries, commissions, expTotal, profit,
       received: a.received, activated: a.activated, reported: a.reported,
       unreported: a.activated - a.reported,
-      cplCost: a.cplCost, cpaPayable: a.cpaPayable, cpaSavings: a.cpaSavings,
+      cplCost: fromWorkspace(a.cplCost), cpaPayable: fromWorkspace(a.cpaPayable), cpaSavings: fromWorkspace(a.cpaSavings),
       rate, expectedRate,
       expectedActivations: a.expectedActivations,
       activationSurplus: a.activated - a.expectedActivations,
@@ -356,18 +357,19 @@ function Dashboard() {
 
   const prev = useMemo(() => {
     const base = getDisplayCurrency();
-    const rev = (prevRevQ.data ?? []).reduce((s: number, r: any) => s + toBase(r.amount, r.currency, base), 0);
-    const otherExp = (prevExpQ.data ?? []).reduce((s: number, r: any) => s + toBase(r.amount, r.currency, base), 0);
-    let received = 0, activated = 0, leadCost = 0;
+    const rev = (prevRevQ.data ?? []).reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
+    const otherExp = (prevExpQ.data ?? []).reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
+    let received = 0, activated = 0, leadCostRaw = 0;
     for (const e of (prevLeadsQ.data ?? []) as any[]) {
       received += e.received ?? 0;
       activated += e.activated ?? 0;
       const src = e.lead_sources;
       if (src) {
         const p = Number(src.price) || 0;
-        leadCost += src.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
+        leadCostRaw += src.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
       }
     }
+    const leadCost = fromWorkspace(leadCostRaw);
     // Salaries/commissions are period-scaled the same way, so compare the
     // variable part plus the same fixed baseline for a like-for-like delta.
     const expTotal = otherExp + leadCost + m.salaries + m.commissions;

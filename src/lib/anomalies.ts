@@ -6,7 +6,7 @@
  */
 
 
-import { toBase } from "./fx";
+import { toDisplay } from "./fx";
 import { getDisplayCurrency } from "./format";
 export type AnomalySeverity = "critical" | "warning" | "info";
 
@@ -63,7 +63,7 @@ function dailyTotals(rows: { date: string; amount: number; currency?: string | n
   const byDay = new Map<string, number>();
   for (const r of rows) {
     if (!r.date || r.date >= endExclusive) continue;
-    byDay.set(r.date, (byDay.get(r.date) ?? 0) + toBase(r.amount, r.currency, getDisplayCurrency()));
+    byDay.set(r.date, (byDay.get(r.date) ?? 0) + toDisplay(r.amount, r.currency));
   }
   const out: number[] = [];
   const end = new Date(endExclusive + "T12:00:00");
@@ -83,7 +83,7 @@ export function detectAnomalies(input: AnomalyInput, today = new Date()): Anomal
   const revBaseline = dailyTotals(input.revenue, 30, yesterdayIso);
   const revYesterday = input.revenue
     .filter((r) => r.date === yesterdayIso)
-    .reduce((s, r) => s + toBase(r.amount, r.currency, getDisplayCurrency()), 0);
+    .reduce((s, r) => s + toDisplay(r.amount, r.currency), 0);
   const revMean = mean(revBaseline);
   const revSd = stdev(revBaseline);
   if (revMean > 0 && revSd > 0 && revBaseline.filter(Boolean).length >= 8) {
@@ -111,7 +111,7 @@ export function detectAnomalies(input: AnomalyInput, today = new Date()): Anomal
   const wdBaseline = dailyTotals(input.withdrawals, 30, yesterdayIso);
   const wdRecent = input.withdrawals
     .filter((w) => w.date >= isoDay(daysAgo(7, today)) && w.date <= todayIso)
-    .reduce((s, w) => s + toBase(w.amount, w.currency, getDisplayCurrency()), 0);
+    .reduce((s, w) => s + toDisplay(w.amount, w.currency), 0);
   const wdWeekBaseline = mean(wdBaseline) * 7;
   if (wdWeekBaseline > 0 && wdRecent > wdWeekBaseline * 2) {
     out.push({
@@ -195,7 +195,7 @@ export function detectAnomalies(input: AnomalyInput, today = new Date()): Anomal
   for (const e of input.expenses) {
     if (!e.category_id) continue;
     const arr = byCat.get(e.category_id) ?? [];
-    arr.push({ date: e.date, amount: toBase(e.amount, e.currency, getDisplayCurrency()) });
+    arr.push({ date: e.date, amount: toDisplay(e.amount, e.currency) });
     byCat.set(e.category_id, arr);
   }
   const cut = isoDay(daysAgo(14, today));

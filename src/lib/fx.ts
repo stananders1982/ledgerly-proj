@@ -6,6 +6,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getFxRates } from "@/lib/fx.functions";
+import { getWorkspaceCurrency, getDisplayCurrency } from "@/lib/format";
 
 export const FX_CURRENCIES = ["USD", "EUR", "GBP", "AUD", "NZD"] as const;
 export type FxCurrency = (typeof FX_CURRENCIES)[number];
@@ -45,6 +46,20 @@ export function fxRate(currency: string | null | undefined, base: string): numbe
 export function toBase(amount: number | string | null | undefined, currency: string | null | undefined, base: string): number {
   const a = Number(amount) || 0;
   return a * fxRate(currency, base);
+}
+
+/**
+ * Convert an amount into the current display currency. Rows with no currency
+ * are stored in the workspace currency, so NULL is treated as such — unlike
+ * `toBase`, which skips conversion for null currencies.
+ */
+export function toDisplay(amount: number | string | null | undefined, currency: string | null | undefined): number {
+  return toBase(amount, currency ?? getWorkspaceCurrency(), getDisplayCurrency());
+}
+
+/** Convert a value known to be denominated in the workspace currency (salaries, count×price lead costs) into the display currency. */
+export function fromWorkspace(amount: number | null | undefined): number {
+  return toBase(amount, getWorkspaceCurrency(), getDisplayCurrency());
 }
 
 /** Convenience for summing mixed-currency rows into the base currency. */

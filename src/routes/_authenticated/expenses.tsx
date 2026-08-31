@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toBase, sumBase, originalLabel } from "@/lib/fx";
+import { sumBase, originalLabel, toDisplay } from "@/lib/fx";
 import { AmountWithCurrency } from "@/components/amount-with-currency";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
@@ -114,7 +114,7 @@ function ExpensesPage() {
     const byCat = new Map<string, number>();
     filtered.forEach((e: any) => {
       const k = e.expense_categories?.name ?? "Uncategorized";
-      byCat.set(k, (byCat.get(k) ?? 0) + toBase(e.amount, e.currency, base));
+      byCat.set(k, (byCat.get(k) ?? 0) + toDisplay(e.amount, e.currency));
     });
     const allTotal = sumBase(expQ.data ?? [], base, (e: any) => e);
     return { total, allTotal, count: filtered.length, byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]) };
@@ -152,7 +152,7 @@ function ExpensesPage() {
     });
   const selectedTotal = filtered
     .filter((e: any) => selected.has(e.id))
-    .reduce((s: number, e: any) => s + toBase(e.amount, e.currency, getDisplayCurrency()), 0);
+    .reduce((s: number, e: any) => s + toDisplay(e.amount, e.currency), 0);
 
   const bulkDelete = useMutation({
     mutationFn: async () => {
@@ -344,7 +344,7 @@ function ExpensesPage() {
                     {tb.show("affiliate") && <td className="py-3 px-4 text-muted-foreground">{e.affiliates?.name ?? "—"}</td>}
                     {tb.show("amount") && (
                     <td className="py-3 px-4 font-medium">
-                      {fmtMoney(toBase(e.amount, e.currency, getDisplayCurrency()))}
+                      {fmtMoney(toDisplay(e.amount, e.currency))}
                       {originalLabel(e.amount, e.currency, getDisplayCurrency()) && (
                         <span className="block text-xs font-normal text-muted-foreground">{originalLabel(e.amount, e.currency, getDisplayCurrency())}</span>
                       )}
@@ -362,7 +362,7 @@ function ExpensesPage() {
                 rows={pageItems as any[]}
                 leading={1}
                 trailing={1}
-                totals={{ amount: (e: any) => toBase(e.amount, e.currency, getDisplayCurrency()) }}
+                totals={{ amount: (e: any) => toDisplay(e.amount, e.currency) }}
                 format={(n) => fmtMoney(n)}
                 label="Page total"
               />

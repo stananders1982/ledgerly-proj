@@ -5,7 +5,7 @@ import { Sunrise } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toBase } from "@/lib/fx";
+import { toDisplay } from "@/lib/fx";
 import { cn } from "@/lib/utils";
 
 const sb = supabase as any;
@@ -62,7 +62,7 @@ export function DailyDigest() {
 
     const baseCcy = getDisplayCurrency();
     const sum = (rows: any[], day: string) =>
-      rows.filter((r) => r.date === day).reduce((s, r) => s + toBase(r.amount, r.currency, baseCcy), 0);
+      rows.filter((r) => r.date === day).reduce((s, r) => s + toDisplay(r.amount, r.currency), 0);
 
     const depositsToday = sum(rev, yesterday);
     const depositsPrev = sum(rev, dayBefore);
@@ -81,7 +81,7 @@ export function DailyDigest() {
     const perAgent = new Map<string, number>();
     for (const r of rev.filter((x) => x.date === yesterday)) {
       if (!r.employee_id) continue;
-      perAgent.set(r.employee_id, (perAgent.get(r.employee_id) ?? 0) + toBase(r.amount, r.currency, baseCcy));
+      perAgent.set(r.employee_id, (perAgent.get(r.employee_id) ?? 0) + toDisplay(r.amount, r.currency));
     }
     const top = [...perAgent.entries()].sort((a, b) => b[1] - a[1])[0];
 

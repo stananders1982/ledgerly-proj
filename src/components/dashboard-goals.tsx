@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { toBase } from "@/lib/fx";
+import { toBase, toDisplay } from "@/lib/fx";
 import { getDisplayCurrency } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { Target, TrendingUp, Users, Tag } from "lucide-react";
@@ -105,10 +105,10 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
   });
 
   const actuals = useMemo(() => {
-    const revenue = (revenueQ.data ?? []).reduce((s: number, r: any) => s + toBase(r.amount, r.currency, getDisplayCurrency()), 0);
+    const revenue = (revenueQ.data ?? []).reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
 
     const activations = (activationsQ.data ?? []).length;
-    const deposits = (depositsQ.data ?? []).reduce((s: number, r: any) => s + toBase(r.amount, r.currency, getDisplayCurrency()), 0);
+    const deposits = (depositsQ.data ?? []).reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
     const ftdsByEmp = new Map<string, number>();
     const depositsByEmp = new Map<string, number>();
     const activationsBySource = new Map<string, number>();
@@ -130,7 +130,7 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
     }
 
     for (const r of (depositsQ.data ?? []) as any[]) {
-      const amt = toBase(r.amount, r.currency, getDisplayCurrency());
+      const amt = toDisplay(r.amount, r.currency);
       if (r.employee_id) {
         depositsByEmp.set(r.employee_id, (depositsByEmp.get(r.employee_id) ?? 0) + amt);
       }

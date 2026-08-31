@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { toBase, sumBase, originalLabel } from "@/lib/fx";
+import { sumBase, originalLabel, toDisplay } from "@/lib/fx";
 import { AmountWithCurrency } from "@/components/amount-with-currency";
 import {
   AlertDialog,
@@ -198,7 +198,7 @@ function RevenuePage() {
     const byEmp = new Map<string, number>();
     const byAff = new Map<string, number>();
     list.forEach((r: any) => {
-      const amt = toBase(r.amount, r.currency, base);
+      const amt = toDisplay(r.amount, r.currency);
       const pct = Number(r.split_pct ?? 100);
       if (r.employee_id) {
         const n1 = getEmployeeName(r.employee_id, r.employees) ?? "?";
@@ -292,7 +292,7 @@ function RevenuePage() {
 
   const sel = useRowSelection<any>(filtered);
 
-  const selectedTotal = sel.selectedRows.reduce((a: number, r: any) => a + toBase(r.amount, r.currency, getDisplayCurrency()), 0);
+  const selectedTotal = sel.selectedRows.reduce((a: number, r: any) => a + toDisplay(r.amount, r.currency), 0);
 
   const bulkDelete = useMutation({
     mutationFn: async () => {
@@ -535,7 +535,7 @@ function RevenuePage() {
                 rows={pageItems as any[]}
                 leading={1}
                 trailing={1}
-                totals={{ amount: (r: any) => toBase(r.amount, r.currency, getDisplayCurrency()) }}
+                totals={{ amount: (r: any) => toDisplay(r.amount, r.currency) }}
                 format={(n) => fmtMoney(n)}
                 label="Page total"
               />
@@ -586,7 +586,7 @@ function RevenueRow({
                     )}
                     {show("amount") && (
                     <td className="py-3 px-4 text-primary font-medium">
-                      {fmtMoney(toBase(r.amount, r.currency, getDisplayCurrency()))}
+                      {fmtMoney(toDisplay(r.amount, r.currency))}
                       {originalLabel(r.amount, r.currency, getDisplayCurrency()) && (
                         <span className="block text-xs font-normal text-muted-foreground">{originalLabel(r.amount, r.currency, getDisplayCurrency())}</span>
                       )}
