@@ -165,7 +165,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const actions = QUICK_ACTIONS.filter((a) => allowed.some((i) => i.key === a.key));
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
+    <CommandDialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) setQuery(""); }}>
       <CommandInput placeholder="Search pages, clients, leads, employees, affiliates..." value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
@@ -233,6 +233,26 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 >
                   <Users className="mr-2 h-4 w-4" />
                   {c.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+        {leads.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Leads">
+              {leads.map((l) => (
+                <CommandItem
+                  key={l.id}
+                  value={`lead ${l.name}`}
+                  onSelect={() => {
+                    onOpenChange(false);
+                    navigate({ to: "/leads" });
+                  }}
+                >
+                  <Target className="mr-2 h-4 w-4" />
+                  {l.name}
                 </CommandItem>
               ))}
             </CommandGroup>
