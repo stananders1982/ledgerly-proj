@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { isAgentTeam } from "@/lib/rules";
 import { fetchAll } from "@/lib/fetch-all";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { DashboardRangePicker, useDashRange } from "@/components/dashboard-range-picker";
 import { useAuth } from "@/lib/auth-context";
 
@@ -53,12 +54,12 @@ import {
   YAxis,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMoney, fmtPct, getDisplayCurrency, getCurrencyOverride, setCurrencyOverride, useDisplayCurrency } from "@/lib/format";
+import { fmtMoney, fmtPct, getDisplayCurrency, setCurrencyOverride, useDisplayCurrency } from "@/lib/format";
 import { toBase, toDisplay, fromWorkspace, FX_CURRENCIES, CURRENCY_SYMBOLS } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
-import { useCompanySettings } from "@/lib/settings";
+import { useCompanySettings, SETTINGS_QUERY_KEY } from "@/lib/settings";
 import { CashflowForecast } from "@/components/cashflow-forecast";
 import { ActivityFeed } from "@/components/activity-feed";
 import { DataQualityCard } from "@/components/data-quality-card";
@@ -89,23 +90,48 @@ const toneStyles: Record<Tone, { glow: string; ring: string; text: string; strok
 };
 
 
-/** Currency selector for the dashboard — overrides the workspace display currency
- *  for this browser (persisted), so all totals and widgets convert live. */
+/** Currency selector for the dashboard — sets the workspace currency in
+ *  company settings, so the display currency is consistent everywhere
+ *  (dashboard, reports, Settings) and for every user of the workspace. */
 function DashboardCurrencyPicker() {
-  const current = useDisplayCurrency();
-  const override = getCurrencyOverride();
+  const qc = useQueryClient();
+  const settings = useCompanySettings();
+  const { isAdmin } = useAuth();
+
+  const save = useMutation({
+    mutationFn: async (currency: string) => {
+      const { data: cid, error: cErr } = await supabase.rpc("current_company_id");
+      if (cErr) throw cErr;
+      const { error } = await supabase
+        .from("company_settings")
+        .update({ currency })
+        .eq("company_id", cid);
+      if (error) throw error;
+    },
+    onSuccess: (_d, currency) => {
+      setCurrencyOverride(null); // drop any stale browser-local override
+      qc.invalidateQueries({ queryKey: SETTINGS_QUERY_KEY });
+      qc.invalidateQueries({ queryKey: ["company-settings-page"] });
+      toast.success(`Workspace currency set to ${currency}`);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Could not save currency"),
+  });
+
   return (
-    <Select value={override ?? "workspace"} onValueChange={(v) => setCurrencyOverride(v === "workspace" ? null : v)}>
+    <Select
+      value={settings.currency}
+      disabled={!isAdmin || save.isPending}
+      onValueChange={(v) => save.mutate(v)}
+    >
       <SelectTrigger
         className="h-9 w-auto min-w-[7rem] gap-1.5 rounded-full border-border bg-foreground/5 px-3 text-xs font-medium"
-        aria-label="Display currency"
-        title="Display currency — all dashboard totals convert to this"
+        aria-label="Workspace currency"
+        title={isAdmin ? "Workspace currency — saved in Settings, applies everywhere" : "Workspace currency (set by an admin in Settings)"}
       >
         <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
         <SelectValue />
       </SelectTrigger>
       <SelectContent align="end">
-        <SelectItem value="workspace">Workspace currency</SelectItem>
         {FX_CURRENCIES.map((c) => (
           <SelectItem key={c} value={c}>
             {c} {CURRENCY_SYMBOLS[c] ?? ""}
