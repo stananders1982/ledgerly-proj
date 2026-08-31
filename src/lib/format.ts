@@ -1,16 +1,46 @@
+import { useSyncExternalStore } from "react";
+
 let displayCurrency = "USD";
+const OVERRIDE_KEY = "display-currency-override";
+let currencyOverride: string | null =
+  typeof window !== "undefined" ? window.localStorage.getItem(OVERRIDE_KEY) : null;
+
+const currencyListeners = new Set<() => void>();
+const notifyCurrency = () => currencyListeners.forEach((l) => l());
 
 /** Set the workspace display currency (called once company settings load). */
 export const setDisplayCurrency = (code: string) => {
   displayCurrency = code || "USD";
+  notifyCurrency();
 };
 
-export const getDisplayCurrency = () => displayCurrency;
+/** Session-persisted user override of the display currency (e.g. dashboard selector). */
+export const setCurrencyOverride = (code: string | null) => {
+  currencyOverride = code || null;
+  try {
+    if (currencyOverride) window.localStorage.setItem(OVERRIDE_KEY, currencyOverride);
+    else window.localStorage.removeItem(OVERRIDE_KEY);
+  } catch { /* private mode */ }
+  notifyCurrency();
+};
+
+export const getCurrencyOverride = () => currencyOverride;
+
+export const getDisplayCurrency = () => currencyOverride ?? displayCurrency;
+
+/** Reactive display currency — re-renders when the workspace or override changes. */
+export function useDisplayCurrency() {
+  return useSyncExternalStore(
+    (cb) => { currencyListeners.add(cb); return () => currencyListeners.delete(cb); },
+    getDisplayCurrency,
+    getDisplayCurrency,
+  );
+}
 
 export const fmtMoney = (n: number | null | undefined) =>
   (Number(n) || 0).toLocaleString("en-US", {
     style: "currency",
-    currency: displayCurrency,
+    currency: getDisplayCurrency(),
     maximumFractionDigits: 0,
   });
 

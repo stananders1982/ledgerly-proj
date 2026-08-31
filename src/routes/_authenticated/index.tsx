@@ -53,8 +53,9 @@ import {
   YAxis,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMoney, fmtPct, getDisplayCurrency } from "@/lib/format";
-import { toBase } from "@/lib/fx";
+import { fmtMoney, fmtPct, getDisplayCurrency, getCurrencyOverride, setCurrencyOverride, useDisplayCurrency } from "@/lib/format";
+import { toBase, FX_CURRENCIES, CURRENCY_SYMBOLS } from "@/lib/fx";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
 import { useCompanySettings } from "@/lib/settings";
@@ -88,11 +89,39 @@ const toneStyles: Record<Tone, { glow: string; ring: string; text: string; strok
 };
 
 
+/** Currency selector for the dashboard — overrides the workspace display currency
+ *  for this browser (persisted), so all totals and widgets convert live. */
+function DashboardCurrencyPicker() {
+  const current = useDisplayCurrency();
+  const override = getCurrencyOverride();
+  return (
+    <Select value={override ?? "workspace"} onValueChange={(v) => setCurrencyOverride(v === "workspace" ? null : v)}>
+      <SelectTrigger
+        className="h-9 w-auto min-w-[7rem] gap-1.5 rounded-full border-border bg-foreground/5 px-3 text-xs font-medium"
+        aria-label="Display currency"
+        title="Display currency — all dashboard totals convert to this"
+      >
+        <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="end">
+        <SelectItem value="workspace">Workspace currency</SelectItem>
+        {FX_CURRENCIES.map((c) => (
+          <SelectItem key={c} value={c}>
+            {c} {CURRENCY_SYMBOLS[c] ?? ""}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function Dashboard() {
   const qc = useQueryClient();
   const settings = useCompanySettings();
   const dash = useDashRange();
   const rangeKey = dash.state.key;
+  const displayCur = useDisplayCurrency();
 
   const iso = (d: Date) => {
     const y = d.getFullYear();
@@ -322,7 +351,7 @@ function Dashboard() {
       roi,
       series: profitSeries, sourceRows,
     };
-  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, range.start, range.end]);
+  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, range.start, range.end, displayCur]);
 
 
   const prev = useMemo(() => {
@@ -348,7 +377,7 @@ function Dashboard() {
       profit: rev - expTotal,
       rate: received ? (activated / received) * 100 : 0,
     };
-  }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions]);
+  }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions, displayCur]);
 
   const insights = useMemo(() => buildInsights(m), [m]);
   const firstName = useFirstName();
@@ -370,7 +399,10 @@ function Dashboard() {
             {new Date().toLocaleString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
           </p>
         </div>
-        <DashboardRangePicker value={dash.state} onChange={dash.setState} label={rangeLabel} />
+        <div className="flex items-center gap-2">
+          <DashboardCurrencyPicker />
+          <DashboardRangePicker value={dash.state} onChange={dash.setState} label={rangeLabel} />
+        </div>
       </div>
 
       {!sections.any && sections.loaded && (
