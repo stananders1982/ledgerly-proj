@@ -124,6 +124,8 @@ export function isNeglected(input: NeglectInput): boolean {
   const start = day(input.startDate);
   const end = neglectWindowEnd(start);
   if (!start || !end) return false;
+  // The window must have fully elapsed — a client activated yesterday is not neglected yet.
+  if (new Date().toISOString().slice(0, 10) <= end) return false;
   const inWindow = (v?: string | null) => {
     const d = day(v);
     return !!d && d >= start && d <= end;
