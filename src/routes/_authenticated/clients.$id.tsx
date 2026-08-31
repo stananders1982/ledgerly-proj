@@ -17,6 +17,7 @@ import { AttachmentsPanel } from "@/components/attachments-panel";
 import { TagBadges, TagPicker } from "@/components/client-tags";
 import { AnsweredBadge, PotentialBadge } from "@/components/status-badge";
 import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
+import { ClientJourney, type JourneyStage } from "@/components/client-journey";
 import {
   ClientKycFields, ClientProfileFields, OpportunityBadge, RiskBadge, StatusBadge, TierBadge,
 } from "@/components/client-profile-fields";
