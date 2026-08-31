@@ -96,7 +96,7 @@ function useEntitySearch(enabled: boolean) {
     queryKey: ["cmd-affiliates"],
   });
 
-  return { clientsQ, employeesQ, affiliatesQ };
+  return { clientsQ, leadsQ, employeesQ, affiliatesQ };
 }
 
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
