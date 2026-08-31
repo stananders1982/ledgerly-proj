@@ -53,8 +53,9 @@ import {
   YAxis,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMoney, fmtPct, getDisplayCurrency } from "@/lib/format";
-import { toBase } from "@/lib/fx";
+import { fmtMoney, fmtPct, getDisplayCurrency, getCurrencyOverride, setCurrencyOverride, useDisplayCurrency } from "@/lib/format";
+import { toBase, FX_CURRENCIES, CURRENCY_SYMBOLS } from "@/lib/fx";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
 import { useCompanySettings } from "@/lib/settings";
@@ -93,6 +94,7 @@ function Dashboard() {
   const settings = useCompanySettings();
   const dash = useDashRange();
   const rangeKey = dash.state.key;
+  const displayCur = useDisplayCurrency();
 
   const iso = (d: Date) => {
     const y = d.getFullYear();
