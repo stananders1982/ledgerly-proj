@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { isAgentTeam } from "@/lib/rules";
 import { fetchAll } from "@/lib/fetch-all";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DashboardRangePicker, useDashRange } from "@/components/dashboard-range-picker";
@@ -54,12 +54,12 @@ import {
   YAxis,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMoney, fmtPct, getDisplayCurrency, setCurrencyOverride, useDisplayCurrency } from "@/lib/format";
-import { toBase, toDisplay, fromWorkspace, FX_CURRENCIES, CURRENCY_SYMBOLS } from "@/lib/fx";
+import { fmtMoney, fmtPct, getDisplayCurrency, setCurrencyOverride, setDisplayCurrency } from "@/lib/format";
+import { toBase, FX_CURRENCIES, CURRENCY_SYMBOLS, useFxRates } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
-import { feeTotals, cashRunway } from "@/lib/profitability";
+import { cashRunway } from "@/lib/profitability";
 import { useCompanySettings, SETTINGS_QUERY_KEY } from "@/lib/settings";
 import { CashflowForecast } from "@/components/cashflow-forecast";
 import { ActivityFeed } from "@/components/activity-feed";
@@ -94,7 +94,7 @@ const toneStyles: Record<Tone, { glow: string; ring: string; text: string; strok
 /** Currency selector for the dashboard — sets the workspace currency in
  *  company settings, so the display currency is consistent everywhere
  *  (dashboard, reports, Settings) and for every user of the workspace. */
-function DashboardCurrencyPicker() {
+function DashboardCurrencyPicker({ onCurrencyChange }: { onCurrencyChange: (currency: string) => void }) {
   const qc = useQueryClient();
   const settings = useCompanySettings();
   const { isAdmin } = useAuth();
@@ -110,7 +110,8 @@ function DashboardCurrencyPicker() {
       if (error) throw error;
     },
     onSuccess: (_d, currency) => {
-      setCurrencyOverride(null); // drop any stale browser-local override
+      setDisplayCurrency(currency); // update dashboard calculations immediately
+      qc.setQueryData(SETTINGS_QUERY_KEY, (current: any) => current ? { ...current, currency } : current);
       qc.invalidateQueries({ queryKey: SETTINGS_QUERY_KEY });
       qc.invalidateQueries({ queryKey: ["company-settings-page"] });
       toast.success(`Workspace currency set to ${currency}`);
@@ -122,7 +123,11 @@ function DashboardCurrencyPicker() {
     <Select
       value={settings.currency}
       disabled={!isAdmin || save.isPending}
-      onValueChange={(v) => save.mutate(v)}
+      onValueChange={(currency) => {
+        setCurrencyOverride(currency);
+        onCurrencyChange(currency);
+        save.mutate(currency);
+      }}
     >
       <SelectTrigger
         className="h-9 w-auto min-w-[7rem] gap-1.5 rounded-full border-border bg-foreground/5 px-3 text-xs font-medium"
@@ -148,7 +153,33 @@ function Dashboard() {
   const settings = useCompanySettings();
   const dash = useDashRange();
   const rangeKey = dash.state.key;
-  const displayCur = useDisplayCurrency();
+  const [displayCur, setDashboardCurrency] = useState(settings.currency);
+  const currencyChosen = useRef(false);
+  const fx = useFxRates();
+
+  useEffect(() => {
+    if (!currencyChosen.current) setDashboardCurrency(settings.currency);
+  }, [settings.currency]);
+  const displayAmount = (amount: number | string | null | undefined, currency?: string | null) => {
+    const source = currency ?? "USD";
+    const sourceRate = fx.rates[source] ?? 1;
+    const targetRate = fx.rates[displayCur] ?? 1;
+    return (Number(amount) || 0) * (targetRate / sourceRate);
+  };
+  const workspaceAmount = (amount: number | string | null | undefined) => displayAmount(amount, "USD");
+  const displayFeeTotals = (rows: any[]) => {
+    let gross = 0;
+    let fees = 0;
+    for (const row of rows) {
+      const amount = displayAmount(row.amount, row.currency);
+      const storedFee = Number(row.fee_amount ?? 0);
+      const feePct = Number(row.fee_pct ?? 0) ||
+        (row.method === "card" ? settings.methodFeeCardPct : row.method === "crypto" ? settings.methodFeeCryptoPct : settings.methodFeeWirePct);
+      gross += amount;
+      fees += storedFee > 0 ? displayAmount(storedFee, row.currency) : amount * feePct / 100;
+    }
+    return { gross, fees, net: gross - fees };
+  };
 
   const iso = (d: Date) => {
     const y = d.getFullYear();
@@ -191,7 +222,7 @@ function Dashboard() {
   });
   const expQ = useQuery({
     queryKey: ["dash-exp", startIso, endIso],
-    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("amount,date").gte("date", startIso).lte("date", endIso)),
+    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("amount,currency,date").gte("date", startIso).lte("date", endIso)),
   });
   const empQ = useQuery({
     queryKey: ["dash-emp"],
@@ -206,11 +237,11 @@ function Dashboard() {
 
   const prevRevQ = useQuery({
     queryKey: ["dash-rev-prev", prevRange.start, prevRange.end],
-    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("amount").gte("date", prevRange.start).lte("date", prevRange.end)),
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("amount,currency").gte("date", prevRange.start).lte("date", prevRange.end)),
   });
   const prevExpQ = useQuery({
     queryKey: ["dash-exp-prev", prevRange.start, prevRange.end],
-    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("amount").gte("date", prevRange.start).lte("date", prevRange.end)),
+    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("amount,currency").gte("date", prevRange.start).lte("date", prevRange.end)),
   });
   const prevLeadsQ = useQuery({
     queryKey: ["dash-leads-prev", prevRange.start, prevRange.end],
@@ -268,7 +299,7 @@ function Dashboard() {
 
     const a = agg(rangeEntries);
     // Lead costs are count × price — implicitly workspace currency, so scale to display.
-    const leadCost = fromWorkspace(a.cplCost + a.cpaPayable);
+    const leadCost = workspaceAmount(a.cplCost + a.cpaPayable);
 
     const rangeRev = (revQ.data ?? []);
     const rangeExp = (expQ.data ?? []);
@@ -289,17 +320,17 @@ function Dashboard() {
       days / 30;
 
     const base = getDisplayCurrency();
-    const income = rangeRev.reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
-    const otherExp = rangeExp.reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
+    const income = rangeRev.reduce((s: number, r: any) => s + displayAmount(r.amount, r.currency), 0);
+    const otherExp = rangeExp.reduce((s: number, r: any) => s + displayAmount(r.amount, r.currency), 0);
     const employees = (empQ.data ?? []) as any[];
     const salariesMonthly = employees.reduce((s: number, e: any) => s + Number(e.salary), 0);
-    const salaries = fromWorkspace(salariesMonthly) * monthMultiplier;
+    const salaries = workspaceAmount(salariesMonthly) * monthMultiplier;
 
 
     // Per-employee commission using tiered rate on their attributed revenue in range
     const perEmp = new Map<string, number>();
     for (const r of rangeRev as any[]) {
-      const amt = commissionableAmount(toDisplay(r.amount, r.currency), r.method, settings);
+      const amt = commissionableAmount(displayAmount(r.amount, r.currency), r.method, settings);
       if (r.employee_id_2 && r.split_pct != null) {
         const pct = Number(r.split_pct) / 100;
         if (r.employee_id) perEmp.set(r.employee_id, (perEmp.get(r.employee_id) ?? 0) + amt * pct);
@@ -316,16 +347,16 @@ function Dashboard() {
     const expTotal = leadCost + otherExp + salaries + commissions;
     const profit = income - expTotal;
 
-    const feeInfo = feeTotals(rangeRev as any[], settings);
+    const feeInfo = displayFeeTotals(rangeRev as any[]);
     const netIncome = feeInfo.net;
 
     const rec = (recQ.data ?? []) as any[];
     const monthlyEquiv = (amt: number, f: string) =>
       f === "weekly" ? amt * 52 / 12 : f === "quarterly" ? amt / 3 : f === "yearly" ? amt / 12 : amt;
-    const recurringMonthly = fromWorkspace(rec.reduce((s, r) => s + monthlyEquiv(Number(r.amount), r.frequency), 0));
-    const fixedMonthly = recurringMonthly + fromWorkspace(salariesMonthly);
+    const recurringMonthly = workspaceAmount(rec.reduce((s, r) => s + monthlyEquiv(Number(r.amount), r.frequency), 0));
+    const fixedMonthly = recurringMonthly + workspaceAmount(salariesMonthly);
     const in30 = new Date(); in30.setDate(in30.getDate() + 30);
-    const upcoming30 = fromWorkspace(rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
+    const upcoming30 = workspaceAmount(rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
       .reduce((s, r) => s + Number(r.amount), 0));
 
     // Build daily series across the selected range
@@ -337,9 +368,9 @@ function Dashboard() {
       dayList.push(`${y}-${mo}-${da}`);
     }
     const revMap = new Map<string, number>();
-    rangeRev.forEach((r: any) => revMap.set(r.date, (revMap.get(r.date) ?? 0) + toDisplay(r.amount, r.currency)));
+    rangeRev.forEach((r: any) => revMap.set(r.date, (revMap.get(r.date) ?? 0) + displayAmount(r.amount, r.currency)));
     const expMap = new Map<string, number>();
-    rangeExp.forEach((r: any) => expMap.set(r.date, (expMap.get(r.date) ?? 0) + toDisplay(r.amount, r.currency)));
+    rangeExp.forEach((r: any) => expMap.set(r.date, (expMap.get(r.date) ?? 0) + displayAmount(r.amount, r.currency)));
     const leadDay = new Map<string, { received: number; activated: number; cost: number }>();
     entries.forEach((e: any) => {
       const cur = leadDay.get(e.entry_date) ?? { received: 0, activated: 0, cost: 0 };
@@ -348,7 +379,7 @@ function Dashboard() {
       const s = e.lead_sources;
       if (s) {
         const p = Number(s.price);
-        cur.cost += fromWorkspace(s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0));
+        cur.cost += workspaceAmount(s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0));
       }
       leadDay.set(e.entry_date, cur);
     });
@@ -372,7 +403,7 @@ function Dashboard() {
       cur.activated += e.activated ?? 0;
       cur.expected += ((e.received ?? 0) * (Number(s.expected_conversion_rate) || 0)) / 100;
       const p = Number(s.price);
-      cur.cost += fromWorkspace(s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0));
+      cur.cost += workspaceAmount(s.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0));
       bySource.set(key, cur);
     });
     const sourceRows = [...bySource.values()]
@@ -386,11 +417,11 @@ function Dashboard() {
 
     // Cash on hand and runway.
     const cash = cashQ.data;
-    const cashIn = cash ? feeTotals(cash.rev as any[], settings).net : 0;
-    const cashOutExp = cash ? (cash.exp as any[]).reduce((s2: number, r: any) => s2 + toDisplay(r.amount, r.currency), 0) : 0;
+    const cashIn = cash ? displayFeeTotals(cash.rev as any[]).net : 0;
+    const cashOutExp = cash ? (cash.exp as any[]).reduce((s2: number, r: any) => s2 + displayAmount(r.amount, r.currency), 0) : 0;
     const cashOutWd = cash
       ? (cash.wd as any[]).filter((w: any) => String(w.status ?? "paid") !== "rejected")
-          .reduce((s2: number, w: any) => s2 + toDisplay(w.amount, w.currency), 0)
+          .reduce((s2: number, w: any) => s2 + displayAmount(w.amount, w.currency), 0)
       : 0;
     const cashPosition = cashIn - cashOutExp - cashOutWd;
     const monthlyBurn = fixedMonthly + (otherExp / Math.max(1, days)) * 30;
@@ -402,7 +433,7 @@ function Dashboard() {
       leadCost, otherExp, salaries, commissions, expTotal, profit,
       received: a.received, activated: a.activated, reported: a.reported,
       unreported: a.activated - a.reported,
-      cplCost: fromWorkspace(a.cplCost), cpaPayable: fromWorkspace(a.cpaPayable), cpaSavings: fromWorkspace(a.cpaSavings),
+      cplCost: workspaceAmount(a.cplCost), cpaPayable: workspaceAmount(a.cpaPayable), cpaSavings: workspaceAmount(a.cpaSavings),
       rate, expectedRate,
       expectedActivations: a.expectedActivations,
       activationSurplus: a.activated - a.expectedActivations,
@@ -410,13 +441,13 @@ function Dashboard() {
       roi,
       series: profitSeries, sourceRows,
     };
-  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, cashQ.data, settings, rangeKey, range.start, range.end, displayCur]);
+  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, cashQ.data, settings, rangeKey, range.start, range.end, displayCur, fx.fetchedAt]);
 
 
   const prev = useMemo(() => {
     const base = getDisplayCurrency();
-    const rev = (prevRevQ.data ?? []).reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
-    const otherExp = (prevExpQ.data ?? []).reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
+    const rev = (prevRevQ.data ?? []).reduce((s: number, r: any) => s + displayAmount(r.amount, r.currency), 0);
+    const otherExp = (prevExpQ.data ?? []).reduce((s: number, r: any) => s + displayAmount(r.amount, r.currency), 0);
     let received = 0, activated = 0, leadCostRaw = 0;
     for (const e of (prevLeadsQ.data ?? []) as any[]) {
       received += e.received ?? 0;
@@ -427,7 +458,7 @@ function Dashboard() {
         leadCostRaw += src.pricing_model === "CPL" ? p * (e.received ?? 0) : p * (e.reported ?? 0);
       }
     }
-    const leadCost = fromWorkspace(leadCostRaw);
+    const leadCost = workspaceAmount(leadCostRaw);
     // Salaries/commissions are period-scaled the same way, so compare the
     // variable part plus the same fixed baseline for a like-for-like delta.
     const expTotal = otherExp + leadCost + m.salaries + m.commissions;
@@ -437,7 +468,7 @@ function Dashboard() {
       profit: rev - expTotal,
       rate: received ? (activated / received) * 100 : 0,
     };
-  }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions, displayCur]);
+  }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions, displayCur, fx.fetchedAt]);
 
   const insights = useMemo(() => buildInsights(m), [m]);
   const firstName = useFirstName();
@@ -460,7 +491,10 @@ function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <DashboardCurrencyPicker />
+          <DashboardCurrencyPicker onCurrencyChange={(currency) => {
+            currencyChosen.current = true;
+            setDashboardCurrency(currency);
+          }} />
           <DashboardRangePicker value={dash.state} onChange={dash.setState} label={rangeLabel} />
         </div>
       </div>

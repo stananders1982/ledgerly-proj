@@ -3,7 +3,7 @@
  * `getFxRates` server function) and are pushed into module state so any
  * non-React helper can convert synchronously.
  */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getFxRates } from "@/lib/fx.functions";
 import { getWorkspaceCurrency, getDisplayCurrency } from "@/lib/format";
@@ -20,13 +20,25 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 /** baseRates: USD-based — 1 USD = X <currency>. Defaults to identity. */
-let baseRates: Record<string, number> = { USD: 1, EUR: 1, GBP: 1, AUD: 1, NZD: 1 };
+const DEFAULT_RATES: Record<string, number> = { USD: 1, EUR: 1, GBP: 1, AUD: 1, NZD: 1 };
+const sharedFx = () => {
+  if (typeof window === "undefined") return null;
+  const root = window as typeof window & { __ledgerlyFx?: { rates: Record<string, number>; fetchedAt: number } };
+  root.__ledgerlyFx ??= { rates: DEFAULT_RATES, fetchedAt: 0 };
+  return root.__ledgerlyFx;
+};
+let baseRates: Record<string, number> = DEFAULT_RATES;
 let ratesFetchedAt = 0;
 let fallbackUsed = false;
 
 export const setFxRates = (rates: Record<string, number>, fetchedAt: number) => {
   baseRates = { ...rates };
   ratesFetchedAt = fetchedAt;
+  const shared = sharedFx();
+  if (shared) {
+    shared.rates = baseRates;
+    shared.fetchedAt = fetchedAt;
+  }
   fallbackUsed = Date.now() - fetchedAt > 15 * 60_000;
 };
 
@@ -36,8 +48,9 @@ export const fxRateIsStale = () => fallbackUsed;
 /** 1 <currency> = ? <base> (base defaults to the workspace display currency). */
 export function fxRate(currency: string | null | undefined, base: string): number {
   if (!currency || currency === base) return 1;
-  const r = baseRates[currency];
-  const b = baseRates[base];
+  const rates = sharedFx()?.rates ?? baseRates;
+  const r = rates[currency];
+  const b = rates[base];
   if (!r || !b) return 1;
   return b / r;
 }
@@ -85,6 +98,7 @@ export const FX_QUERY_KEY = ["fx-rates"] as const;
 
 /** Loads live rates once per session and publishes them to the module state. */
 export function useFxRates() {
+  const [appliedAt, setAppliedAt] = useState(ratesFetchedAt);
   const q = useQuery({
     queryKey: FX_QUERY_KEY,
     staleTime: 10 * 60 * 1000,
@@ -93,13 +107,15 @@ export function useFxRates() {
   });
 
   useEffect(() => {
-    if (q.data) setFxRates(q.data.baseRates, q.data.fetchedAt);
+    if (!q.data) return;
+    setFxRates(q.data.baseRates, q.data.fetchedAt);
+    setAppliedAt(q.data.fetchedAt);
   }, [q.data]);
 
   return {
     rates: q.data?.baseRates ?? baseRates,
     currencies: (q.data?.currencies ?? FX_CURRENCIES) as readonly string[],
-    fetchedAt: q.data?.fetchedAt ?? ratesFetchedAt,
+    fetchedAt: appliedAt,
     loading: q.isLoading,
     error: q.isError,
   };

@@ -1,6 +1,10 @@
 import { useSyncExternalStore } from "react";
 
 let displayCurrency = "USD";
+// Legacy workspace-denominated values (salaries, source prices, recurring
+// costs, and rows without an explicit currency) were entered in USD. Keep
+// their accounting denomination stable when the user changes display currency.
+const workspaceAccountingCurrency = "USD";
 const OVERRIDE_KEY = "display-currency-override";
 let currencyOverride: string | null =
   typeof window !== "undefined" ? window.localStorage.getItem(OVERRIDE_KEY) : null;
@@ -26,8 +30,8 @@ export const setCurrencyOverride = (code: string | null) => {
 
 export const getCurrencyOverride = () => currencyOverride;
 
-/** The workspace's own currency (from company settings) — what NULL-currency rows are stored in. */
-export const getWorkspaceCurrency = () => displayCurrency;
+/** Currency used by workspace-denominated values and legacy NULL-currency rows. */
+export const getWorkspaceCurrency = () => workspaceAccountingCurrency;
 
 export const getDisplayCurrency = () => currencyOverride ?? displayCurrency;
 
