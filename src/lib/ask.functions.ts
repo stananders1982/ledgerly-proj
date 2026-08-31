@@ -44,9 +44,9 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       affTerms, allEntries, affPayments, settingsRow,
     ] =
       await Promise.all([
-        supabase.from("revenue").select("date,amount,customer_name,employee_id,employee_id_2,split_pct,affiliate_id,method,activation_id").gte("date", sinceIso),
-        supabase.from("expenses").select("date,amount,category_id").gte("date", sinceIso),
-        supabase.from("withdrawals").select("date,amount,employee_id,customer_name").gte("date", sinceIso),
+        supabase.from("revenue").select("date,amount,currency,customer_name,employee_id,employee_id_2,split_pct,affiliate_id,method,activation_id").gte("date", sinceIso),
+        supabase.from("expenses").select("date,amount,currency,category_id").gte("date", sinceIso),
+        supabase.from("withdrawals").select("date,amount,currency,employee_id,customer_name").gte("date", sinceIso),
         // Legacy (old CRM) clients are excluded from FTD/activation analysis.
         supabase.from("daily_lead_activations").select("id,lead_name,activation_date,qualified_at,employee_id,conversion_employee_id,entry_id,balance,potential,answered,status,age,date_of_birth,gender,country,city,language,occupation,next_follow_up,preferred_contact_time,tags,notes,ai_risk_score,ai_risk_label,ai_summary,potential_value,net_worth,liquid_funds,monthly_income,exposure_elsewhere,source_of_funds,deposit_appetite,ai_opportunity_score,ai_opportunity_label,ai_opportunity_reason,ai_suggested_potential").eq("legacy", false).gte("activation_date", sinceIso),
         supabase.from("daily_lead_entries").select("entry_date,received,activated,reported,cost,source_id").gte("entry_date", sinceIso),
