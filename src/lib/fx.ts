@@ -57,6 +57,11 @@ export function toDisplay(amount: number | string | null | undefined, currency: 
   return toBase(amount, currency ?? getWorkspaceCurrency(), getDisplayCurrency());
 }
 
+/** Convert a value known to be denominated in the workspace currency (salaries, count×price lead costs) into the display currency. */
+export function fromWorkspace(amount: number | null | undefined): number {
+  return toBase(amount, getWorkspaceCurrency(), getDisplayCurrency());
+}
+
 /** Convenience for summing mixed-currency rows into the base currency. */
 export function sumBase<T>(rows: T[], base: string, pick: (r: T) => { amount: any; currency?: string | null }): number {
   return rows.reduce((s, r) => {
