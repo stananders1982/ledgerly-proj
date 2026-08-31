@@ -324,7 +324,7 @@ function Dashboard() {
       roi,
       series: profitSeries, sourceRows,
     };
-  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, range.start, range.end]);
+  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, range.start, range.end, displayCur]);
 
 
   const prev = useMemo(() => {
@@ -350,7 +350,7 @@ function Dashboard() {
       profit: rev - expTotal,
       rate: received ? (activated / received) * 100 : 0,
     };
-  }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions]);
+  }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions, displayCur]);
 
   const insights = useMemo(() => buildInsights(m), [m]);
   const firstName = useFirstName();
@@ -372,7 +372,10 @@ function Dashboard() {
             {new Date().toLocaleString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
           </p>
         </div>
-        <DashboardRangePicker value={dash.state} onChange={dash.setState} label={rangeLabel} />
+        <div className="flex items-center gap-2">
+          <DashboardCurrencyPicker />
+          <DashboardRangePicker value={dash.state} onChange={dash.setState} label={rangeLabel} />
+        </div>
       </div>
 
       {!sections.any && sections.loaded && (
