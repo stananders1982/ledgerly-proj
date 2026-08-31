@@ -912,7 +912,16 @@ function RevenueDialog({
               <SelectItem value="crypto">Crypto</SelectItem>
             </SelectContent>
           </Select>
+          {methodFeePct(form.method, settings) > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {methodFeePct(form.method, settings)}% processing fee →{" "}
+              <span className="text-foreground">
+                net {fmtMoney((Number(form.amount) || 0) * (1 - methodFeePct(form.method, settings) / 100))}
+              </span>
+            </p>
+          )}
         </Field>
+
         <Field label="Method solution name">
           <Input
             value={form.method_provider}
