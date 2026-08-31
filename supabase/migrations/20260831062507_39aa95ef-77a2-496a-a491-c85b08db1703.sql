@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.trg_block_closed_period() FROM PUBLIC, anon, authenticated;
