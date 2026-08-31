@@ -248,7 +248,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                   value={`lead ${l.name}`}
                   onSelect={() => {
                     onOpenChange(false);
-                    navigate({ to: "/leads", search: {} });
+                    navigate({ to: "/leads", search: { issue: undefined } });
                   }}
                 >
                   <Target className="mr-2 h-4 w-4" />
