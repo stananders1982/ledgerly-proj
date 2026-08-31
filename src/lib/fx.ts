@@ -6,6 +6,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getFxRates } from "@/lib/fx.functions";
+import { getWorkspaceCurrency, getDisplayCurrency } from "@/lib/format";
 
 export const FX_CURRENCIES = ["USD", "EUR", "GBP", "AUD", "NZD"] as const;
 export type FxCurrency = (typeof FX_CURRENCIES)[number];
@@ -53,7 +54,6 @@ export function toBase(amount: number | string | null | undefined, currency: str
  * `toBase`, which skips conversion for null currencies.
  */
 export function toDisplay(amount: number | string | null | undefined, currency: string | null | undefined): number {
-  const { getWorkspaceCurrency, getDisplayCurrency } = require("./format") as typeof import("./format");
   return toBase(amount, currency ?? getWorkspaceCurrency(), getDisplayCurrency());
 }
 
