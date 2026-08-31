@@ -47,6 +47,16 @@ export function toBase(amount: number | string | null | undefined, currency: str
   return a * fxRate(currency, base);
 }
 
+/**
+ * Convert an amount into the current display currency. Rows with no currency
+ * are stored in the workspace currency, so NULL is treated as such — unlike
+ * `toBase`, which skips conversion for null currencies.
+ */
+export function toDisplay(amount: number | string | null | undefined, currency: string | null | undefined): number {
+  const { getWorkspaceCurrency, getDisplayCurrency } = require("./format") as typeof import("./format");
+  return toBase(amount, currency ?? getWorkspaceCurrency(), getDisplayCurrency());
+}
+
 /** Convenience for summing mixed-currency rows into the base currency. */
 export function sumBase<T>(rows: T[], base: string, pick: (r: T) => { amount: any; currency?: string | null }): number {
   return rows.reduce((s, r) => {

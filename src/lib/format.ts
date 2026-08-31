@@ -26,6 +26,9 @@ export const setCurrencyOverride = (code: string | null) => {
 
 export const getCurrencyOverride = () => currencyOverride;
 
+/** The workspace's own currency (from company settings) — what NULL-currency rows are stored in. */
+export const getWorkspaceCurrency = () => displayCurrency;
+
 export const getDisplayCurrency = () => currencyOverride ?? displayCurrency;
 
 /** Reactive display currency — re-renders when the workspace or override changes. */
