@@ -55,7 +55,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtMoney, fmtPct, getDisplayCurrency, setCurrencyOverride, useDisplayCurrency } from "@/lib/format";
-import { toBase, toDisplay, fromWorkspace, FX_CURRENCIES, CURRENCY_SYMBOLS } from "@/lib/fx";
+import { toBase, toDisplay, fromWorkspace, FX_CURRENCIES, CURRENCY_SYMBOLS, useFxRates } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { commissionAmount, commissionableAmount } from "@/lib/commission";
@@ -149,6 +149,7 @@ function Dashboard() {
   const dash = useDashRange();
   const rangeKey = dash.state.key;
   const displayCur = useDisplayCurrency();
+  const fx = useFxRates();
 
   const iso = (d: Date) => {
     const y = d.getFullYear();
@@ -191,7 +192,7 @@ function Dashboard() {
   });
   const expQ = useQuery({
     queryKey: ["dash-exp", startIso, endIso],
-    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("amount,date").gte("date", startIso).lte("date", endIso)),
+    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("amount,currency,date").gte("date", startIso).lte("date", endIso)),
   });
   const empQ = useQuery({
     queryKey: ["dash-emp"],
@@ -206,11 +207,11 @@ function Dashboard() {
 
   const prevRevQ = useQuery({
     queryKey: ["dash-rev-prev", prevRange.start, prevRange.end],
-    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("amount").gte("date", prevRange.start).lte("date", prevRange.end)),
+    queryFn: async () => await fetchAll(() => supabase.from("revenue").select("amount,currency").gte("date", prevRange.start).lte("date", prevRange.end)),
   });
   const prevExpQ = useQuery({
     queryKey: ["dash-exp-prev", prevRange.start, prevRange.end],
-    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("amount").gte("date", prevRange.start).lte("date", prevRange.end)),
+    queryFn: async () => await fetchAll(() => supabase.from("expenses").select("amount,currency").gte("date", prevRange.start).lte("date", prevRange.end)),
   });
   const prevLeadsQ = useQuery({
     queryKey: ["dash-leads-prev", prevRange.start, prevRange.end],
@@ -236,7 +237,7 @@ function Dashboard() {
 
   const recQ = useQuery({
     queryKey: ["dash-recurring"],
-    queryFn: async () => await fetchAll(() => supabase.from("recurring_expenses").select("amount,frequency,next_due_date,active,end_date").eq("active", true)),
+    queryFn: async () => await fetchAll(() => supabase.from("recurring_expenses").select("amount,currency,frequency,next_due_date,active,end_date").eq("active", true)),
   });
 
 
@@ -322,11 +323,11 @@ function Dashboard() {
     const rec = (recQ.data ?? []) as any[];
     const monthlyEquiv = (amt: number, f: string) =>
       f === "weekly" ? amt * 52 / 12 : f === "quarterly" ? amt / 3 : f === "yearly" ? amt / 12 : amt;
-    const recurringMonthly = fromWorkspace(rec.reduce((s, r) => s + monthlyEquiv(Number(r.amount), r.frequency), 0));
+    const recurringMonthly = rec.reduce((s, r) => s + monthlyEquiv(toDisplay(r.amount, r.currency), r.frequency), 0);
     const fixedMonthly = recurringMonthly + fromWorkspace(salariesMonthly);
     const in30 = new Date(); in30.setDate(in30.getDate() + 30);
-    const upcoming30 = fromWorkspace(rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
-      .reduce((s, r) => s + Number(r.amount), 0));
+    const upcoming30 = rec.filter((r) => r.next_due_date && new Date(r.next_due_date) <= in30)
+      .reduce((s, r) => s + toDisplay(r.amount, r.currency), 0);
 
     // Build daily series across the selected range
     const dayList: string[] = [];
@@ -410,7 +411,7 @@ function Dashboard() {
       roi,
       series: profitSeries, sourceRows,
     };
-  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, cashQ.data, settings, rangeKey, range.start, range.end, displayCur]);
+  }, [leadsQ.data, revQ.data, expQ.data, empQ.data, recQ.data, cashQ.data, settings, rangeKey, range.start, range.end, displayCur, fx.fetchedAt]);
 
 
   const prev = useMemo(() => {
@@ -437,7 +438,7 @@ function Dashboard() {
       profit: rev - expTotal,
       rate: received ? (activated / received) * 100 : 0,
     };
-  }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions, displayCur]);
+  }, [prevRevQ.data, prevExpQ.data, prevLeadsQ.data, m.salaries, m.commissions, displayCur, fx.fetchedAt]);
 
   const insights = useMemo(() => buildInsights(m), [m]);
   const firstName = useFirstName();
