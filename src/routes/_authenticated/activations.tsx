@@ -917,7 +917,7 @@ function ActivationsPage() {
           {selected.size > 1 && (
             <ConfirmDelete
               text={`Merge ${selected.size}`}
-              variant="outline"
+              className="border border-border bg-transparent text-foreground hover:bg-accent"
               disabled={mergeClients.isPending}
               onConfirm={() => mergeClients.mutate()}
               label={`Merge ${selected.size} client records?`}
