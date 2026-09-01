@@ -444,25 +444,28 @@ function ClientPage() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <HealthBadge health={health} />
-        <StatusBadge status={cur.status} />
-        <PotentialBadge potential={cur.potential ?? undefined} />
+      <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2">
+        <HealthBadge health={health} prefix="Health" />
+        <StatusBadge status={cur.status} prefix="Stage:" />
+        <TierBadge value={cur.potential_value} thresholds={settings} showUnrated prefix="Value tier:" />
+        <PotentialBadge potential={cur.potential ?? undefined} prefix="Agent call:" />
+        <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+        <RiskBadge score={cur.ai_risk_score} label={cur.ai_risk_label} prefix="AI risk" />
+        <OpportunityBadge score={cur.ai_opportunity_score} label={cur.ai_opportunity_label} prefix="AI upside" />
+        <span className="mx-1 h-4 w-px bg-border" aria-hidden />
         <AnsweredBadge answered={!!cur.answered} />
         <Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified FTD" : "FTD pending"}</Badge>
         {stdCount > 0 && <Badge variant="default">STD ×{stdCount}</Badge>}
         {cur.legacy && <Badge variant="outline" className="text-muted-foreground">Legacy</Badge>}
-        <TierBadge value={cur.potential_value} thresholds={settings} showUnrated />
         {neglectedRated && (
           <Badge variant="outline" className="border-rose-500/50 text-rose-600 dark:text-rose-400">
             Neglected {TIER_LABEL[tier].toLowerCase()}
           </Badge>
         )}
-        <RiskBadge score={cur.ai_risk_score} label={cur.ai_risk_label} />
-        <OpportunityBadge score={cur.ai_opportunity_score} label={cur.ai_opportunity_label} />
         <KycBadge value={(cur as any).kyc} />
         <TagBadges tags={cur.tags} />
       </div>
+
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
