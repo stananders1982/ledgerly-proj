@@ -79,7 +79,9 @@ function ClientPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const settings = useCompanySettings();
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
+  const { roleKey } = useMyRoleKey();
+  const canAllocate = roleKey !== "retention" && roleKey !== "agent";
 
   const clientQ = useQuery({
     queryKey: ["client", id],
