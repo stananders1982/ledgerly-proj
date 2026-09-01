@@ -372,7 +372,7 @@ function DashboardsPage() {
                     )}
                   >
                     <GripVertical className="drag-handle h-3 w-3 cursor-move" />
-                    <span className="drag-handle cursor-move">{widgetMeta[w.type].label}</span>
+                    <span className="drag-handle cursor-move">{widgetMeta[w.type].title}</span>
                     <button
                       type="button"
                       onClick={() => removeWidget(w.id)}
