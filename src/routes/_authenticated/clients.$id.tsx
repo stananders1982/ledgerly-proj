@@ -247,6 +247,26 @@ function ClientPage() {
     [deposits, withdrawals, commsQ.data, cur, balance],
   );
 
+  // Next best action: one concrete instruction derived from their own rhythm.
+  const nba = useMemo(
+    () => nextBestAction({
+      name: cur?.lead_name,
+      deposits: deposits.map((d: any) => ({ date: d.date, amount: toDisplay(d.amount, d.currency) })),
+      withdrawals: (withdrawals as any[]).map((w) => ({ date: w.date, amount: toDisplay(w.amount, w.currency) })),
+      contactDates: (commsQ.data ?? []).map((c: any) => c.occurred_at),
+      kyc: (cur as any)?.kyc,
+      potentialValue: cur?.potential_value,
+      activationDate: cur ? activationDate(cur as any) : null,
+      nextFollowUp: cur?.next_follow_up ?? null,
+      answered: cur?.answered ?? null,
+      phone: cur?.phone ?? null,
+      email: cur?.email ?? null,
+      preferredContactTime: cur?.preferred_contact_time ?? null,
+      money: fmtMoney,
+    }),
+    [deposits, withdrawals, commsQ.data, cur],
+  );
+
   const transactions = useMemo(() => {
     const rows = [
       ...deposits.map((d: any) => ({
