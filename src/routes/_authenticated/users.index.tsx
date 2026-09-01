@@ -85,8 +85,7 @@ function UsersPage() {
   });
 
   const createMut = useMutation({
-    mutationFn: (v: { email: string; password: string; full_name: string; is_admin: boolean; nav_keys: string[] }) =>
-      create({ data: v }),
+    mutationFn: (v: UserFormValue & { email: string; password: string; full_name: string }) => create({ data: v }),
     onSuccess: () => {
       toast.success("User created");
       qc.invalidateQueries({ queryKey: ["app-users"] });
@@ -96,7 +95,8 @@ function UsersPage() {
   });
 
   const updateMut = useMutation({
-    mutationFn: (v: { user_id: string; is_admin: boolean; nav_keys: string[] }) => update({ data: v }),
+    mutationFn: (v: UserFormValue & { user_id: string }) => update({ data: v }),
+
     onSuccess: () => {
       toast.success("Updated");
       qc.invalidateQueries({ queryKey: ["app-users"] });
