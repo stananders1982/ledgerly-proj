@@ -29,6 +29,8 @@ import { nextBestAction } from "@/lib/next-best-action";
 import { NextBestActionCard } from "@/components/next-best-action";
 import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
+import { AiClientPaste } from "@/components/ai-client-paste";
+
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
 import { toDisplay, fromWorkspace } from "@/lib/fx";
 import { depositFee, feeTotals, leadCostPerClient } from "@/lib/profitability";
