@@ -54,7 +54,7 @@ import {
   YAxis,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMoney, fmtPct, getDisplayCurrency, setCurrencyOverride, setDisplayCurrency } from "@/lib/format";
+import { fmtMoney, fmtPct, getDisplayCurrency, setDisplayCurrency } from "@/lib/format";
 import { toBase, FX_CURRENCIES, CURRENCY_SYMBOLS, useFxRates } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -124,7 +124,6 @@ function DashboardCurrencyPicker({ onCurrencyChange }: { onCurrencyChange: (curr
       value={settings.currency}
       disabled={!isAdmin || save.isPending}
       onValueChange={(currency) => {
-        setCurrencyOverride(currency);
         onCurrencyChange(currency);
         save.mutate(currency);
       }}

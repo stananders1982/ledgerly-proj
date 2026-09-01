@@ -196,8 +196,9 @@ function RevenuePage() {
   const stats = useMemo(() => {
     const base = getDisplayCurrency();
     const list = filtered;
-    const total = sumBase(list, base, (r: any) => r);
-    const allTotal = sumBase(revQ.data ?? [], base, (r: any) => r);
+    const sumDisplay = (rows: any[]) => rows.reduce((a: number, r: any) => a + toDisplay(r.amount, r.currency), 0);
+    const total = sumDisplay(list);
+    const allTotal = sumDisplay(revQ.data ?? []);
     const feesInfo = feeTotals(list as any, settings);
     const byEmp = new Map<string, number>();
     const byAff = new Map<string, number>();
