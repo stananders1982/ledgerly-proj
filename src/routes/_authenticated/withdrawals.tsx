@@ -66,11 +66,16 @@ function WithdrawalsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   useQuickCreate("withdrawals", () => setOpen(true));
-  const [search, setSearch] = useState("");
+  const urlSearch = useSearch({ from: "/_authenticated/withdrawals" });
+  const [search, setSearch] = useState(urlSearch.search ?? "");
   const [editing, setEditing] = useState<any | null>(null);
-  const [range, setRange] = usePersistedState<RangeKey>("withdrawals:range", "month");
+  const [range, setRange] = usePersistedState<RangeKey>("withdrawals:range", urlSearch.range ?? "month");
   const [customStart, setCustomStart] = usePersistedState<string>("withdrawals:range-start", "");
   const [customEnd, setCustomEnd] = usePersistedState<string>("withdrawals:range-end", "");
+  useEffect(() => {
+    if (urlSearch.search != null) setSearch(urlSearch.search);
+    if (urlSearch.range) setRange(urlSearch.range);
+  }, [urlSearch.search, urlSearch.range]);
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
