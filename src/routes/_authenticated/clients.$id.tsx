@@ -397,6 +397,18 @@ function ClientPage() {
   const employeeName = (eid?: string | null) =>
     (employeesQ.data ?? []).find((e) => e.id === eid)?.name ?? "—";
 
+  /** Retention-team agents, plus the currently assigned one even if inactive
+   * or on another team, so the select always shows a real name. */
+  const retentionOptions: { id: string; name: string }[] = (() => {
+    const list = (retentionAgentsQ.data ?? []).map((e) => ({ id: e.id, name: e.name }));
+    const assigned = cur?.employee_id;
+    if (assigned && !list.some((e) => e.id === assigned)) {
+      list.unshift({ id: assigned, name: employeeName(assigned) });
+    }
+    return list;
+  })();
+
+
   if (clientQ.isLoading) {
     return <div className="p-6 text-sm text-muted-foreground">Loading client…</div>;
   }
