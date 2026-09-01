@@ -106,7 +106,7 @@ export function BusinessAssistantChat({
                     const name = getToolName(part) as string;
                     return (
                       <Tool defaultOpen={false} key={part.toolCallId}>
-                        <ToolHeader type={part.type} state={part.state} title={name.replace(/_/g, " ")} />
+                        <ToolHeader type={part.type} state={part.state} title={name.replace(/_/g, " ")} toolName={name} />
                         <ToolContent>
                           <ToolInput input={part.input} />
                           {"output" in part && part.output ? (
