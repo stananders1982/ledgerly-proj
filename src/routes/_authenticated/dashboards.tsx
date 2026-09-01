@@ -353,7 +353,7 @@ function DashboardsPage() {
                   <DropdownMenuContent className="w-48">
                     {WIDGET_KEYS.map((key) => (
                       <DropdownMenuItem key={key} onClick={() => addWidget(key)}>
-                        {widgetMeta[key].label}
+                        {widgetMeta[key].title}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
