@@ -897,16 +897,18 @@ function ActivationsPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={retentionFilter} onValueChange={setRetentionFilter}>
-          <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All retention agents</SelectItem>
-            <SelectItem value="unassigned">Unassigned only</SelectItem>
-            {(employeesQ.data ?? []).filter((e) => e.team === "R").map((e) => (
-              <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!scoped && (
+          <Select value={retentionFilter} onValueChange={setRetentionFilter}>
+            <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All retention agents</SelectItem>
+              <SelectItem value="unassigned">Unassigned only</SelectItem>
+              {(employeesQ.data ?? []).filter((e) => e.team === "R").map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {(answeredFilter !== "all" || healthFilter !== "all" || tierFilter !== "all" || potentialFilter !== "all" || stdFilter !== "all" || tagFilter !== "all" || retentionFilter !== "all" || dupOnly || minPotential) && (
 
           <Button variant="ghost" size="sm" className="h-9 gap-1 text-muted-foreground" onClick={clearFilters}>
@@ -1000,14 +1002,16 @@ function ActivationsPage() {
           active={tierFilter === "neglected"}
           onClick={() => setTierFilter((v) => (v === "neglected" ? "all" : "neglected"))}
         />
-        <KpiCard
-          label="Unallocated clients"
-          value={String(rows.filter((r: any) => !r.employee_id).length)}
-          icon={PhoneCall}
-          hint="No retention agent assigned yet. Click to list them, tick the rows and allocate."
-          active={retentionFilter === "unassigned"}
-          onClick={() => setRetentionFilter((v) => (v === "unassigned" ? "all" : "unassigned"))}
-        />
+        {!scoped && (
+          <KpiCard
+            label="Unallocated clients"
+            value={String(rows.filter((r: any) => !r.employee_id).length)}
+            icon={PhoneCall}
+            hint="No retention agent assigned yet. Click to list them, tick the rows and allocate."
+            active={retentionFilter === "unassigned"}
+            onClick={() => setRetentionFilter((v) => (v === "unassigned" ? "all" : "unassigned"))}
+          />
+        )}
       </div>
 
 
@@ -1041,24 +1045,28 @@ function ActivationsPage() {
               <SelectItem value="high">High</SelectItem>
             </SelectContent>
           </Select>
-          <Select onValueChange={(v) => bulkUpdate.mutate({ employee_id: v === "none" ? null : v })}>
-            <SelectTrigger className="h-8 w-[190px]"><SelectValue placeholder="Set retention agent" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Unassigned</SelectItem>
-              {(employeesQ.data ?? []).filter((e) => e.active !== false && e.team === "R").map((e) => (
-                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={distributeRetention.isPending}
-            onClick={() => distributeRetention.mutate()}
-            title="Share the selected clients evenly across active retention agents"
-          >
-            Allocate evenly
-          </Button>
+          {!scoped && (
+            <Select onValueChange={(v) => bulkUpdate.mutate({ employee_id: v === "none" ? null : v })}>
+              <SelectTrigger className="h-8 w-[190px]"><SelectValue placeholder="Set retention agent" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Unassigned</SelectItem>
+                {(employeesQ.data ?? []).filter((e) => e.active !== false && e.team === "R").map((e) => (
+                  <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {!scoped && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={distributeRetention.isPending}
+              onClick={() => distributeRetention.mutate()}
+              title="Share the selected clients evenly across active retention agents"
+            >
+              Allocate evenly
+            </Button>
+          )}
 
           <Select onValueChange={(v) => bulkUpdate.mutate({ conversion_employee_id: v === "none" ? null : v })}>
             <SelectTrigger className="h-8 w-[195px]"><SelectValue placeholder="Set conversion agent" /></SelectTrigger>
@@ -1101,12 +1109,125 @@ function ActivationsPage() {
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
         <div className="flex items-center gap-2">
-          <FitToggle tb={tb} />
-          <TableKeyboardHint />
-          <ColumnsMenu tb={tb} />
+          <div className="flex items-center rounded-md border border-border p-0.5">
+            <Button
+              size="sm"
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              className="h-7 gap-1.5 px-2 text-xs"
+              onClick={() => setViewMode("list")}
+              title="Comfortable list — one card per client"
+            >
+              <Rows3 className="h-3.5 w-3.5" /> List
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === "table" ? "secondary" : "ghost"}
+              className="h-7 gap-1.5 px-2 text-xs"
+              onClick={() => setViewMode("table")}
+              title="Dense table — every column"
+            >
+              <Table2 className="h-3.5 w-3.5" /> Table
+            </Button>
+          </div>
+          {viewMode === "table" && (
+            <>
+              <FitToggle tb={tb} />
+              <TableKeyboardHint />
+              <ColumnsMenu tb={tb} />
+            </>
+          )}
         </div>
       </div>
 
+      {viewMode === "list" ? (
+        q.isLoading ? (
+          <TableSkeleton cols={4} />
+        ) : rows.length === 0 ? (
+          <EmptyState icon={CheckCircle2} title="No clients" description="Activated leads logged on the Leads page appear here." />
+        ) : (
+          <div className="space-y-2">
+            {pageItems.map((r: any) => {
+              const last = lastContactFor(r);
+              return (
+                <div
+                  key={r.id}
+                  className={cn(
+                    "group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-accent/20",
+                    selected.has(r.id) && "border-primary/60 bg-accent/30",
+                  )}
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <Checkbox
+                        checked={selected.has(r.id)}
+                        onCheckedChange={() => toggleSelected(r.id)}
+                        aria-label={`Select ${r.lead_name ?? "client"}`}
+                      />
+                      <FavoriteStar type="client" id={r.id} label={r.lead_name} />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setViewing(r)}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="truncate text-sm font-semibold">{r.lead_name || "Unnamed client"}</span>
+                        <HealthBadge health={healthOf(r)} />
+                        <PotentialBadge value={r.potential} />
+                        {stdCountFor(r) > 0 && <StdBadge count={stdCountFor(r)} />}
+                        <AnsweredBadge answered={!!r.answered} />
+                        {r.qualified_at && isLateRetentionFtd(r) && (
+                          <LateFtdBadge activationDate={actDate(r)} qualifiedAt={r.qualified_at} months={monthsLate(r)} />
+                        )}
+                      </div>
+                      <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground sm:grid-cols-3 xl:grid-cols-4">
+                        <div><dt className="inline">Activated: </dt><dd className="inline text-foreground">{actDate(r) ? fmtDate(actDate(r)!) : "—"}</dd></div>
+                        <div><dt className="inline">Source: </dt><dd className="inline text-foreground">{r.daily_lead_entries?.lead_sources?.name ?? "—"}</dd></div>
+                        <div><dt className="inline">Retention: </dt><dd className="inline text-foreground">{employeeName(r.employee_id) ?? "Unassigned"}</dd></div>
+                        <div><dt className="inline">Conversion: </dt><dd className="inline text-foreground">{employeeName(r.conversion_employee_id) ?? "—"}</dd></div>
+                        <div><dt className="inline">Last contact: </dt><dd className="inline text-foreground">{last ? fmtDate(last) : "—"}</dd></div>
+                        <div><dt className="inline">Follow-up: </dt><dd className="inline text-foreground">{r.next_follow_up ? fmtDate(r.next_follow_up) : "—"}</dd></div>
+                        <div><dt className="inline">FTD: </dt><dd className="inline text-foreground">{r.qualified_at ? fmtDate(r.qualified_at) : "Pending"}</dd></div>
+                        <div><dt className="inline">KYC: </dt><dd className="inline"><KycBadge value={r.kyc} /></dd></div>
+                      </dl>
+                      {(r.tags ?? []).length > 0 && (
+                        <div className="mt-2"><TagBadges tags={r.tags} /></div>
+                      )}
+                    </button>
+
+                    <div className="flex shrink-0 items-center justify-between gap-4 lg:flex-col lg:items-end lg:justify-start lg:gap-1">
+                      <div className="text-right">
+                        <div className="num text-base font-semibold">{fmtMoney(netBalance(r))}</div>
+                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{TIER_LABEL[tierOf(r)]}</div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {r.phone && (
+                          <Button asChild size="icon" variant="ghost" className="h-8 w-8" title={`Call ${r.phone}`}>
+                            <a href={`tel:${r.phone}`}><PhoneCall className="h-4 w-4" /></a>
+                          </Button>
+                        )}
+                        {r.email && (
+                          <Button asChild size="icon" variant="ghost" className="h-8 w-8" title={`Email ${r.email}`}>
+                            <a href={`mailto:${r.email}`}><Mail className="h-4 w-4" /></a>
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" className="h-8" onClick={() => setEditing(r)}>Edit</Button>
+                        <Button size="sm" variant="ghost" className="h-8" onClick={() => setViewing(r)}>Open</Button>
+                        <ConfirmDelete
+                          onConfirm={() => bulkDelete.mutate([r.id])}
+                          label={`Delete ${r.lead_name || "this client"}?`}
+                          description="The client record is removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : (
       <TableFrame fit={tb.fit} resizeKey="clients">
         {q.isLoading ? (
           <TableSkeleton cols={9} />
@@ -1352,6 +1473,7 @@ function ActivationsPage() {
           </>
         )}
       </TableFrame>
+      )}
       {!q.isLoading && rows.length > 0 && <TablePagination {...pg} />}
 
 
