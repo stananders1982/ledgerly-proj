@@ -872,7 +872,18 @@ function ActivationsPage() {
             ))}
           </SelectContent>
         </Select>
-        {(answeredFilter !== "all" || healthFilter !== "all" || tierFilter !== "all" || potentialFilter !== "all" || stdFilter !== "all" || tagFilter !== "all" || dupOnly || minPotential) && (
+        <Select value={retentionFilter} onValueChange={setRetentionFilter}>
+          <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All retention agents</SelectItem>
+            <SelectItem value="unassigned">Unassigned only</SelectItem>
+            {(employeesQ.data ?? []).filter((e) => e.team === "R").map((e) => (
+              <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {(answeredFilter !== "all" || healthFilter !== "all" || tierFilter !== "all" || potentialFilter !== "all" || stdFilter !== "all" || tagFilter !== "all" || retentionFilter !== "all" || dupOnly || minPotential) && (
+
           <Button variant="ghost" size="sm" className="h-9 gap-1 text-muted-foreground" onClick={clearFilters}>
             <X className="h-3.5 w-3.5" /> Clear filters
           </Button>
