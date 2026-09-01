@@ -54,7 +54,6 @@ export const getScenarioBaseline = createServerFn({ method: "GET" })
       context.supabase
         .from("withdrawals").select("amount, currency, date")
         .eq("company_id", cid).gte("date", start).lte("date", end),
-      ,
       context.supabase.from("lead_sources").select("id, pricing_model, price").eq("company_id", cid),
     ]);
 
