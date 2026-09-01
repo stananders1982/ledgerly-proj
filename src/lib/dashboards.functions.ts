@@ -55,6 +55,28 @@ export const widgetMeta = {
   tasks: { title: "Overdue tasks", w: 3, h: 2 },
 } as const;
 
+export type DashboardSummary = {
+  revenue: number;
+  expenses: number;
+  profit: number;
+  ftdCount: number;
+  stdCount: number;
+  withdrawals: number;
+  pendingWithdrawals: number;
+  cash: {
+    today: number;
+    d7: number;
+    d30: number;
+    d90: number;
+    committedExpenses: number;
+  };
+  clients: { total: number; whale: number; neglected: number };
+  sources: { name: string; leads: number; conversions: number; spend: number; roi: number }[];
+  employees: { name: string; value: number }[];
+  affiliateDebt: number;
+  overdueTasks: number;
+};
+
 export const listDashboards = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -184,7 +206,7 @@ export const deleteDashboard = createServerFn({ method: "POST" })
 export const getDashboardSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input?: { start?: string; end?: string }) => input ?? {})
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<DashboardSummary> => {
     const { data: cid, error: cidErr } = await context.supabase.rpc("current_company_id");
     if (cidErr) throw cidErr;
     const { start, end } = parseRange(data);
@@ -205,19 +227,16 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     const taskRes = await context.supabase.from("tasks").select("id, due_date, status, title").eq("company_id", cid).lt("due_date", toIso(new Date())).neq("status", "done");
 
     const workspace = settingsRes.data?.currency ?? "USD";
-    const rates = (() => {
-      const table: Record<string, Record<string, number>> = {};
-      for (const base of SUPPORTED) {
-        const row: Record<string, number> = {};
-        for (const target of SUPPORTED) {
-          const baseRate = baseRates[base];
-          const targetRate = baseRates[target];
-          row[target] = baseRate && targetRate ? targetRate / baseRate : 1;
-        }
-        table[base] = row;
+    const rates: Record<string, Record<string, number>> = {};
+    for (const base of SUPPORTED) {
+      const row: Record<string, number> = {};
+      for (const target of SUPPORTED) {
+        const baseRate = baseRates[base];
+        const targetRate = baseRates[target];
+        row[target] = baseRate && targetRate ? targetRate / baseRate : 1;
       }
-      return table;
-    })();
+      rates[base] = row;
+    }
 
     const revenueRows = (revenueRes.data ?? []) as any[];
     const expensesRows = (expensesRes.data ?? []) as any[];
@@ -274,7 +293,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       .gte("created_at", `${start}T00:00:00Z`)
       .lte("created_at", `${end}T23:59:59Z`);
     const leadRows = (leadsRes.data ?? []) as any[];
-    const topSources = leadRows.reduce((acc, l) => {
+    const topSources = leadRows.reduce<Map<string, { name: string; leads: number; conversions: number; spend: number }>>((acc, l) => {
       const s = sourceMap.get(l.source_id ?? "");
       const name = s?.name ?? "Unknown";
       const entry = acc.get(name) ?? { name, leads: 0, conversions: 0, spend: 0 };
@@ -283,21 +302,21 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       if (s?.pricing_model === "CPL") entry.spend += Number(s.price ?? 0);
       acc.set(name, entry);
       return acc;
-    }, new Map<string, { name: string; leads: number; conversions: number; spend: number }>());
+    }, new Map());
 
-    const sourcesArray = Array.from(topSources.values())
+    const sourcesArray: DashboardSummary["sources"] = Array.from(topSources.values())
       .map((s) => ({ ...s, roi: s.spend ? ((s.conversions * 250 - s.spend) / s.spend) * 100 : 0 }))
       .sort((a, b) => b.conversions - a.conversions)
       .slice(0, 5);
 
     const employeeMap = new Map(((employeeRes.data as any[]) ?? []).map((e) => [e.id, e.name]));
-    const employeeRevenue = revenueRows.reduce((acc, r) => {
+    const employeeRevenue = revenueRows.reduce<Record<string, number>>((acc, r) => {
       const name = employeeMap.get(r.employee_id ?? "") ?? "Unknown";
       acc[name] = (acc[name] || 0) + toUsd(r.amount, r.currency, workspace, rates);
       return acc;
-    }, {} as Record<string, number>);
-    const employeesArray = Object.entries(employeeRevenue)
-      .map(([name, value]) => ({ name, value }))
+    }, {});
+    const employeesArray: DashboardSummary["employees"] = Object.entries(employeeRevenue)
+      .map(([name, value]) => ({ name, value: Number(value) }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
 
