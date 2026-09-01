@@ -29,6 +29,8 @@ import { nextBestAction } from "@/lib/next-best-action";
 import { NextBestActionCard } from "@/components/next-best-action";
 import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
+import { AiClientPaste } from "@/components/ai-client-paste";
+
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
 import { toDisplay, fromWorkspace } from "@/lib/fx";
 import { depositFee, feeTotals, leadCostPerClient } from "@/lib/profitability";
@@ -405,7 +407,17 @@ function ClientPage() {
             <Button asChild variant="outline" size="sm">
               <Link to="/activations" search={{ client: undefined, name: undefined }}><ArrowLeft className="mr-1.5 h-4 w-4" /> All clients</Link>
             </Button>
+            <AiClientPaste
+              current={cur as any}
+              applying={save.isPending}
+              onApply={(patch) => {
+                setDraft((d) => (d ? { ...d, ...(patch as any) } : d));
+                if (typeof (patch as any).notes === "string") setNotes((patch as any).notes);
+                save.mutate(patch);
+              }}
+            />
             <Button size="sm" onClick={() => analyse.mutate()} disabled={analyse.isPending}>
+
               {analyse.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1.5 h-4 w-4" />}
               Analyse this client
             </Button>
