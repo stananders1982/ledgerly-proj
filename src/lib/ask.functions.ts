@@ -687,17 +687,16 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "opportunityReason is the AI read of how much MORE money we can realistically take, judged from the kyc block " +
               "(netWorth, liquidFunds, monthlyIncome, investedElsewhere, sourceOfFunds, depositAppetite 1-5) and the notes/calls; " +
               "aiSuggestedPotential is its own estimate of lifetime deposit capacity. " +
-              "CLIENTS: snapshot.clients is a per-client list — name, both agents, activation and qualification dates, CRM status, " +
-              "potential, age/country/language/occupation, tags, team notes, the latest logged calls/messages (recentContacts) and " +
-              "the latest team comments (recentComments), plus openingBalance, depositTotal/Count, lastDeposit, withdrawalTotal/Count, " +
-              "lastWithdrawal, current balance and any stored AI riskScore/riskLabel (0-100, higher = needs attention). " +
-              "Use it to answer questions about a named person, to list clients who have not deposited recently, who withdrew the most, " +
-              "who is at risk, or to slice clients by age, country, status or agent. Compare dates against snapshot.today. " +
-              "snapshot.clientDirectory is the COMPLETE list of every client (one slim row each): n=name, c=conversion agent, " +
+              "CLIENTS: snapshot.clientDirectory is the COMPLETE list of every client (one slim row each): n=name, c=conversion agent, " +
               "r=retention agent, a=activation date, s=status, d=lifetime deposit total, k=deposit count, l=last deposit date, " +
-              "w=withdrawal total, b=balance, t=value tier. snapshot.clients only adds richer context for the top clients — " +
-              "when clientsTruncated is true use clientDirectory for anything that must cover everyone, and NEVER say the data is " +
-              "truncated or incomplete: it is not. " +
+              "w=withdrawal total, b=balance, t=value tier. Use it for any list, count, or lookup that must cover everyone, and for " +
+              "answering questions about a named client. snapshot.clients adds richer context for a subset of clients — " +
+              "name, both agents, activation and qualification dates, CRM status, potential, age/country/language/occupation, tags, " +
+              "team notes, the latest logged calls/messages (recentContacts), the latest team comments (recentComments), openingBalance, " +
+              "depositTotal/Count, lastDeposit, withdrawalTotal/Count, lastWithdrawal, current balance and any stored AI riskScore/riskLabel " +
+              "(0-100, higher = needs attention). Use snapshot.clients only for deep per-client colour after identifying the client(s) " +
+              "from clientDirectory; NEVER use it as the source of truth for period amounts, counts, or per-client splits. " +
+              "NEVER say the client data is truncated or incomplete. Compare dates against snapshot.today. " +
               "PER-CLIENT MONTHLY SPLITS: for 'X's deposits for <month> split per client', or any per-client amount inside a period, " +
               "use depositsByMonthAgentAndClient — keys are 'YYYY-MM | agent | client' with the exact attributed amount (splits " +
               "already applied) — and depositCountByMonthAgentAndClient for the number of deposits. depositsByMonthAndClient " +

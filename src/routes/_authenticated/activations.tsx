@@ -28,7 +28,7 @@ import { AttachmentsPanel } from "@/components/attachments-panel";
 import { StatCard } from "@/components/stat-card";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { ActivatedLeadsByEmployee } from "@/components/activated-leads-by-employee";
-import { CheckCircle2, PhoneCall, Wallet, Copy, Plus, X, Mail, Rows3, Table2 } from "lucide-react";
+import { CheckCircle2, PhoneCall, Wallet, Copy, Plus, X, Rows3, Table2 } from "lucide-react";
 import { useMyRoleKey } from "@/lib/permissions";
 import { useMyEmployee } from "@/lib/my-employee";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,7 @@ import {
   ClientKycFields, ClientProfileFields, OpportunityBadge, RiskBadge, StatusBadge, TierBadge,
 } from "@/components/client-profile-fields";
 import { clientAge, type ClientProfile } from "@/lib/client-profile";
+import { ContactActions } from "@/components/contact-actions";
 import {
   NEGLECT_WINDOW_DAYS, TIER_LABEL, TIER_RANK, VALUE_TIERS, isNeglected, lastDate, potentialValue, valueTier,
 } from "@/lib/whales";
@@ -1208,16 +1209,7 @@ function ActivationsPage() {
                         <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{TIER_LABEL[tierOf(r)]}</div>
                       </div>
                       <div className="flex items-center gap-1">
-                        {r.phone && (
-                          <Button asChild size="icon" variant="ghost" className="h-8 w-8" title={`Call ${r.phone}`}>
-                            <a href={`tel:${r.phone}`}><PhoneCall className="h-4 w-4" /></a>
-                          </Button>
-                        )}
-                        {r.email && (
-                          <Button asChild size="icon" variant="ghost" className="h-8 w-8" title={`Email ${r.email}`}>
-                            <a href={`mailto:${r.email}`}><Mail className="h-4 w-4" /></a>
-                          </Button>
-                        )}
+                        <ContactActions phone={r.phone} email={r.email} name={r.lead_name} size="icon" />
                         <Button size="sm" variant="outline" className="h-8" onClick={() => setEditing(r)}>Edit</Button>
                         <Button size="sm" variant="ghost" className="h-8" onClick={() => setViewing(r)}>Open</Button>
                         <ConfirmDelete
