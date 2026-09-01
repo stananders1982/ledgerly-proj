@@ -37,9 +37,9 @@ export const getScenarioBaseline = createServerFn({ method: "GET" })
     };
     const usd = (amount: unknown, ccy?: string | null) => (Number(amount) || 0) * rate(ccy ?? null);
 
-    const [entriesRes, activationsRes, revenueRes, expensesRes, withdrawalsRes] = await Promise.all([
+    const [entriesRes, activationsRes, revenueRes, expensesRes, withdrawalsRes, sourcesRes] = await Promise.all([
       context.supabase
-        .from("daily_lead_entries").select("received, cost, entry_date")
+        .from("daily_lead_entries").select("received, activated, cost, entry_date, source_id")
         .eq("company_id", cid).gte("entry_date", start).lte("entry_date", end),
       context.supabase
         .from("daily_lead_activations").select("id, activation_date, qualified_at")
@@ -54,6 +54,8 @@ export const getScenarioBaseline = createServerFn({ method: "GET" })
       context.supabase
         .from("withdrawals").select("amount, currency, date")
         .eq("company_id", cid).gte("date", start).lte("date", end),
+      ,
+      context.supabase.from("lead_sources").select("id, pricing_model, price").eq("company_id", cid),
     ]);
 
     const entries = (entriesRes.data ?? []) as any[];
@@ -63,7 +65,17 @@ export const getScenarioBaseline = createServerFn({ method: "GET" })
     const withdrawalRows = (withdrawalsRes.data ?? []) as any[];
 
     const leads = entries.reduce((s, e) => s + (Number(e.received) || 0), 0);
-    const acquisitionCost = entries.reduce((s, e) => s + usd(e.cost, null), 0);
+    // Entries often leave `cost` blank; fall back to the source's price card
+    // so cost-per-lead is still a real number to model against.
+    const sourceMap = new Map(((sourcesRes.data ?? []) as any[]).map((s) => [s.id, s]));
+    const acquisitionCost = entries.reduce((sum, e) => {
+      const explicit = usd(e.cost, null);
+      if (explicit) return sum + explicit;
+      const src = sourceMap.get(e.source_id ?? "");
+      if (!src) return sum;
+      const units = src.pricing_model === "CPA" ? Number(e.activated) || 0 : Number(e.received) || 0;
+      return sum + usd(units * (Number(src.price) || 0), null);
+    }, 0);
     const activations = activationRows.length;
     const ftds = activationRows.filter((a) => !!a.qualified_at).length;
     const revenue = revenueRows.reduce((s, r) => s + usd(r.amount, r.currency), 0);
