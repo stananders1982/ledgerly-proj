@@ -982,7 +982,16 @@ function ActivationsPage() {
           active={tierFilter === "neglected"}
           onClick={() => setTierFilter((v) => (v === "neglected" ? "all" : "neglected"))}
         />
+        <KpiCard
+          label="Unallocated clients"
+          value={String(rows.filter((r: any) => !r.employee_id).length)}
+          icon={PhoneCall}
+          hint="No retention agent assigned yet. Click to list them, tick the rows and allocate."
+          active={retentionFilter === "unassigned"}
+          onClick={() => setRetentionFilter((v) => (v === "unassigned" ? "all" : "unassigned"))}
+        />
       </div>
+
 
 
 
