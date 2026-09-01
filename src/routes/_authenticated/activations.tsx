@@ -6,6 +6,7 @@ import { AnsweredBadge, PotentialBadge as SharedPotentialBadge, LateFtdBadge } f
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { EmployeeLink } from "@/components/employee-link";
+import { AiClientPaste } from "@/components/ai-client-paste";
 import { supabase } from "@/integrations/supabase/client";
 
 import { PageHeader } from "@/components/page-header";
@@ -1528,6 +1529,15 @@ function ActivationsPage() {
                   description="The client record is removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
                 />
                 <div className="flex-1" />
+                <AiClientPaste
+                  current={cur as any}
+                  applying={save.isPending}
+                  onApply={(patch: Record<string, unknown>) => {
+                    const next = { ...cur, ...(patch as any) };
+                    setViewing(next as any);
+                    save.mutate(next as any);
+                  }}
+                />
                 <Button asChild variant="outline">
                   <Link to="/clients/$id" params={{ id: cur.id }}>Open full profile</Link>
                 </Button>
