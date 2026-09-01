@@ -16,7 +16,8 @@ import { CommentThread } from "@/components/comment-thread";
 import { AttachmentsPanel } from "@/components/attachments-panel";
 import { TagBadges, TagPicker } from "@/components/client-tags";
 import { AnsweredBadge, PotentialBadge } from "@/components/status-badge";
-import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
+import { ClientCommunications } from "@/components/client-activity";
+import { Client360Timeline } from "@/components/client-360";
 import { ClientJourney, type JourneyStage } from "@/components/client-journey";
 import {
   ClientKycFields, ClientProfileFields, OpportunityBadge, RiskBadge, StatusBadge, TierBadge,
@@ -262,27 +263,6 @@ function ClientPage() {
     });
   }, [deposits, withdrawals, opening, cur]);
 
-
-  const timelineEvents = useMemo(() => {
-    if (!cur) return [] as TimelineEvent[];
-    const act = activationDate(cur as any);
-    return [
-      ...(cur.daily_lead_entries?.entry_date
-        ? [{ date: cur.daily_lead_entries.entry_date, kind: "lead" as const, label: "Lead received" }]
-        : []),
-      ...(act
-        ? [{ date: act, kind: "activation" as const, label: "Activated — opening balance", amount: opening, balance: opening }]
-        : []),
-      ...transactions.filter((t) => t.id !== "opening").map((t) => ({
-        date: String(t.date), kind: t.kind, label: t.label, amount: Math.abs(t.delta), balance: t.balance,
-      })),
-      ...(commsQ.data ?? []).map((c: any) => ({
-        date: String(c.occurred_at).slice(0, 10),
-        kind: "comm" as const,
-        label: `${c.channel} (${c.direction})${c.summary ? ` — ${c.summary}` : ""}`,
-      })),
-    ] satisfies TimelineEvent[];
-  }, [cur, opening, transactions, commsQ.data]);
 
   const journeyStages = useMemo<JourneyStage[]>(() => {
     if (!cur) return [];
@@ -587,9 +567,15 @@ function ClientPage() {
 
 
           <section className="card-surface p-5">
-            <h2 className="mb-3 font-display text-base font-semibold">Lifecycle</h2>
-            <ClientTimeline events={timelineEvents} />
+            <Client360Timeline
+              client={cur}
+              deposits={deposits}
+              withdrawals={withdrawals}
+              comms={commsQ.data ?? []}
+              employeeName={employeeName}
+            />
           </section>
+
 
           <section className="card-surface p-5">
             <ClientCommunications activationId={cur.id} clientName={cur.lead_name} />
