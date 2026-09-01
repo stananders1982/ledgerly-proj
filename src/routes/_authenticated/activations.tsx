@@ -205,7 +205,8 @@ function ActivationsPage() {
   const scopeEmployeeId = scoped ? myEmployee?.id ?? "__none__" : null;
   const scopeReady = !!roleKey && (!scoped || !myEmployeeLoading);
 
-  const [viewMode, setViewMode] = usePersistedState<"list" | "table">("activations:view", "list");
+  const [viewMode, setViewMode] = usePersistedState<"list" | "table" | "grid">("activations:view", "list");
+  const gridFilters = useClientsGridFilters();
 
   const q = useQuery({
     enabled: scopeReady,
