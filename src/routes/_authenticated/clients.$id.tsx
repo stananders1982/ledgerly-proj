@@ -700,16 +700,17 @@ function ClientPage() {
                       onValueChange={(v) => save.mutate({ employee_id: v === "_none" ? null : v })}
                       disabled={save.isPending}
                     >
-                      <SelectTrigger className="h-8 w-full max-w-[220px] text-xs">
-                        <SelectValue placeholder="Allocate to…" />
+                      <SelectTrigger
+                        aria-label="Retention agent"
+                        className="ml-auto h-7 w-auto max-w-[200px] justify-end gap-1 border-0 bg-transparent px-1.5 text-sm font-medium shadow-none hover:bg-accent/50 focus:ring-0 focus:ring-offset-0"
+                      >
+                        <SelectValue placeholder="Unassigned" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent align="end">
                         <SelectItem value="_none">Unassigned</SelectItem>
-                        {(retentionAgentsQ.data ?? [])
-                          .filter((e) => e.id !== cur.employee_id)
-                          .map((e) => (
-                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                          ))}
+                        {retentionOptions.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   ) : (
@@ -717,6 +718,7 @@ function ClientPage() {
                   )
                 }
               />
+
               <Row label="Age" value={age != null ? String(age) : "—"} />
               <Row label="Country" value={cur.country || "—"} />
               <Row label="City" value={cur.city || "—"} />
