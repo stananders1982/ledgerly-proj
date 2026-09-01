@@ -62,6 +62,42 @@ const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "POST",
+    path: "/api/public/v1/lead-intake",
+    permission: "write_leads",
+    summary:
+      "Affiliate lead intake — push one named lead. When the API key is bound to an affiliate, the lead is credited to that affiliate automatically and the duplicate guard applies.",
+    request: `{
+  "name": "Carol Lane",
+  "phone": "+61400111222",       // phone or email required
+  "email": "carol@example.com",
+  "source": "Facebook-EU",       // or "source_id": "<uuid>"
+  "country": "AU",
+  "sub_id": "camp-42",
+  "notes": "Requested a callback"
+}`,
+    response: `{
+  "data": { "id": "…", "name": "Carol Lane", "status": "received", "received_at": "2026-09-01T10:22:00Z" }
+}`,
+    curl: `curl -X POST "${BASE}/api/public/v1/lead-intake" \\
+  -H "Authorization: Bearer $LEDGERLY_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"name":"Carol Lane","phone":"+61400111222","country":"AU","sub_id":"camp-42"}'`,
+  },
+  {
+    method: "GET",
+    path: "/api/public/v1/lead-intake/{id}",
+    permission: "read_leads",
+    summary:
+      "Funnel status for a lead you pushed: received, activated or converted. No money or personal data is returned. Affiliate-bound keys only see their own leads.",
+    response: `{
+  "data": { "id": "…", "name": "Carol Lane", "status": "activated", "received_at": "2026-09-01T10:22:00Z" }
+}`,
+    curl: `curl "${BASE}/api/public/v1/lead-intake/<lead-id>" \\
+  -H "Authorization: Bearer $LEDGERLY_API_KEY"`,
+  },
+
+  {
+    method: "POST",
     path: "/api/public/v1/deposits",
     permission: "write_deposits",
     summary:

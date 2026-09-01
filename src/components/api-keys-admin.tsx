@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const API_PERMISSIONS = [
   { key: "read_leads", label: "Read leads & clients" },
@@ -39,7 +40,9 @@ type ApiKeyRow = {
   last_used_at: string | null;
   expires_at: string | null;
   revoked_at: string | null;
+  affiliate_id: string | null;
 };
+
 
 async function sha256Hex(value: string) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
@@ -65,7 +68,7 @@ export function ApiKeysAdmin() {
   const [creating, setCreating] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<ApiKeyRow | null>(null);
   const [newKey, setNewKey] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", permissions: ["read_leads"] as string[], expires_at: "" });
+  const [form, setForm] = useState({ name: "", permissions: ["read_leads"] as string[], expires_at: "", affiliate_id: "none" });
 
   const keysQ = useQuery({
     queryKey: ["api-keys", companyId],
@@ -73,12 +76,25 @@ export function ApiKeysAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("api_keys")
-        .select("id, name, key_prefix, permissions, created_at, last_used_at, expires_at, revoked_at")
+        .select("id, name, key_prefix, permissions, created_at, last_used_at, expires_at, revoked_at, affiliate_id")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as ApiKeyRow[];
     },
   });
+
+  const affiliatesQ = useQuery({
+    queryKey: ["affiliates-directory", companyId],
+    enabled: !!companyId && isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("list_affiliates_directory");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string; active: boolean }[];
+    },
+  });
+
+  const affiliateName = (id: string | null) =>
+    (affiliatesQ.data ?? []).find((a) => a.id === id)?.name ?? null;
 
   const create = useMutation({
     mutationFn: async () => {
@@ -92,15 +108,17 @@ export function ApiKeysAdmin() {
         key_prefix: raw.slice(0, 12),
         permissions: form.permissions,
         created_by: user?.id ?? null,
+        affiliate_id: form.affiliate_id === "none" ? null : form.affiliate_id,
         expires_at: form.expires_at ? new Date(`${form.expires_at}T23:59:59`).toISOString() : null,
       });
       if (error) throw error;
       return raw;
     },
+
     onSuccess: (raw) => {
       setCreating(false);
       setNewKey(raw);
-      setForm({ name: "", permissions: ["read_leads"], expires_at: "" });
+      setForm({ name: "", permissions: ["read_leads"], expires_at: "", affiliate_id: "none" });
       qc.invalidateQueries({ queryKey: ["api-keys", companyId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not create key"),
@@ -155,6 +173,7 @@ export function ApiKeysAdmin() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Affiliate</TableHead>
               <TableHead>Permissions</TableHead>
               <TableHead>Last used</TableHead>
               <TableHead>Expires</TableHead>
@@ -164,7 +183,7 @@ export function ApiKeysAdmin() {
           <TableBody>
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
                   {keysQ.isLoading ? "Loading…" : "No API keys yet."}
                 </TableCell>
               </TableRow>
@@ -177,6 +196,14 @@ export function ApiKeysAdmin() {
                     <div className="font-medium">{k.name}</div>
                     <div className="font-mono text-xs text-muted-foreground">{k.key_prefix}…</div>
                   </TableCell>
+                  <TableCell className="text-sm">
+                    {k.affiliate_id ? (
+                      <Badge variant="outline">{affiliateName(k.affiliate_id) ?? "Affiliate"}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">Internal</span>
+                    )}
+                  </TableCell>
+
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {k.permissions.map((p) => (
@@ -245,6 +272,30 @@ export function ApiKeysAdmin() {
               ))}
             </div>
             <div className="grid gap-1.5">
+              <Label className="text-xs">Affiliate (optional)</Label>
+              <Select
+                value={form.affiliate_id}
+                onValueChange={(v) => setForm({ ...form, affiliate_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Internal key" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Internal key (no affiliate)</SelectItem>
+                  {(affiliatesQ.data ?? [])
+                    .filter((a) => a.active)
+                    .map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Bind the key to an affiliate so every lead they push is credited to them automatically.
+              </p>
+            </div>
+            <div className="grid gap-1.5">
               <Label className="text-xs">Expiry (optional)</Label>
               <Input
                 type="date"
@@ -252,6 +303,7 @@ export function ApiKeysAdmin() {
                 onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
               />
             </div>
+
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCreating(false)}>

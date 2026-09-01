@@ -18,7 +18,10 @@ export type ApiKeyContext = {
   name: string;
   companyId: string;
   permissions: string[];
+  /** Set when the key belongs to a single affiliate (affiliate lead intake). */
+  affiliateId: string | null;
 };
+
 
 export function hashApiKey(raw: string) {
   return createHash("sha256").update(raw.trim()).digest("hex");
@@ -95,9 +98,10 @@ export async function authenticateApiKey(
 
   const { data: row } = await supabaseAdmin
     .from("api_keys")
-    .select("id, name, company_id, permissions, revoked_at, expires_at")
+    .select("id, name, company_id, permissions, revoked_at, expires_at, affiliate_id")
     .eq("key_hash", hashApiKey(raw))
     .maybeSingle();
+
 
   if (!row) {
     await logApiCall({ companyId: null, keyName: "(unknown)", path, status: 401, message: "API request with unknown key" });
@@ -127,7 +131,7 @@ export async function authenticateApiKey(
 
   return {
     ok: true,
-    key: { id: row.id, name: row.name, companyId: row.company_id, permissions },
+    key: { id: row.id, name: row.name, companyId: row.company_id, permissions, affiliateId: (row as any).affiliate_id ?? null },
   };
 }
 
