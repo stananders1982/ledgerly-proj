@@ -211,8 +211,8 @@ function DashboardsPage() {
     saveMutation.mutate(
       { name: newName || `${template} dashboard`, config: { widgets: t.widgets } },
       {
-        onSuccess: (id) => {
-          setSelectedId(id);
+        onSuccess: (row) => {
+          setSelectedId(row.id);
           setIsCreateOpen(false);
           setNewName("");
         },
