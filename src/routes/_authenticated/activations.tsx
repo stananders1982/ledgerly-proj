@@ -1005,6 +1005,16 @@ function ActivationsPage() {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={distributeRetention.isPending}
+            onClick={() => distributeRetention.mutate()}
+            title="Share the selected clients evenly across active retention agents"
+          >
+            Allocate evenly
+          </Button>
+
           <Select onValueChange={(v) => bulkUpdate.mutate({ conversion_employee_id: v === "none" ? null : v })}>
             <SelectTrigger className="h-8 w-[195px]"><SelectValue placeholder="Set conversion agent" /></SelectTrigger>
             <SelectContent>
