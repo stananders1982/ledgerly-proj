@@ -8,6 +8,7 @@
 export const DASH_PREFIX = "dash:";
 
 export type DashboardSectionKey =
+  | "dash:command"
   | "dash:alerts"
   | "dash:digest"
   | "dash:ask"
@@ -28,6 +29,7 @@ export type DashboardSectionKey =
   | "dash:goal_employees";
 
 export const DASHBOARD_SECTIONS: { key: DashboardSectionKey; label: string; hint: string }[] = [
+  { key: "dash:command", label: "Command center", hint: "Priorities, exceptions, cash position and manager alerts." },
   { key: "dash:alerts", label: "Alerts", hint: "Anomaly banners at the top of the dashboard." },
   { key: "dash:digest", label: "Daily digest", hint: "Today's summary card." },
   { key: "dash:ask", label: "Ask your data", hint: "AI question box." },
@@ -56,6 +58,7 @@ export function isDashboardSectionKey(key: string | null | undefined) {
 }
 
 const AGENT_SECTIONS = [
+  "dash:command",
   "dash:alerts",
   "dash:digest",
   "dash:kpis",
@@ -66,6 +69,7 @@ const AGENT_SECTIONS = [
 ];
 
 const RETENTION_SECTIONS = [
+  "dash:command",
   "dash:alerts",
   "dash:digest",
   "dash:kpis",

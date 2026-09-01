@@ -23,7 +23,7 @@ import { toDisplay, fromWorkspace, useFxRates } from "@/lib/fx";
 import { useCompanySettings } from "@/lib/settings";
 import { useAffiliateBalanceAlerts } from "@/lib/affiliate-alerts";
 import { depositFee } from "@/lib/profitability";
-import { isPendingPayout, isOverduePayout, payoutAgeDays } from "@/lib/withdrawal-status";
+import { isOverduePayout } from "@/lib/withdrawal-status";
 import { kycStatus } from "@/lib/kyc";
 import { cn } from "@/lib/utils";
 
@@ -257,7 +257,7 @@ export function CommandCenter() {
     m.missingKyc.length && {
       text: `${m.missingKyc.length} qualified client${m.missingKyc.length === 1 ? "" : "s"} missing KYC`,
       hint: m.missingKyc.slice(0, 2).map((a: any) => a.lead_name).filter(Boolean).join(" · "),
-      to: "/activations", search: { kyc: "missing" } as any,
+      to: "/activations", search: undefined as any,
     },
     m.negativeAffiliates.length && {
       text: `${m.negativeAffiliates.length} affiliate${m.negativeAffiliates.length === 1 ? " has" : "s have"} a negative balance`,
