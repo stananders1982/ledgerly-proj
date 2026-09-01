@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Layout } from "react-grid-layout";
+import type { Layout, LayoutItem } from "react-grid-layout";
 
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -43,7 +43,7 @@ export function DashboardGrid({
     );
   }
 
-  const ResponsiveGridLayout = grid.WidthProvider(grid.Responsive);
+  const ResponsiveGridLayout = grid.Responsive;
 
   return (
     <ResponsiveGridLayout
@@ -54,8 +54,8 @@ export function DashboardGrid({
       rowHeight={64}
       width={1200}
       draggableHandle=".drag-handle"
-      onLayoutChange={(layout: Layout[]) => {
-        onChange?.(layout.map((l) => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
+      onLayoutChange={(layout: Layout) => {
+        onChange?.(layout.map((l: LayoutItem) => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
       }}
       margin={[16, 16]}
       containerPadding={[0, 0]}
