@@ -43,23 +43,43 @@ export function DashboardGrid({
     );
   }
 
+  return <MeasuredGrid grid={grid} items={items} onChange={onChange}>{children}</MeasuredGrid>;
+}
+
+function MeasuredGrid({
+  grid,
+  items,
+  onChange,
+  children,
+}: {
+  grid: GridModule;
+  items: GridItem[];
+  onChange?: (items: GridItem[]) => void;
+  children: React.ReactNode;
+}) {
+  const { width, containerRef, mounted } = grid.useContainerWidth();
   const ResponsiveGridLayout = grid.Responsive;
 
   return (
-    <ResponsiveGridLayout
-      className="layout"
-      layouts={{ lg: items }}
-      breakpoints={{ lg: 0 }}
-      cols={{ lg: 12 }}
-      rowHeight={64}
-      dragConfig={{ handle: ".drag-handle" }}
-      onLayoutChange={(layout: Layout) => {
-        onChange?.(layout.map((l: LayoutItem) => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
-      }}
-      margin={[16, 16]}
-      containerPadding={[0, 0]}
-    >
-      {children}
-    </ResponsiveGridLayout>
+    <div ref={containerRef}>
+      {mounted && (
+        <ResponsiveGridLayout
+          className="layout"
+          width={width}
+          layouts={{ lg: items }}
+          breakpoints={{ lg: 0 }}
+          cols={{ lg: 12 }}
+          rowHeight={64}
+          dragConfig={{ handle: ".drag-handle" }}
+          onLayoutChange={(layout: Layout) => {
+            onChange?.(layout.map((l: LayoutItem) => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
+          }}
+          margin={[16, 16]}
+          containerPadding={[0, 0]}
+        >
+          {children}
+        </ResponsiveGridLayout>
+      )}
+    </div>
   );
 }
