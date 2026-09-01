@@ -781,6 +781,30 @@ function ActivationsPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  /** Inline grid edits: optimistic, with a revert + toast when the save fails. */
+  const patchClient = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
+      const { error } = await supabase.from("daily_lead_activations").update(patch as any).eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async ({ id, patch }) => {
+      const key = ["activated-leads", scopeEmployeeId];
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Row[]>(key);
+      qc.setQueryData<Row[]>(key, (old) => (old ?? []).map((r) => (r.id === id ? { ...r, ...patch } as Row : r)));
+      return { prev, key };
+    },
+    onError: (e: any, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(ctx.key, ctx.prev);
+      toast.error(e.message ?? "Could not save the change");
+    },
+    onSuccess: () => toast.success("Saved"),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["activated-leads"] });
+      qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
+    },
+  });
+
   const toggleAnswered = useMutation({
     mutationFn: async ({ id, answered }: { id: string; answered: boolean }) => {
       const { error } = await supabase.from("daily_lead_activations").update({ answered }).eq("id", id);
