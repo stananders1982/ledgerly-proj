@@ -20,8 +20,6 @@ const SUGGESTIONS = [
   "Compare September vs August.",
 ];
 
-const CHANGE_TOOLS = new Set(["create_tasks"]);
-
 export function BusinessAssistantChat({
   threadId,
   initialMessages,
@@ -44,7 +42,7 @@ export function BusinessAssistantChat({
     [],
   );
 
-  const { messages, sendMessage, status, addToolResult, stop } = useChat({
+  const { messages, sendMessage, status } = useChat({
     id: threadId,
     messages: initialMessages,
     transport,
@@ -60,19 +58,6 @@ export function BusinessAssistantChat({
   const send = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
-    // Decline any pending tool calls that were not confirmed.
-    for (const m of messages) {
-      for (const part of m.parts) {
-        if (!isToolUIPart(part) || part.state !== "input-available") continue;
-        const name = getToolName(part) as string;
-        if (!CHANGE_TOOLS.has(name)) continue;
-        await addToolResult({
-          tool: name as never,
-          toolCallId: part.toolCallId,
-          output: { declined: true, summary: "The user left this action unapproved." } as never,
-        });
-      }
-    }
     await sendMessage({ text: trimmed });
   };
 
@@ -117,22 +102,19 @@ export function BusinessAssistantChat({
                       <span key={i} className="whitespace-pre-wrap">{part.text}</span>
                     );
                   }
-                  if (part.type === "tool-invocation") {
-                    const name = part.toolInvocation.toolName;
+                  if (isToolUIPart(part)) {
+                    const name = getToolName(part) as string;
                     return (
-                      <Tool key={i}>
-                        <ToolHeader>{name.replace(/_/g, " ")}</ToolHeader>
+                      <Tool defaultOpen={false} key={part.toolCallId}>
+                        <ToolHeader type={part.type} state={part.state} title={name.replace(/_/g, " ")} />
                         <ToolContent>
-                          <ToolInput>{JSON.stringify(part.toolInvocation.args)}</ToolInput>
-                          {part.toolInvocation.state === "result" && (
-                            <ToolOutput>{JSON.stringify(part.toolInvocation.result, null, 2)}</ToolOutput>
-                          )}
+                          <ToolInput input={part.input} />
+                          {"output" in part && part.output ? (
+                            <ToolOutput output={<pre className="overflow-x-auto text-xs">{JSON.stringify(part.output, null, 2)}</pre>} errorText={undefined} />
+                          ) : null}
                         </ToolContent>
                       </Tool>
                     );
-                  }
-                  if (part.type === "reasoning") {
-                    return null;
                   }
                   return null;
                 })}
@@ -143,7 +125,7 @@ export function BusinessAssistantChat({
           {busy && (
             <Message from="assistant">
               <MessageContent>
-                <Shimmer />
+                <Shimmer className="w-1/2">Thinking</Shimmer>
               </MessageContent>
             </Message>
           )}
@@ -151,32 +133,27 @@ export function BusinessAssistantChat({
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="border-t bg-background p-3">
+      <PromptInputFooter className="border-t bg-background p-3">
         <PromptInput
-          onSubmit={async (text) => {
-            await send(text);
+          onSubmit={async (message) => {
+            await send(message.text);
           }}
         >
           <div className="mx-auto flex w-full max-w-3xl items-end gap-2 rounded-2xl border bg-card p-2 shadow-sm">
-            <PromptInputTextarea ref={inputRef} className="max-h-40 min-h-[44px] flex-1 resize-none border-0 bg-transparent px-3 py-2.5 text-sm outline-none" placeholder="Ask about clients, profit, employees, projections..." />
+            <PromptInputTextarea
+              ref={inputRef}
+              className="max-h-40 min-h-[44px] flex-1 resize-none border-0 bg-transparent px-3 py-2.5 text-sm outline-none"
+              placeholder="Ask about clients, profit, employees, projections..."
+            />
             <PromptInputSubmit
               className="h-9 w-9 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              loading={busy}
+              status={status}
             >
               <Bot className="h-4 w-4" />
             </PromptInputSubmit>
           </div>
         </PromptInput>
-        {busy && (
-          <button
-            type="button"
-            onClick={() => stop()}
-            className="mx-auto mt-2 block text-xs text-muted-foreground underline hover:text-foreground"
-          >
-            Stop generating
-          </button>
-        )}
-      </div>
+      </PromptInputFooter>
     </div>
   );
 }
