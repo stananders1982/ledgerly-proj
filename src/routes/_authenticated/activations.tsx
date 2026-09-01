@@ -1532,7 +1532,7 @@ function ActivationsPage() {
                 <AiClientPaste
                   current={cur as any}
                   applying={save.isPending}
-                  onApply={(patch) => {
+                  onApply={(patch: Record<string, unknown>) => {
                     const next = { ...cur, ...(patch as any) };
                     setViewing(next as any);
                     save.mutate(next as any);
