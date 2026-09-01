@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CsvImportDialog, type ImportField } from "@/components/csv-import";
 import { fetchAll } from "@/lib/fetch-all";
+import { AiClientPasteBulk } from "@/components/ai-client-paste";
 
 export const Route = createFileRoute("/_authenticated/import")({
   head: () => ({ meta: [{ title: "Bulk Import — Ledgerly" }] }),
@@ -408,8 +409,8 @@ function ImportPage() {
     <div>
       <PageHeader
         title="Bulk Import"
-        description="Upload full data from CSV/Excel. Download a template for each module, fill it, then import."
-        actions={null}
+        description="Upload full data from CSV/Excel, or paste raw client text and let AI structure it."
+        actions={<AiClientPasteBulk />}
       />
 
       <div className="mb-6 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
