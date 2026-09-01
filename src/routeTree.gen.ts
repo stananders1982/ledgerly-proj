@@ -44,6 +44,7 @@ import { Route as AuthenticatedAffiliatesIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedUsersPermissionsRouteImport } from './routes/_authenticated/users.permissions'
 import { Route as AuthenticatedEmployeesIdRouteImport } from './routes/_authenticated/employees.$id'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
+import { Route as AuthenticatedAssistantBusinessRouteImport } from './routes/_authenticated/assistant/business'
 import { Route as AuthenticatedAssistantThreadIdRouteImport } from './routes/_authenticated/assistant.$threadId'
 import { Route as AuthenticatedAffiliatesIdRouteImport } from './routes/_authenticated/affiliates.$id'
 import { Route as ApiPublicV1LeadsRouteImport } from './routes/api/public/v1/leads'
@@ -234,6 +235,12 @@ const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   path: '/clients/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAssistantBusinessRoute =
+  AuthenticatedAssistantBusinessRouteImport.update({
+    id: '/assistant/business',
+    path: '/assistant/business',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAssistantThreadIdRoute =
   AuthenticatedAssistantThreadIdRouteImport.update({
     id: '/assistant/$threadId',
@@ -298,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/api/business-chat': typeof ApiBusinessChatRoute
   '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
+  '/assistant/business': typeof AuthenticatedAssistantBusinessRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/users/permissions': typeof AuthenticatedUsersPermissionsRoute
@@ -340,6 +348,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
+  '/assistant/business': typeof AuthenticatedAssistantBusinessRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/users/permissions': typeof AuthenticatedUsersPermissionsRoute
@@ -384,6 +393,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/_authenticated/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
+  '/_authenticated/assistant/business': typeof AuthenticatedAssistantBusinessRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/_authenticated/users/permissions': typeof AuthenticatedUsersPermissionsRoute
@@ -428,6 +438,7 @@ export interface FileRouteTypes {
     | '/api/business-chat'
     | '/affiliates/$id'
     | '/assistant/$threadId'
+    | '/assistant/business'
     | '/clients/$id'
     | '/employees/$id'
     | '/users/permissions'
@@ -470,6 +481,7 @@ export interface FileRouteTypes {
     | '/'
     | '/affiliates/$id'
     | '/assistant/$threadId'
+    | '/assistant/business'
     | '/clients/$id'
     | '/employees/$id'
     | '/users/permissions'
@@ -513,6 +525,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/affiliates/$id'
     | '/_authenticated/assistant/$threadId'
+    | '/_authenticated/assistant/business'
     | '/_authenticated/clients/$id'
     | '/_authenticated/employees/$id'
     | '/_authenticated/users/permissions'
@@ -785,6 +798,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/assistant/business': {
+      id: '/_authenticated/assistant/business'
+      path: '/assistant/business'
+      fullPath: '/assistant/business'
+      preLoaderRoute: typeof AuthenticatedAssistantBusinessRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/assistant/$threadId': {
       id: '/_authenticated/assistant/$threadId'
       path: '/assistant/$threadId'
@@ -856,6 +876,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAffiliatesIdRoute: typeof AuthenticatedAffiliatesIdRoute
   AuthenticatedAssistantThreadIdRoute: typeof AuthenticatedAssistantThreadIdRoute
+  AuthenticatedAssistantBusinessRoute: typeof AuthenticatedAssistantBusinessRoute
   AuthenticatedClientsIdRoute: typeof AuthenticatedClientsIdRoute
   AuthenticatedEmployeesIdRoute: typeof AuthenticatedEmployeesIdRoute
   AuthenticatedUsersPermissionsRoute: typeof AuthenticatedUsersPermissionsRoute
@@ -891,6 +912,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAffiliatesIdRoute: AuthenticatedAffiliatesIdRoute,
   AuthenticatedAssistantThreadIdRoute: AuthenticatedAssistantThreadIdRoute,
+  AuthenticatedAssistantBusinessRoute: AuthenticatedAssistantBusinessRoute,
   AuthenticatedClientsIdRoute: AuthenticatedClientsIdRoute,
   AuthenticatedEmployeesIdRoute: AuthenticatedEmployeesIdRoute,
   AuthenticatedUsersPermissionsRoute: AuthenticatedUsersPermissionsRoute,
