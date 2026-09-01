@@ -182,7 +182,9 @@ function ActivationsPage() {
     setTierFilter("all");
     setMinPotential("");
     setHealthFilter("all");
+    setRetentionFilter("all");
   }, []);
+
 
 
   const activeRange = useMemo(
