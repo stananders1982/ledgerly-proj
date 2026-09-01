@@ -17,6 +17,7 @@ export const NAV_GROUPS: NavGroup[] = ["Overview", "Operations", "People", "Anal
 
 export const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", title: "Dashboard", url: "/", icon: LayoutDashboard, group: "Overview" },
+  { key: "business-assistant", title: "Ask Your Data", url: "/assistant/business", icon: Sparkles, group: "Overview" },
 
   { key: "leads", title: "Leads", url: "/leads", icon: Users, group: "Operations" },
   { key: "activations", title: "Clients", url: "/activations", icon: UserCheck, group: "Operations" },
