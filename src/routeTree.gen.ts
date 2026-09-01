@@ -29,6 +29,7 @@ import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated/goals'
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
 import { Route as AuthenticatedDataQualityRouteImport } from './routes/_authenticated/data-quality'
+import { Route as AuthenticatedDashboardsRouteImport } from './routes/_authenticated/dashboards'
 import { Route as AuthenticatedCompaniesRouteImport } from './routes/_authenticated/companies'
 import { Route as AuthenticatedCloseRouteImport } from './routes/_authenticated/close'
 import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authenticated/attendance'
@@ -151,6 +152,11 @@ const AuthenticatedDataQualityRoute =
     path: '/data-quality',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDashboardsRoute = AuthenticatedDashboardsRouteImport.update({
+  id: '/dashboards',
+  path: '/dashboards',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCompaniesRoute = AuthenticatedCompaniesRouteImport.update({
   id: '/companies',
   path: '/companies',
@@ -266,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/close': typeof AuthenticatedCloseRoute
   '/companies': typeof AuthenticatedCompaniesRoute
+  '/dashboards': typeof AuthenticatedDashboardsRoute
   '/data-quality': typeof AuthenticatedDataQualityRoute
   '/expenses': typeof AuthenticatedExpensesRoute
   '/goals': typeof AuthenticatedGoalsRoute
@@ -305,6 +312,7 @@ export interface FileRoutesByTo {
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/close': typeof AuthenticatedCloseRoute
   '/companies': typeof AuthenticatedCompaniesRoute
+  '/dashboards': typeof AuthenticatedDashboardsRoute
   '/data-quality': typeof AuthenticatedDataQualityRoute
   '/expenses': typeof AuthenticatedExpensesRoute
   '/goals': typeof AuthenticatedGoalsRoute
@@ -347,6 +355,7 @@ export interface FileRoutesById {
   '/_authenticated/attendance': typeof AuthenticatedAttendanceRoute
   '/_authenticated/close': typeof AuthenticatedCloseRoute
   '/_authenticated/companies': typeof AuthenticatedCompaniesRoute
+  '/_authenticated/dashboards': typeof AuthenticatedDashboardsRoute
   '/_authenticated/data-quality': typeof AuthenticatedDataQualityRoute
   '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
   '/_authenticated/goals': typeof AuthenticatedGoalsRoute
@@ -390,6 +399,7 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/close'
     | '/companies'
+    | '/dashboards'
     | '/data-quality'
     | '/expenses'
     | '/goals'
@@ -429,6 +439,7 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/close'
     | '/companies'
+    | '/dashboards'
     | '/data-quality'
     | '/expenses'
     | '/goals'
@@ -470,6 +481,7 @@ export interface FileRouteTypes {
     | '/_authenticated/attendance'
     | '/_authenticated/close'
     | '/_authenticated/companies'
+    | '/_authenticated/dashboards'
     | '/_authenticated/data-quality'
     | '/_authenticated/expenses'
     | '/_authenticated/goals'
@@ -655,6 +667,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDataQualityRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dashboards': {
+      id: '/_authenticated/dashboards'
+      path: '/dashboards'
+      fullPath: '/dashboards'
+      preLoaderRoute: typeof AuthenticatedDashboardsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/companies': {
       id: '/_authenticated/companies'
       path: '/companies'
@@ -798,6 +817,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAttendanceRoute: typeof AuthenticatedAttendanceRoute
   AuthenticatedCloseRoute: typeof AuthenticatedCloseRoute
   AuthenticatedCompaniesRoute: typeof AuthenticatedCompaniesRoute
+  AuthenticatedDashboardsRoute: typeof AuthenticatedDashboardsRoute
   AuthenticatedDataQualityRoute: typeof AuthenticatedDataQualityRoute
   AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
   AuthenticatedGoalsRoute: typeof AuthenticatedGoalsRoute
@@ -832,6 +852,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAttendanceRoute: AuthenticatedAttendanceRoute,
   AuthenticatedCloseRoute: AuthenticatedCloseRoute,
   AuthenticatedCompaniesRoute: AuthenticatedCompaniesRoute,
+  AuthenticatedDashboardsRoute: AuthenticatedDashboardsRoute,
   AuthenticatedDataQualityRoute: AuthenticatedDataQualityRoute,
   AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
   AuthenticatedGoalsRoute: AuthenticatedGoalsRoute,
