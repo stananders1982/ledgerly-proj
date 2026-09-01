@@ -35,6 +35,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { KYC_STATUS_LABELS, kycStatus } from "@/lib/kyc";
 import { KycBadge } from "@/components/client-kyc-checklist";
+import { clientHealth, HEALTH_BAND_LABEL, HEALTH_BAND_RANK, type ClientHealth } from "@/lib/client-health";
+import { HealthBadge } from "@/components/client-health";
 import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TableKeyboardHint } from "@/components/table-toolbox";
 import { TableFrame } from "@/components/table-frame";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate, depositIndex, depositTotalFor, isLateRetentionFtd, monthsLate } from "@/lib/rules";
@@ -166,6 +168,7 @@ function ActivationsPage() {
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [minPotential, setMinPotential] = useState<string>("");
+  const [healthFilter, setHealthFilter] = useState<string>("all");
 
   const clearFilters = useCallback(() => {
     setAnsweredFilter("all");
@@ -175,6 +178,7 @@ function ActivationsPage() {
     setTagFilter("all");
     setTierFilter("all");
     setMinPotential("");
+    setHealthFilter("all");
   }, []);
 
 
@@ -314,6 +318,30 @@ function ActivationsPage() {
       contactDates: contactDatesFor(r.lead_name, r.id),
     });
 
+  /**
+   * Activity intelligence score per client, memoised so the table can sort and
+   * filter on it without recomputing for every cell.
+   */
+  const healthMap = useMemo(() => {
+    const m = new Map<string, ClientHealth>();
+    for (const r of q.data ?? []) {
+      m.set(r.id, clientHealth({
+        deposits: depositRowsFor(r.lead_name, r.id).map((d: any) => ({ date: d.date, amount: toDisplay(d.amount, d.currency) })),
+        withdrawals: withdrawalRowsFor(r.lead_name).map((w: any) => ({ date: w.date, amount: toDisplay(w.amount, w.currency) })),
+        contactDates: contactDatesFor(r.lead_name, r.id),
+        kyc: (r as any).kyc,
+        potentialValue: (r as any).potential_value,
+        activationDate: actDate(r),
+        balance: netBalance(r),
+      }));
+    }
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q.data, revenueQ.data, withdrawalsQ.data, commsQ.data]);
+
+  const healthOf = (r: any): ClientHealth =>
+    healthMap.get(r.id) ?? clientHealth({ deposits: [], withdrawals: [], contactDates: [] });
+
   const daysSinceFtd = (r: any) => {
     const d = actDate(r);
     if (!d) return null;
@@ -385,12 +413,14 @@ function ActivationsPage() {
       if (dupOnly && !dupNames.has((r.lead_name ?? "").trim().toLowerCase())) return false;
       if (tagFilter !== "all" && !(r.tags ?? []).includes(tagFilter)) return false;
       if (Number(minPotential) > 0 && (potentialValue(r.potential_value) ?? 0) < Number(minPotential)) return false;
+      if (healthFilter === "attention" && !["at-risk", "critical"].includes(healthOf(r).band)) return false;
+      if (healthFilter !== "all" && healthFilter !== "attention" && healthOf(r).band !== healthFilter) return false;
       if (tierFilter === "neglected" && !(neglected(r) && tierOf(r) !== "unrated")) return false;
       if (tierFilter !== "all" && tierFilter !== "neglected" && tierOf(r) !== tierFilter) return false;
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [answeredFilter, potentialFilter, stdFilter, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch, tierFilter, minPotential, settings, commsQ.data],
+    [answeredFilter, potentialFilter, stdFilter, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch, tierFilter, minPotential, settings, commsQ.data, healthFilter, healthMap],
   );
 
   /** Every client regardless of the selected date range (used by issue deep-links). */
@@ -433,6 +463,7 @@ function ActivationsPage() {
       { key: "potentialValue", label: "Potential $", filter: "none", defaultHidden: true },
       { key: "tier", label: "Value tier", filter: "select", defaultHidden: true, options: Object.values(TIER_LABEL), value: (r: any) => TIER_LABEL[valueTier(r.potential_value, settings)] },
       { key: "opportunity", label: "Headroom", filter: "select", defaultHidden: true, value: (r: any) => r.ai_opportunity_label ?? "" },
+      { key: "health", label: "Health", filter: "select", options: Object.values(HEALTH_BAND_LABEL), value: (r: any) => HEALTH_BAND_LABEL[healthOf(r).band] },
       { key: "daysftd", label: "Days since FTD", filter: "none", defaultHidden: true },
       { key: "lastcontact", label: "Last contact", filter: "none", defaultHidden: true },
       { key: "tags", label: "Tags", defaultHidden: true, value: (r: any) => (r.tags ?? []).join(", ") },
@@ -463,6 +494,7 @@ function ActivationsPage() {
     potentialValue: (r) => potentialValue(r.potential_value) ?? -1,
     tier: (r) => TIER_RANK[valueTier(r.potential_value, settings)],
     opportunity: (r) => Number(r.ai_opportunity_score ?? -1),
+    health: (r) => HEALTH_BAND_RANK[healthOf(r).band] * 1000 + healthOf(r).score,
     daysftd: (r) => daysSinceFtd(r) ?? -1,
     lastcontact: (r) => lastContactFor(r) ?? "",
     conversion: (r) => r.conversion_employee_id ?? "",
@@ -491,6 +523,8 @@ function ActivationsPage() {
     acc[t] = (acc[t] ?? 0) + 1;
     return acc;
   }, {});
+  const attentionCount = rows.filter((r) => ["at-risk", "critical"].includes(healthOf(r).band)).length;
+  const upsellCount = rows.filter((r) => healthOf(r).band === "upsell").length;
   const neglectedCount = rows.filter((r) => neglected(r) && tierOf(r) !== "unrated").length;
 
 
@@ -788,7 +822,7 @@ function ActivationsPage() {
             ))}
           </SelectContent>
         </Select>
-        {(answeredFilter !== "all" || tierFilter !== "all" || potentialFilter !== "all" || stdFilter !== "all" || tagFilter !== "all" || dupOnly || minPotential) && (
+        {(answeredFilter !== "all" || healthFilter !== "all" || tierFilter !== "all" || potentialFilter !== "all" || stdFilter !== "all" || tagFilter !== "all" || dupOnly || minPotential) && (
           <Button variant="ghost" size="sm" className="h-9 gap-1 text-muted-foreground" onClick={clearFilters}>
             <X className="h-3.5 w-3.5" /> Clear filters
           </Button>
@@ -823,6 +857,22 @@ function ActivationsPage() {
           active={answeredFilter !== "all"}
           activeLabel={answeredFilter === "no" ? "Not answered" : answeredFilter === "yes" ? "Answered" : undefined}
           onClick={() => setAnsweredFilter((v) => (v === "all" ? "no" : v === "no" ? "yes" : "all"))}
+        />
+        <KpiCard
+          label="Needs attention"
+          value={String(attentionCount)}
+          icon={PhoneCall}
+          hint="Clients scoring under 60 on health — at risk or critical. Click to list only them."
+          active={healthFilter === "attention"}
+          onClick={() => setHealthFilter((v) => (v === "attention" ? "all" : "attention"))}
+        />
+        <KpiCard
+          label="Upsell ready"
+          value={String(upsellCount)}
+          icon={Wallet}
+          hint="Healthy clients with real headroom left against their potential. Click to list them."
+          active={healthFilter === "upsell"}
+          onClick={() => setHealthFilter((v) => (v === "upsell" ? "all" : "upsell"))}
         />
         <KpiCard
           label="Whales"
@@ -968,6 +1018,7 @@ function ActivationsPage() {
                 onClick={() => setViewing(r)}
                 fields={[
                   { label: "Balance", value: <span className="num">{fmtMoney(netBalance(r))}</span> },
+                  { label: "Health", value: <HealthBadge health={healthOf(r)} /> },
                   { label: "Potential", value: <PotentialBadge value={r.potential} /> },
                   { label: "Tags", value: <TagBadges tags={r.tags} /> },
                   { label: "Source", value: r.daily_lead_entries?.lead_sources?.name ?? "—" },
@@ -1005,6 +1056,7 @@ function ActivationsPage() {
                 {tb.show("potentialValue") && <SortTh label="Potential $" k="potentialValue" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("tier") && <SortTh label="Value tier" k="tier" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("opportunity") && <SortTh label="Headroom" k="opportunity" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("health") && <SortTh label="Health" k="health" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("daysftd") && <SortTh label="Days since FTD" k="daysftd" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("lastcontact") && <SortTh label="Last contact" k="lastcontact" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("tags") && <th className="py-2.5 px-2">Tags</th>}
@@ -1127,6 +1179,9 @@ function ActivationsPage() {
                   <td className="py-2.5 px-2">
                     <OpportunityBadge score={r.ai_opportunity_score} label={r.ai_opportunity_label} />
                   </td>
+                  )}
+                  {tb.show("health") && (
+                  <td className="py-2.5 px-2"><HealthBadge health={healthOf(r)} /></td>
                   )}
                   {tb.show("daysftd") && (
                   <td className="py-2.5 px-2">{daysSinceFtd(r) ?? "—"}</td>

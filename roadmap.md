@@ -8,3 +8,4 @@
 ## Next
 - [x] Client 360 timeline: richer lead-to-lifecycle view with financial, communications, tasks, KYC, employee actions, and system event filters.
 - [x] Scenario modelling: /scenarios page with funnel levers (lead volume, CPL, activation rate, FTD rate, avg FTD, fixed costs, payouts), presets and current-vs-scenario comparison.
+- [x] Scenarios page: on-page guide explaining what the tool does and how to use it.

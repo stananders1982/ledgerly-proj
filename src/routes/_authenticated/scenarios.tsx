@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, RotateCcw, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRight, ChevronDown, HelpCircle, RotateCcw, TrendingDown, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,68 @@ const iso = (d: Date) => {
 };
 
 const money = (n: number) => fmtMoney(toDisplay(n, "USD"));
+
+/** Plain-English manual so the page explains itself on first open. */
+function HowToUse() {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="card-surface mb-5 p-4">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 text-left"
+      >
+        <span className="flex items-center gap-2 text-sm font-medium">
+          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+          How to use scenario modelling
+        </span>
+        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="mt-4 grid gap-5 text-sm text-muted-foreground md:grid-cols-3">
+          <div>
+            <h3 className="mb-1.5 font-medium text-foreground">What this does</h3>
+            <p>
+              It takes your real numbers for the selected period — leads received, what they cost,
+              how many activated, how many became FTDs and what they deposited — and lets you ask
+              "what if?". Nothing you do here changes your data; it is a sandbox.
+            </p>
+          </div>
+          <div>
+            <h3 className="mb-1.5 font-medium text-foreground">How to use it</h3>
+            <ol className="list-decimal space-y-1 pl-4">
+              <li>Pick the period at the top right. That period becomes your baseline.</li>
+              <li>Click a preset (for example "CPL +15%") or drag any lever.</li>
+              <li>Read the Scenario column against Current, and the coloured Change column.</li>
+              <li>Hit Reset to snap every lever back to the real numbers.</li>
+            </ol>
+          </div>
+          <div>
+            <h3 className="mb-1.5 font-medium text-foreground">What each lever means</h3>
+            <ul className="space-y-1">
+              <li><span className="text-foreground">Lead volume</span> — buy more or fewer leads.</li>
+              <li><span className="text-foreground">Cost per lead</span> — the price you pay per lead.</li>
+              <li><span className="text-foreground">Activation rate</span> — leads that become clients.</li>
+              <li><span className="text-foreground">FTD rate</span> — activations that fund.</li>
+              <li><span className="text-foreground">Average FTD value</span> — typical first deposit size.</li>
+              <li><span className="text-foreground">Fixed operating costs</span> — salaries, rent, tools.</li>
+              <li><span className="text-foreground">Client payouts</span> — money withdrawn back out.</li>
+            </ul>
+          </div>
+          <div className="md:col-span-3 border-t border-border/50 pt-3 text-xs">
+            <span className="font-medium text-foreground">Reading the results:</span>{" "}
+            Profit = revenue − acquisition cost − fixed costs − payouts. ROAS is revenue per $1 of
+            acquisition spend, and Cost per FTD is what one funded client really costs you. Where a
+            period has no cost recorded on the lead entries, the source's price card is used instead.
+            The read-out under the table also tells you the cost per lead at which this scenario
+            stops making money.
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 const num = (n: number) => Math.round(n).toLocaleString("en-US");
 const rate = (n: number) => `${(n * 100).toFixed(1)}%`;
 
@@ -85,6 +147,8 @@ function ScenariosPage() {
           />
         }
       />
+
+      <HowToUse />
 
       {baselineQ.isLoading || !baseline || !levers || !current || !scenario ? (
         <p className="text-sm text-muted-foreground">Loading your funnel…</p>
