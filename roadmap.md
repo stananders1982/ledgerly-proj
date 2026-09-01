@@ -2,6 +2,7 @@
 
 ## Done
 - [x] Command Center → Withdrawals: make "Open withdrawals" open the withdrawals page filtered to the exception clients and the correct date window.
+- [x] Business assistant: permission-aware natural-language Q&A with real-time data tools and streaming chat UI.
 
 ## Next
 - [ ] Customizable dashboards: drag/drop/resize widgets, save named layouts (CEO, Finance, Sales Manager).
