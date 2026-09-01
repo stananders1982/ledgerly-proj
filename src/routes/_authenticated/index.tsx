@@ -65,6 +65,7 @@ import { CashflowForecast } from "@/components/cashflow-forecast";
 import { ActivityFeed } from "@/components/activity-feed";
 import { DataQualityCard } from "@/components/data-quality-card";
 import { AnomalyAlerts } from "@/components/anomaly-alerts";
+import { CommandCenter } from "@/components/command-center";
 import { DailyDigest } from "@/components/daily-digest";
 import { AskBox } from "@/components/ask-box";
 import { RetentionScoreboard } from "@/components/retention-scoreboard";
@@ -504,6 +505,7 @@ function Dashboard() {
         </div>
       )}
 
+      {show("dash:command") && <CommandCenter />}
       {show("dash:alerts") && <AnomalyAlerts key={`${startIso}:${endIso}`} />}
 
       {(show("dash:digest") || show("dash:ask")) && (
