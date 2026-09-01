@@ -10,8 +10,8 @@
  * Everything is derived from the same tables the rest of the app reads, so the
  * numbers always agree with the detail pages they link to.
  */
-import { useMemo } from "react";
-import { Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowRight, Banknote, ClipboardList, Gauge, ShieldAlert,
@@ -26,6 +26,8 @@ import { depositFee } from "@/lib/profitability";
 import { isOverduePayout } from "@/lib/withdrawal-status";
 import { kycStatus } from "@/lib/kyc";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const sb = supabase as any;
 
@@ -63,7 +65,19 @@ function expand(rows: any[], startISO: string, endISO: string) {
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
+type ExceptionDetail = {
+  text: string;
+  hint?: string;
+  to: string;
+  search?: any;
+  cta: string;
+  explain: string;
+  rows: { label: string; sub?: string; value?: string }[];
+};
+
 export function CommandCenter() {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState<ExceptionDetail | null>(null);
   useFxRates(); // keep conversions live when rates land
   const settings = useCompanySettings();
   const affiliateAlerts = useAffiliateBalanceAlerts();
@@ -252,29 +266,49 @@ export function CommandCenter() {
     m.unusualWithdrawals.length && {
       text: `${m.unusualWithdrawals.length} unusual withdrawal${m.unusualWithdrawals.length === 1 ? "" : "s"}`,
       hint: m.unusualWithdrawals.slice(0, 2).map((w: any) => `${w.customer_name} ${fmtMoney(w.disp)}`).join(" · "),
-      to: "/withdrawals", search: undefined as any,
+      to: "/withdrawals", search: undefined as any, cta: "Open withdrawals",
+      explain: "Withdrawals in the last 30 days more than 3× the average payout size.",
+      rows: m.unusualWithdrawals
+        .slice()
+        .sort((a: any, b: any) => b.disp - a.disp)
+        .map((w: any) => ({ label: w.customer_name || "—", sub: w.date, value: fmtMoney(w.disp) })),
     },
     m.missingKyc.length && {
       text: `${m.missingKyc.length} qualified client${m.missingKyc.length === 1 ? "" : "s"} missing KYC`,
       hint: m.missingKyc.slice(0, 2).map((a: any) => a.lead_name).filter(Boolean).join(" · "),
-      to: "/activations", search: undefined as any,
+      to: "/activations", search: undefined as any, cta: "Open clients",
+      explain: "Clients that already qualified (FTD) but whose KYC checklist is not complete.",
+      rows: m.missingKyc.map((a: any) => ({
+        label: a.lead_name || "—",
+        sub: `qualified ${String(a.qualified_at).slice(0, 10)}`,
+        value: kycStatus(a.kyc) === "partial" ? "Partial" : "Missing",
+      })),
     },
     m.negativeAffiliates.length && {
       text: `${m.negativeAffiliates.length} affiliate${m.negativeAffiliates.length === 1 ? " has" : "s have"} a negative balance`,
       hint: m.negativeAffiliates.slice(0, 2).map((a: any) => `${a.name} ${fmtMoney(a.balance)}`).join(" · "),
-      to: "/affiliates", search: undefined as any,
+      to: "/affiliates", search: undefined as any, cta: "Open affiliates",
+      explain: "Affiliates whose running balance has dropped below zero — we owe or over-spent.",
+      rows: m.negativeAffiliates.map((a: any) => ({ label: a.name, value: fmtMoney(a.balance) })),
     },
     m.suspiciousDeposits.length && {
       text: `${m.suspiciousDeposits.length} deposit${m.suspiciousDeposits.length === 1 ? "" : "s"} far above the usual size`,
       hint: m.suspiciousDeposits.slice(0, 2).map((r: any) => `${r.customer_name} ${fmtMoney(r.disp)}`).join(" · "),
-      to: "/revenue", search: undefined as any,
+      to: "/revenue", search: undefined as any, cta: "Open income",
+      explain: "Deposits in the last 30 days more than 4× the average deposit size.",
+      rows: m.suspiciousDeposits
+        .slice()
+        .sort((a: any, b: any) => b.disp - a.disp)
+        .map((r: any) => ({ label: r.customer_name || "—", sub: `${r.date}${r.method ? ` · ${r.method}` : ""}`, value: fmtMoney(r.disp) })),
     },
     m.withdrawalRate > 40 && {
       text: `Withdrawal rate is ${m.withdrawalRate.toFixed(0)}% of deposits (30d)`,
       hint: "Above the 40% comfort line — check retention and payout pressure.",
-      to: "/withdrawals", search: undefined as any,
+      to: "/withdrawals", search: undefined as any, cta: "Open withdrawals",
+      explain: "Total withdrawals of the last 30 days divided by total deposits of the same period.",
+      rows: [],
     },
-  ].filter(Boolean) as { text: string; hint?: string; to: string; search?: any }[];
+  ].filter(Boolean) as ExceptionDetail[];
 
   const managerAlerts = [
     ...m.droppingEmployees.map((e) => ({
@@ -321,17 +355,18 @@ export function CommandCenter() {
           <ul className="space-y-1.5">
             {exceptions.map((e) => (
               <li key={e.text}>
-                <Link
-                  to={e.to as any}
-                  search={e.search}
-                  className="group block rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/5"
+                <button
+                  type="button"
+                  onClick={() => setOpen(e)}
+                  className="group block w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-foreground/5"
                 >
                   <span className="flex items-center gap-2 text-sm">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-rose-500" />
                     <span className="min-w-0 flex-1">{e.text}</span>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                   </span>
                   {e.hint ? <span className="ml-6 block truncate text-xs text-muted-foreground">{e.hint}</span> : null}
-                </Link>
+                </button>
               </li>
             ))}
           </ul>
@@ -340,17 +375,32 @@ export function CommandCenter() {
 
       <Panel title="Cash position" icon={<Banknote className="h-4 w-4" />} tone="emerald">
         <dl className="space-y-1.5 text-sm">
-          <Row label="Cash today" value={fmtMoney(m.cashToday)} strong tone={m.cashToday < 0 ? "bad" : "good"} />
-          <Row label="Expected in 7 days" value={fmtMoney(m.in7)} />
-          <Row label="Expected in 30 days" value={fmtMoney(m.in30)} />
-          <Row label="Expected in 90 days" value={fmtMoney(m.in90)} />
-          <Row label="Committed expenses (30d)" value={fmtMoney(m.committed30)} tone="bad" />
+          <Row
+            label="Cash today"
+            hint="Everything actually collected (deposits minus processing fees) minus expenses paid and withdrawals paid out, over the last 180 days."
+            value={fmtMoney(m.cashToday)}
+            strong
+            tone={m.cashToday < 0 ? "bad" : "good"}
+          />
+          <Row label="Expected in 7 days" hint="Scheduled recurring income due in the next 7 days." value={fmtMoney(m.in7)} />
+          <Row label="Expected in 30 days" hint="Scheduled recurring income due in the next 30 days." value={fmtMoney(m.in30)} />
+          <Row label="Expected in 90 days" hint="Scheduled recurring income due in the next 90 days." value={fmtMoney(m.in90)} />
+          <Row
+            label="Committed expenses (30d)"
+            hint="Recurring expenses already scheduled to hit in the next 30 days."
+            value={fmtMoney(m.committed30)}
+            tone="bad"
+          />
           <Row
             label="Expected payroll (monthly)"
+            hint="Sum of active employee base salaries for one month (commissions excluded). Visible to admins only."
             value={m.payroll == null ? "—" : fmtMoney(m.payroll)}
             tone={m.payroll == null ? undefined : "bad"}
           />
         </dl>
+        <p className="mt-3 border-t border-border/50 pt-2 text-xs text-muted-foreground">
+          Cash today is money already in — expected figures are scheduled recurring income only, not forecasts.
+        </p>
       </Panel>
 
       <Panel title="Manager alerts" icon={<Gauge className="h-4 w-4" />} tone="amber">
@@ -373,6 +423,38 @@ export function CommandCenter() {
           </ul>
         )}
       </Panel>
+
+      <Dialog open={!!open} onOpenChange={(v) => !v && setOpen(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{open?.text}</DialogTitle>
+            <DialogDescription>{open?.explain}</DialogDescription>
+          </DialogHeader>
+          {open?.rows.length ? (
+            <ul className="max-h-80 divide-y divide-border/60 overflow-y-auto rounded-md border border-border/60">
+              {open.rows.map((r, i) => (
+                <li key={`${r.label}-${i}`} className="flex items-baseline justify-between gap-3 px-3 py-2 text-sm">
+                  <span className="min-w-0">
+                    <span className="block truncate">{r.label}</span>
+                    {r.sub ? <span className="block text-xs text-muted-foreground">{r.sub}</span> : null}
+                  </span>
+                  {r.value ? <span className="shrink-0 tabular-nums">{r.value}</span> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <Button
+            className="w-full"
+            onClick={() => {
+              const target = open;
+              setOpen(null);
+              if (target) navigate({ to: target.to as any, search: target.search });
+            }}
+          >
+            {open?.cta}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
@@ -405,10 +487,10 @@ const Clear = ({ children }: { children: React.ReactNode }) => (
 );
 
 function Row({
-  label, value, strong, tone,
-}: { label: string; value: string; strong?: boolean; tone?: "good" | "bad" }) {
+  label, value, strong, tone, hint,
+}: { label: string; value: string; strong?: boolean; tone?: "good" | "bad"; hint?: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 px-2">
+    <div className="flex items-baseline justify-between gap-3 px-2" title={hint}>
       <dt className="text-muted-foreground">{label}</dt>
       <dd
         className={cn(
