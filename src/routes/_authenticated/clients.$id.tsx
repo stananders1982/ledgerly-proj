@@ -587,9 +587,15 @@ function ClientPage() {
 
 
           <section className="card-surface p-5">
-            <h2 className="mb-3 font-display text-base font-semibold">Lifecycle</h2>
-            <ClientTimeline events={timelineEvents} />
+            <Client360Timeline
+              client={cur}
+              deposits={deposits}
+              withdrawals={withdrawals}
+              comms={commsQ.data ?? []}
+              employeeName={employeeName}
+            />
           </section>
+
 
           <section className="card-surface p-5">
             <ClientCommunications activationId={cur.id} clientName={cur.lead_name} />
