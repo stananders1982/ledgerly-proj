@@ -18,21 +18,23 @@ import {
 
 const NONE = "_none";
 
-export function StatusBadge({ status, className }: { status?: string | null; className?: string }) {
+export function StatusBadge({ status, className, prefix }: { status?: string | null; className?: string; prefix?: string }) {
   if (!status) return <span className="text-muted-foreground">—</span>;
   return (
-    <Badge variant="outline" className={cn("capitalize", STATUS_TONE[status] ?? "", className)}>
+    <Badge variant="outline" className={cn("capitalize", STATUS_TONE[status] ?? "", className)} title="Where the client sits in the sales pipeline">
+      {prefix ? <span className="font-normal normal-case opacity-70">{prefix} </span> : null}
       {status}
     </Badge>
   );
 }
 
 export function RiskBadge({
-  score, label, className,
-}: { score?: number | null; label?: string | null; className?: string }) {
+  score, label, className, prefix,
+}: { score?: number | null; label?: string | null; className?: string; prefix?: string }) {
   if (score == null && !label) return <span className="text-muted-foreground">—</span>;
   return (
-    <Badge variant="outline" className={cn("capitalize", riskTone(score), className)}>
+    <Badge variant="outline" className={cn("capitalize", riskTone(score), className)} title="AI churn-risk read (0–100)">
+      {prefix ? <span className="font-normal normal-case opacity-70">{prefix} </span> : null}
       {score != null ? `${score}` : ""}{score != null && label ? " · " : ""}{label ?? ""}
     </Badge>
   );
