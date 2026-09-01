@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatCard } from "@/components/stat-card";
 import { EmployeeLink } from "@/components/employee-link";
 import { FavoriteStar } from "@/components/favorite-star";
@@ -39,6 +40,7 @@ import { fetchAll } from "@/lib/fetch-all";
 import { qualifiesAsFtd, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { useAuth } from "@/lib/auth-context";
+import { useMyRoleKey } from "@/lib/permissions";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({
@@ -77,7 +79,9 @@ function ClientPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const settings = useCompanySettings();
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
+  const { roleKey } = useMyRoleKey();
+  const canAllocate = roleKey !== "retention" && roleKey !== "agent";
 
   const clientQ = useQuery({
     queryKey: ["client", id],
@@ -97,7 +101,22 @@ function ClientPage() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("list_employees_directory");
       if (error) throw error;
-      return (data ?? []) as { id: string; name: string }[];
+      return (data ?? []) as { id: string; name: string; active?: boolean; team?: string }[];
+    },
+  });
+
+  const retentionAgentsQ = useQuery({
+    queryKey: ["retention-agents", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, name, team, active")
+        .eq("company_id", companyId!)
+        .eq("active", true)
+        .in("team", ["R"]);
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string; team: string; active: boolean }[];
     },
   });
 
@@ -669,7 +688,32 @@ function ClientPage() {
               <Row label="Activated" value={cur.activation_date ? fmtDate(cur.activation_date) : "—"} />
               <Row label="Qualified" value={cur.qualified_at ? fmtDate(String(cur.qualified_at).slice(0, 10)) : "Pending"} />
               <Row label="Conversion agent" value={<EmployeeLink id={cur.conversion_employee_id} name={employeeName(cur.conversion_employee_id)} />} />
-              <Row label="Retention agent" value={<EmployeeLink id={cur.employee_id} name={employeeName(cur.employee_id)} />} />
+              <Row
+                label="Retention agent"
+                value={
+                  canAllocate ? (
+                    <Select
+                      value={cur.employee_id || "_none"}
+                      onValueChange={(v) => save.mutate({ employee_id: v === "_none" ? null : v })}
+                      disabled={save.isPending}
+                    >
+                      <SelectTrigger className="h-8 w-full max-w-[220px] text-xs">
+                        <SelectValue placeholder="Allocate to…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Unassigned</SelectItem>
+                        {(retentionAgentsQ.data ?? [])
+                          .filter((e) => e.id !== cur.employee_id)
+                          .map((e) => (
+                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <EmployeeLink id={cur.employee_id} name={employeeName(cur.employee_id)} />
+                  )
+                }
+              />
               <Row label="Age" value={age != null ? String(age) : "—"} />
               <Row label="Country" value={cur.country || "—"} />
               <Row label="City" value={cur.city || "—"} />
