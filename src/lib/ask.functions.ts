@@ -179,6 +179,9 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const revRows = (revenue.data ?? []) as any[];
     const stdRows: { date: string; amount: number; agent: string }[] = [];
     const performanceRevenueRows: { date: string; amount: number; agent: string }[] = [];
+    // Every deposit, split the same way, but keeping the client name and the
+    // agent's team so "split X's month per client" can be answered exactly.
+    const attributedRows: { date: string; amount: number; agent: string; client: string }[] = [];
     const employeeById = new Map((employees.data ?? []).map((employee: any) => [employee.id, employee]));
 
     // Match Employee Performance exactly: revenue is credited to the employees
@@ -187,15 +190,28 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       if (!row.date) continue;
       const amount = Number(row.amount || 0);
       const splitPct = Number(row.split_pct ?? 100);
+      const client = String(row.customer_name || "Unnamed client");
       const primary = employeeById.get(row.employee_id) as any;
       const secondary = employeeById.get(row.employee_id_2) as any;
-      if (primary?.name && String(primary.team ?? "R").toUpperCase() === "R") {
-        performanceRevenueRows.push({ date: String(row.date), amount: amount * (splitPct / 100), agent: primary.name });
+      if (primary?.name) {
+        const share = amount * (splitPct / 100);
+        attributedRows.push({ date: String(row.date), amount: share, agent: primary.name, client });
+        if (String(primary.team ?? "R").toUpperCase() === "R") {
+          performanceRevenueRows.push({ date: String(row.date), amount: share, agent: primary.name });
+        }
       }
-      if (secondary?.name && String(secondary.team ?? "R").toUpperCase() === "R") {
-        performanceRevenueRows.push({ date: String(row.date), amount: amount * ((100 - splitPct) / 100), agent: secondary.name });
+      if (secondary?.name) {
+        const share = amount * ((100 - splitPct) / 100);
+        attributedRows.push({ date: String(row.date), amount: share, agent: secondary.name, client });
+        if (String(secondary.team ?? "R").toUpperCase() === "R") {
+          performanceRevenueRows.push({ date: String(row.date), amount: share, agent: secondary.name });
+        }
+      }
+      if (!primary?.name && !secondary?.name) {
+        attributedRows.push({ date: String(row.date), amount, agent: "unassigned", client });
       }
     }
+
     for (const a of actRows) {
       const agent = agentNameOf(a.employee_id);
       if (!agent) continue;
