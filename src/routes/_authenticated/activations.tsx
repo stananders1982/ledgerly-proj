@@ -166,6 +166,8 @@ function ActivationsPage() {
   const [stdFilter, setStdFilter] = useState<"all" | "yes" | "no">("all");
   
   const [dupOnly, setDupOnly] = useState(false);
+  const [retentionFilter, setRetentionFilter] = useState("all");
+
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [minPotential, setMinPotential] = useState<string>("");
@@ -180,7 +182,9 @@ function ActivationsPage() {
     setTierFilter("all");
     setMinPotential("");
     setHealthFilter("all");
+    setRetentionFilter("all");
   }, []);
+
 
 
   const activeRange = useMemo(
@@ -418,10 +422,13 @@ function ActivationsPage() {
       if (healthFilter !== "all" && healthFilter !== "attention" && healthOf(r).band !== healthFilter) return false;
       if (tierFilter === "neglected" && !(neglected(r) && tierOf(r) !== "unrated")) return false;
       if (tierFilter !== "all" && tierFilter !== "neglected" && tierOf(r) !== tierFilter) return false;
+      if (retentionFilter === "unassigned" && r.employee_id) return false;
+      if (retentionFilter !== "all" && retentionFilter !== "unassigned" && r.employee_id !== retentionFilter) return false;
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [answeredFilter, potentialFilter, stdFilter, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch, tierFilter, minPotential, settings, commsQ.data, healthFilter, healthMap],
+    [answeredFilter, potentialFilter, stdFilter, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch, tierFilter, minPotential, settings, commsQ.data, healthFilter, healthMap, retentionFilter],
+
   );
 
   /** Every client regardless of the selected date range (used by issue deep-links). */
@@ -609,6 +616,55 @@ function ActivationsPage() {
       qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
       setSelected(new Set());
       if (count) toast.success(`Updated ${count} client${count === 1 ? "" : "s"}`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  /** Share the selected clients out evenly across the active retention agents. */
+  const distributeRetention = useMutation({
+    mutationFn: async () => {
+      const ids = [...selected];
+      const agents = (employeesQ.data ?? []).filter((e) => e.active !== false && e.team === "R");
+      if (!ids.length) return 0;
+      if (!agents.length) throw new Error("No active retention agents — add one on the Employees page first.");
+      // Round-robin keeps the split even and predictable.
+      const buckets = new Map<string, string[]>();
+      ids.forEach((id, i) => {
+        const agent = agents[i % agents.length]!.id;
+        buckets.set(agent, [...(buckets.get(agent) ?? []), id]);
+      });
+      for (const [agentId, group] of buckets) {
+        const { error } = await supabase
+          .from("daily_lead_activations")
+          .update({ employee_id: agentId })
+          .in("id", group);
+        if (error) throw error;
+      }
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["activated-leads"] });
+      qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
+      setSelected(new Set());
+      if (count) toast.success(`Allocated ${count} client${count === 1 ? "" : "s"} across retention agents`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  /** One-click assignment from the client detail sheet. */
+  const assignRetention = useMutation({
+    mutationFn: async (v: { id: string; employee_id: string | null }) => {
+      const { error } = await supabase
+        .from("daily_lead_activations")
+        .update({ employee_id: v.employee_id } as any)
+        .eq("id", v.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["activated-leads"] });
+      qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
+      toast.success("Retention agent updated");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -823,7 +879,18 @@ function ActivationsPage() {
             ))}
           </SelectContent>
         </Select>
-        {(answeredFilter !== "all" || healthFilter !== "all" || tierFilter !== "all" || potentialFilter !== "all" || stdFilter !== "all" || tagFilter !== "all" || dupOnly || minPotential) && (
+        <Select value={retentionFilter} onValueChange={setRetentionFilter}>
+          <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All retention agents</SelectItem>
+            <SelectItem value="unassigned">Unassigned only</SelectItem>
+            {(employeesQ.data ?? []).filter((e) => e.team === "R").map((e) => (
+              <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {(answeredFilter !== "all" || healthFilter !== "all" || tierFilter !== "all" || potentialFilter !== "all" || stdFilter !== "all" || tagFilter !== "all" || retentionFilter !== "all" || dupOnly || minPotential) && (
+
           <Button variant="ghost" size="sm" className="h-9 gap-1 text-muted-foreground" onClick={clearFilters}>
             <X className="h-3.5 w-3.5" /> Clear filters
           </Button>
@@ -915,7 +982,16 @@ function ActivationsPage() {
           active={tierFilter === "neglected"}
           onClick={() => setTierFilter((v) => (v === "neglected" ? "all" : "neglected"))}
         />
+        <KpiCard
+          label="Unallocated clients"
+          value={String(rows.filter((r: any) => !r.employee_id).length)}
+          icon={PhoneCall}
+          hint="No retention agent assigned yet. Click to list them, tick the rows and allocate."
+          active={retentionFilter === "unassigned"}
+          onClick={() => setRetentionFilter((v) => (v === "unassigned" ? "all" : "unassigned"))}
+        />
       </div>
+
 
 
 
@@ -956,6 +1032,16 @@ function ActivationsPage() {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={distributeRetention.isPending}
+            onClick={() => distributeRetention.mutate()}
+            title="Share the selected clients evenly across active retention agents"
+          >
+            Allocate evenly
+          </Button>
+
           <Select onValueChange={(v) => bulkUpdate.mutate({ conversion_employee_id: v === "none" ? null : v })}>
             <SelectTrigger className="h-8 w-[195px]"><SelectValue placeholder="Set conversion agent" /></SelectTrigger>
             <SelectContent>
@@ -1355,7 +1441,33 @@ function ActivationsPage() {
                   <Info label="Activation date" value={actDate(cur) ? fmtDate(actDate(cur)!) : "—"} />
                   <Info label="Lead received" value={cur.daily_lead_entries?.entry_date ? fmtDate(cur.daily_lead_entries.entry_date) : "—"} />
                   <Info label="Conversion agent" value={<EmployeeLink id={cur.conversion_employee_id} name={employeeName(cur.conversion_employee_id)} />} />
-                  <Info label="Retention agent" value={<EmployeeLink id={cur.employee_id} name={employeeName(cur.employee_id)} />} />
+                  <Info
+                    label="Retention agent"
+                    value={
+                      <div className="flex items-center gap-2">
+                        <EmployeeLink id={cur.employee_id} name={employeeName(cur.employee_id)} />
+                        <Select
+                          value={cur.employee_id || "_none"}
+                          onValueChange={(v) =>
+                            assignRetention.mutate({ id: cur.id, employee_id: v === "_none" ? null : v })
+                          }
+                        >
+                          <SelectTrigger className="h-7 w-[150px] text-xs">
+                            <SelectValue placeholder="Allocate" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="_none">Unassigned</SelectItem>
+                            {(employeesQ.data ?? [])
+                              .filter((e) => (e.active !== false && e.team === "R") || e.id === cur.employee_id)
+                              .map((e) => (
+                                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    }
+                  />
+
                   <Info label="Deposit count" value={String(deposits.length)} />
                   <Info label="STD" value={<StdBadge count={stdDepositsForRow(cur).length} />} />
                   <Info label="FTD status" value={<Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified" : "Pending"}</Badge>} />
