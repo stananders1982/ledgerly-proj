@@ -22,6 +22,10 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { ActionPermissionsAdmin } from "@/components/action-permissions-admin";
 import { useAuth } from "@/lib/auth-context";
 import { NAV_ITEMS, MANAGEABLE_NAV_KEYS } from "@/lib/nav-items";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRoles } from "@/lib/permissions";
+import { defaultNavAllowed } from "@/lib/permission-defaults";
+
 import {
   listAppUsers,
   createAppUser,
