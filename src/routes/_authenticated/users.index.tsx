@@ -157,7 +157,7 @@ function UsersPage() {
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4" /> Add user</Button>
             </DialogTrigger>
-            <CreateUserDialog onSubmit={(v) => createMut.mutate(v)} pending={createMut.isPending} />
+            <CreateUserDialog onSubmit={(v) => createMut.mutate(v)} pending={createMut.isPending} roleOptions={roleOptions} />
           </Dialog>
         }
       />
@@ -251,6 +251,7 @@ function UsersPage() {
           user={editing}
           onClose={() => setEditing(null)}
           onSubmit={(v) => updateMut.mutate({ user_id: editing.id, ...v })}
+          roleOptions={roleOptions}
           pending={updateMut.isPending}
         />
       )}
