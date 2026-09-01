@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
-import { sumBase, originalLabel, toDisplay } from "@/lib/fx";
+import { originalLabel, toDisplay } from "@/lib/fx";
 import { AmountWithCurrency } from "@/components/amount-with-currency";
 import { methodFeePct, feeTotals, depositFee, depositNet } from "@/lib/profitability";
 import {
@@ -194,10 +194,10 @@ function RevenuePage() {
 
 
   const stats = useMemo(() => {
-    const base = getDisplayCurrency();
     const list = filtered;
-    const total = sumBase(list, base, (r: any) => r);
-    const allTotal = sumBase(revQ.data ?? [], base, (r: any) => r);
+    const sumDisplay = (rows: any[]) => rows.reduce((a: number, r: any) => a + toDisplay(r.amount, r.currency), 0);
+    const total = sumDisplay(list);
+    const allTotal = sumDisplay(revQ.data ?? []);
     const feesInfo = feeTotals(list as any, settings);
     const byEmp = new Map<string, number>();
     const byAff = new Map<string, number>();
