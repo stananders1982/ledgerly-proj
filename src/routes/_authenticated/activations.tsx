@@ -613,6 +613,54 @@ function ActivationsPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  /** Share the selected clients out evenly across the active retention agents. */
+  const distributeRetention = useMutation({
+    mutationFn: async () => {
+      const ids = [...selected];
+      const agents = (employeesQ.data ?? []).filter((e) => e.active !== false && e.team === "R");
+      if (!ids.length) return 0;
+      if (!agents.length) throw new Error("No active retention agents — add one on the Employees page first.");
+      // Round-robin keeps the split even and predictable.
+      const buckets = new Map<string, string[]>();
+      ids.forEach((id, i) => {
+        const agent = agents[i % agents.length]!.id;
+        buckets.set(agent, [...(buckets.get(agent) ?? []), id]);
+      });
+      for (const [agentId, group] of buckets) {
+        const { error } = await supabase
+          .from("daily_lead_activations")
+          .update({ employee_id: agentId })
+          .in("id", group);
+        if (error) throw error;
+      }
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["activated-leads"] });
+      qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
+      setSelected(new Set());
+      if (count) toast.success(`Allocated ${count} client${count === 1 ? "" : "s"} across retention agents`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  /** One-click assignment from the client detail sheet. */
+  const assignRetention = useMutation({
+    mutationFn: async (v: { id: string; employee_id: string | null }) => {
+      const { error } = await supabase
+        .from("daily_lead_activations")
+        .update({ employee_id: v.employee_id })
+        .eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["activated-leads"] });
+      qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
+      toast.success("Retention agent updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const bulkDelete = useMutation({
     mutationFn: async (idsArg?: string[]) => {
       const ids = idsArg ?? [...selected];
