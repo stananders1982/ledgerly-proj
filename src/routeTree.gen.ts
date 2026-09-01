@@ -13,6 +13,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as ApiBusinessChatRouteImport } from './routes/api/business-chat'
 import { Route as ApiAdminChatRouteImport } from './routes/api/admin-chat'
 import { Route as AuthenticatedWithdrawalsRouteImport } from './routes/_authenticated/withdrawals'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
@@ -29,6 +30,7 @@ import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated/goals'
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
 import { Route as AuthenticatedDataQualityRouteImport } from './routes/_authenticated/data-quality'
+import { Route as AuthenticatedDashboardsRouteImport } from './routes/_authenticated/dashboards'
 import { Route as AuthenticatedCompaniesRouteImport } from './routes/_authenticated/companies'
 import { Route as AuthenticatedCloseRouteImport } from './routes/_authenticated/close'
 import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authenticated/attendance'
@@ -42,6 +44,7 @@ import { Route as AuthenticatedAffiliatesIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedUsersPermissionsRouteImport } from './routes/_authenticated/users.permissions'
 import { Route as AuthenticatedEmployeesIdRouteImport } from './routes/_authenticated/employees.$id'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
+import { Route as AuthenticatedAssistantBusinessRouteImport } from './routes/_authenticated/assistant/business'
 import { Route as AuthenticatedAssistantThreadIdRouteImport } from './routes/_authenticated/assistant.$threadId'
 import { Route as AuthenticatedAffiliatesIdRouteImport } from './routes/_authenticated/affiliates.$id'
 import { Route as ApiPublicV1LeadsRouteImport } from './routes/api/public/v1/leads'
@@ -67,6 +70,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiBusinessChatRoute = ApiBusinessChatRouteImport.update({
+  id: '/api/business-chat',
+  path: '/api/business-chat',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminChatRoute = ApiAdminChatRouteImport.update({
   id: '/api/admin-chat',
@@ -151,6 +159,11 @@ const AuthenticatedDataQualityRoute =
     path: '/data-quality',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDashboardsRoute = AuthenticatedDashboardsRouteImport.update({
+  id: '/dashboards',
+  path: '/dashboards',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCompaniesRoute = AuthenticatedCompaniesRouteImport.update({
   id: '/companies',
   path: '/companies',
@@ -222,6 +235,12 @@ const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   path: '/clients/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAssistantBusinessRoute =
+  AuthenticatedAssistantBusinessRouteImport.update({
+    id: '/assistant/business',
+    path: '/assistant/business',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAssistantThreadIdRoute =
   AuthenticatedAssistantThreadIdRouteImport.update({
     id: '/assistant/$threadId',
@@ -266,6 +285,7 @@ export interface FileRoutesByFullPath {
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/close': typeof AuthenticatedCloseRoute
   '/companies': typeof AuthenticatedCompaniesRoute
+  '/dashboards': typeof AuthenticatedDashboardsRoute
   '/data-quality': typeof AuthenticatedDataQualityRoute
   '/expenses': typeof AuthenticatedExpensesRoute
   '/goals': typeof AuthenticatedGoalsRoute
@@ -282,8 +302,10 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof AuthenticatedTasksRoute
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/api/admin-chat': typeof ApiAdminChatRoute
+  '/api/business-chat': typeof ApiBusinessChatRoute
   '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
+  '/assistant/business': typeof AuthenticatedAssistantBusinessRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/users/permissions': typeof AuthenticatedUsersPermissionsRoute
@@ -305,6 +327,7 @@ export interface FileRoutesByTo {
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/close': typeof AuthenticatedCloseRoute
   '/companies': typeof AuthenticatedCompaniesRoute
+  '/dashboards': typeof AuthenticatedDashboardsRoute
   '/data-quality': typeof AuthenticatedDataQualityRoute
   '/expenses': typeof AuthenticatedExpensesRoute
   '/goals': typeof AuthenticatedGoalsRoute
@@ -321,9 +344,11 @@ export interface FileRoutesByTo {
   '/tasks': typeof AuthenticatedTasksRoute
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/api/admin-chat': typeof ApiAdminChatRoute
+  '/api/business-chat': typeof ApiBusinessChatRoute
   '/': typeof AuthenticatedIndexRoute
   '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
+  '/assistant/business': typeof AuthenticatedAssistantBusinessRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/users/permissions': typeof AuthenticatedUsersPermissionsRoute
@@ -347,6 +372,7 @@ export interface FileRoutesById {
   '/_authenticated/attendance': typeof AuthenticatedAttendanceRoute
   '/_authenticated/close': typeof AuthenticatedCloseRoute
   '/_authenticated/companies': typeof AuthenticatedCompaniesRoute
+  '/_authenticated/dashboards': typeof AuthenticatedDashboardsRoute
   '/_authenticated/data-quality': typeof AuthenticatedDataQualityRoute
   '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
   '/_authenticated/goals': typeof AuthenticatedGoalsRoute
@@ -363,9 +389,11 @@ export interface FileRoutesById {
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/api/admin-chat': typeof ApiAdminChatRoute
+  '/api/business-chat': typeof ApiBusinessChatRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/_authenticated/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
+  '/_authenticated/assistant/business': typeof AuthenticatedAssistantBusinessRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/employees/$id': typeof AuthenticatedEmployeesIdRoute
   '/_authenticated/users/permissions': typeof AuthenticatedUsersPermissionsRoute
@@ -390,6 +418,7 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/close'
     | '/companies'
+    | '/dashboards'
     | '/data-quality'
     | '/expenses'
     | '/goals'
@@ -406,8 +435,10 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/withdrawals'
     | '/api/admin-chat'
+    | '/api/business-chat'
     | '/affiliates/$id'
     | '/assistant/$threadId'
+    | '/assistant/business'
     | '/clients/$id'
     | '/employees/$id'
     | '/users/permissions'
@@ -429,6 +460,7 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/close'
     | '/companies'
+    | '/dashboards'
     | '/data-quality'
     | '/expenses'
     | '/goals'
@@ -445,9 +477,11 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/withdrawals'
     | '/api/admin-chat'
+    | '/api/business-chat'
     | '/'
     | '/affiliates/$id'
     | '/assistant/$threadId'
+    | '/assistant/business'
     | '/clients/$id'
     | '/employees/$id'
     | '/users/permissions'
@@ -470,6 +504,7 @@ export interface FileRouteTypes {
     | '/_authenticated/attendance'
     | '/_authenticated/close'
     | '/_authenticated/companies'
+    | '/_authenticated/dashboards'
     | '/_authenticated/data-quality'
     | '/_authenticated/expenses'
     | '/_authenticated/goals'
@@ -486,9 +521,11 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks'
     | '/_authenticated/withdrawals'
     | '/api/admin-chat'
+    | '/api/business-chat'
     | '/_authenticated/'
     | '/_authenticated/affiliates/$id'
     | '/_authenticated/assistant/$threadId'
+    | '/_authenticated/assistant/business'
     | '/_authenticated/clients/$id'
     | '/_authenticated/employees/$id'
     | '/_authenticated/users/permissions'
@@ -507,6 +544,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiAdminChatRoute: typeof ApiAdminChatRoute
+  ApiBusinessChatRoute: typeof ApiBusinessChatRoute
   ApiPublicV1ActivationsRoute: typeof ApiPublicV1ActivationsRoute
   ApiPublicV1DepositsRoute: typeof ApiPublicV1DepositsRoute
   ApiPublicV1LeadsRoute: typeof ApiPublicV1LeadsRoute
@@ -542,6 +580,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/business-chat': {
+      id: '/api/business-chat'
+      path: '/api/business-chat'
+      fullPath: '/api/business-chat'
+      preLoaderRoute: typeof ApiBusinessChatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/admin-chat': {
       id: '/api/admin-chat'
@@ -655,6 +700,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDataQualityRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dashboards': {
+      id: '/_authenticated/dashboards'
+      path: '/dashboards'
+      fullPath: '/dashboards'
+      preLoaderRoute: typeof AuthenticatedDashboardsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/companies': {
       id: '/_authenticated/companies'
       path: '/companies'
@@ -746,6 +798,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/assistant/business': {
+      id: '/_authenticated/assistant/business'
+      path: '/assistant/business'
+      fullPath: '/assistant/business'
+      preLoaderRoute: typeof AuthenticatedAssistantBusinessRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/assistant/$threadId': {
       id: '/_authenticated/assistant/$threadId'
       path: '/assistant/$threadId'
@@ -798,6 +857,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAttendanceRoute: typeof AuthenticatedAttendanceRoute
   AuthenticatedCloseRoute: typeof AuthenticatedCloseRoute
   AuthenticatedCompaniesRoute: typeof AuthenticatedCompaniesRoute
+  AuthenticatedDashboardsRoute: typeof AuthenticatedDashboardsRoute
   AuthenticatedDataQualityRoute: typeof AuthenticatedDataQualityRoute
   AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
   AuthenticatedGoalsRoute: typeof AuthenticatedGoalsRoute
@@ -816,6 +876,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAffiliatesIdRoute: typeof AuthenticatedAffiliatesIdRoute
   AuthenticatedAssistantThreadIdRoute: typeof AuthenticatedAssistantThreadIdRoute
+  AuthenticatedAssistantBusinessRoute: typeof AuthenticatedAssistantBusinessRoute
   AuthenticatedClientsIdRoute: typeof AuthenticatedClientsIdRoute
   AuthenticatedEmployeesIdRoute: typeof AuthenticatedEmployeesIdRoute
   AuthenticatedUsersPermissionsRoute: typeof AuthenticatedUsersPermissionsRoute
@@ -832,6 +893,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAttendanceRoute: AuthenticatedAttendanceRoute,
   AuthenticatedCloseRoute: AuthenticatedCloseRoute,
   AuthenticatedCompaniesRoute: AuthenticatedCompaniesRoute,
+  AuthenticatedDashboardsRoute: AuthenticatedDashboardsRoute,
   AuthenticatedDataQualityRoute: AuthenticatedDataQualityRoute,
   AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
   AuthenticatedGoalsRoute: AuthenticatedGoalsRoute,
@@ -850,6 +912,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAffiliatesIdRoute: AuthenticatedAffiliatesIdRoute,
   AuthenticatedAssistantThreadIdRoute: AuthenticatedAssistantThreadIdRoute,
+  AuthenticatedAssistantBusinessRoute: AuthenticatedAssistantBusinessRoute,
   AuthenticatedClientsIdRoute: AuthenticatedClientsIdRoute,
   AuthenticatedEmployeesIdRoute: AuthenticatedEmployeesIdRoute,
   AuthenticatedUsersPermissionsRoute: AuthenticatedUsersPermissionsRoute,
@@ -867,6 +930,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiAdminChatRoute: ApiAdminChatRoute,
+  ApiBusinessChatRoute: ApiBusinessChatRoute,
   ApiPublicV1ActivationsRoute: ApiPublicV1ActivationsRoute,
   ApiPublicV1DepositsRoute: ApiPublicV1DepositsRoute,
   ApiPublicV1LeadsRoute: ApiPublicV1LeadsRoute,
