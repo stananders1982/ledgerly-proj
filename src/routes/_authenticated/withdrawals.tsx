@@ -72,12 +72,14 @@ function WithdrawalsPage() {
   const [search, setSearch] = useState(urlSearch.search ?? "");
   const [editing, setEditing] = useState<any | null>(null);
   const [range, setRange] = usePersistedState<RangeKey>("withdrawals:range", urlSearch.range ?? "month");
-  const [customStart, setCustomStart] = usePersistedState<string>("withdrawals:range-start", "");
-  const [customEnd, setCustomEnd] = usePersistedState<string>("withdrawals:range-end", "");
+  const [customStart, setCustomStart] = usePersistedState<string>("withdrawals:range-start", urlSearch.start ?? "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("withdrawals:range-end", urlSearch.end ?? "");
   useEffect(() => {
     if (urlSearch.search != null) setSearch(urlSearch.search);
     if (urlSearch.range) setRange(urlSearch.range);
-  }, [urlSearch.search, urlSearch.range]);
+    if (urlSearch.start != null) setCustomStart(urlSearch.start);
+    if (urlSearch.end != null) setCustomEnd(urlSearch.end);
+  }, [urlSearch.search, urlSearch.range, urlSearch.start, urlSearch.end]);
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
