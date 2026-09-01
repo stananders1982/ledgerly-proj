@@ -6,6 +6,7 @@ import { AnsweredBadge, PotentialBadge as SharedPotentialBadge, LateFtdBadge } f
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { EmployeeLink } from "@/components/employee-link";
+import { AiClientPaste } from "@/components/ai-client-paste";
 import { supabase } from "@/integrations/supabase/client";
 
 import { PageHeader } from "@/components/page-header";
