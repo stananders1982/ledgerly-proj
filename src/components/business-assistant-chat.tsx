@@ -104,9 +104,16 @@ export function BusinessAssistantChat({
                   }
                   if (isToolUIPart(part)) {
                     const name = getToolName(part) as string;
+                    const title = name.replace(/_/g, " ");
+                    const toolHeader =
+                      part.type === "dynamic-tool" ? (
+                        <ToolHeader type={part.type} state={part.state} title={title} toolName={name} />
+                      ) : (
+                        <ToolHeader type={part.type} state={part.state} title={title} />
+                      );
                     return (
                       <Tool defaultOpen={false} key={part.toolCallId}>
-                        <ToolHeader type={part.type} state={part.state} title={name.replace(/_/g, " ")} toolName={name} />
+                        {toolHeader}
                         <ToolContent>
                           <ToolInput input={part.input} />
                           {"output" in part && part.output ? (
