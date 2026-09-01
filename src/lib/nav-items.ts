@@ -1,4 +1,4 @@
-import { Lock, Bot, KeyRound, Settings, LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, ShieldAlert, Banknote, Gauge, Building2, Landmark, ScrollText, ListTodo, Upload, History, Target } from "lucide-react";
+import { Lock, Bot, Sparkles, KeyRound, Settings, LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, ShieldAlert, Banknote, Gauge, Building2, Landmark, ScrollText, ListTodo, Upload, History, Target } from "lucide-react";
 
 export type NavGroup = "Overview" | "Operations" | "People" | "Analytics" | "Admin";
 
