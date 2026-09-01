@@ -272,6 +272,30 @@ export function ApiKeysAdmin() {
               ))}
             </div>
             <div className="grid gap-1.5">
+              <Label className="text-xs">Affiliate (optional)</Label>
+              <Select
+                value={form.affiliate_id}
+                onValueChange={(v) => setForm({ ...form, affiliate_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Internal key" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Internal key (no affiliate)</SelectItem>
+                  {(affiliatesQ.data ?? [])
+                    .filter((a) => a.active)
+                    .map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Bind the key to an affiliate so every lead they push is credited to them automatically.
+              </p>
+            </div>
+            <div className="grid gap-1.5">
               <Label className="text-xs">Expiry (optional)</Label>
               <Input
                 type="date"
@@ -279,6 +303,7 @@ export function ApiKeysAdmin() {
                 onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
               />
             </div>
+
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCreating(false)}>
