@@ -189,21 +189,20 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     if (cidErr) throw cidErr;
     const { start, end } = parseRange(data);
 
-    const [{ baseRates }, settingsRes, revenueRes, expensesRes, withdrawalsRes, activationsRes, recurringRevRes, recurringExpRes, sourceRes, employeeRes, clientRes, affiliateRes, taskRes] = await Promise.all([
-      loadFxRates() as Promise<{ baseRates: Record<string, number> }>,
-      context.supabase.from("company_settings").select("currency, whale_threshold").eq("company_id", cid).maybeSingle(),
-      context.supabase.from("revenue").select("amount, currency, date").eq("company_id", cid).gte("date", start).lte("date", end),
-      context.supabase.from("expenses").select("amount, currency, date").eq("company_id", cid).gte("date", start).lte("date", end),
-      context.supabase.from("withdrawals").select("amount, currency, date, status").eq("company_id", cid).gte("date", start).lte("date", end),
-      context.supabase.from("daily_lead_activations").select("id, activation_date, answered, potential, potential_value, lead_name").eq("company_id", cid).gte("activation_date", start).lte("activation_date", end).eq("legacy", false),
-      context.supabase.from("recurring_revenue").select("amount, currency, next_due_date, frequency").eq("company_id", cid).eq("active", true),
-      context.supabase.from("recurring_expenses").select("amount, currency, next_due_date, frequency").eq("company_id", cid).eq("active", true),
-      context.supabase.from("lead_sources").select("id, name, pricing_model, price").eq("company_id", cid),
-      context.supabase.rpc("list_employees_directory"),
-      context.supabase.from("daily_lead_activations").select("id, lead_name, potential_value, activation_date").eq("company_id", cid).eq("legacy", false).order("activation_date", { ascending: false }),
-      context.supabase.from("affiliate_events").select("amount, status").eq("company_id", cid),
-      context.supabase.from("tasks").select("id, due_date, status, title").eq("company_id", cid).lt("due_date", toIso(new Date())).neq("status", "done"),
-    ]);
+    const fx = await loadFxRates();
+    const baseRates = fx.baseRates;
+    const settingsRes = await context.supabase.from("company_settings").select("currency, whale_threshold").eq("company_id", cid).maybeSingle();
+    const revenueRes = await context.supabase.from("revenue").select("amount, currency, date, customer_name, employee_id").eq("company_id", cid).gte("date", start).lte("date", end);
+    const expensesRes = await context.supabase.from("expenses").select("amount, currency, date").eq("company_id", cid).gte("date", start).lte("date", end);
+    const withdrawalsRes = await context.supabase.from("withdrawals").select("amount, currency, date, status").eq("company_id", cid).gte("date", start).lte("date", end);
+    const activationsRes = await context.supabase.from("daily_lead_activations").select("id, activation_date, answered, potential, potential_value, lead_name").eq("company_id", cid).gte("activation_date", start).lte("activation_date", end).eq("legacy", false);
+    const recurringRevRes = await context.supabase.from("recurring_revenue").select("amount, next_due_date, frequency").eq("company_id", cid).eq("active", true);
+    const recurringExpRes = await context.supabase.from("recurring_expenses").select("amount, next_due_date, frequency").eq("company_id", cid).eq("active", true);
+    const sourceRes = await context.supabase.from("lead_sources").select("id, name, pricing_model, price").eq("company_id", cid);
+    const employeeRes = await context.supabase.rpc("list_employees_directory");
+    const clientRes = await context.supabase.from("daily_lead_activations").select("id, lead_name, potential_value, activation_date").eq("company_id", cid).eq("legacy", false).order("activation_date", { ascending: false });
+    const affiliateRes = await context.supabase.from("affiliate_events").select("amount, status").eq("company_id", cid);
+    const taskRes = await context.supabase.from("tasks").select("id, due_date, status, title").eq("company_id", cid).lt("due_date", toIso(new Date())).neq("status", "done");
 
     const workspace = settingsRes.data?.currency ?? "USD";
     const rates = (() => {
@@ -220,14 +219,24 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       return table;
     })();
 
-    const revenue = (revenueRes.data ?? []).reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0);
-    const expenses = (expensesRes.data ?? []).reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0);
-    const withdrawals = (withdrawalsRes.data ?? []).reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0);
-    const pendingWithdrawals = (withdrawalsRes.data ?? []).filter((w) => w.status === "requested" || w.status === "processing").reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0);
+    const revenueRows = (revenueRes.data ?? []) as any[];
+    const expensesRows = (expensesRes.data ?? []) as any[];
+    const withdrawalsRows = (withdrawalsRes.data ?? []) as any[];
+    const activationsRows = (activationsRes.data ?? []) as any[];
+    const recurringRevRows = (recurringRevRes.data ?? []) as any[];
+    const recurringExpRows = (recurringExpRes.data ?? []) as any[];
+    const clientRows = (clientRes.data ?? []) as any[];
+    const affiliateRows = (affiliateRes.data ?? []) as any[];
+    const taskRows = (taskRes.data ?? []) as any[];
+
+    const revenue = revenueRows.reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0);
+    const expenses = expensesRows.reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0);
+    const withdrawals = withdrawalsRows.reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0);
+    const pendingWithdrawals = withdrawalsRows.filter((w) => w.status === "requested" || w.status === "processing").reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0);
     const profit = revenue - expenses - withdrawals;
 
-    const ftdCount = (activationsRes.data ?? []).filter((a) => a.answered).length;
-    const stdCount = 0; // reserved: second-deposit logic lives client-side; this metric is intentionally conservative
+    const ftdCount = activationsRows.filter((a) => a.answered).length;
+    const stdCount = 0;
 
     const today = toIso(new Date());
     const d7 = toIso(subDays(new Date(), -7));
@@ -235,45 +244,46 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
     const d90 = toIso(subDays(new Date(), -90));
 
     const recurringExpected = (date: string) =>
-      (recurringRevRes.data ?? [])
+      recurringRevRows
         .filter((r) => r.next_due_date && r.next_due_date <= date)
-        .reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0) -
-      (recurringExpRes.data ?? [])
+        .reduce((s, r) => s + toUsd(r.amount, null, workspace, rates), 0) -
+      recurringExpRows
         .filter((r) => r.next_due_date && r.next_due_date <= date)
-        .reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0);
+        .reduce((s, r) => s + toUsd(r.amount, null, workspace, rates), 0);
 
     const cashToday = revenue + recurringExpected(today);
     const cash7 = cashToday + recurringExpected(d7);
     const cash30 = cashToday + recurringExpected(d30);
     const cash90 = cashToday + recurringExpected(d90);
 
-    const committedExpenses = (recurringExpRes.data ?? [])
+    const committedExpenses = recurringExpRows
       .filter((r) => r.next_due_date && r.next_due_date <= d30)
-      .reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0);
+      .reduce((s, r) => s + toUsd(r.amount, null, workspace, rates), 0);
 
-    const activeClients = new Set((clientRes.data ?? []).map((c) => c.lead_name?.toLowerCase().trim()).filter(Boolean));
+    const activeClients = new Set(clientRows.map((c) => c.lead_name?.toLowerCase().trim()).filter(Boolean));
     const whaleThreshold = Number(settingsRes.data?.whale_threshold ?? 0) || Infinity;
-    const whaleCount = (clientRes.data ?? []).filter((c) => Number(c.potential_value ?? 0) >= whaleThreshold).length;
-    const seenRecently = new Set((revenueRes.data ?? []).map((r) => r.customer_name?.toLowerCase().trim()).filter(Boolean));
-    const neglectedCount = (clientRes.data ?? []).filter((c) => c.lead_name && !seenRecently.has(c.lead_name.toLowerCase().trim())).length;
+    const whaleCount = clientRows.filter((c) => Number(c.potential_value ?? 0) >= whaleThreshold).length;
+    const seenRecently = new Set(revenueRows.map((r) => r.customer_name?.toLowerCase().trim()).filter(Boolean));
+    const neglectedCount = clientRows.filter((c) => c.lead_name && !seenRecently.has(c.lead_name.toLowerCase().trim())).length;
 
     const sourceMap = new Map((sourceRes.data ?? []).map((s) => [s.id, s]));
-    const topSources = (await context.supabase
+    const leadsRes = await context.supabase
       .from("leads")
       .select("source_id, status")
       .eq("company_id", cid)
       .gte("created_at", `${start}T00:00:00Z`)
-      .lte("created_at", `${end}T23:59:59Z`))
-      .data?.reduce((acc, l) => {
-        const s = sourceMap.get(l.source_id ?? "");
-        const name = s?.name ?? "Unknown";
-        const entry = acc.get(name) ?? { name, leads: 0, conversions: 0, spend: 0 };
-        entry.leads += 1;
-        if (l.status === "activated") entry.conversions += 1;
-        if (s?.pricing_model === "CPL") entry.spend += Number(s.price ?? 0);
-        acc.set(name, entry);
-        return acc;
-      }, new Map<string, { name: string; leads: number; conversions: number; spend: number }>()) ?? new Map();
+      .lte("created_at", `${end}T23:59:59Z`);
+    const leadRows = (leadsRes.data ?? []) as any[];
+    const topSources = leadRows.reduce((acc, l) => {
+      const s = sourceMap.get(l.source_id ?? "");
+      const name = s?.name ?? "Unknown";
+      const entry = acc.get(name) ?? { name, leads: 0, conversions: 0, spend: 0 };
+      entry.leads += 1;
+      if (l.status === "activated") entry.conversions += 1;
+      if (s?.pricing_model === "CPL") entry.spend += Number(s.price ?? 0);
+      acc.set(name, entry);
+      return acc;
+    }, new Map<string, { name: string; leads: number; conversions: number; spend: number }>());
 
     const sourcesArray = Array.from(topSources.values())
       .map((s) => ({ ...s, roi: s.spend ? ((s.conversions * 250 - s.spend) / s.spend) * 100 : 0 }))
@@ -281,7 +291,7 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       .slice(0, 5);
 
     const employeeMap = new Map(((employeeRes.data as any[]) ?? []).map((e) => [e.id, e.name]));
-    const employeeRevenue = (revenueRes.data ?? []).reduce((acc, r) => {
+    const employeeRevenue = revenueRows.reduce((acc, r) => {
       const name = employeeMap.get(r.employee_id ?? "") ?? "Unknown";
       acc[name] = (acc[name] || 0) + toUsd(r.amount, r.currency, workspace, rates);
       return acc;
@@ -291,9 +301,9 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
 
-    const affiliateDebt = (affiliateRes.data ?? [])
+    const affiliateDebt = affiliateRows
       .filter((e) => e.status === "approved")
-      .reduce((s, r) => s + toUsd(r.amount, r.currency, workspace, rates), 0);
+      .reduce((s, r) => s + toUsd(r.amount, null, workspace, rates), 0);
 
     return {
       revenue,
@@ -308,6 +318,6 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       sources: sourcesArray,
       employees: employeesArray,
       affiliateDebt,
-      overdueTasks: (taskRes.data ?? []).length,
+      overdueTasks: taskRows.length,
     };
   });
