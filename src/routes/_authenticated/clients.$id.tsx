@@ -327,7 +327,6 @@ function ClientPage() {
   const journeyStages = useMemo<JourneyStage[]>(() => {
     if (!cur) return [];
     const act = activationDate(cur as any);
-    const first = deposits[0] as any | undefined;
     const stds = stdDepositsFor(cur as any, deposits as any);
     const secondDep = stds[0] as any | undefined;
     const comms = commsQ.data ?? [];
