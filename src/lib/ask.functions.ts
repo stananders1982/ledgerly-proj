@@ -693,8 +693,18 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "lastWithdrawal, current balance and any stored AI riskScore/riskLabel (0-100, higher = needs attention). " +
               "Use it to answer questions about a named person, to list clients who have not deposited recently, who withdrew the most, " +
               "who is at risk, or to slice clients by age, country, status or agent. Compare dates against snapshot.today. " +
-              "If clientsTruncated is true, say the list covers the top " +
-              "clients by money movement out of clientCount total, and never imply it is exhaustive. " +
+              "snapshot.clientDirectory is the COMPLETE list of every client (one slim row each): n=name, c=conversion agent, " +
+              "r=retention agent, a=activation date, s=status, d=lifetime deposit total, k=deposit count, l=last deposit date, " +
+              "w=withdrawal total, b=balance, t=value tier. snapshot.clients only adds richer context for the top clients — " +
+              "when clientsTruncated is true use clientDirectory for anything that must cover everyone, and NEVER say the data is " +
+              "truncated or incomplete: it is not. " +
+              "PER-CLIENT MONTHLY SPLITS: for 'X's deposits for <month> split per client', or any per-client amount inside a period, " +
+              "use depositsByMonthAgentAndClient — keys are 'YYYY-MM | agent | client' with the exact attributed amount (splits " +
+              "already applied) — and depositCountByMonthAgentAndClient for the number of deposits. depositsByMonthAndClient " +
+              "('YYYY-MM | client') is the same without agent attribution. These are authoritative: sum the matching keys, list every " +
+              "client with a non-zero amount, and never fall back to lifetime depositTotal or lastDeposit for a period question. " +
+              "The per-client amounts for an agent and month always add up to that agent's monthly total. " +
+
               "PERCENTAGES: snapshot.rates already holds every client ratio — use those numbers verbatim and NEVER recount the client " +
               "list. rates.selectedPeriod covers clients activated inside the selected period (deposits counted inside it); " +
               "rates.window covers all clients in the 6-month window with lifetime deposits. Each block has depositRatePct " +
