@@ -103,7 +103,7 @@ function ClientPage() {
     queryKey: ["client-deposits", id, name],
     enabled: !!clientQ.data,
     queryFn: async () => {
-      const cols = "id,customer_name,amount,currency,date,notes,method,method_provider,fee_pct,fee_amount,employee_id,activation_id";
+      const cols = "id,customer_name,amount,currency,date,created_at,notes,method,method_provider,fee_pct,fee_amount,employee_id,activation_id";
       const byActivation = await fetchAll<any>(() =>
         supabase.from("revenue").select(cols).eq("activation_id", id).order("date", { ascending: true }),
       );
@@ -127,7 +127,7 @@ function ClientPage() {
       const rows = await fetchAll<any>(() =>
         supabase
           .from("withdrawals")
-          .select("id,customer_name,amount,date,notes,employee_id")
+          .select("id,customer_name,amount,date,created_at,notes,employee_id")
           .ilike("customer_name", (name ?? "").trim())
           .order("date", { ascending: true }),
       );
