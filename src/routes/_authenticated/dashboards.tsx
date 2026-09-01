@@ -1,7 +1,9 @@
-import { useState, useMemo, useCallback } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Copy, Save, LayoutGrid, LayoutTemplate, MoreHorizontal, GripVertical } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Plus, Trash2, Copy, Save, LayoutGrid, LayoutTemplate, GripVertical } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,10 +11,19 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/sonner";
 import { DashboardGrid, type GridItem } from "@/components/dashboard/grid";
 import { widgetComponents } from "@/components/dashboard/widgets";
-import { listDashboards, getDashboard, saveDashboard, deleteDashboard, getDashboardSummary, type DashboardConfig, type DashboardWidget, widgetMeta, type DashboardSummary } from "@/lib/dashboards.functions";
+import {
+  listDashboards,
+  getDashboard,
+  saveDashboard,
+  deleteDashboard,
+  getDashboardSummary,
+  type DashboardConfig,
+  type DashboardWidget,
+  widgetMeta,
+  type DashboardSummary,
+} from "@/lib/dashboards.functions";
 import { useAuth } from "@/lib/auth-context";
 import { useFxRates } from "@/lib/fx";
 import { cn } from "@/lib/utils";
@@ -57,7 +68,7 @@ const TEMPLATES: { name: string; widgets: DashboardWidget[] }[] = [
   },
 ];
 
-const WIDGET_KEYS = Object.keys(widgetMeta);
+const WIDGET_KEYS = Object.keys(widgetMeta) as (keyof typeof widgetMeta)[];
 
 export const Route = createFileRoute("/_authenticated/dashboards")({
   head: () => ({
@@ -76,8 +87,13 @@ export const Route = createFileRoute("/_authenticated/dashboards")({
 function DashboardsPage() {
   const { user, isAdmin } = useAuth();
   const qc = useQueryClient();
-  const { toast } = useToast();
-  const { loaded: fxLoaded } = useFxRates();
+  const { loading: fxLoading } = useFxRates();
+
+  const fetchList = useServerFn(listDashboards);
+  const fetchDetail = useServerFn(getDashboard);
+  const saveFn = useServerFn(saveDashboard);
+  const deleteFn = useServerFn(deleteDashboard);
+  const fetchSummary = useServerFn(getDashboardSummary);
 
   const [selectedId, setSelectedId] = useState<string>("");
   const [editing, setEditing] = useState<DashboardConfig | null>(null);
@@ -87,56 +103,69 @@ function DashboardsPage() {
 
   const { data: dashboards, isLoading } = useQuery({
     queryKey: ["dashboards"],
-    queryFn: () => listDashboards(),
+    queryFn: () => fetchList(),
   });
 
   const selected = useMemo(() => dashboards?.find((d) => d.id === selectedId), [dashboards, selectedId]);
 
+  const { data: dashboardRow, isLoading: detailLoading } = useQuery({
+    queryKey: ["dashboard", selectedId],
+    queryFn: () => fetchDetail({ data: { id: selectedId } }),
+    enabled: !!selectedId,
+  });
+
+  useEffect(() => {
+    if (dashboardRow?.config && !editing) {
+      setEditing(dashboardRow.config as DashboardConfig);
+    }
+  }, [dashboardRow, editing]);
+
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ["dashboard-summary", selectedId || "default"],
-    queryFn: () => getDashboardSummary(),
-    enabled: fxLoaded,
+    queryFn: () => fetchSummary(),
+    enabled: !!selectedId && !fxLoading,
   });
 
   const saveMutation = useMutation({
-    mutationFn: saveDashboard,
+    mutationFn: (payload: { id?: string; name: string; config: DashboardConfig; is_default?: boolean }) =>
+      saveFn({ data: payload }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dashboards"] });
-      toast({ title: "Dashboard saved" });
+      qc.invalidateQueries({ queryKey: ["dashboard", selectedId] });
+      toast.success("Dashboard saved");
     },
-    onError: (err: Error) => toast({ title: "Save failed", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteDashboard,
+    mutationFn: (payload: { id: string }) => deleteFn({ data: payload }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dashboards"] });
       setSelectedId("");
       setEditing(null);
-      toast({ title: "Dashboard deleted" });
+      toast.success("Dashboard deleted");
     },
-    onError: (err: Error) => toast({ title: "Delete failed", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast.error(err.message),
   });
 
-  const config = editing ?? selected?.config;
+  const config = editing;
   const canEdit = isAdmin || (selected ? selected.user_id === user?.id : true);
 
-  const gridItems: GridItem[] = useMemo(
-    () =>
-      (config?.widgets ?? []).map((w) => ({
-        i: w.id,
-        x: w.x ?? 0,
-        y: w.y ?? 0,
-        w: w.w ?? widgetMeta[w.type]?.w ?? 3,
-        h: w.h ?? widgetMeta[w.type]?.h ?? 2,
-      })),
-    [config],
-  );
+  const gridItems: GridItem[] = useMemo(() => {
+    if (!config) return [];
+    return config.widgets.map((w) => ({
+      i: w.id,
+      x: w.x ?? 0,
+      y: w.y ?? 0,
+      w: w.w ?? widgetMeta[w.type]?.w ?? 3,
+      h: w.h ?? widgetMeta[w.type]?.h ?? 2,
+    }));
+  }, [config]);
 
   const addWidget = useCallback(
-    (type: string) => {
+    (type: keyof typeof widgetMeta) => {
       const meta = widgetMeta[type];
-      const widgets = config?.widgets ? [...config.widgets] : [];
+      const widgets: DashboardWidget[] = config ? [...config.widgets] : [];
       const maxY = widgets.reduce((m, w) => Math.max(m, (w.y ?? 0) + (w.h ?? meta.h)), 0);
       const id = `${type}-${Date.now()}`;
       widgets.push({ id, type, x: 0, y: maxY, w: meta.w, h: meta.h });
@@ -171,7 +200,7 @@ function DashboardsPage() {
     if (!editing || !selected) return;
     saveMutation.mutate({
       id: selected.id,
-      name: editing.name ?? selected.name,
+      name: selected.name,
       config: editing,
     });
   }, [editing, saveMutation, selected]);
@@ -192,17 +221,21 @@ function DashboardsPage() {
   }, [newName, saveMutation, template]);
 
   const duplicate = useCallback(() => {
-    if (!selected) return;
+    if (!selected || !dashboardRow?.config) return;
     saveMutation.mutate(
-      { name: `${selected.name} copy`, config: selected.config },
+      { name: `${selected.name} copy`, config: dashboardRow.config as DashboardConfig },
       {
         onSuccess: (id) => {
           setSelectedId(id);
-          toast({ title: "Dashboard duplicated" });
+          toast.success("Dashboard duplicated");
         },
       },
     );
-  }, [saveMutation, selected, toast]);
+  }, [saveMutation, selected, dashboardRow]);
+
+  if (isLoading) {
+    return <div className="p-8 text-muted-foreground">Loading dashboards…</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
@@ -213,23 +246,36 @@ function DashboardsPage() {
             <p className="text-sm text-muted-foreground">Build custom layouts and save views for your team.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={selectedId} onValueChange={(v) => { setSelectedId(v); setEditing(null); }}>
+            <Select
+              value={selectedId}
+              onValueChange={(v) => {
+                setSelectedId(v);
+                setEditing(null);
+              }}
+            >
               <SelectTrigger className="w-[220px]">
                 <SelectValue placeholder="Select dashboard" />
               </SelectTrigger>
               <SelectContent>
                 {(dashboards ?? []).map((d) => (
-                  <SelectItem key={d.id} value={d.id}>{d.name}{d.is_default && " (default)"}</SelectItem>
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name}
+                    {d.is_default && " (default)"}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm"><Plus className="mr-1 h-4 w-4" /> New</Button>
+                <Button variant="outline" size="sm">
+                  <Plus className="mr-1 h-4 w-4" /> New
+                </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
-                <DialogHeader><DialogTitle>Create dashboard</DialogTitle></DialogHeader>
+                <DialogHeader>
+                  <DialogTitle>Create dashboard</DialogTitle>
+                </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="space-y-2">
                     <Label>Name</Label>
@@ -238,9 +284,15 @@ function DashboardsPage() {
                   <div className="space-y-2">
                     <Label>Start from template</Label>
                     <Select value={template} onValueChange={setTemplate}>
-                      <SelectTrigger><SelectValue placeholder="Choose template" /></SelectTrigger>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose template" />
+                      </SelectTrigger>
                       <SelectContent>
-                        {TEMPLATES.map((t) => <SelectItem key={t.name} value={t.name}>{t.name}</SelectItem>)}
+                        {TEMPLATES.map((t) => (
+                          <SelectItem key={t.name} value={t.name}>
+                            {t.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -253,12 +305,23 @@ function DashboardsPage() {
 
             {selected && (
               <>
-                <Button variant="outline" size="sm" onClick={duplicate} disabled={saveMutation.isPending || deleteMutation.isPending}><Copy className="mr-1 h-4 w-4" /> Duplicate</Button>
+                <Button variant="outline" size="sm" onClick={duplicate} disabled={saveMutation.isPending || deleteMutation.isPending || detailLoading}>
+                  <Copy className="mr-1 h-4 w-4" /> Duplicate
+                </Button>
                 {editing && canEdit && (
-                  <Button size="sm" onClick={save} disabled={saveMutation.isPending}><Save className="mr-1 h-4 w-4" /> Save</Button>
+                  <Button size="sm" onClick={save} disabled={saveMutation.isPending}>
+                    <Save className="mr-1 h-4 w-4" /> Save
+                  </Button>
                 )}
                 {canEdit && (
-                  <Button variant="destructive" size="sm" onClick={() => { if (confirm("Delete this dashboard?")) deleteMutation.mutate({ id: selected.id }); }} disabled={deleteMutation.isPending}>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm("Delete this dashboard?")) deleteMutation.mutate({ id: selected.id });
+                    }}
+                    disabled={deleteMutation.isPending}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
@@ -269,19 +332,25 @@ function DashboardsPage() {
 
         {!selectedId || dashboards?.length === 0 ? (
           <div className="card-surface flex flex-col items-center justify-center py-20 text-center">
-            <LayoutGrid className="h-12 w-12 text-muted-foreground/40 mb-4" />
-            <h2 className="font-display text-lg font-medium">No dashboard selected</h2>
-            <p className="text-sm text-muted-foreground max-w-sm mt-1">Create a dashboard from a template to get started, or pick one from the selector above.</p>
+            <LayoutGrid className="mb-4 h-12 w-12 text-muted-foreground/40" />
+            <h2 class name="font-display text-lg font-medium">
+              No dashboard selected
+            </h2>
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+              Create a dashboard from a template to get started, or pick one from the selector above.
+            </p>
           </div>
-        ) : summaryLoading || !summary ? (
-          <div className="card-surface h-64 flex items-center justify-center text-muted-foreground">Loading dashboard data…</div>
+        ) : detailLoading || summaryLoading || !summary ? (
+          <div className="card-surface flex h-64 items-center justify-center text-muted-foreground">Loading dashboard data…</div>
         ) : (
           <div className="space-y-4">
             {canEdit && (
               <div className="flex flex-wrap items-center gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm"><Plus className="mr-1 h-4 w-4" /> Add widget</Button>
+                    <Button variant="outline" size="sm">
+                      <Plus className="mr-1 h-4 w-4" /> Add widget
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-48">
                     {WIDGET_KEYS.map((key) => (
@@ -291,16 +360,21 @@ function DashboardsPage() {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                {editing && <span className="text-xs text-muted-foreground ml-2">Drag the handle to move, resize from the corner.</span>}
+                {editing && <span className="ml-2 text-xs text-muted-foreground">Drag the handle to move, resize from the corner.</span>}
               </div>
             )}
 
             <DashboardGrid items={gridItems} onChange={canEdit ? onLayoutChange : undefined}>
               {(config?.widgets ?? []).map((w) => (
                 <div key={w.id} data-grid={{ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h }} className="relative group">
-                  <div className={cn("absolute left-0 top-0 z-10 hidden items-center gap-1 rounded-br-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground group-hover:flex", !canEdit && "hidden")}>
-                    <GripVertical className="h-3 w-3 drag-handle cursor-move" />
-                    <span className="drag-handle cursor-move">{widgetMeta[w.type]?.label}</span>
+                  <div
+                    className={cn(
+                      "absolute left-0 top-0 z-10 hidden items-center gap-1 rounded-br-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground group-hover:flex",
+                      !canEdit && "hidden",
+                    )}
+                  >
+                    <GripVertical className="drag-handle h-3 w-3 cursor-move" />
+                    <span className="drag-handle cursor-move">{widgetMeta[w.type].label}</span>
                     <button
                       type="button"
                       onClick={() => removeWidget(w.id)}
@@ -321,8 +395,8 @@ function DashboardsPage() {
   );
 }
 
-function WidgetRenderer({ type, title, summary }: { type: string; title?: string; summary: DashboardSummary }) {
+function WidgetRenderer({ type, title, summary }: { type: keyof typeof widgetMeta; title?: string; summary: DashboardSummary }) {
   const Component = widgetComponents[type];
-  if (!Component) return <div className="card-surface h-full flex items-center justify-center text-sm text-muted-foreground">Unknown widget</div>;
+  if (!Component) return <div className="card-surface flex h-full items-center justify-center text-sm text-muted-foreground">Unknown widget</div>;
   return <Component data={summary} title={title} />;
 }
