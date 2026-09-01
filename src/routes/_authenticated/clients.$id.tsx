@@ -688,7 +688,32 @@ function ClientPage() {
               <Row label="Activated" value={cur.activation_date ? fmtDate(cur.activation_date) : "—"} />
               <Row label="Qualified" value={cur.qualified_at ? fmtDate(String(cur.qualified_at).slice(0, 10)) : "Pending"} />
               <Row label="Conversion agent" value={<EmployeeLink id={cur.conversion_employee_id} name={employeeName(cur.conversion_employee_id)} />} />
-              <Row label="Retention agent" value={<EmployeeLink id={cur.employee_id} name={employeeName(cur.employee_id)} />} />
+              <Row
+                label="Retention agent"
+                value={
+                  canAllocate ? (
+                    <Select
+                      value={cur.employee_id || "_none"}
+                      onValueChange={(v) => save.mutate({ employee_id: v === "_none" ? null : v })}
+                      disabled={save.isPending}
+                    >
+                      <SelectTrigger className="h-8 w-full max-w-[220px] text-xs">
+                        <SelectValue placeholder="Allocate to…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Unassigned</SelectItem>
+                        {(retentionAgentsQ.data ?? [])
+                          .filter((e) => e.id !== cur.employee_id)
+                          .map((e) => (
+                            <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <EmployeeLink id={cur.employee_id} name={employeeName(cur.employee_id)} />
+                  )
+                }
+              />
               <Row label="Age" value={age != null ? String(age) : "—"} />
               <Row label="Country" value={cur.country || "—"} />
               <Row label="City" value={cur.city || "—"} />
