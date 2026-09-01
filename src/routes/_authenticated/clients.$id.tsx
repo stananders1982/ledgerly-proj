@@ -470,6 +470,18 @@ function ClientPage() {
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
           <section className="card-surface p-5">
+            <NextBestActionCard
+              action={nba}
+              activationId={cur.id}
+              clientName={cur.lead_name}
+              phone={cur.phone}
+              email={cur.email}
+              currentFollowUp={cur.next_follow_up}
+              onFollowUp={(date) => save.mutate({ next_follow_up: date })}
+            />
+          </section>
+
+          <section className="card-surface p-5">
             <ClientJourney stages={journeyStages} nextSteps={journeyNextSteps} />
           </section>
 
