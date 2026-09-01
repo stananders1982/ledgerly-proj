@@ -41,9 +41,29 @@ type AppUser = {
   full_name: string | null;
   created_at: string;
   roles: string[];
+  role_key?: string;
+  department?: string | null;
   nav_keys: string[];
+  nav_overrides?: { nav_key: string; allowed: boolean }[];
   is_super_admin?: boolean;
 };
+
+type UserFormValue = {
+  is_admin: boolean;
+  role_key: string;
+  department: string | null;
+  nav_keys: string[];
+  manageable_keys: string[];
+};
+
+const DEPARTMENTS = [
+  { key: "R", label: "Retention (R)" },
+  { key: "C", label: "Conversion (C)" },
+  { key: "M", label: "Management (M)" },
+];
+
+const DEPT_LABEL: Record<string, string> = { R: "Retention", C: "Conversion", M: "Management" };
+
 
 function UsersPage() {
   const { isAdmin, isSuperAdmin, permsLoaded, user } = useAuth();
