@@ -962,38 +962,42 @@ function ActivationsPage() {
           active={healthFilter === "upsell"}
           onClick={() => setHealthFilter((v) => (v === "upsell" ? "all" : "upsell"))}
         />
-        <KpiCard
-          label="Whales"
-          value={String(tierCounts["whale"] ?? 0)}
-          icon={Wallet}
-          hint={`Potential of ${fmtMoney(settings.whaleThreshold)}+ — your top clients. Click to list them.`}
-          active={tierFilter === "whale"}
-          onClick={() => setTierFilter((v) => (v === "whale" ? "all" : "whale"))}
-        />
-        <KpiCard
-          label="High value"
-          value={String(tierCounts["high"] ?? 0)}
-          icon={Wallet}
-          hint={`Potential between ${fmtMoney(settings.highThreshold)} and ${fmtMoney(settings.whaleThreshold)}. Click to list them.`}
-          active={tierFilter === "high"}
-          onClick={() => setTierFilter((v) => (v === "high" ? "all" : "high"))}
-        />
-        <KpiCard
-          label="Mid value"
-          value={String(tierCounts["mid"] ?? 0)}
-          icon={Wallet}
-          hint={`Potential between ${fmtMoney(settings.midThreshold)} and ${fmtMoney(settings.highThreshold)}. Click to list them.`}
-          active={tierFilter === "mid"}
-          onClick={() => setTierFilter((v) => (v === "mid" ? "all" : "mid"))}
-        />
-        <KpiCard
-          label="Unrated"
-          value={String(tierCounts["unrated"] ?? 0)}
-          icon={Wallet}
-          hint="No potential set yet. Click to see who needs a rating."
-          active={tierFilter === "unrated"}
-          onClick={() => setTierFilter((v) => (v === "unrated" ? "all" : "unrated"))}
-        />
+        {!scoped && (
+          <>
+          <KpiCard
+            label="Whales"
+            value={String(tierCounts["whale"] ?? 0)}
+            icon={Wallet}
+            hint={`Potential of ${fmtMoney(settings.whaleThreshold)}+ — your top clients. Click to list them.`}
+            active={tierFilter === "whale"}
+            onClick={() => setTierFilter((v) => (v === "whale" ? "all" : "whale"))}
+          />
+          <KpiCard
+            label="High value"
+            value={String(tierCounts["high"] ?? 0)}
+            icon={Wallet}
+            hint={`Potential between ${fmtMoney(settings.highThreshold)} and ${fmtMoney(settings.whaleThreshold)}. Click to list them.`}
+            active={tierFilter === "high"}
+            onClick={() => setTierFilter((v) => (v === "high" ? "all" : "high"))}
+          />
+          <KpiCard
+            label="Mid value"
+            value={String(tierCounts["mid"] ?? 0)}
+            icon={Wallet}
+            hint={`Potential between ${fmtMoney(settings.midThreshold)} and ${fmtMoney(settings.highThreshold)}. Click to list them.`}
+            active={tierFilter === "mid"}
+            onClick={() => setTierFilter((v) => (v === "mid" ? "all" : "mid"))}
+          />
+          <KpiCard
+            label="Unrated"
+            value={String(tierCounts["unrated"] ?? 0)}
+            icon={Wallet}
+            hint="No potential set yet. Click to see who needs a rating."
+            active={tierFilter === "unrated"}
+            onClick={() => setTierFilter((v) => (v === "unrated" ? "all" : "unrated"))}
+          />
+          </>
+        )}
         <KpiCard
           label="Neglected clients"
           value={String(neglectedCount)}
@@ -1100,11 +1104,13 @@ function ActivationsPage() {
         </div>
       )}
 
-      <ActivatedLeadsByEmployee
-        start={activeRange.start}
-        end={activeRange.end}
-        label={activeRange.label}
-      />
+      {!scoped && (
+        <ActivatedLeadsByEmployee
+          start={activeRange.start}
+          end={activeRange.end}
+          label={activeRange.label}
+        />
+      )}
 
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <PageSizeSelect value={pg.perPage} onChange={pg.setPerPage} />
