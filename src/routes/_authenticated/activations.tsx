@@ -56,6 +56,8 @@ import {
 } from "@/components/client-profile-fields";
 import { clientAge, type ClientProfile } from "@/lib/client-profile";
 import { ContactActions } from "@/components/contact-actions";
+import { ClientsGrid, useClientsGridFilters } from "@/components/clients-grid";
+import { LayoutGrid } from "lucide-react";
 import {
   NEGLECT_WINDOW_DAYS, TIER_LABEL, TIER_RANK, VALUE_TIERS, isNeglected, lastDate, potentialValue, valueTier,
 } from "@/lib/whales";
@@ -205,7 +207,8 @@ function ActivationsPage() {
   const scopeEmployeeId = scoped ? myEmployee?.id ?? "__none__" : null;
   const scopeReady = !!roleKey && (!scoped || !myEmployeeLoading);
 
-  const [viewMode, setViewMode] = usePersistedState<"list" | "table">("activations:view", "list");
+  const [viewMode, setViewMode] = usePersistedState<"list" | "table" | "grid">("activations:view", "list");
+  const gridFilters = useClientsGridFilters();
 
   const q = useQuery({
     enabled: scopeReady,
@@ -535,7 +538,22 @@ function ActivationsPage() {
     country: (r) => r.country ?? "",
     followup: (r) => r.next_follow_up ?? "",
   });
-  const { pageItems, ...pg } = usePagination(sorted, 25, "activations");
+  const gridHelpers = useMemo(
+    () => ({
+      employeeName: (id?: string | null) => employeeName(id),
+      netBalance: (r: any) => netBalance(r),
+      sourceName: (r: any) => r.daily_lead_entries?.lead_sources?.name ?? "",
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [employeesQ.data, revenueQ.data, withdrawalsQ.data],
+  );
+
+  /** The grid's own column filters narrow the rows before they are paginated. */
+  const visibleRows = useMemo(
+    () => (viewMode === "grid" ? gridFilters.apply(sorted, gridHelpers) : sorted),
+    [viewMode, sorted, gridFilters, gridHelpers],
+  );
+  const { pageItems, ...pg } = usePagination(visibleRows, 25, "activations");
   const navIndex = viewing ? pageItems.findIndex((r) => r.id === viewing.id) : -1;
 
   const totalBalance = rows.reduce(
@@ -761,6 +779,30 @@ function ActivationsPage() {
       toast.success(`Merged ${merged} record${merged === 1 ? "" : "s"} into ${keeper || "the keeper"}`);
     },
     onError: (e: any) => toast.error(e.message),
+  });
+
+  /** Inline grid edits: optimistic, with a revert + toast when the save fails. */
+  const patchClient = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
+      const { error } = await supabase.from("daily_lead_activations").update(patch as any).eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async ({ id, patch }) => {
+      const key = ["activated-leads", scopeEmployeeId];
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Row[]>(key);
+      qc.setQueryData<Row[]>(key, (old) => (old ?? []).map((r) => (r.id === id ? { ...r, ...patch } as Row : r)));
+      return { prev, key };
+    },
+    onError: (e: any, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(ctx.key, ctx.prev);
+      toast.error(e.message ?? "Could not save the change");
+    },
+    onSuccess: () => toast.success("Saved"),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["activated-leads"] });
+      qc.invalidateQueries({ queryKey: ["daily-lead-activations"] });
+    },
   });
 
   const toggleAnswered = useMutation({
@@ -1135,7 +1177,21 @@ function ActivationsPage() {
             >
               <Table2 className="h-3.5 w-3.5" /> Table
             </Button>
+            <Button
+              size="sm"
+              variant={viewMode === "grid" ? "secondary" : "ghost"}
+              className="h-7 gap-1.5 px-2 text-xs"
+              onClick={() => setViewMode("grid")}
+              title="Operator grid — filter under every column, edit in the row"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Grid
+            </Button>
           </div>
+          {viewMode === "grid" && (
+            <span className="text-xs text-muted-foreground">
+              {visibleRows.length} of {rows.length} clients
+            </span>
+          )}
           {viewMode === "table" && (
             <>
               <FitToggle tb={tb} />
@@ -1146,7 +1202,34 @@ function ActivationsPage() {
         </div>
       </div>
 
-      {viewMode === "list" ? (
+      {viewMode === "grid" ? (
+        q.isLoading ? (
+          <TableSkeleton cols={9} />
+        ) : rows.length === 0 ? (
+          <EmptyState icon={CheckCircle2} title="No clients" description="Activated leads logged on the Leads page appear here." />
+        ) : (
+          <ClientsGrid
+            rows={pageItems}
+            employees={employeesQ.data ?? []}
+            scoped={scoped}
+            selected={selected}
+            onToggleSelected={toggleSelected}
+            onTogglePage={(checked) =>
+              setSelected((prev) => {
+                const next = new Set(prev);
+                pageItems.forEach((r: any) => (checked ? next.add(r.id) : next.delete(r.id)));
+                return next;
+              })
+            }
+            filters={gridFilters}
+            helpers={gridHelpers}
+            onOpen={(r) => setViewing(r)}
+            onEdit={(r) => setEditing(r)}
+            onDelete={(id) => bulkDelete.mutate([id])}
+            onPatch={(id, patch) => patchClient.mutate({ id, patch })}
+          />
+        )
+      ) : viewMode === "list" ? (
         q.isLoading ? (
           <TableSkeleton cols={4} />
         ) : rows.length === 0 ? (

@@ -18,3 +18,5 @@
 ## Ask your data
 - [x] Client notes become individually saved comments (no single free-text box)
 - [x] Per-client, per-month deposit splits + full client directory in the AI snapshot so answers match real data and are never "truncated"
+
+- Clients: added a third "Grid" view mode — dense spreadsheet grid with per-column filters, pinned name column, contact buttons and inline editing of retention/conversion agent, status and answered (optimistic saves).
