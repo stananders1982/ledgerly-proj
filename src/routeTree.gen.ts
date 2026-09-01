@@ -13,6 +13,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as ApiBusinessChatRouteImport } from './routes/api/business-chat'
 import { Route as ApiAdminChatRouteImport } from './routes/api/admin-chat'
 import { Route as AuthenticatedWithdrawalsRouteImport } from './routes/_authenticated/withdrawals'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
@@ -68,6 +69,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiBusinessChatRoute = ApiBusinessChatRouteImport.update({
+  id: '/api/business-chat',
+  path: '/api/business-chat',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminChatRoute = ApiAdminChatRouteImport.update({
   id: '/api/admin-chat',
@@ -289,6 +295,7 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof AuthenticatedTasksRoute
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/api/admin-chat': typeof ApiAdminChatRoute
+  '/api/business-chat': typeof ApiBusinessChatRoute
   '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -329,6 +336,7 @@ export interface FileRoutesByTo {
   '/tasks': typeof AuthenticatedTasksRoute
   '/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/api/admin-chat': typeof ApiAdminChatRoute
+  '/api/business-chat': typeof ApiBusinessChatRoute
   '/': typeof AuthenticatedIndexRoute
   '/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
@@ -372,6 +380,7 @@ export interface FileRoutesById {
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/withdrawals': typeof AuthenticatedWithdrawalsRoute
   '/api/admin-chat': typeof ApiAdminChatRoute
+  '/api/business-chat': typeof ApiBusinessChatRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/affiliates/$id': typeof AuthenticatedAffiliatesIdRoute
   '/_authenticated/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
@@ -416,6 +425,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/withdrawals'
     | '/api/admin-chat'
+    | '/api/business-chat'
     | '/affiliates/$id'
     | '/assistant/$threadId'
     | '/clients/$id'
@@ -456,6 +466,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/withdrawals'
     | '/api/admin-chat'
+    | '/api/business-chat'
     | '/'
     | '/affiliates/$id'
     | '/assistant/$threadId'
@@ -498,6 +509,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks'
     | '/_authenticated/withdrawals'
     | '/api/admin-chat'
+    | '/api/business-chat'
     | '/_authenticated/'
     | '/_authenticated/affiliates/$id'
     | '/_authenticated/assistant/$threadId'
@@ -519,6 +531,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiAdminChatRoute: typeof ApiAdminChatRoute
+  ApiBusinessChatRoute: typeof ApiBusinessChatRoute
   ApiPublicV1ActivationsRoute: typeof ApiPublicV1ActivationsRoute
   ApiPublicV1DepositsRoute: typeof ApiPublicV1DepositsRoute
   ApiPublicV1LeadsRoute: typeof ApiPublicV1LeadsRoute
@@ -554,6 +567,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/business-chat': {
+      id: '/api/business-chat'
+      path: '/api/business-chat'
+      fullPath: '/api/business-chat'
+      preLoaderRoute: typeof ApiBusinessChatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/admin-chat': {
       id: '/api/admin-chat'
@@ -888,6 +908,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiAdminChatRoute: ApiAdminChatRoute,
+  ApiBusinessChatRoute: ApiBusinessChatRoute,
   ApiPublicV1ActivationsRoute: ApiPublicV1ActivationsRoute,
   ApiPublicV1DepositsRoute: ApiPublicV1DepositsRoute,
   ApiPublicV1LeadsRoute: ApiPublicV1LeadsRoute,
