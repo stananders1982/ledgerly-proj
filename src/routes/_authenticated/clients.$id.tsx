@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatCard } from "@/components/stat-card";
 import { EmployeeLink } from "@/components/employee-link";
 import { FavoriteStar } from "@/components/favorite-star";
@@ -39,6 +40,7 @@ import { fetchAll } from "@/lib/fetch-all";
 import { qualifiesAsFtd, stdDepositsFor, activationDate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { useAuth } from "@/lib/auth-context";
+import { useMyRoleKey } from "@/lib/permissions";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({
