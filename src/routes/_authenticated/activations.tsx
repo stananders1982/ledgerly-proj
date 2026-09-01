@@ -1528,6 +1528,15 @@ function ActivationsPage() {
                   description="The client record is removed permanently. Deposits and withdrawals stay in Revenue and Withdrawals."
                 />
                 <div className="flex-1" />
+                <AiClientPaste
+                  current={cur as any}
+                  applying={save.isPending}
+                  onApply={(patch) => {
+                    const next = { ...cur, ...(patch as any) };
+                    setViewing(next as any);
+                    save.mutate(next as any);
+                  }}
+                />
                 <Button asChild variant="outline">
                   <Link to="/clients/$id" params={{ id: cur.id }}>Open full profile</Link>
                 </Button>
