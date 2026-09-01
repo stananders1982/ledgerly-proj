@@ -56,6 +56,8 @@ import {
 } from "@/components/client-profile-fields";
 import { clientAge, type ClientProfile } from "@/lib/client-profile";
 import { ContactActions } from "@/components/contact-actions";
+import { ClientsGrid, useClientsGridFilters } from "@/components/clients-grid";
+import { LayoutGrid } from "lucide-react";
 import {
   NEGLECT_WINDOW_DAYS, TIER_LABEL, TIER_RANK, VALUE_TIERS, isNeglected, lastDate, potentialValue, valueTier,
 } from "@/lib/whales";
