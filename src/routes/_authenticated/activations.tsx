@@ -194,13 +194,29 @@ function ActivationsPage() {
     [range, customStart, customEnd],
   );
 
+  /**
+   * Retention agents only ever see their own book. Everyone else (managers,
+   * admins, conversion) keeps the full workspace view.
+   */
+  const { roleKey } = useMyRoleKey();
+  const { employee: myEmployee, isLoading: myEmployeeLoading } = useMyEmployee();
+  const scoped = roleKey === "retention";
+  const scopeEmployeeId = scoped ? myEmployee?.id ?? "__none__" : null;
+  const scopeReady = !!roleKey && (!scoped || !myEmployeeLoading);
+
+  const [viewMode, setViewMode] = usePersistedState<"list" | "table">("activations:view", "list");
+
   const q = useQuery({
-    queryKey: ["activated-leads"],
+    enabled: scopeReady,
+    queryKey: ["activated-leads", scopeEmployeeId],
     queryFn: async () => {
-      const data = await fetchAll(() => supabase
-        .from("daily_lead_activations")
-        .select("*, daily_lead_entries(entry_date, source_id, lead_sources(name))")
-        .order("created_at", { ascending: false }));
+      const data = await fetchAll(() => {
+        const base = supabase
+          .from("daily_lead_activations")
+          .select("*, daily_lead_entries(entry_date, source_id, lead_sources(name))")
+          .order("created_at", { ascending: false });
+        return scopeEmployeeId ? base.eq("employee_id", scopeEmployeeId) : base;
+      });
       return (data ?? []) as unknown as Row[];
     },
   });
