@@ -1441,7 +1441,33 @@ function ActivationsPage() {
                   <Info label="Activation date" value={actDate(cur) ? fmtDate(actDate(cur)!) : "—"} />
                   <Info label="Lead received" value={cur.daily_lead_entries?.entry_date ? fmtDate(cur.daily_lead_entries.entry_date) : "—"} />
                   <Info label="Conversion agent" value={<EmployeeLink id={cur.conversion_employee_id} name={employeeName(cur.conversion_employee_id)} />} />
-                  <Info label="Retention agent" value={<EmployeeLink id={cur.employee_id} name={employeeName(cur.employee_id)} />} />
+                  <Info
+                    label="Retention agent"
+                    value={
+                      <div className="flex items-center gap-2">
+                        <EmployeeLink id={cur.employee_id} name={employeeName(cur.employee_id)} />
+                        <Select
+                          value={cur.employee_id || "_none"}
+                          onValueChange={(v) =>
+                            assignRetention.mutate({ id: cur.id, employee_id: v === "_none" ? null : v })
+                          }
+                        >
+                          <SelectTrigger className="h-7 w-[150px] text-xs">
+                            <SelectValue placeholder="Allocate" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="_none">Unassigned</SelectItem>
+                            {(employeesQ.data ?? [])
+                              .filter((e) => (e.active !== false && e.team === "R") || e.id === cur.employee_id)
+                              .map((e) => (
+                                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    }
+                  />
+
                   <Info label="Deposit count" value={String(deposits.length)} />
                   <Info label="STD" value={<StdBadge count={stdDepositsForRow(cur).length} />} />
                   <Info label="FTD status" value={<Badge variant={qualifies ? "default" : "secondary"}>{qualifies ? "Qualified" : "Pending"}</Badge>} />
