@@ -1,39 +1,35 @@
-# Bring clients over from your old CRM
+# Paste raw text, AI fills the client details
 
-Today the Bulk Import page covers lead entries, income, expenses, employees, sources, affiliates and withdrawals — but there is no importer for **clients**, which is exactly what you are typing by hand. This adds one, and makes it work even when the old CRM has no export button.
+Instead of typing every field from the old CRM, you open a client page, paste whatever text you copied (a client card, an email, a chat log, a block of notes), and AI fills the client's details for you.
 
-## Three ways to get client data in
+## How it works
 
-1. **Paste** — select rows in the old CRM (or any spreadsheet), copy, paste into a box. Tab- or comma-separated rows are detected automatically. This is the main path since the old CRM can't export a file.
-2. **Upload a file** — CSV or Excel (.xlsx), if you ever manage to get one out.
-3. **Messy paste (AI assist)** — paste unstructured text (a client card, an email, a screenshot's copied text) and the assistant turns it into rows you review before saving. Useful for one client at a time.
+1. On each client page there's a new **"Paste from old CRM"** button.
+2. You paste the raw text — any shape, any language, no formatting rules.
+3. AI reads it and proposes values for the client's fields.
+4. You see a side-by-side review: **current value → suggested value**, per field, with a checkbox on each row. Fields the text doesn't mention are left out entirely.
+5. Untick anything you disagree with, press Apply, and only the ticked fields are saved to the client.
 
-## What gets imported per client
+Nothing is written until you press Apply, so a bad paste can never overwrite good data.
 
-Full profile in one row: name, phone, email, country, city, language, gender, date of birth / age, occupation, assigned agent, conversion agent, status (hot/warm/cold/dormant/churned), activation date, balance, potential value, tags, notes, next follow-up, preferred contact time, and the financial KYC fields (net worth, liquid funds, monthly income, exposure elsewhere, source of funds, deposit appetite).
+## Fields the AI fills
 
-Agent names are matched to existing employees automatically; unmatched names are flagged rather than silently dropped.
+Contact: name, phone, email, country, city, language, gender, date of birth / age, occupation.
 
-## Review before anything is saved
+CRM: status (hot/warm/cold/dormant/churned), tags, notes, next follow-up date, preferred contact time.
 
-After paste/upload you get a mapping and preview step:
+Money profile: potential value, net worth, liquid funds, monthly income, exposure elsewhere, source of funds, deposit appetite.
 
-- Auto-matched columns, changeable from a dropdown (already how the CSV dialog works).
-- A per-row status: **New**, **Will update** (matched an existing client), or **Error** with the reason (bad date, unknown agent, missing name).
-- Counters at the top: how many new, how many updates, how many blocked.
-- Nothing is written until you press Import; blocked rows are left out and listed so you can fix and re-paste.
+Anything it can't determine is simply left blank rather than guessed. If the text mentions past deposits or withdrawals, they are shown as a note in the review ("text mentions a $5,000 deposit in March") rather than silently creating financial records — money entries stay manual.
 
-## Duplicate handling — chosen per import
+## Bulk option (same mechanism)
 
-A selector in the dialog, as you asked:
-
-- **Update existing** — match on phone, then email, then name; fill in fields that are present in the file, leave the rest alone.
-- **Skip existing** — only new clients are created.
-- **Create anyway** — import everything as new records.
+The paste box also accepts text covering several clients at once. In that case the review step lists each detected person as a card, marked **New client** or **Matches [existing client]** (matched on phone, then email, then name). You tick which ones to create/update. This gives you the same speed as a file import without needing an export from the old CRM.
 
 ## Technical notes
 
-- New "Clients" import definition on `/import` writing to `daily_lead_activations` (company-scoped), reusing `CsvImportDialog` extended with: a paste textarea, XLSX parsing via the existing `parseSpreadsheet` in `src/lib/export.ts`, a duplicate-mode selector, and a validated preview table with row statuses.
-- Duplicate matching runs client-side against existing activations for the company, and inserts/updates in batches of ~200 so large pastes don't time out.
-- The AI-assisted "messy text" path uses a new server function on the existing Lovable AI setup, returning strict JSON rows into the same preview step — no direct writes from the model.
-- Existing importers keep working unchanged; the paste tab and duplicate selector become available to all of them.
+- New server function `src/lib/client-import.functions.ts` using the existing Lovable AI setup, with `requireSupabaseAuth`, returning strict JSON via a tool/schema call: a list of extracted client objects plus per-field confidence and an `unmapped_notes` string.
+- The model only returns data; all writes happen client-side after review, using the existing update path on `daily_lead_activations` (company-scoped) — so RLS and permissions behave exactly as they do in the manual form.
+- New component `src/components/ai-client-paste.tsx`: the paste dialog, the field-diff review table, and the multi-client card list; mounted on `src/routes/_authenticated/clients.$id.tsx` (single-client mode) and on the clients list / `/import` page (bulk mode).
+- Field definitions are reused from `src/lib/client-profile.ts` so the AI schema and the app stay in sync.
+- Extraction is logged to the activity log as an edit, so you can see what came from a paste.
