@@ -25,6 +25,8 @@ import {
 import { TIER_LABEL, isNeglected, potentialValue, valueTier } from "@/lib/whales";
 import { clientHealth } from "@/lib/client-health";
 import { ClientHealthCard, HealthBadge } from "@/components/client-health";
+import { nextBestAction } from "@/lib/next-best-action";
+import { NextBestActionCard } from "@/components/next-best-action";
 import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
