@@ -63,7 +63,7 @@ type Client = {
   legacy: boolean | null;
   notes: string | null;
   tags: string[] | null;
-  daily_lead_entries?: { entry_date: string; lead_sources?: { name: string } | null } | null;
+  daily_lead_entries?: { entry_date: string; created_at?: string | null; lead_sources?: { name: string } | null } | null;
 } & ClientProfile;
 
 const matchName = (a?: string | null, b?: string | null) =>
@@ -80,7 +80,7 @@ function ClientPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_lead_activations")
-        .select("*, daily_lead_entries(entry_date, cost, activated, lead_sources(name))")
+        .select("*, daily_lead_entries(entry_date, created_at, cost, activated, lead_sources(name))")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -103,7 +103,7 @@ function ClientPage() {
     queryKey: ["client-deposits", id, name],
     enabled: !!clientQ.data,
     queryFn: async () => {
-      const cols = "id,customer_name,amount,currency,date,notes,method,method_provider,fee_pct,fee_amount,employee_id,activation_id";
+      const cols = "id,customer_name,amount,currency,date,created_at,notes,method,method_provider,fee_pct,fee_amount,employee_id,activation_id";
       const byActivation = await fetchAll<any>(() =>
         supabase.from("revenue").select(cols).eq("activation_id", id).order("date", { ascending: true }),
       );
@@ -127,7 +127,7 @@ function ClientPage() {
       const rows = await fetchAll<any>(() =>
         supabase
           .from("withdrawals")
-          .select("id,customer_name,amount,date,notes,employee_id")
+          .select("id,customer_name,amount,date,created_at,notes,employee_id")
           .ilike("customer_name", (name ?? "").trim())
           .order("date", { ascending: true }),
       );
