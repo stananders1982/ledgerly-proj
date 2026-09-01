@@ -49,6 +49,13 @@ const fmtWhen = (iso: string) => {
     : `${dateStr}, ${d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`;
 };
 
+/** Numeric sort key. Date-only values sort as start-of-day so same-day
+ *  timestamped events order correctly around them. */
+const ts = (at: string) => {
+  const t = new Date(at.length <= 10 ? `${at}T00:00:00` : at).getTime();
+  return Number.isNaN(t) ? 0 : t;
+};
+
 /**
  * Client 360 — one filterable stream of everything that ever happened to a client:
  * money, conversations, tasks, compliance, people and system milestones.
@@ -106,9 +113,10 @@ export function Client360Timeline({
 
     // ---- System: lead intake ----
     const entryDate = client.daily_lead_entries?.entry_date;
-    if (entryDate) {
+    const entryAt = client.daily_lead_entries?.created_at ?? entryDate;
+    if (entryAt) {
       out.push({
-        id: "lead", at: entryDate, category: "system", icon: UserPlus, tone: "text-muted-foreground",
+        id: "lead", at: String(entryAt), category: "system", icon: UserPlus, tone: "text-muted-foreground",
         title: "Lead received",
         detail: client.daily_lead_entries?.lead_sources?.name ?? null,
       });
@@ -117,7 +125,7 @@ export function Client360Timeline({
     // ---- People: assignment ----
     if (client.employee_id) {
       out.push({
-        id: "assigned", at: act ?? entryDate ?? client.created_at, category: "people", icon: Users,
+        id: "assigned", at: act ?? entryAt ?? client.created_at, category: "people", icon: Users,
         tone: "text-sky-500", title: "Assigned to agent", who: employeeName(client.employee_id),
       });
     }
@@ -138,16 +146,16 @@ export function Client360Timeline({
     let running = opening;
     const money = [
       ...deposits.map((d: any) => ({
-        id: `dep-${d.id}`, at: String(d.date), delta: toDisplay(d.amount, d.currency),
+        id: `dep-${d.id}`, at: String(d.created_at ?? d.date), delta: toDisplay(d.amount, d.currency),
         title: "Deposit",
         detail: [d.method, d.method_provider, d.notes].filter(Boolean).join(" · ") || null,
         who: employeeName(d.employee_id),
       })),
       ...withdrawals.map((w: any) => ({
-        id: `wd-${w.id}`, at: String(w.date), delta: -toDisplay(w.amount, w.currency),
+        id: `wd-${w.id}`, at: String(w.created_at ?? w.date), delta: -toDisplay(w.amount, w.currency),
         title: "Withdrawal", detail: w.notes ?? null, who: employeeName(w.employee_id),
       })),
-    ].sort((a, b) => a.at.localeCompare(b.at));
+    ].sort((a, b) => ts(a.at) - ts(b.at) || a.id.localeCompare(b.id));
     for (const m of money) {
       running += m.delta;
       out.push({
