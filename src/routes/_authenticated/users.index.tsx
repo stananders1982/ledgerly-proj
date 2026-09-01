@@ -22,6 +22,10 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { ActionPermissionsAdmin } from "@/components/action-permissions-admin";
 import { useAuth } from "@/lib/auth-context";
 import { NAV_ITEMS, MANAGEABLE_NAV_KEYS } from "@/lib/nav-items";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRoles } from "@/lib/permissions";
+import { defaultNavAllowed } from "@/lib/permission-defaults";
+
 import {
   listAppUsers,
   createAppUser,
@@ -41,9 +45,29 @@ type AppUser = {
   full_name: string | null;
   created_at: string;
   roles: string[];
+  role_key?: string;
+  department?: string | null;
   nav_keys: string[];
+  nav_overrides?: { nav_key: string; allowed: boolean }[];
   is_super_admin?: boolean;
 };
+
+type UserFormValue = {
+  is_admin: boolean;
+  role_key: string;
+  department: string | null;
+  nav_keys: string[];
+  manageable_keys: string[];
+};
+
+const DEPARTMENTS = [
+  { key: "R", label: "Retention (R)" },
+  { key: "C", label: "Conversion (C)" },
+  { key: "M", label: "Management (M)" },
+];
+
+const DEPT_LABEL: Record<string, string> = { R: "Retention", C: "Conversion", M: "Management" };
+
 
 function UsersPage() {
   const { isAdmin, isSuperAdmin, permsLoaded, user } = useAuth();
@@ -65,8 +89,7 @@ function UsersPage() {
   });
 
   const createMut = useMutation({
-    mutationFn: (v: { email: string; password: string; full_name: string; is_admin: boolean; nav_keys: string[] }) =>
-      create({ data: v }),
+    mutationFn: (v: UserFormValue & { email: string; password: string; full_name: string }) => create({ data: v }),
     onSuccess: () => {
       toast.success("User created");
       qc.invalidateQueries({ queryKey: ["app-users"] });
@@ -76,7 +99,8 @@ function UsersPage() {
   });
 
   const updateMut = useMutation({
-    mutationFn: (v: { user_id: string; is_admin: boolean; nav_keys: string[] }) => update({ data: v }),
+    mutationFn: (v: UserFormValue & { user_id: string }) => update({ data: v }),
+
     onSuccess: () => {
       toast.success("Updated");
       qc.invalidateQueries({ queryKey: ["app-users"] });
@@ -103,7 +127,11 @@ function UsersPage() {
     onError: (e: any) => toast.error(e.message ?? "Delete failed"),
   });
 
+  const { roles: roleOptions } = useRoles();
+  const roleLabel = (key: string) => roleOptions.find((r) => r.key === key)?.label ?? key;
+
   if (permsLoaded && !isAdmin) return <Navigate to="/" />;
+
 
   const rows = (q.data ?? []) as AppUser[];
   const { sorted, sort, toggle } = useSort<AppUser>(rows, {
@@ -129,7 +157,7 @@ function UsersPage() {
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4" /> Add user</Button>
             </DialogTrigger>
-            <CreateUserDialog onSubmit={(v) => createMut.mutate(v)} pending={createMut.isPending} />
+            <CreateUserDialog onSubmit={(v) => createMut.mutate(v)} pending={createMut.isPending} roleOptions={roleOptions} />
           </Dialog>
         }
       />
@@ -141,20 +169,22 @@ function UsersPage() {
               <TableHead>{th("Name", "name")}</TableHead>
               <TableHead>{th("Email", "email")}</TableHead>
               <TableHead>{th("Role", "role")}</TableHead>
+              <TableHead>Department</TableHead>
               <TableHead>{th("Pages", "pages")}</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {q.isLoading && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>
             )}
             {!q.isLoading && rows.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No users yet.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No users yet.</TableCell></TableRow>
             )}
             {pageItems.map((u) => {
               const adm = u.roles.includes("admin");
               const locked = !!u.is_super_admin && !isSuperAdmin && u.id !== user?.id;
+              const overrides = u.nav_overrides?.length ?? 0;
               return (
                 <TableRow
                   key={u.id}
@@ -169,18 +199,26 @@ function UsersPage() {
                     ) : adm ? (
                       <Badge className="gap-1"><ShieldCheck className="h-3 w-3" /> Admin</Badge>
                     ) : (
-                      <Badge variant="secondary">User</Badge>
+                      <Badge variant="secondary">{roleLabel(u.role_key ?? "agent")}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {u.department ? (
+                      <Badge variant="outline">{DEPT_LABEL[u.department] ?? u.department}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
                     {adm ? (
                       <span className="text-xs text-muted-foreground">All pages</span>
-                    ) : u.nav_keys.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">No access</span>
+                    ) : overrides === 0 ? (
+                      <span className="text-xs text-muted-foreground">Role default</span>
                     ) : (
-                      <span className="text-xs">{u.nav_keys.length} page{u.nav_keys.length === 1 ? "" : "s"}</span>
+                      <span className="text-xs">{overrides} custom</span>
                     )}
                   </TableCell>
+
                   <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
                     {locked ? (
                       <span className="text-xs text-muted-foreground">Managed by platform owner</span>
@@ -213,6 +251,7 @@ function UsersPage() {
           user={editing}
           onClose={() => setEditing(null)}
           onSubmit={(v) => updateMut.mutate({ user_id: editing.id, ...v })}
+          roleOptions={roleOptions}
           pending={updateMut.isPending}
         />
       )}
@@ -229,18 +268,92 @@ function UsersPage() {
   );
 }
 
+/** Page checklist + role/department pickers shared by both dialogs. */
+function RoleDepartmentFields({
+  roleKey,
+  setRoleKey,
+  department,
+  setDepartment,
+  roleOptions,
+}: {
+  roleKey: string;
+  setRoleKey: (v: string) => void;
+  department: string;
+  setDepartment: (v: string) => void;
+  roleOptions: { key: string; label: string }[];
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-1.5">
+        <Label>Role</Label>
+        <Select value={roleKey} onValueChange={setRoleKey}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {roleOptions.filter((r) => r.key !== "admin").map((r) => (
+              <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[11px] text-muted-foreground">Sets the pages and actions this role normally gets.</p>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Department</Label>
+        <Select value={department} onValueChange={setDepartment}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No department</SelectItem>
+            {DEPARTMENTS.map((d) => (
+              <SelectItem key={d.key} value={d.key}>{d.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[11px] text-muted-foreground">Creates or links the matching employee record.</p>
+      </div>
+    </div>
+  );
+}
+
+function PageChecklist({ keys, toggle }: { keys: Set<string>; toggle: (k: string) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-2 rounded-md border p-3">
+      {NAV_ITEMS.filter((i) => !i.adminOnly).map((i) => (
+        <label key={i.key} className="flex items-center gap-2 text-sm cursor-pointer">
+          <Checkbox checked={keys.has(i.key)} onCheckedChange={() => toggle(i.key)} />
+          <i.icon className="h-3.5 w-3.5 text-muted-foreground" />
+          {i.title}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function keysForRole(roleKey: string) {
+  return new Set(MANAGEABLE_NAV_KEYS.filter((k) => defaultNavAllowed(roleKey, k)));
+}
+
 function CreateUserDialog({
   onSubmit,
   pending,
+  roleOptions,
 }: {
-  onSubmit: (v: { email: string; password: string; full_name: string; is_admin: boolean; nav_keys: string[] }) => void;
+  onSubmit: (v: UserFormValue & { email: string; password: string; full_name: string }) => void;
   pending: boolean;
+  roleOptions: { key: string; label: string }[];
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [keys, setKeys] = useState<Set<string>>(new Set(MANAGEABLE_NAV_KEYS));
+  const [roleKey, setRoleKey] = useState("agent");
+  const [department, setDepartment] = useState("none");
+  const [keys, setKeys] = useState<Set<string>>(() => keysForRole("agent"));
+
+  function pickRole(v: string) {
+    setRoleKey(v);
+    setKeys(keysForRole(v));
+    if (v === "retention") setDepartment("R");
+    if (v === "agent") setDepartment("C");
+  }
 
   function toggle(k: string) {
     const next = new Set(keys);
@@ -249,7 +362,7 @@ function CreateUserDialog({
   }
 
   return (
-    <DialogContent className="max-w-lg">
+    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>Add user</DialogTitle></DialogHeader>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
@@ -275,24 +388,35 @@ function CreateUserDialog({
           <Switch checked={isAdmin} onCheckedChange={setIsAdmin} />
         </div>
         {!isAdmin && (
-          <div className="space-y-2">
-            <Label>Pages this user can access</Label>
-            <div className="grid grid-cols-2 gap-2 rounded-md border p-3">
-              {NAV_ITEMS.filter((i) => !i.adminOnly).map((i) => (
-                <label key={i.key} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <Checkbox checked={keys.has(i.key)} onCheckedChange={() => toggle(i.key)} />
-                  <i.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                  {i.title}
-                </label>
-              ))}
+          <>
+            <RoleDepartmentFields
+              roleKey={roleKey}
+              setRoleKey={pickRole}
+              department={department}
+              setDepartment={setDepartment}
+              roleOptions={roleOptions}
+            />
+            <div className="space-y-2">
+              <Label>Pages this user can access</Label>
+              <p className="text-[11px] text-muted-foreground">Pre-filled from the role — tick to override for this person.</p>
+              <PageChecklist keys={keys} toggle={toggle} />
             </div>
-          </div>
+          </>
         )}
       </div>
       <DialogFooter>
         <Button
           onClick={() =>
-            onSubmit({ email, password, full_name: fullName, is_admin: isAdmin, nav_keys: isAdmin ? [] : Array.from(keys) })
+            onSubmit({
+              email,
+              password,
+              full_name: fullName,
+              is_admin: isAdmin,
+              role_key: isAdmin ? "admin" : roleKey,
+              department: department === "none" ? null : department,
+              nav_keys: isAdmin ? [] : Array.from(keys),
+              manageable_keys: MANAGEABLE_NAV_KEYS as string[],
+            })
           }
           disabled={pending || !email || !password || !fullName}
         >
@@ -308,14 +432,31 @@ function EditAccessDialog({
   onClose,
   onSubmit,
   pending,
+  roleOptions,
 }: {
   user: AppUser;
   onClose: () => void;
-  onSubmit: (v: { is_admin: boolean; nav_keys: string[] }) => void;
+  onSubmit: (v: UserFormValue) => void;
   pending: boolean;
+  roleOptions: { key: string; label: string }[];
 }) {
   const [isAdmin, setIsAdmin] = useState(user.roles.includes("admin"));
-  const [keys, setKeys] = useState<Set<string>>(new Set(user.nav_keys));
+  const [roleKey, setRoleKey] = useState(user.role_key && user.role_key !== "admin" ? user.role_key : "agent");
+  const [department, setDepartment] = useState(user.department ?? "none");
+  const [keys, setKeys] = useState<Set<string>>(() => {
+    const base = keysForRole(user.role_key ?? "agent");
+    for (const o of user.nav_overrides ?? []) {
+      if (o.allowed) base.add(o.nav_key); else base.delete(o.nav_key);
+    }
+    // Legacy per-user rows still count as granted.
+    for (const k of user.nav_keys) base.add(k);
+    return base;
+  });
+
+  function pickRole(v: string) {
+    setRoleKey(v);
+    setKeys(keysForRole(v));
+  }
 
   function toggle(k: string) {
     const next = new Set(keys);
@@ -336,28 +477,36 @@ function EditAccessDialog({
             <Switch checked={isAdmin} onCheckedChange={setIsAdmin} />
           </div>
           {!isAdmin && (
-            <div className="space-y-2">
-              <Label>Allowed pages</Label>
-              <div className="grid grid-cols-2 gap-2 rounded-md border p-3">
-                {NAV_ITEMS.filter((i) => !i.adminOnly).map((i) => (
-                  <label key={i.key} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <Checkbox checked={keys.has(i.key)} onCheckedChange={() => toggle(i.key)} />
-                    <i.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    {i.title}
-                  </label>
-                ))}
+            <>
+              <RoleDepartmentFields
+                roleKey={roleKey}
+                setRoleKey={pickRole}
+                department={department}
+                setDepartment={setDepartment}
+                roleOptions={roleOptions}
+              />
+              <div className="space-y-2">
+                <Label>Allowed pages</Label>
+                <p className="text-[11px] text-muted-foreground">Pre-filled from the role — tick to override for this person.</p>
+                <PageChecklist keys={keys} toggle={toggle} />
               </div>
-            </div>
-          )}
-          {!isAdmin && (
-            <div className="rounded-md border p-4">
-              <ActionPermissionsAdmin userId={user.id} />
-            </div>
+              <div className="rounded-md border p-4">
+                <ActionPermissionsAdmin userId={user.id} />
+              </div>
+            </>
           )}
         </div>
         <DialogFooter>
           <Button
-            onClick={() => onSubmit({ is_admin: isAdmin, nav_keys: isAdmin ? [] : Array.from(keys) })}
+            onClick={() =>
+              onSubmit({
+                is_admin: isAdmin,
+                role_key: isAdmin ? "admin" : roleKey,
+                department: department === "none" ? null : department,
+                nav_keys: isAdmin ? [] : Array.from(keys),
+                manageable_keys: MANAGEABLE_NAV_KEYS as string[],
+              })
+            }
             disabled={pending}
           >
             {pending ? "Saving…" : "Save"}
@@ -367,6 +516,7 @@ function EditAccessDialog({
     </Dialog>
   );
 }
+
 
 function ResetPasswordDialog({
   user,
