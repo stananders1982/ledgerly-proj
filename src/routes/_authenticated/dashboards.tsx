@@ -333,9 +333,7 @@ function DashboardsPage() {
         {!selectedId || dashboards?.length === 0 ? (
           <div className="card-surface flex flex-col items-center justify-center py-20 text-center">
             <LayoutGrid className="mb-4 h-12 w-12 text-muted-foreground/40" />
-            <h2 class name="font-display text-lg font-medium">
-              No dashboard selected
-            </h2>
+            <h2 className="font-display text-lg font-medium">No dashboard selected</h2>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
               Create a dashboard from a template to get started, or pick one from the selector above.
             </p>
