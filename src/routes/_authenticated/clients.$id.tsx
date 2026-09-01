@@ -23,6 +23,8 @@ import {
   ClientKycFields, ClientProfileFields, OpportunityBadge, RiskBadge, StatusBadge, TierBadge,
 } from "@/components/client-profile-fields";
 import { TIER_LABEL, isNeglected, potentialValue, valueTier } from "@/lib/whales";
+import { clientHealth } from "@/lib/client-health";
+import { ClientHealthCard, HealthBadge } from "@/components/client-health";
 import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
@@ -228,6 +230,21 @@ function ClientPage() {
     : false;
   const neglectedRated = neglected && tier !== "unrated";
 
+  // Activity intelligence: one explainable score from deposits, contact,
+  // headroom, KYC and payout behaviour.
+  const health = useMemo(
+    () => clientHealth({
+      deposits: deposits.map((d: any) => ({ date: d.date, amount: toDisplay(d.amount, d.currency) })),
+      withdrawals: (withdrawals as any[]).map((w) => ({ date: w.date, amount: toDisplay(w.amount, w.currency) })),
+      contactDates: (commsQ.data ?? []).map((c: any) => c.occurred_at),
+      kyc: (cur as any)?.kyc,
+      potentialValue: cur?.potential_value,
+      activationDate: cur ? activationDate(cur as any) : null,
+      balance,
+    }),
+    [deposits, withdrawals, commsQ.data, cur, balance],
+  );
+
   const transactions = useMemo(() => {
     const rows = [
       ...deposits.map((d: any) => ({
@@ -375,6 +392,7 @@ function ClientPage() {
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        <HealthBadge health={health} />
         <StatusBadge status={cur.status} />
         <PotentialBadge potential={cur.potential ?? undefined} />
         <AnsweredBadge answered={!!cur.answered} />
@@ -403,6 +421,12 @@ function ClientPage() {
           label="Headroom score"
           value={cur.ai_opportunity_score != null ? `${cur.ai_opportunity_score}/100` : "—"}
           hint={cur.ai_opportunity_label ?? "run an analysis"}
+        />
+        <StatCard
+          label="Client health"
+          value={`${health.score}/100`}
+          hint={health.advice}
+          tone={health.band === "critical" ? "negative" : health.band === "at-risk" ? undefined : "positive"}
         />
         <StatCard label="Balance" value={fmtMoney(balance)} />
         <StatCard label="Deposits" value={fmtMoney(depositTotal)} hint={`${deposits.length} deposit${deposits.length === 1 ? "" : "s"}`} />
@@ -587,6 +611,10 @@ function ClientPage() {
         </div>
 
         <div className="space-y-5">
+          <section className="card-surface p-5">
+            <ClientHealthCard health={health} />
+          </section>
+
           <section className="card-surface p-5 text-sm">
             <h2 className="mb-3 font-display text-base font-semibold">At a glance</h2>
             <dl className="space-y-2">
