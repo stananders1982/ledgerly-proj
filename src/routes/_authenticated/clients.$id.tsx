@@ -616,9 +616,19 @@ function ClientPage() {
                   <TagPicker value={cur.tags ?? []} onChange={(tags) => save.mutate({ tags })} />
                 </div>
                 <div className="mt-3 grid gap-1.5">
-                  <label className="text-xs text-muted-foreground">Notes</label>
-                  <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+                  <label className="text-xs text-muted-foreground" htmlFor="client-notes">
+                    Notes <span className="opacity-70">— free text, saved with the profile</span>
+                  </label>
+                  <Textarea
+                    id="client-notes"
+                    rows={8}
+                    placeholder="Background, objections, what they said on the last call…"
+                    className="min-h-[160px] resize-y leading-relaxed"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
                 </div>
+
                 <div className="mt-3 flex justify-end">
                   <Button size="sm" disabled={save.isPending} onClick={() => save.mutate({ ...draft, notes: notes.trim() || null })}>
                     {save.isPending ? "Saving…" : "Save profile"}
