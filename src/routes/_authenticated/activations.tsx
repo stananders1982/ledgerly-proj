@@ -1183,7 +1183,27 @@ function ActivationsPage() {
                         <HealthBadge health={healthOf(r)} />
                         <PotentialBadge value={r.potential} />
                         {stdCountFor(r) > 0 && <StdBadge count={stdCountFor(r)} />}
-                        <AnsweredBadge answered={!!r.answered} />
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={!!r.answered}
+                          title={r.answered ? "Click to mark as unanswered" : "Click to mark as answered"}
+                          className="cursor-pointer rounded-full outline-none transition hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleAnswered.mutate({ id: r.id, answered: !r.answered });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleAnswered.mutate({ id: r.id, answered: !r.answered });
+                            }
+                          }}
+                        >
+                          <AnsweredBadge answered={!!r.answered} />
+                        </span>
                         {r.qualified_at && isLateRetentionFtd(r) && (
                           <LateFtdBadge activationDate={actDate(r)} qualifiedAt={r.qualified_at} months={monthsLate(r)} />
                         )}
