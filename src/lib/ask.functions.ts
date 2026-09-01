@@ -586,6 +586,35 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       clients: clientsRanked.slice(0, CLIENT_LIMIT),
       clientCount: clientRecords.length,
       clientsTruncated: clientRecords.length > CLIENT_LIMIT,
+      // Slim row for EVERY client, so no question needs the truncated rich list.
+      clientDirectory: clientRecords.map((c) => ({
+        n: c.name,
+        c: c.conversionAgent,
+        r: c.retentionAgent,
+        a: c.activationDate,
+        s: c.status,
+        d: c.depositTotal,
+        k: c.depositCount,
+        l: c.lastDeposit,
+        w: c.withdrawalTotal,
+        b: c.balance,
+        t: c.valueTier,
+      })),
+      // Exact per-deposit attribution: "YYYY-MM | agent | client" -> amount,
+      // plus the matching deposit counts. Splits already applied.
+      depositsByMonthAgentAndClient: round(
+        bucket(attributedRows, (r) => `${month(r.date)} | ${r.agent} | ${r.client}`, (r) => r.amount),
+      ),
+      depositCountByMonthAgentAndClient: bucket(
+        attributedRows,
+        (r) => `${month(r.date)} | ${r.agent} | ${r.client}`,
+        () => 1,
+      ),
+      // Same, without the agent dimension: "YYYY-MM | client" -> amount.
+      depositsByMonthAndClient: round(
+        bucket(revRows, (r: any) => (r.date ? `${month(String(r.date))} | ${r.customer_name || "Unnamed client"}` : ""), (r: any) => Number(r.amount || 0)),
+      ),
+
       withdrawalsByClient: round(
         Object.fromEntries(
           [...withdrawalsByClient.entries()].map(([k, v]) => [k.replace(/^name:/, ""), v.total]),
