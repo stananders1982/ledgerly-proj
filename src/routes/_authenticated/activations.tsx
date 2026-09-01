@@ -538,7 +538,22 @@ function ActivationsPage() {
     country: (r) => r.country ?? "",
     followup: (r) => r.next_follow_up ?? "",
   });
-  const { pageItems, ...pg } = usePagination(sorted, 25, "activations");
+  const gridHelpers = useMemo(
+    () => ({
+      employeeName: (id?: string | null) => employeeName(id),
+      netBalance: (r: any) => netBalance(r),
+      sourceName: (r: any) => r.daily_lead_entries?.lead_sources?.name ?? "",
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [employeesQ.data, revenueQ.data, withdrawalsQ.data],
+  );
+
+  /** The grid's own column filters narrow the rows before they are paginated. */
+  const visibleRows = useMemo(
+    () => (viewMode === "grid" ? gridFilters.apply(sorted, gridHelpers) : sorted),
+    [viewMode, sorted, gridFilters, gridHelpers],
+  );
+  const { pageItems, ...pg } = usePagination(visibleRows, 25, "activations");
   const navIndex = viewing ? pageItems.findIndex((r) => r.id === viewing.id) : -1;
 
   const totalBalance = rows.reduce(
