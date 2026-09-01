@@ -14,7 +14,7 @@ export type JourneyStage = {
 
 /**
  * Horizontal-on-desktop stage rail showing where a client stands:
- * lead → activation → first deposit → qualified → repeat deposit → contact.
+ * lead → activation (first deposit) → qualified → repeat deposit → contact.
  */
 export function ClientJourney({
   stages,

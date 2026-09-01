@@ -327,7 +327,6 @@ function ClientPage() {
   const journeyStages = useMemo<JourneyStage[]>(() => {
     if (!cur) return [];
     const act = activationDate(cur as any);
-    const first = deposits[0] as any | undefined;
     const stds = stdDepositsFor(cur as any, deposits as any);
     const secondDep = stds[0] as any | undefined;
     const comms = commsQ.data ?? [];
@@ -341,19 +340,15 @@ function ClientPage() {
         done: !!cur.daily_lead_entries?.entry_date,
       },
       {
+        /* The activation opening balance *is* the first deposit (FTD), so the
+         * journey shows one funding milestone instead of two duplicates. */
         key: "activation",
         label: "Activated",
         date: act,
-        detail: opening ? `opening ${fmtMoney(opening)}` : null,
+        detail: opening ? `first deposit ${fmtMoney(opening)}` : null,
         done: !!act,
       },
-      {
-        key: "first-deposit",
-        label: "First deposit",
-        date: first?.date ?? null,
-        detail: first ? fmtMoney(toDisplay(first.amount, first.currency)) : null,
-        done: !!first,
-      },
+
       {
         key: "qualified",
         label: "Qualified FTD",
