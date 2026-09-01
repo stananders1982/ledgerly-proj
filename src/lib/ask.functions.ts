@@ -179,6 +179,9 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
     const revRows = (revenue.data ?? []) as any[];
     const stdRows: { date: string; amount: number; agent: string }[] = [];
     const performanceRevenueRows: { date: string; amount: number; agent: string }[] = [];
+    // Every deposit, split the same way, but keeping the client name and the
+    // agent's team so "split X's month per client" can be answered exactly.
+    const attributedRows: { date: string; amount: number; agent: string; client: string }[] = [];
     const employeeById = new Map((employees.data ?? []).map((employee: any) => [employee.id, employee]));
 
     // Match Employee Performance exactly: revenue is credited to the employees
@@ -187,15 +190,28 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       if (!row.date) continue;
       const amount = Number(row.amount || 0);
       const splitPct = Number(row.split_pct ?? 100);
+      const client = String(row.customer_name || "Unnamed client");
       const primary = employeeById.get(row.employee_id) as any;
       const secondary = employeeById.get(row.employee_id_2) as any;
-      if (primary?.name && String(primary.team ?? "R").toUpperCase() === "R") {
-        performanceRevenueRows.push({ date: String(row.date), amount: amount * (splitPct / 100), agent: primary.name });
+      if (primary?.name) {
+        const share = amount * (splitPct / 100);
+        attributedRows.push({ date: String(row.date), amount: share, agent: primary.name, client });
+        if (String(primary.team ?? "R").toUpperCase() === "R") {
+          performanceRevenueRows.push({ date: String(row.date), amount: share, agent: primary.name });
+        }
       }
-      if (secondary?.name && String(secondary.team ?? "R").toUpperCase() === "R") {
-        performanceRevenueRows.push({ date: String(row.date), amount: amount * ((100 - splitPct) / 100), agent: secondary.name });
+      if (secondary?.name) {
+        const share = amount * ((100 - splitPct) / 100);
+        attributedRows.push({ date: String(row.date), amount: share, agent: secondary.name, client });
+        if (String(secondary.team ?? "R").toUpperCase() === "R") {
+          performanceRevenueRows.push({ date: String(row.date), amount: share, agent: secondary.name });
+        }
+      }
+      if (!primary?.name && !secondary?.name) {
+        attributedRows.push({ date: String(row.date), amount, agent: "unassigned", client });
       }
     }
+
     for (const a of actRows) {
       const agent = agentNameOf(a.employee_id);
       if (!agent) continue;
@@ -570,6 +586,35 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
       clients: clientsRanked.slice(0, CLIENT_LIMIT),
       clientCount: clientRecords.length,
       clientsTruncated: clientRecords.length > CLIENT_LIMIT,
+      // Slim row for EVERY client, so no question needs the truncated rich list.
+      clientDirectory: clientRecords.map((c) => ({
+        n: c.name,
+        c: c.conversionAgent,
+        r: c.retentionAgent,
+        a: c.activationDate,
+        s: c.status,
+        d: c.depositTotal,
+        k: c.depositCount,
+        l: c.lastDeposit,
+        w: c.withdrawalTotal,
+        b: c.balance,
+        t: c.valueTier,
+      })),
+      // Exact per-deposit attribution: "YYYY-MM | agent | client" -> amount,
+      // plus the matching deposit counts. Splits already applied.
+      depositsByMonthAgentAndClient: round(
+        bucket(attributedRows, (r) => `${month(r.date)} | ${r.agent} | ${r.client}`, (r) => r.amount),
+      ),
+      depositCountByMonthAgentAndClient: bucket(
+        attributedRows,
+        (r) => `${month(r.date)} | ${r.agent} | ${r.client}`,
+        () => 1,
+      ),
+      // Same, without the agent dimension: "YYYY-MM | client" -> amount.
+      depositsByMonthAndClient: round(
+        bucket(revRows, (r: any) => (r.date ? `${month(String(r.date))} | ${r.customer_name || "Unnamed client"}` : ""), (r: any) => Number(r.amount || 0)),
+      ),
+
       withdrawalsByClient: round(
         Object.fromEntries(
           [...withdrawalsByClient.entries()].map(([k, v]) => [k.replace(/^name:/, ""), v.total]),
@@ -648,8 +693,18 @@ export const askBusinessQuestion = createServerFn({ method: "POST" })
               "lastWithdrawal, current balance and any stored AI riskScore/riskLabel (0-100, higher = needs attention). " +
               "Use it to answer questions about a named person, to list clients who have not deposited recently, who withdrew the most, " +
               "who is at risk, or to slice clients by age, country, status or agent. Compare dates against snapshot.today. " +
-              "If clientsTruncated is true, say the list covers the top " +
-              "clients by money movement out of clientCount total, and never imply it is exhaustive. " +
+              "snapshot.clientDirectory is the COMPLETE list of every client (one slim row each): n=name, c=conversion agent, " +
+              "r=retention agent, a=activation date, s=status, d=lifetime deposit total, k=deposit count, l=last deposit date, " +
+              "w=withdrawal total, b=balance, t=value tier. snapshot.clients only adds richer context for the top clients — " +
+              "when clientsTruncated is true use clientDirectory for anything that must cover everyone, and NEVER say the data is " +
+              "truncated or incomplete: it is not. " +
+              "PER-CLIENT MONTHLY SPLITS: for 'X's deposits for <month> split per client', or any per-client amount inside a period, " +
+              "use depositsByMonthAgentAndClient — keys are 'YYYY-MM | agent | client' with the exact attributed amount (splits " +
+              "already applied) — and depositCountByMonthAgentAndClient for the number of deposits. depositsByMonthAndClient " +
+              "('YYYY-MM | client') is the same without agent attribution. These are authoritative: sum the matching keys, list every " +
+              "client with a non-zero amount, and never fall back to lifetime depositTotal or lastDeposit for a period question. " +
+              "The per-client amounts for an agent and month always add up to that agent's monthly total. " +
+
               "PERCENTAGES: snapshot.rates already holds every client ratio — use those numbers verbatim and NEVER recount the client " +
               "list. rates.selectedPeriod covers clients activated inside the selected period (deposits counted inside it); " +
               "rates.window covers all clients in the 6-month window with lifetime deposits. Each block has depositRatePct " +
