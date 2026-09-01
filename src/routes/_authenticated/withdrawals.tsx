@@ -140,8 +140,12 @@ function WithdrawalsPage() {
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return inRange;
-    return (wQ.data ?? []).filter((r: any) => (r.customer_name ?? "").toLowerCase().includes(term));
-  }, [inRange, wQ.data, search]);
+    const terms = term.split("|").map((t) => t.trim()).filter(Boolean);
+    return inRange.filter((r: any) => {
+      const name = (r.customer_name ?? "").toLowerCase();
+      return terms.some((t) => name.includes(t));
+    });
+  }, [inRange, search]);
 
   const tb = useTableToolbox<any>(
     "withdrawals",
