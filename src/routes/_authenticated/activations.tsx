@@ -422,10 +422,13 @@ function ActivationsPage() {
       if (healthFilter !== "all" && healthFilter !== "attention" && healthOf(r).band !== healthFilter) return false;
       if (tierFilter === "neglected" && !(neglected(r) && tierOf(r) !== "unrated")) return false;
       if (tierFilter !== "all" && tierFilter !== "neglected" && tierOf(r) !== tierFilter) return false;
+      if (retentionFilter === "unassigned" && r.employee_id) return false;
+      if (retentionFilter !== "all" && retentionFilter !== "unassigned" && r.employee_id !== retentionFilter) return false;
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [answeredFilter, potentialFilter, stdFilter, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch, tierFilter, minPotential, settings, commsQ.data, healthFilter, healthMap],
+    [answeredFilter, potentialFilter, stdFilter, revenueQ.data, dupOnly, dupNames, tagFilter, issue, issueMatch, tierFilter, minPotential, settings, commsQ.data, healthFilter, healthMap, retentionFilter],
+
   );
 
   /** Every client regardless of the selected date range (used by issue deep-links). */
