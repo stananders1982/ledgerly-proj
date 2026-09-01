@@ -101,7 +101,22 @@ function ClientPage() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("list_employees_directory");
       if (error) throw error;
-      return (data ?? []) as { id: string; name: string }[];
+      return (data ?? []) as { id: string; name: string; active?: boolean; team?: string }[];
+    },
+  });
+
+  const retentionAgentsQ = useQuery({
+    queryKey: ["retention-agents", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, name, team, active")
+        .eq("company_id", companyId!)
+        .eq("active", true)
+        .in("team", ["R"]);
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string; team: string; active: boolean }[];
     },
   });
 
