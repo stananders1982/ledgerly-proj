@@ -129,7 +129,7 @@ export function ClientsGrid({
   const allChecked = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
   return (
-    <TableFrame fit="scroll" resizeKey="clients-grid">
+    <TableFrame resizeKey="clients-grid">
       <table className="w-full table-auto text-xs">
         <thead className="table-head bg-muted/40 text-xs uppercase text-muted-foreground">
           <tr>
