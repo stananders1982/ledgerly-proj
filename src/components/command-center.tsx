@@ -83,6 +83,7 @@ export function CommandCenter() {
   const affiliateAlerts = useAffiliateBalanceAlerts();
 
   const today = iso(new Date());
+  const d30 = iso(addDays(new Date(), -30));
   const since = iso(addDays(new Date(), -180));
 
   const q = useQuery({
