@@ -269,7 +269,9 @@ export function CommandCenter() {
       to: "/withdrawals",
       search: {
         search: m.unusualWithdrawals.map((w: any) => w.customer_name).filter(Boolean).join("|"),
-        range: "month",
+        range: "custom",
+        start: d30,
+        end: today,
       } as any,
       cta: "Open withdrawals",
       explain: "Withdrawals in the last 30 days more than 3× the average payout size.",
