@@ -161,20 +161,22 @@ function UsersPage() {
               <TableHead>{th("Name", "name")}</TableHead>
               <TableHead>{th("Email", "email")}</TableHead>
               <TableHead>{th("Role", "role")}</TableHead>
+              <TableHead>Department</TableHead>
               <TableHead>{th("Pages", "pages")}</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {q.isLoading && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>
             )}
             {!q.isLoading && rows.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No users yet.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No users yet.</TableCell></TableRow>
             )}
             {pageItems.map((u) => {
               const adm = u.roles.includes("admin");
               const locked = !!u.is_super_admin && !isSuperAdmin && u.id !== user?.id;
+              const overrides = u.nav_overrides?.length ?? 0;
               return (
                 <TableRow
                   key={u.id}
@@ -189,18 +191,26 @@ function UsersPage() {
                     ) : adm ? (
                       <Badge className="gap-1"><ShieldCheck className="h-3 w-3" /> Admin</Badge>
                     ) : (
-                      <Badge variant="secondary">User</Badge>
+                      <Badge variant="secondary">{roleLabel(u.role_key ?? "agent")}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {u.department ? (
+                      <Badge variant="outline">{DEPT_LABEL[u.department] ?? u.department}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
                     {adm ? (
                       <span className="text-xs text-muted-foreground">All pages</span>
-                    ) : u.nav_keys.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">No access</span>
+                    ) : overrides === 0 ? (
+                      <span className="text-xs text-muted-foreground">Role default</span>
                     ) : (
-                      <span className="text-xs">{u.nav_keys.length} page{u.nav_keys.length === 1 ? "" : "s"}</span>
+                      <span className="text-xs">{overrides} custom</span>
                     )}
                   </TableCell>
+
                   <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
                     {locked ? (
                       <span className="text-xs text-muted-foreground">Managed by platform owner</span>
