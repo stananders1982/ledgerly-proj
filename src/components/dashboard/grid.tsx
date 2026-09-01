@@ -43,7 +43,7 @@ export function DashboardGrid({
     );
   }
 
-  const ResponsiveGridLayout = grid.WidthProvider(grid.Responsive);
+  const ResponsiveGridLayout = grid.Responsive;
 
   return (
     <ResponsiveGridLayout
