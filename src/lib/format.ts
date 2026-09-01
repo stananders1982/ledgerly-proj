@@ -15,6 +15,12 @@ const notifyCurrency = () => currencyListeners.forEach((l) => l());
 /** Set the workspace display currency (called once company settings load). */
 export const setDisplayCurrency = (code: string) => {
   displayCurrency = code || "USD";
+  // The workspace currency is the source of truth: clear any stale per-browser
+  // override so a Settings change is never masked by an old local choice.
+  if (currencyOverride && currencyOverride !== displayCurrency) {
+    currencyOverride = null;
+    try { window.localStorage.removeItem(OVERRIDE_KEY); } catch { /* private mode */ }
+  }
   notifyCurrency();
 };
 
