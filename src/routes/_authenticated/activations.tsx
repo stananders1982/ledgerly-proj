@@ -649,8 +649,9 @@ function ActivationsPage() {
     mutationFn: async (v: { id: string; employee_id: string | null }) => {
       const { error } = await supabase
         .from("daily_lead_activations")
-        .update({ employee_id: v.employee_id })
+        .update({ employee_id: v.employee_id } as any)
         .eq("id", v.id);
+
       if (error) throw error;
     },
     onSuccess: () => {
