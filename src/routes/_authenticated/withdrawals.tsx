@@ -48,7 +48,7 @@ import { usePersistedState } from "@/hooks/use-persisted-state";
 import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/withdrawals")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { search?: string; range?: RangeKey } => ({
     search: typeof search.search === "string" ? search.search : undefined,
     range:
       typeof search.range === "string" && ["today", "week", "month", "quarter", "year", "custom"].includes(search.range)
