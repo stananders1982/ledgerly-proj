@@ -362,6 +362,7 @@ export type Database = {
       }
       api_keys: {
         Row: {
+          affiliate_id: string | null
           company_id: string
           created_at: string
           created_by: string | null
@@ -375,6 +376,7 @@ export type Database = {
           revoked_at: string | null
         }
         Insert: {
+          affiliate_id?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -388,6 +390,7 @@ export type Database = {
           revoked_at?: string | null
         }
         Update: {
+          affiliate_id?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -401,6 +404,20 @@ export type Database = {
           revoked_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "api_keys_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_keys_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "api_keys_company_id_fkey"
             columns: ["company_id"]
@@ -553,6 +570,44 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cadence_rules: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          id: string
+          status: string
+          steps: Json
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          status: string
+          steps?: Json
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          status?: string
+          steps?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cadence_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -891,6 +946,7 @@ export type Database = {
           ai_summary: string | null
           answered: boolean
           balance: number
+          cadence: Json
           city: string | null
           company_id: string
           conversion_employee_id: string | null
@@ -908,6 +964,7 @@ export type Database = {
           kyc: Json
           language: string | null
           last_scored_at: string | null
+          last_touch_at: string | null
           lead_name: string | null
           legacy: boolean
           liquid_funds: number | null
@@ -924,6 +981,7 @@ export type Database = {
           qualified_at: string | null
           source_of_funds: string | null
           status: string | null
+          status_changed_at: string | null
           tags: string[]
           updated_at: string
         }
@@ -942,6 +1000,7 @@ export type Database = {
           ai_summary?: string | null
           answered?: boolean
           balance?: number
+          cadence?: Json
           city?: string | null
           company_id?: string
           conversion_employee_id?: string | null
@@ -959,6 +1018,7 @@ export type Database = {
           kyc?: Json
           language?: string | null
           last_scored_at?: string | null
+          last_touch_at?: string | null
           lead_name?: string | null
           legacy?: boolean
           liquid_funds?: number | null
@@ -975,6 +1035,7 @@ export type Database = {
           qualified_at?: string | null
           source_of_funds?: string | null
           status?: string | null
+          status_changed_at?: string | null
           tags?: string[]
           updated_at?: string
         }
@@ -993,6 +1054,7 @@ export type Database = {
           ai_summary?: string | null
           answered?: boolean
           balance?: number
+          cadence?: Json
           city?: string | null
           company_id?: string
           conversion_employee_id?: string | null
@@ -1010,6 +1072,7 @@ export type Database = {
           kyc?: Json
           language?: string | null
           last_scored_at?: string | null
+          last_touch_at?: string | null
           lead_name?: string | null
           legacy?: boolean
           liquid_funds?: number | null
@@ -1026,6 +1089,7 @@ export type Database = {
           qualified_at?: string | null
           source_of_funds?: string | null
           status?: string | null
+          status_changed_at?: string | null
           tags?: string[]
           updated_at?: string
         }
@@ -1636,6 +1700,53 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "lead_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_templates: {
+        Row: {
+          active: boolean
+          body: string
+          channel: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          body: string
+          channel: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          body?: string
+          channel?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

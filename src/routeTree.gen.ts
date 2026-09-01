@@ -49,9 +49,13 @@ import { Route as AuthenticatedAssistantBusinessRouteImport } from './routes/_au
 import { Route as AuthenticatedAssistantThreadIdRouteImport } from './routes/_authenticated/assistant.$threadId'
 import { Route as AuthenticatedAffiliatesIdRouteImport } from './routes/_authenticated/affiliates.$id'
 import { Route as ApiPublicV1LeadsRouteImport } from './routes/api/public/v1/leads'
+import { Route as ApiPublicV1LeadIntakeRouteImport } from './routes/api/public/v1/lead-intake'
 import { Route as ApiPublicV1DepositsRouteImport } from './routes/api/public/v1/deposits'
 import { Route as ApiPublicV1ActivationsRouteImport } from './routes/api/public/v1/activations'
+import { Route as ApiPublicTwilioTwimlRouteImport } from './routes/api/public/twilio/twiml'
+import { Route as ApiPublicTwilioStatusRouteImport } from './routes/api/public/twilio/status'
 import { Route as ApiPublicV1ReportsSummaryRouteImport } from './routes/api/public/v1/reports/summary'
+import { Route as ApiPublicV1LeadIntakeIdRouteImport } from './routes/api/public/v1/lead-intake.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -264,6 +268,11 @@ const ApiPublicV1LeadsRoute = ApiPublicV1LeadsRouteImport.update({
   path: '/api/public/v1/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicV1LeadIntakeRoute = ApiPublicV1LeadIntakeRouteImport.update({
+  id: '/api/public/v1/lead-intake',
+  path: '/api/public/v1/lead-intake',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicV1DepositsRoute = ApiPublicV1DepositsRouteImport.update({
   id: '/api/public/v1/deposits',
   path: '/api/public/v1/deposits',
@@ -274,12 +283,27 @@ const ApiPublicV1ActivationsRoute = ApiPublicV1ActivationsRouteImport.update({
   path: '/api/public/v1/activations',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTwilioTwimlRoute = ApiPublicTwilioTwimlRouteImport.update({
+  id: '/api/public/twilio/twiml',
+  path: '/api/public/twilio/twiml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTwilioStatusRoute = ApiPublicTwilioStatusRouteImport.update({
+  id: '/api/public/twilio/status',
+  path: '/api/public/twilio/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicV1ReportsSummaryRoute =
   ApiPublicV1ReportsSummaryRouteImport.update({
     id: '/api/public/v1/reports/summary',
     path: '/api/public/v1/reports/summary',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicV1LeadIntakeIdRoute = ApiPublicV1LeadIntakeIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiPublicV1LeadIntakeRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -320,9 +344,13 @@ export interface FileRoutesByFullPath {
   '/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/employees/': typeof AuthenticatedEmployeesIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
+  '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
+  '/api/public/twilio/twiml': typeof ApiPublicTwilioTwimlRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
+  '/api/public/v1/lead-intake': typeof ApiPublicV1LeadIntakeRouteWithChildren
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
+  '/api/public/v1/lead-intake/$id': typeof ApiPublicV1LeadIntakeIdRoute
   '/api/public/v1/reports/summary': typeof ApiPublicV1ReportsSummaryRoute
 }
 export interface FileRoutesByTo {
@@ -364,9 +392,13 @@ export interface FileRoutesByTo {
   '/assistant': typeof AuthenticatedAssistantIndexRoute
   '/employees': typeof AuthenticatedEmployeesIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
+  '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
+  '/api/public/twilio/twiml': typeof ApiPublicTwilioTwimlRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
+  '/api/public/v1/lead-intake': typeof ApiPublicV1LeadIntakeRouteWithChildren
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
+  '/api/public/v1/lead-intake/$id': typeof ApiPublicV1LeadIntakeIdRoute
   '/api/public/v1/reports/summary': typeof ApiPublicV1ReportsSummaryRoute
 }
 export interface FileRoutesById {
@@ -410,9 +442,13 @@ export interface FileRoutesById {
   '/_authenticated/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/_authenticated/employees/': typeof AuthenticatedEmployeesIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
+  '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
+  '/api/public/twilio/twiml': typeof ApiPublicTwilioTwimlRoute
   '/api/public/v1/activations': typeof ApiPublicV1ActivationsRoute
   '/api/public/v1/deposits': typeof ApiPublicV1DepositsRoute
+  '/api/public/v1/lead-intake': typeof ApiPublicV1LeadIntakeRouteWithChildren
   '/api/public/v1/leads': typeof ApiPublicV1LeadsRoute
+  '/api/public/v1/lead-intake/$id': typeof ApiPublicV1LeadIntakeIdRoute
   '/api/public/v1/reports/summary': typeof ApiPublicV1ReportsSummaryRoute
 }
 export interface FileRouteTypes {
@@ -456,9 +492,13 @@ export interface FileRouteTypes {
     | '/assistant/'
     | '/employees/'
     | '/users/'
+    | '/api/public/twilio/status'
+    | '/api/public/twilio/twiml'
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
+    | '/api/public/v1/lead-intake'
     | '/api/public/v1/leads'
+    | '/api/public/v1/lead-intake/$id'
     | '/api/public/v1/reports/summary'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -500,9 +540,13 @@ export interface FileRouteTypes {
     | '/assistant'
     | '/employees'
     | '/users'
+    | '/api/public/twilio/status'
+    | '/api/public/twilio/twiml'
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
+    | '/api/public/v1/lead-intake'
     | '/api/public/v1/leads'
+    | '/api/public/v1/lead-intake/$id'
     | '/api/public/v1/reports/summary'
   id:
     | '__root__'
@@ -545,9 +589,13 @@ export interface FileRouteTypes {
     | '/_authenticated/assistant/'
     | '/_authenticated/employees/'
     | '/_authenticated/users/'
+    | '/api/public/twilio/status'
+    | '/api/public/twilio/twiml'
     | '/api/public/v1/activations'
     | '/api/public/v1/deposits'
+    | '/api/public/v1/lead-intake'
     | '/api/public/v1/leads'
+    | '/api/public/v1/lead-intake/$id'
     | '/api/public/v1/reports/summary'
   fileRoutesById: FileRoutesById
 }
@@ -557,8 +605,11 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiAdminChatRoute: typeof ApiAdminChatRoute
   ApiBusinessChatRoute: typeof ApiBusinessChatRoute
+  ApiPublicTwilioStatusRoute: typeof ApiPublicTwilioStatusRoute
+  ApiPublicTwilioTwimlRoute: typeof ApiPublicTwilioTwimlRoute
   ApiPublicV1ActivationsRoute: typeof ApiPublicV1ActivationsRoute
   ApiPublicV1DepositsRoute: typeof ApiPublicV1DepositsRoute
+  ApiPublicV1LeadIntakeRoute: typeof ApiPublicV1LeadIntakeRouteWithChildren
   ApiPublicV1LeadsRoute: typeof ApiPublicV1LeadsRoute
   ApiPublicV1ReportsSummaryRoute: typeof ApiPublicV1ReportsSummaryRoute
 }
@@ -845,6 +896,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1LeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/lead-intake': {
+      id: '/api/public/v1/lead-intake'
+      path: '/api/public/v1/lead-intake'
+      fullPath: '/api/public/v1/lead-intake'
+      preLoaderRoute: typeof ApiPublicV1LeadIntakeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/deposits': {
       id: '/api/public/v1/deposits'
       path: '/api/public/v1/deposits'
@@ -859,12 +917,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1ActivationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/twilio/twiml': {
+      id: '/api/public/twilio/twiml'
+      path: '/api/public/twilio/twiml'
+      fullPath: '/api/public/twilio/twiml'
+      preLoaderRoute: typeof ApiPublicTwilioTwimlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/twilio/status': {
+      id: '/api/public/twilio/status'
+      path: '/api/public/twilio/status'
+      fullPath: '/api/public/twilio/status'
+      preLoaderRoute: typeof ApiPublicTwilioStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/reports/summary': {
       id: '/api/public/v1/reports/summary'
       path: '/api/public/v1/reports/summary'
       fullPath: '/api/public/v1/reports/summary'
       preLoaderRoute: typeof ApiPublicV1ReportsSummaryRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/lead-intake/$id': {
+      id: '/api/public/v1/lead-intake/$id'
+      path: '/$id'
+      fullPath: '/api/public/v1/lead-intake/$id'
+      preLoaderRoute: typeof ApiPublicV1LeadIntakeIdRouteImport
+      parentRoute: typeof ApiPublicV1LeadIntakeRoute
     }
   }
 }
@@ -946,14 +1025,30 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface ApiPublicV1LeadIntakeRouteChildren {
+  ApiPublicV1LeadIntakeIdRoute: typeof ApiPublicV1LeadIntakeIdRoute
+}
+
+const ApiPublicV1LeadIntakeRouteChildren: ApiPublicV1LeadIntakeRouteChildren = {
+  ApiPublicV1LeadIntakeIdRoute: ApiPublicV1LeadIntakeIdRoute,
+}
+
+const ApiPublicV1LeadIntakeRouteWithChildren =
+  ApiPublicV1LeadIntakeRoute._addFileChildren(
+    ApiPublicV1LeadIntakeRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiAdminChatRoute: ApiAdminChatRoute,
   ApiBusinessChatRoute: ApiBusinessChatRoute,
+  ApiPublicTwilioStatusRoute: ApiPublicTwilioStatusRoute,
+  ApiPublicTwilioTwimlRoute: ApiPublicTwilioTwimlRoute,
   ApiPublicV1ActivationsRoute: ApiPublicV1ActivationsRoute,
   ApiPublicV1DepositsRoute: ApiPublicV1DepositsRoute,
+  ApiPublicV1LeadIntakeRoute: ApiPublicV1LeadIntakeRouteWithChildren,
   ApiPublicV1LeadsRoute: ApiPublicV1LeadsRoute,
   ApiPublicV1ReportsSummaryRoute: ApiPublicV1ReportsSummaryRoute,
 }

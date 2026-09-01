@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const API_PERMISSIONS = [
   { key: "read_leads", label: "Read leads & clients" },
@@ -39,7 +40,9 @@ type ApiKeyRow = {
   last_used_at: string | null;
   expires_at: string | null;
   revoked_at: string | null;
+  affiliate_id: string | null;
 };
+
 
 async function sha256Hex(value: string) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
