@@ -173,6 +173,7 @@ export function ApiKeysAdmin() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Affiliate</TableHead>
               <TableHead>Permissions</TableHead>
               <TableHead>Last used</TableHead>
               <TableHead>Expires</TableHead>
@@ -182,7 +183,7 @@ export function ApiKeysAdmin() {
           <TableBody>
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
                   {keysQ.isLoading ? "Loading…" : "No API keys yet."}
                 </TableCell>
               </TableRow>
@@ -195,6 +196,14 @@ export function ApiKeysAdmin() {
                     <div className="font-medium">{k.name}</div>
                     <div className="font-mono text-xs text-muted-foreground">{k.key_prefix}…</div>
                   </TableCell>
+                  <TableCell className="text-sm">
+                    {k.affiliate_id ? (
+                      <Badge variant="outline">{affiliateName(k.affiliate_id) ?? "Affiliate"}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">Internal</span>
+                    )}
+                  </TableCell>
+
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {k.permissions.map((p) => (
