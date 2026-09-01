@@ -123,7 +123,11 @@ function UsersPage() {
     onError: (e: any) => toast.error(e.message ?? "Delete failed"),
   });
 
+  const { roles: roleOptions } = useRoles();
+  const roleLabel = (key: string) => roleOptions.find((r) => r.key === key)?.label ?? key;
+
   if (permsLoaded && !isAdmin) return <Navigate to="/" />;
+
 
   const rows = (q.data ?? []) as AppUser[];
   const { sorted, sort, toggle } = useSort<AppUser>(rows, {
