@@ -48,12 +48,14 @@ import { usePersistedState } from "@/hooks/use-persisted-state";
 import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/withdrawals")({
-  validateSearch: (search: Record<string, unknown>): { search?: string; range?: RangeKey } => ({
+  validateSearch: (search: Record<string, unknown>): { search?: string; range?: RangeKey; start?: string; end?: string } => ({
     search: typeof search.search === "string" ? search.search : undefined,
     range:
       typeof search.range === "string" && ["today", "week", "month", "quarter", "year", "custom"].includes(search.range)
         ? (search.range as RangeKey)
         : undefined,
+    start: typeof search.start === "string" ? search.start : undefined,
+    end: typeof search.end === "string" ? search.end : undefined,
   }),
   head: () => ({ meta: [{ title: "Withdrawals — Ledgerly" }] }),
   component: WithdrawalsPage,
