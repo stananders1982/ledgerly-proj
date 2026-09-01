@@ -25,6 +25,8 @@ import {
 import { TIER_LABEL, isNeglected, potentialValue, valueTier } from "@/lib/whales";
 import { clientHealth } from "@/lib/client-health";
 import { ClientHealthCard, HealthBadge } from "@/components/client-health";
+import { nextBestAction } from "@/lib/next-best-action";
+import { NextBestActionCard } from "@/components/next-best-action";
 import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
@@ -245,6 +247,26 @@ function ClientPage() {
     [deposits, withdrawals, commsQ.data, cur, balance],
   );
 
+  // Next best action: one concrete instruction derived from their own rhythm.
+  const nba = useMemo(
+    () => nextBestAction({
+      name: cur?.lead_name,
+      deposits: deposits.map((d: any) => ({ date: d.date, amount: toDisplay(d.amount, d.currency) })),
+      withdrawals: (withdrawals as any[]).map((w) => ({ date: w.date, amount: toDisplay(w.amount, w.currency) })),
+      contactDates: (commsQ.data ?? []).map((c: any) => c.occurred_at),
+      kyc: (cur as any)?.kyc,
+      potentialValue: cur?.potential_value,
+      activationDate: cur ? activationDate(cur as any) : null,
+      nextFollowUp: cur?.next_follow_up ?? null,
+      answered: cur?.answered ?? null,
+      phone: cur?.phone ?? null,
+      email: cur?.email ?? null,
+      preferredContactTime: cur?.preferred_contact_time ?? null,
+      money: fmtMoney,
+    }),
+    [deposits, withdrawals, commsQ.data, cur],
+  );
+
   const transactions = useMemo(() => {
     const rows = [
       ...deposits.map((d: any) => ({
@@ -447,6 +469,18 @@ function ClientPage() {
 
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
+          <section className="card-surface p-5">
+            <NextBestActionCard
+              action={nba}
+              activationId={cur.id}
+              clientName={cur.lead_name}
+              phone={cur.phone}
+              email={cur.email}
+              currentFollowUp={cur.next_follow_up}
+              onFollowUp={(date) => save.mutate({ next_follow_up: date })}
+            />
+          </section>
+
           <section className="card-surface p-5">
             <ClientJourney stages={journeyStages} nextSteps={journeyNextSteps} />
           </section>
