@@ -247,14 +247,25 @@ async function assertSameCompany(supabaseAdmin: any, companyId: string, userId: 
 
 export const updateUserPermissions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { user_id: string; is_admin: boolean; nav_keys: string[] }) =>
-    z
-      .object({
-        user_id: z.string().uuid(),
-        is_admin: z.boolean(),
-        nav_keys: z.array(z.string().min(1).max(50)).max(50),
-      })
-      .parse(data),
+  .inputValidator(
+    (data: {
+      user_id: string;
+      is_admin: boolean;
+      role_key: string;
+      department: string | null;
+      nav_keys: string[];
+      manageable_keys: string[];
+    }) =>
+      z
+        .object({
+          user_id: z.string().uuid(),
+          is_admin: z.boolean(),
+          role_key: z.string().trim().min(1).max(60),
+          department: z.enum(DEPARTMENTS).nullable(),
+          nav_keys: z.array(z.string().min(1).max(50)).max(80),
+          manageable_keys: z.array(z.string().min(1).max(50)).max(80),
+        })
+        .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
@@ -269,14 +280,39 @@ export const updateUserPermissions = createServerFn({ method: "POST" })
       await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id).eq("role", "admin");
     }
 
-    await supabaseAdmin.from("nav_permissions").delete().eq("user_id", data.user_id).eq("company_id", companyId);
-    if (data.nav_keys.length) {
+    const roleKey = data.is_admin ? "admin" : data.role_key;
+    await supabaseAdmin
+      .from("company_users")
+      .update({ role_key: roleKey })
+      .eq("user_id", data.user_id)
+      .eq("company_id", companyId);
+
+    if (data.is_admin) {
+      await supabaseAdmin.from("nav_permissions").delete().eq("user_id", data.user_id).eq("company_id", companyId);
       await supabaseAdmin
-        .from("nav_permissions")
-        .insert(data.nav_keys.map((k) => ({ user_id: data.user_id, nav_key: k, company_id: companyId })));
+        .from("user_permission_overrides")
+        .delete()
+        .eq("user_id", data.user_id)
+        .eq("company_id", companyId)
+        .not("nav_key", "is", null);
+    } else {
+      await syncNavOverrides(supabaseAdmin, companyId, data.user_id, roleKey, data.manageable_keys, data.nav_keys);
+    }
+
+    const { data: target } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
+    if (target?.user?.email) {
+      if (data.department) {
+        await syncEmployeeDepartment(supabaseAdmin, companyId, {
+          userId: data.user_id,
+          email: target.user.email,
+          fullName: (target.user.user_metadata as any)?.full_name ?? target.user.email,
+          department: data.department,
+        });
+      }
     }
     return { ok: true };
   });
+
 
 
 export const resetUserPassword = createServerFn({ method: "POST" })
