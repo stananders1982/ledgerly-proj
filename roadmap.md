@@ -10,3 +10,7 @@
 - [x] Scenario modelling: /scenarios page with funnel levers (lead volume, CPL, activation rate, FTD rate, avg FTD, fixed costs, payouts), presets and current-vs-scenario comparison.
 - [x] Scenarios page: on-page guide explaining what the tool does and how to use it.
 - Done: Next Best Action card on client profile (recommendation, evidence, conversation angle, call/WhatsApp/email/task/note/follow-up actions)
+
+## Clients page (activations)
+- [ ] Retention agents see only clients allocated to them
+- [ ] Replace cramped/overlapping table with a comfortable list view (default) with details + actions
