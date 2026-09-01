@@ -63,7 +63,7 @@ type Client = {
   legacy: boolean | null;
   notes: string | null;
   tags: string[] | null;
-  daily_lead_entries?: { entry_date: string; lead_sources?: { name: string } | null } | null;
+  daily_lead_entries?: { entry_date: string; created_at?: string | null; lead_sources?: { name: string } | null } | null;
 } & ClientProfile;
 
 const matchName = (a?: string | null, b?: string | null) =>
@@ -80,7 +80,7 @@ function ClientPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_lead_activations")
-        .select("*, daily_lead_entries(entry_date, cost, activated, lead_sources(name))")
+        .select("*, daily_lead_entries(entry_date, created_at, cost, activated, lead_sources(name))")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
