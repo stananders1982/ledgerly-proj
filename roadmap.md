@@ -12,5 +12,5 @@
 - Done: Next Best Action card on client profile (recommendation, evidence, conversation angle, call/WhatsApp/email/task/note/follow-up actions)
 
 ## Clients page (activations)
-- [ ] Retention agents see only clients allocated to them
-- [ ] Replace cramped/overlapping table with a comfortable list view (default) with details + actions
+- [x] Retention agents see only clients allocated to them
+- [x] Replace cramped/overlapping table with a comfortable list view (default) with details + actions
