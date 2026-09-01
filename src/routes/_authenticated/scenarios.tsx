@@ -230,12 +230,12 @@ function LeverSlider({
 }
 
 function ComparisonTable({ current, scenario }: { current: ScenarioResult; scenario: ScenarioResult }) {
-  const rows: { label: string; a: string; b: string; delta?: number; invert?: boolean }[] = [
+  const rows: { label: string; a: string; b: string; delta?: number; invert?: boolean; fmt?: (d: number) => string }[] = [
     { label: "Leads", a: num(current.leads), b: num(scenario.leads), delta: scenario.leads - current.leads },
     { label: "Cost per lead", a: money(current.cpl), b: money(scenario.cpl), delta: scenario.cpl - current.cpl, invert: true },
-    { label: "Activation rate", a: rate(current.activationRate), b: rate(scenario.activationRate), delta: scenario.activationRate - current.activationRate },
+    { label: "Activation rate", a: rate(current.activationRate), b: rate(scenario.activationRate), delta: scenario.activationRate - current.activationRate, fmt: (d) => `${(d * 100).toFixed(1)}pp` },
     { label: "Activations", a: num(current.activations), b: num(scenario.activations), delta: scenario.activations - current.activations },
-    { label: "FTD rate", a: rate(current.ftdRate), b: rate(scenario.ftdRate), delta: scenario.ftdRate - current.ftdRate },
+    { label: "FTD rate", a: rate(current.ftdRate), b: rate(scenario.ftdRate), delta: scenario.ftdRate - current.ftdRate, fmt: (d) => `${(d * 100).toFixed(1)}pp` },
     { label: "FTDs", a: num(current.ftds), b: num(scenario.ftds), delta: scenario.ftds - current.ftds },
     { label: "Average FTD", a: money(current.avgFtd), b: money(scenario.avgFtd), delta: scenario.avgFtd - current.avgFtd },
     { label: "Revenue", a: money(current.revenue), b: money(scenario.revenue), delta: scenario.revenue - current.revenue },
@@ -245,7 +245,7 @@ function ComparisonTable({ current, scenario }: { current: ScenarioResult; scena
     { label: "Profit", a: money(current.profit), b: money(scenario.profit), delta: scenario.profit - current.profit },
     { label: "Profit per lead", a: money(current.profitPerLead), b: money(scenario.profitPerLead), delta: scenario.profitPerLead - current.profitPerLead },
     { label: "Cost per FTD", a: money(current.cpa), b: money(scenario.cpa), delta: scenario.cpa - current.cpa, invert: true },
-    { label: "ROAS", a: `${current.roas.toFixed(2)}×`, b: `${scenario.roas.toFixed(2)}×`, delta: scenario.roas - current.roas },
+    { label: "ROAS", a: `${current.roas.toFixed(2)}×`, b: `${scenario.roas.toFixed(2)}×`, delta: scenario.roas - current.roas, fmt: (d) => `${d.toFixed(2)}×` },
   ];
 
   return (
@@ -283,9 +283,10 @@ function ComparisonTable({ current, scenario }: { current: ScenarioResult; scena
   );
 }
 
-function pctChange(r: { a: string; b: string; delta?: number }) {
+function pctChange(r: { delta?: number; fmt?: (d: number) => string }) {
   const d = r.delta ?? 0;
-  return `${d > 0 ? "+" : "−"}${Math.abs(d) >= 1 ? Math.round(Math.abs(d)).toLocaleString("en-US") : Math.abs(d).toFixed(3)}`;
+  if (r.fmt) return `${d > 0 ? "+" : ""}${r.fmt(d)}`;
+  return `${d > 0 ? "+" : "−"}${Math.abs(d) >= 1 ? Math.round(Math.abs(d)).toLocaleString("en-US") : Math.abs(d).toFixed(2)}`;
 }
 
 function DeltaCard({
