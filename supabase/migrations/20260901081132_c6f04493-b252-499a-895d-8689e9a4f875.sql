@@ -1,0 +1,1 @@
+CREATE POLICY "read own employee row" ON public.employees FOR SELECT TO authenticated USING (profile_id = auth.uid() AND company_id = app_private.current_company_id());
