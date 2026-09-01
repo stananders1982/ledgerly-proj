@@ -176,7 +176,7 @@ export function Client360Timeline({
     const stds = stdDepositsFor(client as any, deposits as any);
     stds.forEach((s: any, i) => {
       out.push({
-        id: `std-${s.id ?? i}`, at: String(s.date), category: "system", icon: Sparkles,
+        id: `std-${s.id ?? i}`, at: String(s.created_at ?? s.date), category: "system", icon: Sparkles,
         tone: "text-emerald-500", title: `Repeat deposit (STD${stds.length > 1 ? ` #${i + 1}` : ""})`,
         amount: toDisplay(s.amount, s.currency),
       });
@@ -236,7 +236,7 @@ export function Client360Timeline({
 
     return out
       .filter((e) => !!e.at)
-      .sort((a, b) => String(b.at).localeCompare(String(a.at)));
+      .sort((a, b) => ts(b.at) - ts(a.at) || a.id.localeCompare(b.id));
   }, [client, deposits, withdrawals, comms, tasksQ.data, commentsQ.data, employeeName]);
 
   const counts = useMemo(() => {
