@@ -1,7 +1,7 @@
 # Ledgerly Roadmap
 
-## In progress
-- [ ] Command Center → Withdrawals: make "Open withdrawals" open the withdrawals page filtered to the exception clients and the correct date window.
+## Done
+- [x] Command Center → Withdrawals: make "Open withdrawals" open the withdrawals page filtered to the exception clients and the correct date window.
 
 ## Next
 - [ ] Unified event model (Entities + Events + State + Automation) to power timeline, audit, analytics, automation, and forecasting.
