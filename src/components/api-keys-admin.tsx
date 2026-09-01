@@ -118,7 +118,7 @@ export function ApiKeysAdmin() {
     onSuccess: (raw) => {
       setCreating(false);
       setNewKey(raw);
-      setForm({ name: "", permissions: ["read_leads"], expires_at: "" });
+      setForm({ name: "", permissions: ["read_leads"], expires_at: "", affiliate_id: "none" });
       qc.invalidateQueries({ queryKey: ["api-keys", companyId] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not create key"),
