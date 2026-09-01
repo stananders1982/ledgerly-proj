@@ -31,6 +31,7 @@ import { NextBestActionCard } from "@/components/next-best-action";
 import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
 import { AiClientPaste } from "@/components/ai-client-paste";
+import { ContactActions } from "@/components/contact-actions";
 
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
 import { toDisplay, fromWorkspace } from "@/lib/fx";
@@ -447,6 +448,7 @@ function ClientPage() {
               {analyse.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1.5 h-4 w-4" />}
               Analyse this client
             </Button>
+            <ContactActions phone={cur.phone} email={cur.email} name={cur.lead_name} />
           </div>
         }
       />
