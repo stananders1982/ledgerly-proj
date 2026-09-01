@@ -6,4 +6,4 @@
 - [x] Customizable dashboards: drag/drop/resize widgets, named saved layouts, CEO/Finance/Sales Manager templates at /dashboards.
 
 ## Next
-- [ ] Client 360 timeline: richer lead-to-lifecycle view with financial, communications, tasks, KYC, employee actions, and system event filters.
+- [x] Client 360 timeline: richer lead-to-lifecycle view with financial, communications, tasks, KYC, employee actions, and system event filters.
