@@ -333,13 +333,13 @@ export async function projectCashflow(ctx: BusinessContext, days = 90) {
   const until = future.toISOString().slice(0, 10);
 
   const [{ data: recurringRevenue }, { data: recurringExpenses }, { data: employees }] = await Promise.all([
-    ctx.supabase.from("recurring_revenue").select("next_due_date,amount,currency,frequency").eq("active", true).lte("next_due_date", until),
-    ctx.supabase.from("recurring_expenses").select("next_due_date,amount,currency,frequency").eq("active", true).lte("next_due_date", until),
+    ctx.supabase.from("recurring_revenue").select("next_due_date,amount,frequency").eq("active", true).lte("next_due_date", until),
+    ctx.supabase.from("recurring_expenses").select("next_due_date,amount,frequency").eq("active", true).lte("next_due_date", until),
     ctx.supabase.from("employees").select("salary"),
   ]);
 
-  const revenueSum = (recurringRevenue ?? []).reduce((s, r) => s + convert(Number(r.amount || 0), r.currency), 0);
-  const expenseSum = (recurringExpenses ?? []).reduce((s, e) => s + convert(Number(e.amount || 0), e.currency), 0);
+  const revenueSum = ((recurringRevenue ?? []) as any[]).reduce((s, r) => s + convert(Number(r.amount || 0), null), 0);
+  const expenseSum = ((recurringExpenses ?? []) as any[]).reduce((s, e) => s + convert(Number(e.amount || 0), null), 0);
   const monthlyPayroll = (employees ?? []).reduce((s, e) => s + Number(e.salary || 0), 0);
   const months = days / 30;
 
