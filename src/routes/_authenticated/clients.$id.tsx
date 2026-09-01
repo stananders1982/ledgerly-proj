@@ -692,7 +692,7 @@ function ClientPage() {
           </section>
 
           <section className="card-surface p-5">
-            <CommentThread entityType="client" entityId={cur.id} />
+            <CommentThread entityType="client" entityId={cur.id} title="Notes & comments" />
           </section>
         </div>
 
