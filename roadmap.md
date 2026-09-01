@@ -14,3 +14,7 @@
 ## Clients page (activations)
 - [x] Retention agents see only clients allocated to them
 - [x] Replace cramped/overlapping table with a comfortable list view (default) with details + actions
+
+## Ask your data
+- [x] Client notes become individually saved comments (no single free-text box)
+- [x] Per-client, per-month deposit splits + full client directory in the AI snapshot so answers match real data and are never "truncated"
