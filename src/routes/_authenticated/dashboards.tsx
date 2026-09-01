@@ -225,8 +225,8 @@ function DashboardsPage() {
     saveMutation.mutate(
       { name: `${selected.name} copy`, config: dashboardRow.config as DashboardConfig },
       {
-        onSuccess: (id) => {
-          setSelectedId(id);
+        onSuccess: (row) => {
+          setSelectedId(row.id);
           toast.success("Dashboard duplicated");
         },
       },
