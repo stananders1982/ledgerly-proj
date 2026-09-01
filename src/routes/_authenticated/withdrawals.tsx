@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { fetchAll } from "@/lib/fetch-all";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Banknote, ChevronsUpDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -48,6 +48,15 @@ import { usePersistedState } from "@/hooks/use-persisted-state";
 import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/withdrawals")({
+  validateSearch: (search: Record<string, unknown>): { search?: string; range?: RangeKey; start?: string; end?: string } => ({
+    search: typeof search.search === "string" ? search.search : undefined,
+    range:
+      typeof search.range === "string" && ["today", "week", "month", "quarter", "year", "custom"].includes(search.range)
+        ? (search.range as RangeKey)
+        : undefined,
+    start: typeof search.start === "string" ? search.start : undefined,
+    end: typeof search.end === "string" ? search.end : undefined,
+  }),
   head: () => ({ meta: [{ title: "Withdrawals — Ledgerly" }] }),
   component: WithdrawalsPage,
 });
@@ -59,11 +68,18 @@ function WithdrawalsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   useQuickCreate("withdrawals", () => setOpen(true));
-  const [search, setSearch] = useState("");
+  const urlSearch = useSearch({ from: "/_authenticated/withdrawals" });
+  const [search, setSearch] = useState(urlSearch.search ?? "");
   const [editing, setEditing] = useState<any | null>(null);
-  const [range, setRange] = usePersistedState<RangeKey>("withdrawals:range", "month");
-  const [customStart, setCustomStart] = usePersistedState<string>("withdrawals:range-start", "");
-  const [customEnd, setCustomEnd] = usePersistedState<string>("withdrawals:range-end", "");
+  const [range, setRange] = usePersistedState<RangeKey>("withdrawals:range", urlSearch.range ?? "month");
+  const [customStart, setCustomStart] = usePersistedState<string>("withdrawals:range-start", urlSearch.start ?? "");
+  const [customEnd, setCustomEnd] = usePersistedState<string>("withdrawals:range-end", urlSearch.end ?? "");
+  useEffect(() => {
+    if (urlSearch.search != null) setSearch(urlSearch.search);
+    if (urlSearch.range) setRange(urlSearch.range);
+    if (urlSearch.start != null) setCustomStart(urlSearch.start);
+    if (urlSearch.end != null) setCustomEnd(urlSearch.end);
+  }, [urlSearch.search, urlSearch.range, urlSearch.start, urlSearch.end]);
   const activeRange = useMemo(
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
@@ -128,8 +144,12 @@ function WithdrawalsPage() {
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return inRange;
-    return (wQ.data ?? []).filter((r: any) => (r.customer_name ?? "").toLowerCase().includes(term));
-  }, [inRange, wQ.data, search]);
+    const terms = term.split("|").map((t) => t.trim()).filter(Boolean);
+    return inRange.filter((r: any) => {
+      const name = (r.customer_name ?? "").toLowerCase();
+      return terms.some((t) => name.includes(t));
+    });
+  }, [inRange, search]);
 
   const tb = useTableToolbox<any>(
     "withdrawals",
