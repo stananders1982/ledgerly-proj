@@ -1177,7 +1177,21 @@ function ActivationsPage() {
             >
               <Table2 className="h-3.5 w-3.5" /> Table
             </Button>
+            <Button
+              size="sm"
+              variant={viewMode === "grid" ? "secondary" : "ghost"}
+              className="h-7 gap-1.5 px-2 text-xs"
+              onClick={() => setViewMode("grid")}
+              title="Operator grid — filter under every column, edit in the row"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Grid
+            </Button>
           </div>
+          {viewMode === "grid" && (
+            <span className="text-xs text-muted-foreground">
+              {visibleRows.length} of {rows.length} clients
+            </span>
+          )}
           {viewMode === "table" && (
             <>
               <FitToggle tb={tb} />
@@ -1188,7 +1202,34 @@ function ActivationsPage() {
         </div>
       </div>
 
-      {viewMode === "list" ? (
+      {viewMode === "grid" ? (
+        q.isLoading ? (
+          <TableSkeleton cols={9} />
+        ) : rows.length === 0 ? (
+          <EmptyState icon={CheckCircle2} title="No clients" description="Activated leads logged on the Leads page appear here." />
+        ) : (
+          <ClientsGrid
+            rows={pageItems}
+            employees={employeesQ.data ?? []}
+            scoped={scoped}
+            selected={selected}
+            onToggleSelected={toggleSelected}
+            onTogglePage={(checked) =>
+              setSelected((prev) => {
+                const next = new Set(prev);
+                pageItems.forEach((r: any) => (checked ? next.add(r.id) : next.delete(r.id)));
+                return next;
+              })
+            }
+            filters={gridFilters}
+            helpers={gridHelpers}
+            onOpen={(r) => setViewing(r)}
+            onEdit={(r) => setEditing(r)}
+            onDelete={(id) => bulkDelete.mutate([id])}
+            onPatch={(id, patch) => patchClient.mutate({ id, patch })}
+          />
+        )
+      ) : viewMode === "list" ? (
         q.isLoading ? (
           <TableSkeleton cols={4} />
         ) : rows.length === 0 ? (
