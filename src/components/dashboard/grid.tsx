@@ -43,7 +43,7 @@ export function DashboardGrid({
     );
   }
 
-  const ResponsiveGridLayout = grid.Responsive;
+  const ResponsiveGridLayout = grid.WidthProvider(grid.Responsive);
 
   return (
     <ResponsiveGridLayout
@@ -52,7 +52,6 @@ export function DashboardGrid({
       breakpoints={{ lg: 0 }}
       cols={{ lg: 12 }}
       rowHeight={64}
-      width={1200}
       dragConfig={{ handle: ".drag-handle" }}
       onLayoutChange={(layout: Layout) => {
         onChange?.(layout.map((l: LayoutItem) => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
