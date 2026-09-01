@@ -4,16 +4,22 @@ import {
   HEALTH_BAND_DOT, HEALTH_BAND_LABEL, HEALTH_BAND_TONE, type ClientHealth,
 } from "@/lib/client-health";
 
-/** Compact pill for tables and headers. */
-export function HealthBadge({ health, showScore = true }: { health: ClientHealth; showScore?: boolean }) {
+/** Compact pill for tables and headers. `prefix` names the dimension. */
+export function HealthBadge({ health, showScore = true, prefix }: { health: ClientHealth; showScore?: boolean; prefix?: string }) {
   return (
-    <Badge variant="outline" className={`gap-1 whitespace-nowrap ${HEALTH_BAND_TONE[health.band]}`}>
+    <Badge
+      variant="outline"
+      className={`gap-1 whitespace-nowrap ${HEALTH_BAND_TONE[health.band]}`}
+      title={`Health score ${health.score}/100 — ${HEALTH_BAND_LABEL[health.band]}`}
+    >
       <span aria-hidden>{HEALTH_BAND_DOT[health.band]}</span>
+      {prefix ? <span className="font-normal opacity-70">{prefix}</span> : null}
       {showScore ? `${health.score}` : null}
       <span className="font-normal">{HEALTH_BAND_LABEL[health.band]}</span>
     </Badge>
   );
 }
+
 
 /** Full breakdown: the score, the band and every factor that moved it. */
 export function ClientHealthCard({ health }: { health: ClientHealth }) {

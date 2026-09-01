@@ -18,21 +18,23 @@ import {
 
 const NONE = "_none";
 
-export function StatusBadge({ status, className }: { status?: string | null; className?: string }) {
+export function StatusBadge({ status, className, prefix }: { status?: string | null; className?: string; prefix?: string }) {
   if (!status) return <span className="text-muted-foreground">—</span>;
   return (
-    <Badge variant="outline" className={cn("capitalize", STATUS_TONE[status] ?? "", className)}>
+    <Badge variant="outline" className={cn("capitalize", STATUS_TONE[status] ?? "", className)} title="Where the client sits in the sales pipeline">
+      {prefix ? <span className="font-normal normal-case opacity-70">{prefix} </span> : null}
       {status}
     </Badge>
   );
 }
 
 export function RiskBadge({
-  score, label, className,
-}: { score?: number | null; label?: string | null; className?: string }) {
+  score, label, className, prefix,
+}: { score?: number | null; label?: string | null; className?: string; prefix?: string }) {
   if (score == null && !label) return <span className="text-muted-foreground">—</span>;
   return (
-    <Badge variant="outline" className={cn("capitalize", riskTone(score), className)}>
+    <Badge variant="outline" className={cn("capitalize", riskTone(score), className)} title="AI churn-risk read (0–100)">
+      {prefix ? <span className="font-normal normal-case opacity-70">{prefix} </span> : null}
       {score != null ? `${score}` : ""}{score != null && label ? " · " : ""}{label ?? ""}
     </Badge>
   );
@@ -170,16 +172,17 @@ export function WhaleBadge({
 
 /** The value band a client's potential value falls into. */
 export function TierBadge({
-  value, thresholds, className, showUnrated = false,
-}: { value?: number | null; thresholds: TierThresholds; className?: string; showUnrated?: boolean }) {
+  value, thresholds, className, showUnrated = false, prefix,
+}: { value?: number | null; thresholds: TierThresholds; className?: string; showUnrated?: boolean; prefix?: string }) {
   const tier = valueTier(value, thresholds);
   if (tier === "unrated" && !showUnrated) return null;
   return (
     <Badge
       variant="outline"
       className={cn(TIER_TONE[tier], className)}
-      title={value ? `Potential ${fmtMoney(Number(value))}` : "No potential value recorded"}
+      title={value ? `Value tier from potential ${fmtMoney(Number(value))}` : "No potential value recorded"}
     >
+      {prefix ? <span className="font-normal opacity-70">{prefix} </span> : null}
       {TIER_LABEL[tier]}
     </Badge>
   );
@@ -187,12 +190,13 @@ export function TierBadge({
 
 /** AI read of how much more money this client can realistically put in. */
 export function OpportunityBadge({
-  score, label, className,
-}: { score?: number | null; label?: string | null; className?: string }) {
+  score, label, className, prefix,
+}: { score?: number | null; label?: string | null; className?: string; prefix?: string }) {
   if (score == null && !label) return <span className="text-muted-foreground">—</span>;
   const tier = normaliseOpportunityTier(label);
   return (
-    <Badge variant="outline" className={cn("capitalize", opportunityTone(score), className)}>
+    <Badge variant="outline" className={cn("capitalize", opportunityTone(score), className)} title="AI upside score (0–100)">
+      {prefix ? <span className="font-normal normal-case opacity-70">{prefix} </span> : null}
       {score != null ? `${score}` : ""}{score != null && label ? " · " : ""}{tier !== "unknown" ? tier : (label ?? "")}
     </Badge>
   );

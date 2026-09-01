@@ -47,11 +47,16 @@ export function AnsweredBadge({ answered }: { answered: boolean }) {
   );
 }
 
-export function PotentialBadge({ potential }: { potential?: string | null }) {
+export function PotentialBadge({ potential, prefix }: { potential?: string | null; prefix?: string }) {
   const p = (potential ?? "").toLowerCase();
   const tone: Tone = p === "high" ? "success" : p === "mid" ? "warning" : p === "low" ? "danger" : "muted";
   const label = p ? p.charAt(0).toUpperCase() + p.slice(1) : "—";
-  return <StatusBadge tone={tone}>{label}</StatusBadge>;
+  return (
+    <StatusBadge tone={tone} title="Agent's read of how much this client can deposit">
+      {prefix ? <span className="font-normal opacity-70">{prefix}</span> : null}
+      {label}
+    </StatusBadge>
+  );
 }
 
 export function PricingModelBadge({ model }: { model?: string | null }) {
