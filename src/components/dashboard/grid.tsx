@@ -53,13 +53,12 @@ export function DashboardGrid({
       cols={{ lg: 12 }}
       rowHeight={64}
       width={1200}
-      draggableHandle=".drag-handle"
+      dragConfig={{ handle: ".drag-handle" }}
       onLayoutChange={(layout: Layout) => {
         onChange?.(layout.map((l: LayoutItem) => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
       }}
       margin={[16, 16]}
       containerPadding={[0, 0]}
-      isBounded={false}
     >
       {children}
     </ResponsiveGridLayout>
