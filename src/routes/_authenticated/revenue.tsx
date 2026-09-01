@@ -194,7 +194,6 @@ function RevenuePage() {
 
 
   const stats = useMemo(() => {
-    const base = getDisplayCurrency();
     const list = filtered;
     const sumDisplay = (rows: any[]) => rows.reduce((a: number, r: any) => a + toDisplay(r.amount, r.currency), 0);
     const total = sumDisplay(list);
