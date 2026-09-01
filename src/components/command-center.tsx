@@ -266,7 +266,12 @@ export function CommandCenter() {
     m.unusualWithdrawals.length && {
       text: `${m.unusualWithdrawals.length} unusual withdrawal${m.unusualWithdrawals.length === 1 ? "" : "s"}`,
       hint: m.unusualWithdrawals.slice(0, 2).map((w: any) => `${w.customer_name} ${fmtMoney(w.disp)}`).join(" · "),
-      to: "/withdrawals", search: undefined as any, cta: "Open withdrawals",
+      to: "/withdrawals",
+      search: {
+        search: m.unusualWithdrawals.map((w: any) => w.customer_name).filter(Boolean).join("|"),
+        range: "month",
+      } as any,
+      cta: "Open withdrawals",
       explain: "Withdrawals in the last 30 days more than 3× the average payout size.",
       rows: m.unusualWithdrawals
         .slice()
