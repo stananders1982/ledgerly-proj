@@ -32,6 +32,7 @@ import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
 import { AiClientPaste } from "@/components/ai-client-paste";
 import { ContactActions } from "@/components/contact-actions";
+import { ClientDepositHistory } from "@/components/client-deposit-history";
 
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
 import { toDisplay, fromWorkspace } from "@/lib/fx";
