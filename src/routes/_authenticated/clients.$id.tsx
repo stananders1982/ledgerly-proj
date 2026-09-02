@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Banknote, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ import { clientAge, daysSince, type ClientProfile } from "@/lib/client-profile";
 import { analyseClient } from "@/lib/client-insight.functions";
 import { AiClientPaste } from "@/components/ai-client-paste";
 import { ContactActions } from "@/components/contact-actions";
+import { DepositRequestDialog } from "@/components/deposit-request-dialog";
 import { ClientDepositHistory } from "@/components/client-deposit-history";
 
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
@@ -202,6 +203,7 @@ function ClientPage() {
   // Local draft so typing doesn't fire a write per keystroke.
   const [draft, setDraft] = useState<ClientProfile | null>(null);
   const [notes, setNotes] = useState("");
+  const [requestOpen, setRequestOpen] = useState(false);
   useEffect(() => {
     if (!clientQ.data) return;
     const c = clientQ.data;
@@ -448,6 +450,9 @@ function ClientPage() {
 
               {analyse.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1.5 h-4 w-4" />}
               Analyse this client
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setRequestOpen(true)}>
+              <Banknote className="mr-1.5 h-4 w-4" /> Request deposit
             </Button>
             <ContactActions phone={cur.phone} email={cur.email} name={cur.lead_name} />
           </div>
@@ -697,6 +702,19 @@ function ClientPage() {
           <section className="card-surface p-5">
             <ClientDepositHistory activationId={cur.id} />
           </section>
+
+          <DepositRequestDialog
+            open={requestOpen}
+            onOpenChange={setRequestOpen}
+            client={{
+              id: cur.id,
+              lead_name: cur.lead_name,
+              employee_id: cur.employee_id,
+              age: cur.age ?? null,
+              country: cur.country ?? null,
+              city: cur.city ?? null,
+            }}
+          />
 
           <section className="card-surface p-5">
             <CommentThread entityType="client" entityId={cur.id} title="Notes & comments" />

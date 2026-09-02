@@ -104,7 +104,7 @@ export const Route = createFileRoute("/api/admin-chat")({
         const roleList = [
           "admin (Admin)",
           "manager (Manager)",
-          "agent (Agent)",
+          "agent (Conversion)",
           "retention (Retention)",
           ...(customRoles ?? []).map((r) => `custom:${r.id} (${r.name})`),
         ].join(", ");

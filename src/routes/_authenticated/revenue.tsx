@@ -53,6 +53,7 @@ import { CommentThread } from "@/components/comment-thread";
 import { AttachmentsPanel } from "@/components/attachments-panel";
 import { useRowSelection } from "@/lib/row-selection";
 import { BulkBar } from "@/components/bulk-bar";
+import { useMyEmployee } from "@/lib/my-employee";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCompanySettings } from "@/lib/settings";
 import { usePersistedState } from "@/hooks/use-persisted-state";
@@ -84,6 +85,8 @@ function RevenuePage() {
     () => getRange(range, { start: customStart, end: customEnd }),
     [range, customStart, customEnd],
   );
+
+  const { isScoped } = useMyEmployee();
 
   const revQ = useQuery({
     queryKey: ["revenue-list"],
@@ -425,12 +428,14 @@ function RevenuePage() {
       </div>
 
       <BulkBar count={sel.count} noun="record" summary={fmtMoney(selectedTotal)} onClear={sel.clear}>
-        <Select onValueChange={(v) => bulkAssign.mutate(v)}>
-          <SelectTrigger className="h-8 w-[170px]"><SelectValue placeholder="Set employee" /></SelectTrigger>
-          <SelectContent>
-            {(empQ.data ?? []).map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        {!isScoped && (
+          <Select onValueChange={(v) => bulkAssign.mutate(v)}>
+            <SelectTrigger className="h-8 w-[170px]"><SelectValue placeholder="Set employee" /></SelectTrigger>
+            <SelectContent>
+              {(empQ.data ?? []).map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         <Select onValueChange={(v) => bulkMethod.mutate(v)}>
           <SelectTrigger className="h-8 w-[140px]"><SelectValue placeholder="Set method" /></SelectTrigger>
           <SelectContent>
