@@ -45,6 +45,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "permissions", title: "Permissions", url: "/users/permissions", icon: KeyRound, group: "Admin", adminOnly: true },
   { key: "assistant", title: "Assistant", url: "/assistant", icon: Bot, group: "Admin", adminOnly: true },
   { key: "settings", title: "Settings", url: "/settings", icon: Settings, group: "Admin", adminOnly: true },
+  { key: "banks", title: "Banks", url: "/banks", icon: Landmark, group: "Admin", adminOnly: true },
   { key: "activity", title: "Audit Log", url: "/activity", icon: History, group: "Admin", adminOnly: true },
   { key: "logs", title: "Logs", url: "/logs", icon: ScrollText, group: "Admin", adminOnly: true },
   { key: "companies", title: "Companies", url: "/companies", icon: Landmark, group: "Admin", adminOnly: true, superAdminOnly: true },
