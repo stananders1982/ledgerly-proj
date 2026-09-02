@@ -1610,6 +1610,7 @@ export type Database = {
       leads: {
         Row: {
           activated: boolean
+          activation_id: string | null
           affiliate_id: string | null
           company_id: string
           cost: number
@@ -1627,6 +1628,7 @@ export type Database = {
         }
         Insert: {
           activated?: boolean
+          activation_id?: string | null
           affiliate_id?: string | null
           company_id?: string
           cost?: number
@@ -1644,6 +1646,7 @@ export type Database = {
         }
         Update: {
           activated?: boolean
+          activation_id?: string | null
           affiliate_id?: string | null
           company_id?: string
           cost?: number
@@ -1660,6 +1663,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_activation_id_fkey"
+            columns: ["activation_id"]
+            isOneToOne: false
+            referencedRelation: "daily_lead_activations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_affiliate_id_fkey"
             columns: ["affiliate_id"]
