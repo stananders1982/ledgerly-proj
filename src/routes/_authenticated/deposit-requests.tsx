@@ -344,16 +344,16 @@ function DepositRequestsPage() {
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard title="Pending approval" value={String(pending.length)} icon={Clock} />
-        <StatCard title="Awaiting funds" value={String(awaiting.length)} icon={Banknote} />
-        <StatCard title="Awaiting value" value={fmtMoney(pendingValue)} icon={Banknote} />
+        <StatCard label="Pending approval" value={String(pending.length)} icon={Clock} />
+        <StatCard label="Awaiting funds" value={String(awaiting.length)} icon={Banknote} />
+        <StatCard label="Awaiting value" value={fmtMoney(pendingValue)} icon={Banknote} />
       </div>
 
       <div className="mt-6 grid gap-3">
         {requests.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : rows.length === 0 ? (
-          <EmptyState title="No deposit requests yet" description="Create one when a client is ready to deposit." />
+          <EmptyState icon={Banknote} title="No deposit requests yet" description="Create one when a client is ready to deposit." />
         ) : (
           rows.map((r) => {
             const bank = banks.find((b) => b.id === r.bank_id);
