@@ -138,7 +138,7 @@ export function CompanyBanksAdmin() {
                   {!b.active && <Badge variant="outline" className="text-muted-foreground">Inactive</Badge>}
                 </div>
                 <p className="truncate text-xs text-muted-foreground">
-                  {b.account_details || "No account details"} · next invoice #{b.next_invoice_no}
+                  {[b.bsb, b.account_details].filter(Boolean).join(" · ") || "No account details"} · next invoice #{b.next_invoice_no}
                 </p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => edit(b)}>
