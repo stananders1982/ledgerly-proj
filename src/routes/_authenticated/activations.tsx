@@ -1873,6 +1873,15 @@ function ActivationsPage() {
         })()}
       </Sheet>
 
+      {depositFor && (
+        <ManualDepositDialog
+          open={!!depositFor}
+          onOpenChange={(o) => { if (!o) setDepositFor(null); }}
+          client={{ id: depositFor.id, lead_name: depositFor.lead_name ?? null, employee_id: depositFor.employee_id ?? null }}
+        />
+      )}
+
+
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         {editing && (
           <EditDialog
