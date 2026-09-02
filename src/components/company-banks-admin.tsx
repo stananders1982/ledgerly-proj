@@ -94,7 +94,7 @@ export function CompanyBanksAdmin() {
       } else {
         const { error } = await supabase
           .from("company_banks")
-          .insert({ ...payload, next_invoice_no: start } as never);
+          .insert({ ...payload, next_invoice_no: start });
         if (error) throw error;
       }
     },
