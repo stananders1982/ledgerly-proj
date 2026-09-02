@@ -31,7 +31,7 @@ export function useCompanyBanks(onlyActive = false) {
     queryFn: async () => {
       let q = supabase
         .from("company_banks")
-        .select("id,name,account_details,swift,currency,instructions,invoice_start,next_invoice_no,active")
+        .select("id,name,account_details,bsb,swift,currency,instructions,invoice_start,next_invoice_no,active")
         .order("active", { ascending: false })
         .order("name");
       if (onlyActive) q = q.eq("active", true);
