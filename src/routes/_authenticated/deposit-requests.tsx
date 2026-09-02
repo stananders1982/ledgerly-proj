@@ -73,6 +73,7 @@ const emptyForm = {
   client_bank_details: "",
   card_last4: "",
   method: "wire",
+  bank_id: "",
   note: "",
 };
 
@@ -157,6 +158,7 @@ function DepositRequestsPage() {
       client_bank_details: r.client_bank_details ?? "",
       card_last4: r.card_last4 ?? "",
       method: r.method ?? "wire",
+      bank_id: r.bank_id ?? "",
       note: r.note ?? "",
     });
     setOpen(true);
@@ -194,6 +196,7 @@ function DepositRequestsPage() {
         client_bank_details: form.client_bank_details.trim() || null,
         card_last4: form.card_last4.trim().slice(-4) || null,
         method: form.method || null,
+        bank_id: form.bank_id || null,
         note: form.note.trim() || null,
         status: "pending",
         reject_reason: null,
@@ -406,7 +409,7 @@ function DepositRequestsPage() {
                     )}
                     {isAdmin && r.status === "pending" && (
                       <>
-                        <Button size="sm" onClick={() => { setApproving(r); setBankId(banks[0]?.id ?? ""); }}>
+                        <Button size="sm" onClick={() => { setApproving(r); setBankId(r.bank_id ?? banks[0]?.id ?? ""); }}>
                           <Check className="h-4 w-4" /> Approve
                         </Button>
                         <Button
@@ -506,6 +509,26 @@ function DepositRequestsPage() {
                 <Label className="text-xs">Client bank</Label>
                 <Input value={form.client_bank} onChange={(e) => setForm({ ...form, client_bank: e.target.value })} />
               </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Receiving bank (suggested)</Label>
+              <Select
+                value={form.bank_id || "_none"}
+                onValueChange={(v) => setForm({ ...form, bank_id: v === "_none" ? "" : v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Let the admin choose" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Let the admin choose</SelectItem>
+                  {banks.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.name} · {b.currency}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {banks.length === 0
+                  ? "No banks yet — an admin adds them under Banks in the sidebar."
+                  : "The admin confirms the bank on approval and the invoice number is assigned then."}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={form.first_deposit} onCheckedChange={(v) => setForm({ ...form, first_deposit: v })} />
