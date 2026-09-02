@@ -25,3 +25,9 @@
 
 - [x] Deposit requests: agent request form, admin approval with bank + per-bank invoice numbering (from 600), confirmation books income with fees and commission; banks managed in Settings.
 - [x] Deposit requests: BSB shown in bank details; admin trash/delete button
+
+## Access scoping (agents see only their own book)
+- [x] Database rules: conversion/retention agents only read their own clients, income, withdrawals and leads (admins/managers unchanged)
+- [x] "Request deposit" button on the client profile (shared deposit-request dialog)
+- [x] Bulk "set employee" hidden for scoped agents on Income
+- [x] Rename the "Agent" role to "Conversion" across the app

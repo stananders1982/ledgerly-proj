@@ -63,7 +63,7 @@ export type RoleOption = { key: string; label: string; builtin: boolean };
 export const BUILTIN_ROLES: RoleOption[] = [
   { key: "admin", label: "Admin", builtin: true },
   { key: "manager", label: "Manager", builtin: true },
-  { key: "agent", label: "Agent", builtin: true },
+  { key: "agent", label: "Conversion", builtin: true },
   { key: "retention", label: "Retention", builtin: true },
 ];
 

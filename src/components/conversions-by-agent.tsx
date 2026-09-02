@@ -174,7 +174,7 @@ export function ConversionsByAgent({
             <table className="w-full text-sm">
               <thead className={card ? "text-left text-[11px] uppercase tracking-wider text-muted-foreground" : "bg-muted/40 text-left text-xs uppercase text-muted-foreground"}>
                 <tr>
-                  <th className="py-2 px-4 font-medium">{card ? "Agent" : "Conversion agent"}</th>
+                  <th className="py-2 px-4 font-medium">{card ? "Conversion" : "Conversion agent"}</th>
                   <th className="py-2 px-4 font-medium">{card ? "FTDs" : "Conversions"}</th>
                   <th className="py-2 px-4 font-medium" title="FTDs that only qualified after a retention deposit in a later month">Late</th>
                   <th className="py-2 px-4 font-medium">Pending</th>
@@ -269,7 +269,7 @@ export function ConversionsByAgent({
               <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="py-2 px-3 font-medium">Client</th>
-                  <th className="py-2 px-3 font-medium">Agent</th>
+                  <th className="py-2 px-3 font-medium">Conversion</th>
                   <th className="py-2 px-3 font-medium">Activated</th>
                   <th className="py-2 px-3 font-medium">Qualified</th>
                   <th className="py-2 px-3 font-medium">Balance</th>
@@ -320,7 +320,7 @@ export function ConversionsByAgent({
               <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="py-2 px-3 font-medium">Client</th>
-                  <th className="py-2 px-3 font-medium">Agent</th>
+                  <th className="py-2 px-3 font-medium">Conversion</th>
                   <th className="py-2 px-3 font-medium">Activation date</th>
                   <th className="py-2 px-3 font-medium">Balance</th>
                   <th className="py-2 px-3 font-medium">Potential</th>
