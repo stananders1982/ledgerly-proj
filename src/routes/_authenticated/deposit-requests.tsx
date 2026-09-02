@@ -394,8 +394,9 @@ function DepositRequestsPage() {
                     {bank && (r.status === "approved" || r.status === "confirmed") && (
                       <div className="mt-2 rounded-md border p-2 text-xs">
                         <p className="font-medium">Pay into {bank.name} ({bank.currency})</p>
-                        {bank.account_details && <p className="text-muted-foreground">{bank.account_details}</p>}
-                        {bank.swift && <p className="text-muted-foreground">SWIFT {bank.swift}</p>}
+                        {bank.account_details && <p className="text-muted-foreground">Account: {bank.account_details}</p>}
+                        {bank.bsb && <p className="text-muted-foreground">BSB: {bank.bsb}</p>}
+                        {bank.swift && <p className="text-muted-foreground">SWIFT: {bank.swift}</p>}
                         {bank.instructions && <p className="text-muted-foreground">{bank.instructions}</p>}
                       </div>
                     )}
