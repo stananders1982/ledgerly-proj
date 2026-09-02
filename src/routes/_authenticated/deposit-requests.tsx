@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Check, X, Banknote, Clock } from "lucide-react";
+import { Plus, Check, X, Banknote, Clock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -269,6 +269,15 @@ function DepositRequestsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("deposit_requests").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: REQUESTS_KEY }); toast.success("Request deleted"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const confirm = useMutation({
     mutationFn: async () => {
       if (!confirming) return;
@@ -394,8 +403,9 @@ function DepositRequestsPage() {
                     {bank && (r.status === "approved" || r.status === "confirmed") && (
                       <div className="mt-2 rounded-md border p-2 text-xs">
                         <p className="font-medium">Pay into {bank.name} ({bank.currency})</p>
-                        {bank.account_details && <p className="text-muted-foreground">{bank.account_details}</p>}
-                        {bank.swift && <p className="text-muted-foreground">SWIFT {bank.swift}</p>}
+                        {bank.account_details && <p className="text-muted-foreground">Account: {bank.account_details}</p>}
+                        {bank.bsb && <p className="text-muted-foreground">BSB: {bank.bsb}</p>}
+                        {bank.swift && <p className="text-muted-foreground">SWIFT: {bank.swift}</p>}
                         {bank.instructions && <p className="text-muted-foreground">{bank.instructions}</p>}
                       </div>
                     )}
@@ -438,6 +448,24 @@ function DepositRequestsPage() {
                     )}
                     {isAdmin && r.status === "confirmed" && (
                       <Button variant="ghost" size="sm" onClick={() => reverse.mutate(r)}>Reverse</Button>
+                    )}
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Delete request"
+                        onClick={() => {
+                          if (r.status === "confirmed" && r.revenue_id) {
+                            toast.error("Reverse this confirmed request first, then delete it.");
+                            return;
+                          }
+                          if (window.confirm(`Delete the deposit request for ${r.client_name}? This cannot be undone.`)) {
+                            remove.mutate(r.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     )}
                   </div>
                 </div>
