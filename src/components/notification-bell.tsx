@@ -67,8 +67,20 @@ export function NotificationBell() {
 
   const pendingCount = pendingRequests.data ?? 0;
 
+  // Tick every minute so a dismissed nag resurfaces while the queue stays
+  // non-empty.
+  const [nagTick, setNagTick] = useState(0);
   useEffect(() => {
-    if (pendingCount === 0) return;
+    const t = setInterval(() => setNagTick((v) => v + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    void nagTick;
+    if (pendingCount === 0) {
+      toast.dismiss("deposit-requests-nag");
+      return;
+    }
     const dismissedAt = Number(sessionStorage.getItem(NAG_KEY) ?? 0);
     if (Date.now() - dismissedAt < NAG_QUIET_MS) return;
 
