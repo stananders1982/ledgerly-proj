@@ -706,6 +706,59 @@ export type Database = {
         }
         Relationships: []
       }
+      company_banks: {
+        Row: {
+          account_details: string | null
+          active: boolean
+          company_id: string
+          created_at: string
+          currency: string
+          id: string
+          instructions: string | null
+          invoice_start: number
+          name: string
+          next_invoice_no: number
+          swift: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_details?: string | null
+          active?: boolean
+          company_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          instructions?: string | null
+          invoice_start?: number
+          name: string
+          next_invoice_no?: number
+          swift?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_details?: string | null
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          instructions?: string | null
+          invoice_start?: number
+          name?: string
+          next_invoice_no?: number
+          swift?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_banks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_onboarding: {
         Row: {
           company_id: string
@@ -1250,6 +1303,154 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deposit_requests: {
+        Row: {
+          activation_id: string | null
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          bank_id: string | null
+          card_last4: string | null
+          client_address: string | null
+          client_age: number | null
+          client_bank: string | null
+          client_bank_details: string | null
+          client_name: string
+          company_id: string
+          confirmed_amount: number | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          confirmed_date: string | null
+          created_at: string
+          currency: string
+          employee_id: string | null
+          first_deposit: boolean
+          geo: string | null
+          id: string
+          invoice_no: number | null
+          method: string | null
+          note: string | null
+          reject_reason: string | null
+          request_date: string
+          requested_by: string
+          requested_by_email: string | null
+          revenue_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activation_id?: string | null
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          bank_id?: string | null
+          card_last4?: string | null
+          client_address?: string | null
+          client_age?: number | null
+          client_bank?: string | null
+          client_bank_details?: string | null
+          client_name: string
+          company_id: string
+          confirmed_amount?: number | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_date?: string | null
+          created_at?: string
+          currency?: string
+          employee_id?: string | null
+          first_deposit?: boolean
+          geo?: string | null
+          id?: string
+          invoice_no?: number | null
+          method?: string | null
+          note?: string | null
+          reject_reason?: string | null
+          request_date?: string
+          requested_by?: string
+          requested_by_email?: string | null
+          revenue_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activation_id?: string | null
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          bank_id?: string | null
+          card_last4?: string | null
+          client_address?: string | null
+          client_age?: number | null
+          client_bank?: string | null
+          client_bank_details?: string | null
+          client_name?: string
+          company_id?: string
+          confirmed_amount?: number | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_date?: string | null
+          created_at?: string
+          currency?: string
+          employee_id?: string | null
+          first_deposit?: boolean
+          geo?: string | null
+          id?: string
+          invoice_no?: number | null
+          method?: string | null
+          note?: string | null
+          reject_reason?: string | null
+          request_date?: string
+          requested_by?: string
+          requested_by_email?: string | null
+          revenue_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposit_requests_activation_id_fkey"
+            columns: ["activation_id"]
+            isOneToOne: false
+            referencedRelation: "daily_lead_activations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_requests_bank_id_fkey"
+            columns: ["bank_id"]
+            isOneToOne: false
+            referencedRelation: "company_banks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_requests_revenue_id_fkey"
+            columns: ["revenue_id"]
+            isOneToOne: false
+            referencedRelation: "revenue"
             referencedColumns: ["id"]
           },
         ]
@@ -2744,6 +2945,7 @@ export type Database = {
           nav_key: string
         }[]
       }
+      next_bank_invoice_no: { Args: { _bank_id: string }; Returns: number }
       recompute_affiliate_period: {
         Args: { _affiliate_id: string; _ref: string }
         Returns: undefined
