@@ -694,6 +694,10 @@ function ClientPage() {
           </section>
 
           <section className="card-surface p-5">
+            <ClientDepositHistory activationId={cur.id} />
+          </section>
+
+          <section className="card-surface p-5">
             <CommentThread entityType="client" entityId={cur.id} title="Notes & comments" />
           </section>
         </div>
