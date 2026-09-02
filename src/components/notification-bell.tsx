@@ -98,7 +98,7 @@ export function NotificationBell() {
         onAutoClose: () => sessionStorage.setItem(NAG_KEY, String(Date.now())),
       },
     );
-  }, [pendingCount, navigate]);
+  }, [pendingCount, nagTick, navigate]);
 
   // Keep the nag count fresh the moment an agent submits a request.
   useEffect(() => {
