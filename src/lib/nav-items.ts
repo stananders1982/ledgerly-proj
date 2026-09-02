@@ -1,4 +1,4 @@
-import { Bot, Sparkles, KeyRound, Settings, LayoutDashboard, LayoutTemplate, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, ShieldAlert, Banknote, Gauge, Building2, Landmark, ScrollText, ListTodo, Upload, History, Target, FlaskConical } from "lucide-react";
+import { FileCheck, Bot, Sparkles, KeyRound, Settings, LayoutDashboard, LayoutTemplate, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, ShieldAlert, Banknote, Gauge, Building2, Landmark, ScrollText, ListTodo, Upload, History, Target, FlaskConical } from "lucide-react";
 
 export type NavGroup = "Overview" | "Operations" | "People" | "Analytics" | "Admin";
 
@@ -23,6 +23,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "activations", title: "Clients", url: "/activations", icon: UserCheck, group: "Operations" },
   { key: "sources", title: "Sources", url: "/sources", icon: Tag, group: "Operations" },
   { key: "revenue", title: "Income", url: "/revenue", icon: TrendingUp, group: "Operations" },
+  { key: "deposit-requests", title: "Deposit Requests", url: "/deposit-requests", icon: FileCheck, group: "Operations" },
   { key: "withdrawals", title: "Withdrawals", url: "/withdrawals", icon: Banknote, group: "Operations" },
   { key: "expenses", title: "Expenses", url: "/expenses", icon: Receipt, group: "Operations" },
   { key: "recurring", title: "Recurring", url: "/recurring", icon: Repeat, group: "Operations" },

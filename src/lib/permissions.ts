@@ -36,7 +36,9 @@ export type ActionKey =
   | "manage_api_keys"
   | "view_pnl"
   | "edit_commissions"
-  | "manage_tasks";
+  | "manage_tasks"
+  | "approve_deposits"
+  | "confirm_deposits";
 
 export const ACTION_PERMISSIONS: { key: ActionKey; label: string; hint: string }[] = [
   { key: "delete_records", label: "Delete records", hint: "Remove income, expenses, leads and clients." },
@@ -53,6 +55,8 @@ export const ACTION_PERMISSIONS: { key: ActionKey; label: string; hint: string }
   { key: "view_pnl", label: "View P&L", hint: "See profit and loss figures in reports." },
   { key: "edit_commissions", label: "Edit commissions", hint: "Manually adjust commission values." },
   { key: "manage_tasks", label: "Manage tasks", hint: "Create, assign and delete tasks." },
+  { key: "approve_deposits", label: "Approve deposit requests", hint: "Assign a bank and invoice number to a deposit request." },
+  { key: "confirm_deposits", label: "Confirm deposits", hint: "Mark deposit money as received and book it as income." },
 ];
 
 /** Pages every admin always keeps — they cannot be switched off. */
