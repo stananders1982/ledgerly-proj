@@ -66,6 +66,7 @@ export function CompanyBanksAdmin() {
       id: b.id,
       name: b.name,
       account_details: b.account_details ?? "",
+      bsb: b.bsb ?? "",
       swift: b.swift ?? "",
       currency: b.currency ?? "USD",
       instructions: b.instructions ?? "",
@@ -83,6 +84,7 @@ export function CompanyBanksAdmin() {
         company_id: companyId!,
         name: form.name.trim(),
         account_details: form.account_details.trim() || null,
+        bsb: form.bsb.trim() || null,
         swift: form.swift.trim() || null,
         currency: form.currency,
         instructions: form.instructions.trim() || null,
@@ -179,6 +181,10 @@ export function CompanyBanksAdmin() {
             <div className="grid gap-1.5">
               <Label className="text-xs">Account / IBAN</Label>
               <Input value={form.account_details} onChange={(e) => setForm({ ...form, account_details: e.target.value })} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label className="text-xs">BSB / Sort code</Label>
+              <Input value={form.bsb} onChange={(e) => setForm({ ...form, bsb: e.target.value })} placeholder="e.g. 062-000" />
             </div>
             <div className="grid gap-1.5">
               <Label className="text-xs">SWIFT / BIC</Label>
