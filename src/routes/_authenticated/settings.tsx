@@ -325,6 +325,8 @@ function SettingsPage() {
         </div>
       </div>
 
+      {isAdmin && <CompanyBanksAdmin />}
+
       <div className="mt-6">
         <CustomFieldsAdmin />
       </div>
