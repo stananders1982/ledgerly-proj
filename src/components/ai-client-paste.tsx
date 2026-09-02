@@ -255,7 +255,7 @@ export function AiClientPasteBulk() {
   });
 
   const chosen = (rows ?? []).filter((r) => r.include);
-  const needsAgent = chosen.some((r) => !r.matchId);
+  const needsAgent = false;
 
   const save = useMutation({
     mutationFn: async () => {
@@ -266,14 +266,6 @@ export function AiClientPasteBulk() {
             .from("daily_lead_activations")
             .update(r.data as any)
             .eq("id", r.matchId);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from("daily_lead_activations").insert({
-            ...(r.data as any),
-            employee_id: agentId,
-            activated_count: 1,
-            activation_date: today,
-          } as any);
           if (error) throw error;
         }
       }

@@ -5,7 +5,7 @@
 import { defaultDashboardAllowed, isDashboardSectionKey } from "@/lib/dashboard-sections";
 
 const MANAGER_NAV_EXCLUDES = ["settings", "users", "permissions", "logs", "activity"];
-const AGENT_NAV = ["dashboard", "leads", "activations", "revenue", "tasks", "performance"];
+const AGENT_NAV = ["dashboard", "leads", "revenue", "tasks", "performance"];
 const RETENTION_NAV = ["dashboard", "activations", "revenue", "withdrawals", "tasks", "performance"];
 const MANAGER_ACTION_EXCLUDES = ["edit_settings", "manage_api_keys"];
 const AGENT_ACTIONS = ["export_data", "manage_tasks"];

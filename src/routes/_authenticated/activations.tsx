@@ -607,15 +607,7 @@ function ActivationsPage() {
         source_of_funds: v.source_of_funds?.trim() || null,
         deposit_appetite: v.deposit_appetite ?? null,
       } as any;
-      if (!v.id) {
-        const { error } = await supabase.from("daily_lead_activations").insert({
-          ...payload,
-          activated_count: 1,
-          activation_date: v.activation_date || todayISO(),
-        } as any);
-        if (error) throw error;
-        return;
-      }
+      if (!v.id) throw new Error("Create clients by converting a lead on the Leads page.");
       const { error } = await supabase
         .from("daily_lead_activations")
         .update(payload)
@@ -832,35 +824,7 @@ function ActivationsPage() {
       <PageHeader
         title="Clients"
         description="Every client with its balance, potential, agents and answer status."
-        actions={
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="font-normal text-muted-foreground">
-              Today: {fmtDate(todayISO())}
-            </Badge>
-            <Button
-              variant="outline"
-              onClick={() =>
-                setEditing({
-                  id: "",
-                  entry_id: "",
-                  employee_id: "",
-                  conversion_employee_id: null,
-                  activated_count: 1,
-                  lead_name: "",
-                  balance: 0,
-                  potential: null,
-                  answered: false,
-                  activation_date: todayISO(),
-                  legacy: true,
-                  notes: null,
-                  tags: [],
-                })
-              }
-            >
-              <Plus className="h-4 w-4" /> Add client
-            </Button>
-          </div>
-        }
+        actions={<Badge variant="outline" className="font-normal text-muted-foreground">Today: {fmtDate(todayISO())}</Badge>}
       />
 
       {issue && (
@@ -1932,7 +1896,7 @@ function EditDialog({
   return (
     <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto scroll-slim">
       <DialogHeader>
-        <DialogTitle>{row.id ? "Client" : "Add client"}</DialogTitle>
+        <DialogTitle>Client</DialogTitle>
       </DialogHeader>
       <div className="grid gap-3 py-2">
         <div className="grid gap-1.5">
