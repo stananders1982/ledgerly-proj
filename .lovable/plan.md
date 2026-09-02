@@ -6,17 +6,17 @@ Leads become real records that people create by hand or receive from affiliates.
 
 The Leads page gets two tabs:
 
-- **Leads** (new, default): one row per person — name, phone, email, affiliate/source, status, conversion agent, created date, notes.
+- **Leads** (new, default): one row per person in the **same dense grid layout as Clients**, with pinned identity/contact columns, a filter row beneath the headers, inline editing, row selection and familiar actions. Columns include name, contact actions, affiliate/source, conversion agent, status, created date and notes.
   - "Add lead" dialog to enter a lead by details (no deposit required).
   - Filters and search by name/phone/email, status, affiliate, agent; bulk assign an agent.
-  - Row actions: edit, call/WhatsApp/email buttons, delete, and **Convert to client**.
+  - Inline editing for conversion agent and status; row actions for edit, call/WhatsApp/email, delete and **Convert to client**.
   - Leads arriving from the affiliate intake API already land in the same place, so affiliate-sourced leads show up automatically.
-- **Daily numbers** (the existing received / invalid / activated / reported / cost entry screen) stays untouched so source cost and ROI reporting keeps working.
+- **Daily numbers** keeps the existing affiliate workflow unchanged: enter received / invalid / activated / reported counts and cost, then when a deposit/activation happens add the person's name plus conversion and retention agents in the existing activated-lead rows. This remains available alongside the new individual Leads grid so source cost and ROI reporting keeps working.
 
 ## 2. Lead becomes a client
 
 - **Convert to client** creates the client record (activation) with the workspace default opening balance, carrying over name, phone, email, affiliate/source, conversion agent and notes, and marks the lead converted. The lead row stays as history and links to the client.
-- **Auto-convert on first deposit**: recording income for a name that matches an unconverted lead converts that lead automatically instead of leaving an orphan client.
+- **Auto-convert on first deposit**: the existing daily affiliate entry flow remains valid — when the deposit/activation is entered with the person's name and agents, it creates the client and links or updates the matching individual lead. Recording income for a matching unconverted lead also converts it automatically instead of leaving an orphan client.
 - Already-converted leads are hidden from the default list view (a "Converted" filter shows them).
 
 ## 3. No more creating clients directly
