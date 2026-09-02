@@ -78,8 +78,8 @@ export function CompanyBanksAdmin() {
     mutationFn: async () => {
       if (!form.name.trim()) throw new Error("Bank name is required");
       const start = Number(form.invoice_start) || 600;
-      const payload: Record<string, unknown> = {
-        company_id: companyId,
+      const payload = {
+        company_id: companyId!,
         name: form.name.trim(),
         account_details: form.account_details.trim() || null,
         swift: form.swift.trim() || null,
