@@ -46,6 +46,7 @@ const blank = {
   id: "",
   name: "",
   account_details: "",
+  bsb: "",
   swift: "",
   currency: "USD",
   instructions: "",
