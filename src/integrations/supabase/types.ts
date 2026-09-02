@@ -710,6 +710,7 @@ export type Database = {
         Row: {
           account_details: string | null
           active: boolean
+          bsb: string | null
           company_id: string
           created_at: string
           currency: string
@@ -724,6 +725,7 @@ export type Database = {
         Insert: {
           account_details?: string | null
           active?: boolean
+          bsb?: string | null
           company_id: string
           created_at?: string
           currency?: string
@@ -738,6 +740,7 @@ export type Database = {
         Update: {
           account_details?: string | null
           active?: boolean
+          bsb?: string | null
           company_id?: string
           created_at?: string
           currency?: string

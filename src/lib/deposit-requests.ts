@@ -34,6 +34,7 @@ export type CompanyBank = {
   id: string;
   name: string;
   account_details: string | null;
+  bsb: string | null;
   swift: string | null;
   currency: string;
   instructions: string | null;

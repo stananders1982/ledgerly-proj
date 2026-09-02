@@ -31,7 +31,7 @@ export function useCompanyBanks(onlyActive = false) {
     queryFn: async () => {
       let q = supabase
         .from("company_banks")
-        .select("id,name,account_details,swift,currency,instructions,invoice_start,next_invoice_no,active")
+        .select("id,name,account_details,bsb,swift,currency,instructions,invoice_start,next_invoice_no,active")
         .order("active", { ascending: false })
         .order("name");
       if (onlyActive) q = q.eq("active", true);
@@ -46,6 +46,7 @@ const blank = {
   id: "",
   name: "",
   account_details: "",
+  bsb: "",
   swift: "",
   currency: "USD",
   instructions: "",
@@ -65,6 +66,7 @@ export function CompanyBanksAdmin() {
       id: b.id,
       name: b.name,
       account_details: b.account_details ?? "",
+      bsb: b.bsb ?? "",
       swift: b.swift ?? "",
       currency: b.currency ?? "USD",
       instructions: b.instructions ?? "",
@@ -82,6 +84,7 @@ export function CompanyBanksAdmin() {
         company_id: companyId!,
         name: form.name.trim(),
         account_details: form.account_details.trim() || null,
+        bsb: form.bsb.trim() || null,
         swift: form.swift.trim() || null,
         currency: form.currency,
         instructions: form.instructions.trim() || null,
@@ -135,7 +138,7 @@ export function CompanyBanksAdmin() {
                   {!b.active && <Badge variant="outline" className="text-muted-foreground">Inactive</Badge>}
                 </div>
                 <p className="truncate text-xs text-muted-foreground">
-                  {b.account_details || "No account details"} · next invoice #{b.next_invoice_no}
+                  {[b.bsb, b.account_details].filter(Boolean).join(" · ") || "No account details"} · next invoice #{b.next_invoice_no}
                 </p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => edit(b)}>
@@ -178,6 +181,10 @@ export function CompanyBanksAdmin() {
             <div className="grid gap-1.5">
               <Label className="text-xs">Account / IBAN</Label>
               <Input value={form.account_details} onChange={(e) => setForm({ ...form, account_details: e.target.value })} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label className="text-xs">BSB / Sort code</Label>
+              <Input value={form.bsb} onChange={(e) => setForm({ ...form, bsb: e.target.value })} placeholder="e.g. 062-000" />
             </div>
             <div className="grid gap-1.5">
               <Label className="text-xs">SWIFT / BIC</Label>
