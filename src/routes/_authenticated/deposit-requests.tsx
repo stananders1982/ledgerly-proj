@@ -449,6 +449,24 @@ function DepositRequestsPage() {
                     {isAdmin && r.status === "confirmed" && (
                       <Button variant="ghost" size="sm" onClick={() => reverse.mutate(r)}>Reverse</Button>
                     )}
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Delete request"
+                        onClick={() => {
+                          if (r.status === "confirmed" && r.revenue_id) {
+                            toast.error("Reverse this confirmed request first, then delete it.");
+                            return;
+                          }
+                          if (window.confirm(`Delete the deposit request for ${r.client_name}? This cannot be undone.`)) {
+                            remove.mutate(r.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
