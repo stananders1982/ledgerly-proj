@@ -73,7 +73,7 @@ export function NotificationBell() {
           const opts = {
             description: n.body ?? undefined,
             action: {
-              label: n.lead_activation_id || n.lead_name ? "View client" : "View",
+              label: n.type === "deposit_request" ? "Review request" : n.lead_activation_id || n.lead_name ? "View client" : "View",
               onClick: () => openNotification(n),
             },
             onClick: () => openNotification(n),
