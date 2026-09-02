@@ -30,6 +30,7 @@ import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated/goals'
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
+import { Route as AuthenticatedDepositRequestsRouteImport } from './routes/_authenticated/deposit-requests'
 import { Route as AuthenticatedDataQualityRouteImport } from './routes/_authenticated/data-quality'
 import { Route as AuthenticatedDashboardsRouteImport } from './routes/_authenticated/dashboards'
 import { Route as AuthenticatedCompaniesRouteImport } from './routes/_authenticated/companies'
@@ -162,6 +163,12 @@ const AuthenticatedExpensesRoute = AuthenticatedExpensesRouteImport.update({
   path: '/expenses',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDepositRequestsRoute =
+  AuthenticatedDepositRequestsRouteImport.update({
+    id: '/deposit-requests',
+    path: '/deposit-requests',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDataQualityRoute =
   AuthenticatedDataQualityRouteImport.update({
     id: '/data-quality',
@@ -310,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/companies': typeof AuthenticatedCompaniesRoute
   '/dashboards': typeof AuthenticatedDashboardsRoute
   '/data-quality': typeof AuthenticatedDataQualityRoute
+  '/deposit-requests': typeof AuthenticatedDepositRequestsRoute
   '/expenses': typeof AuthenticatedExpensesRoute
   '/goals': typeof AuthenticatedGoalsRoute
   '/import': typeof AuthenticatedImportRoute
@@ -356,6 +364,7 @@ export interface FileRoutesByTo {
   '/companies': typeof AuthenticatedCompaniesRoute
   '/dashboards': typeof AuthenticatedDashboardsRoute
   '/data-quality': typeof AuthenticatedDataQualityRoute
+  '/deposit-requests': typeof AuthenticatedDepositRequestsRoute
   '/expenses': typeof AuthenticatedExpensesRoute
   '/goals': typeof AuthenticatedGoalsRoute
   '/import': typeof AuthenticatedImportRoute
@@ -405,6 +414,7 @@ export interface FileRoutesById {
   '/_authenticated/companies': typeof AuthenticatedCompaniesRoute
   '/_authenticated/dashboards': typeof AuthenticatedDashboardsRoute
   '/_authenticated/data-quality': typeof AuthenticatedDataQualityRoute
+  '/_authenticated/deposit-requests': typeof AuthenticatedDepositRequestsRoute
   '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
   '/_authenticated/goals': typeof AuthenticatedGoalsRoute
   '/_authenticated/import': typeof AuthenticatedImportRoute
@@ -455,6 +465,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/dashboards'
     | '/data-quality'
+    | '/deposit-requests'
     | '/expenses'
     | '/goals'
     | '/import'
@@ -501,6 +512,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/dashboards'
     | '/data-quality'
+    | '/deposit-requests'
     | '/expenses'
     | '/goals'
     | '/import'
@@ -549,6 +561,7 @@ export interface FileRouteTypes {
     | '/_authenticated/companies'
     | '/_authenticated/dashboards'
     | '/_authenticated/data-quality'
+    | '/_authenticated/deposit-requests'
     | '/_authenticated/expenses'
     | '/_authenticated/goals'
     | '/_authenticated/import'
@@ -751,6 +764,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedExpensesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/deposit-requests': {
+      id: '/_authenticated/deposit-requests'
+      path: '/deposit-requests'
+      fullPath: '/deposit-requests'
+      preLoaderRoute: typeof AuthenticatedDepositRequestsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/data-quality': {
       id: '/_authenticated/data-quality'
       path: '/data-quality'
@@ -937,6 +957,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCompaniesRoute: typeof AuthenticatedCompaniesRoute
   AuthenticatedDashboardsRoute: typeof AuthenticatedDashboardsRoute
   AuthenticatedDataQualityRoute: typeof AuthenticatedDataQualityRoute
+  AuthenticatedDepositRequestsRoute: typeof AuthenticatedDepositRequestsRoute
   AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
   AuthenticatedGoalsRoute: typeof AuthenticatedGoalsRoute
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
@@ -973,6 +994,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCompaniesRoute: AuthenticatedCompaniesRoute,
   AuthenticatedDashboardsRoute: AuthenticatedDashboardsRoute,
   AuthenticatedDataQualityRoute: AuthenticatedDataQualityRoute,
+  AuthenticatedDepositRequestsRoute: AuthenticatedDepositRequestsRoute,
   AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
   AuthenticatedGoalsRoute: AuthenticatedGoalsRoute,
   AuthenticatedImportRoute: AuthenticatedImportRoute,

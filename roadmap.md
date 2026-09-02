@@ -22,3 +22,5 @@
 - [x] Per-client, per-month deposit splits + full client directory in the AI snapshot so answers match real data and are never "truncated"
 
 - Clients: added a third "Grid" view mode — dense spreadsheet grid with per-column filters, pinned name column, contact buttons and inline editing of retention/conversion agent, status and answered (optimistic saves).
+
+- [x] Deposit requests: agent request form, admin approval with bank + per-bank invoice numbering (from 600), confirmation books income with fees and commission; banks managed in Settings.
