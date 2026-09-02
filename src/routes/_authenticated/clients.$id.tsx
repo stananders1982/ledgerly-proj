@@ -33,6 +33,7 @@ import { analyseClient } from "@/lib/client-insight.functions";
 import { AiClientPaste } from "@/components/ai-client-paste";
 import { ContactActions } from "@/components/contact-actions";
 import { DepositRequestDialog } from "@/components/deposit-request-dialog";
+import { ManualDepositDialog } from "@/components/manual-deposit-dialog";
 import { ClientDepositHistory } from "@/components/client-deposit-history";
 
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
@@ -82,7 +83,7 @@ function ClientPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const settings = useCompanySettings();
-  const { user, companyId } = useAuth();
+  const { user, companyId, isAdmin } = useAuth();
   const { roleKey } = useMyRoleKey();
   const canAllocate = roleKey !== "retention" && roleKey !== "agent";
 
@@ -204,6 +205,7 @@ function ClientPage() {
   const [draft, setDraft] = useState<ClientProfile | null>(null);
   const [notes, setNotes] = useState("");
   const [requestOpen, setRequestOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   useEffect(() => {
     if (!clientQ.data) return;
     const c = clientQ.data;
@@ -454,6 +456,11 @@ function ClientPage() {
             <Button size="sm" variant="outline" onClick={() => setRequestOpen(true)}>
               <Banknote className="mr-1.5 h-4 w-4" /> Request deposit
             </Button>
+            {isAdmin && (
+              <Button size="sm" onClick={() => setManualOpen(true)}>
+                <Banknote className="mr-1.5 h-4 w-4" /> Add deposit
+              </Button>
+            )}
             <ContactActions phone={cur.phone} email={cur.email} name={cur.lead_name} />
           </div>
         }
@@ -702,6 +709,12 @@ function ClientPage() {
           <section className="card-surface p-5">
             <ClientDepositHistory activationId={cur.id} />
           </section>
+
+          <ManualDepositDialog
+            open={manualOpen}
+            onOpenChange={setManualOpen}
+            client={{ id: cur.id, lead_name: cur.lead_name, employee_id: cur.employee_id }}
+          />
 
           <DepositRequestDialog
             open={requestOpen}
