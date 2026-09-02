@@ -56,6 +56,8 @@ import {
 } from "@/components/client-profile-fields";
 import { clientAge, type ClientProfile } from "@/lib/client-profile";
 import { ContactActions } from "@/components/contact-actions";
+import { ManualDepositDialog } from "@/components/manual-deposit-dialog";
+import { useAuth } from "@/lib/auth-context";
 import { ClientsGrid, useClientsGridFilters } from "@/components/clients-grid";
 import { LayoutGrid } from "lucide-react";
 import {
@@ -164,6 +166,8 @@ function ActivationsPage() {
   const [customStart, setCustomStart] = usePersistedState<string>("activations:range-start", "");
   const [customEnd, setCustomEnd] = usePersistedState<string>("activations:range-end", "");
   const [editing, setEditing] = useState<Row | null>(null);
+  const { isAdmin } = useAuth();
+  const [depositFor, setDepositFor] = useState<Row | null>(null);
   const [viewing, setViewing] = useState<Row | null>(null);
   
   const [answeredFilter, setAnsweredFilter] = useState<"all" | "yes" | "no">("all");
@@ -1855,6 +1859,9 @@ function ActivationsPage() {
                     save.mutate(next as any);
                   }}
                 />
+                {isAdmin && (
+                  <Button variant="outline" onClick={() => setDepositFor(cur as any)}>Add deposit</Button>
+                )}
                 <Button asChild variant="outline">
                   <Link to="/clients/$id" params={{ id: cur.id }}>Open full profile</Link>
                 </Button>
