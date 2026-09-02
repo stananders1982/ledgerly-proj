@@ -239,33 +239,6 @@ function RevenuePage() {
     mutationFn: async (v: any) => {
       let activationId: string | null = v.activation_id || null;
 
-      // No client picked → create the client record from the details typed in
-      // the dialog, so every deposit belongs to a client (and STDs can be seen).
-      if (!activationId && v.new_client) {
-        const name = String(v.customer_name ?? "").trim();
-        const key = name.toLowerCase();
-        const existing = (activationsQ.data ?? []).find(
-          (a: any) => (a.lead_name ?? "").trim().toLowerCase() === key,
-        );
-        if (existing) {
-          activationId = existing.id;
-        } else {
-          const { data, error } = await supabase
-            .from("daily_lead_activations")
-            .insert({
-              lead_name: name,
-              activation_date: v.new_client.activation_date,
-              conversion_employee_id: v.new_client.conversion_employee_id || null,
-              employee_id: v.new_client.employee_id,
-              balance: settings.defaultActivationBalance,
-            })
-            .select("id")
-            .single();
-          if (error) throw error;
-          activationId = data.id;
-        }
-      }
-
       const payload = {
         customer_name: v.customer_name,
         amount: Number(v.amount) || 0,
@@ -689,21 +662,10 @@ function RevenueDialog({
   const picked = activations.find((x: any) => x.id === activationId);
   const detailsHidden = !!picked && !manual;
 
-  // New-client details, asked for when no existing client is selected.
-  const [newClient, setNewClient] = useState(() => ({
-    activation_date: rev?.date ?? new Date().toISOString().slice(0, 10),
-    conversion_employee_id: "",
-    employee_id: "",
-  }));
   const typedName = String(form.customer_name ?? "").trim().toLowerCase();
   const nameMatch = activations.find(
     (a: any) => (a.lead_name ?? "").trim().toLowerCase() === typedName && typedName,
   );
-  // New or existing deposit: if nothing links it to a client, collect the details.
-  const needsNewClient = !activationId && !nameMatch;
-  const newClientValid =
-    !needsNewClient ||
-    (!!form.customer_name.trim() && !!newClient.activation_date && !!newClient.conversion_employee_id && !!newClient.employee_id);
 
   const pickActivation = (id: string) => {
     if (id === "_none") { setActivationId(""); setForm((f) => ({ ...f, activation_id: "" })); return; }
@@ -803,57 +765,13 @@ function RevenueDialog({
           </div>
         )}
 
-        {!activationId && !nameMatch && !needsNewClient && (
+        {!activationId && !nameMatch && (
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>This deposit is not linked to a client — matching will use name only.</span>
           </div>
         )}
 
-
-        {needsNewClient && (
-          <div className="rounded-lg border border-dashed border-border bg-muted/20 p-3 grid gap-3">
-            <div>
-              <p className="text-sm font-medium">New client</p>
-              <p className="text-xs text-muted-foreground">
-                No client record matches this name — fill these in and one will be created.
-              </p>
-            </div>
-            <Field label="Date of activation">
-              <Input
-                type="date"
-                value={newClient.activation_date}
-                onChange={(e) => setNewClient({ ...newClient, activation_date: e.target.value })}
-              />
-            </Field>
-            <Field label="Conversion agent (Team C)">
-              <Select
-                value={newClient.conversion_employee_id}
-                onValueChange={(v) => setNewClient({ ...newClient, conversion_employee_id: v })}
-              >
-                <SelectTrigger><SelectValue placeholder="Pick agent" /></SelectTrigger>
-                <SelectContent>
-                  {employees
-                    .filter((e: any) => (e.team ?? "C") === "C")
-                    .map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Retention agent (Team R)">
-              <Select
-                value={newClient.employee_id}
-                onValueChange={(v) => setNewClient({ ...newClient, employee_id: v })}
-              >
-                <SelectTrigger><SelectValue placeholder="Pick agent" /></SelectTrigger>
-                <SelectContent>
-                  {employees
-                    .filter((e: any) => (e.team ?? "R") === "R")
-                    .map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-        )}
 
         <div className={detailsHidden ? "" : "grid grid-cols-2 gap-3"}>
           <Field label="Amount"><AmountWithCurrency value={form.amount} currency={form.currency} onValueChange={(v) => setForm({ ...form, amount: v })} onCurrencyChange={(c) => setForm({ ...form, currency: c })} /></Field>
@@ -946,10 +864,9 @@ function RevenueDialog({
             onSubmit({
               ...form,
               activation_id: form.activation_id || nameMatch?.id || "",
-              new_client: needsNewClient ? newClient : null,
             })
           }
-          disabled={loading || !form.customer_name || !form.amount || !newClientValid}
+          disabled={loading || !form.customer_name || !form.amount}
         >
           Save
         </Button>

@@ -204,17 +204,6 @@ export function AiClientPasteBulk() {
   const [text, setText] = useState("");
   const [rows, setRows] = useState<BulkRow[] | null>(null);
   const [unmapped, setUnmapped] = useState<string | null>(null);
-  const [agentId, setAgentId] = useState<string>("");
-
-  const employeesQ = useQuery({
-    queryKey: ["ai-paste-employees"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("list_employees_directory");
-      if (error) throw error;
-      return (data ?? []) as { id: string; name: string; active: boolean }[];
-    },
-    staleTime: 60_000,
-  });
 
   const existingQ = useQuery({
     queryKey: ["ai-paste-existing-clients"],
@@ -245,7 +234,7 @@ export function AiClientPasteBulk() {
             data: c,
             matchId: match ? match.id : null,
             matchName: match ? match.lead_name : null,
-            include: true,
+            include: !!match,
           };
         }),
       );
@@ -255,25 +244,14 @@ export function AiClientPasteBulk() {
   });
 
   const chosen = (rows ?? []).filter((r) => r.include);
-  const needsAgent = chosen.some((r) => !r.matchId);
-
   const save = useMutation({
     mutationFn: async () => {
-      const today = new Date().toISOString().slice(0, 10);
       for (const r of chosen) {
         if (r.matchId) {
           const { error } = await supabase
             .from("daily_lead_activations")
             .update(r.data as any)
             .eq("id", r.matchId);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from("daily_lead_activations").insert({
-            ...(r.data as any),
-            employee_id: agentId,
-            activated_count: 1,
-            activation_date: today,
-          } as any);
           if (error) throw error;
         }
       }
@@ -287,11 +265,6 @@ export function AiClientPasteBulk() {
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not save"),
   });
-
-  const employees = useMemo(
-    () => (employeesQ.data ?? []).filter((e) => e.active),
-    [employeesQ.data],
-  );
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setText(""); setRows(null); setUnmapped(null); } }}>
@@ -332,7 +305,7 @@ export function AiClientPasteBulk() {
                         {r.matchId ? (
                           <Badge variant="secondary">Updates {r.matchName ?? "existing client"}</Badge>
                         ) : (
-                          <Badge variant="default">New client</Badge>
+                          <Badge variant="outline">No existing match — not saved</Badge>
                         )}
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
@@ -346,20 +319,6 @@ export function AiClientPasteBulk() {
                 </div>
               ))}
             </div>
-
-            {needsAgent && (
-              <div className="grid gap-1.5">
-                <label className="text-xs text-muted-foreground">Assign new clients to</label>
-                <Select value={agentId} onValueChange={setAgentId}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Pick an agent" /></SelectTrigger>
-                  <SelectContent>
-                    {employees.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {unmapped && (
               <p className="rounded-lg border border-border bg-foreground/[0.02] p-3 text-xs text-muted-foreground">
@@ -376,7 +335,7 @@ export function AiClientPasteBulk() {
             <>
               <Button variant="ghost" onClick={() => setRows(null)}>Paste something else</Button>
               <Button
-                disabled={!chosen.length || save.isPending || (needsAgent && !agentId)}
+                disabled={!chosen.length || save.isPending}
                 onClick={() => save.mutate()}
               >
                 {save.isPending ? "Saving…" : `Save ${chosen.length} client${chosen.length === 1 ? "" : "s"}`}

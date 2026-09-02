@@ -44,6 +44,8 @@ import { usePersistedState } from "@/hooks/use-persisted-state";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { QueryError } from "@/components/query-error";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { IndividualLeads } from "@/components/leads-grid";
 
 export const Route = createFileRoute("/_authenticated/leads")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -77,7 +79,9 @@ function LeadsPage() {
   const { exportCSV } = useExporters();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  useQuickCreate("leads", () => setOpen(true));
+  const [section, setSection] = usePersistedState<"leads" | "daily">("leads:section", "leads");
+  const [leadCreateSignal, setLeadCreateSignal] = useState(0);
+  useQuickCreate("leads", () => { setSection("leads"); setLeadCreateSignal((n) => n + 1); });
   const [editing, setEditing] = useState<Entry | null>(null);
   const [range, setRange] = usePersistedState<RangeKey>("leads:range", "month");
   const [customStart, setCustomStart] = usePersistedState<string>("leads:range-start", "");
@@ -624,6 +628,19 @@ function LeadsPage() {
 
   return (
     <div>
+      <Tabs value={section} onValueChange={(v) => setSection(v as "leads" | "daily")} className="mb-5">
+        <TabsList>
+          <TabsTrigger value="leads">Leads</TabsTrigger>
+          <TabsTrigger value="daily">Daily numbers</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {section === "leads" ? (
+        <>
+          <PageHeader title="Leads" description="Manage individual leads, ownership and conversion into clients." />
+          <IndividualLeads createSignal={leadCreateSignal} />
+        </>
+      ) : (
+      <>
       <PageHeader
         title="Leads"
         description="Log daily totals per source — received, activated, reported. Costs are computed from each source's pricing model."
@@ -1165,6 +1182,8 @@ function LeadsPage() {
           </>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }
