@@ -127,8 +127,8 @@ export function ManualDepositDialog({
               <Select value={form.method} onValueChange={(v) => setForm((f) => ({ ...f, method: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {DEPOSIT_METHODS.map((m: any) => (
-                    <SelectItem key={m.value ?? m} value={m.value ?? m}>{m.label ?? m}</SelectItem>
+                  {DEPOSIT_METHODS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
