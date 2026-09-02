@@ -26,6 +26,11 @@ type Notification = {
   created_at: string;
 };
 
+// How long the "pending deposit requests" nag stays quiet after an admin
+// dismisses it. It keeps coming back until the queue is cleared.
+const NAG_QUIET_MS = 5 * 60 * 1000;
+const NAG_KEY = "deposit-requests-nag-dismissed-at";
+
 export function NotificationBell() {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -42,6 +47,62 @@ export function NotificationBell() {
       return (data ?? []) as Notification[];
     },
   });
+
+  // Admin nag: count of deposit requests still waiting for a decision.
+  // Only admins can read the notifications table, so a successful load is
+  // our "this user is an admin" signal — don't nag agents with it.
+  const pendingRequests = useQuery({
+    enabled: q.isSuccess,
+    refetchInterval: 60_000,
+    queryKey: ["pending-deposit-requests"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("deposit_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  const pendingCount = pendingRequests.data ?? 0;
+
+  useEffect(() => {
+    if (pendingCount === 0) return;
+    const dismissedAt = Number(sessionStorage.getItem(NAG_KEY) ?? 0);
+    if (Date.now() - dismissedAt < NAG_QUIET_MS) return;
+
+    toast.warning(
+      `${pendingCount} deposit request${pendingCount === 1 ? "" : "s"} waiting for approval`,
+      {
+        id: "deposit-requests-nag",
+        duration: Infinity,
+        description: "An agent is waiting for bank details. Review the request to clear this reminder.",
+        action: {
+          label: "Review now",
+          onClick: () => navigate({ to: "/deposit-requests" }),
+        },
+        onDismiss: () => sessionStorage.setItem(NAG_KEY, String(Date.now())),
+        onAutoClose: () => sessionStorage.setItem(NAG_KEY, String(Date.now())),
+      },
+    );
+  }, [pendingCount, navigate]);
+
+  // Keep the nag count fresh the moment an agent submits a request.
+  useEffect(() => {
+    if (!q.isSuccess) return;
+    const channel = supabase
+      .channel("deposit-requests-nag")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "deposit_requests" },
+        () => qc.invalidateQueries({ queryKey: ["pending-deposit-requests"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [q.isSuccess, qc]);
 
   const openNotification = (n: Notification) => {
     // Deposit requests go to the approval queue, not the client page.
