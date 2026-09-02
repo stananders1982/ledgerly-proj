@@ -1,4 +1,4 @@
-import { Bot, Sparkles, KeyRound, Settings, LayoutDashboard, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, ShieldAlert, Banknote, Gauge, Building2, Landmark, ScrollText, ListTodo, Upload, History, Target, FlaskConical } from "lucide-react";
+import { Bot, Sparkles, KeyRound, Settings, LayoutDashboard, LayoutTemplate, Users, UserCheck, Receipt, TrendingUp, UserCog, Repeat, Tag, FileBarChart, CalendarCheck, ShieldCheck, ShieldAlert, Banknote, Gauge, Building2, Landmark, ScrollText, ListTodo, Upload, History, Target, FlaskConical } from "lucide-react";
 
 export type NavGroup = "Overview" | "Operations" | "People" | "Analytics" | "Admin";
 
@@ -34,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "attendance", title: "Attendance", url: "/attendance", icon: CalendarCheck, group: "People" },
 
   { key: "scenarios", title: "Scenarios", url: "/scenarios", icon: FlaskConical, group: "Analytics" },
+  { key: "dashboards", title: "Dashboards", url: "/dashboards", icon: LayoutTemplate, group: "Analytics" },
   { key: "reports", title: "Reports", url: "/reports", icon: FileBarChart, group: "Analytics" },
   { key: "affiliates", title: "Affiliates", url: "/affiliates", icon: Building2, group: "Analytics" },
   { key: "goals", title: "Goals", url: "/goals", icon: Target, group: "Analytics" },
