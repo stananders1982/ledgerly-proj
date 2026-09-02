@@ -44,6 +44,11 @@ export function NotificationBell() {
   });
 
   const openNotification = (n: Notification) => {
+    // Deposit requests go to the approval queue, not the client page.
+    if (n.type === "deposit_request") {
+      navigate({ to: "/deposit-requests" });
+      return;
+    }
     if (n.lead_activation_id) {
       navigate({ to: "/activations", search: { client: n.lead_activation_id, name: undefined } });
       return;
@@ -68,7 +73,7 @@ export function NotificationBell() {
           const opts = {
             description: n.body ?? undefined,
             action: {
-              label: n.lead_activation_id || n.lead_name ? "View client" : "View",
+              label: n.type === "deposit_request" ? "Review request" : n.lead_activation_id || n.lead_name ? "View client" : "View",
               onClick: () => openNotification(n),
             },
             onClick: () => openNotification(n),
