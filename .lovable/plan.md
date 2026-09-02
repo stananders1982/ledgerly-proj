@@ -11,7 +11,10 @@ Today the database still lets any signed-in workspace member read every client, 
 
 ## Request deposit from the client page
 
-The client profile gets a **Request deposit** button next to the call / WhatsApp / email actions. It opens the same deposit-request form already used on the Deposit Requests page, pre-filled with that client (name, agent, age, country, city), so an agent never has to leave the client to raise a request. Admin approval and the existing reminder flow are untouched.
+The existing deposit button on the client profile records a **manual** deposit and stays as it is for admins and managers. Alongside it, the profile gets a separate **Request deposit** button that opens the deposit-request form already used on the Deposit Requests page, pre-filled with that client (name, agent, age, country, city) — so an agent raises a request without leaving the client. Admin approval and the existing reminder flow are untouched.
+
+For scoped agents (conversion / retention) the manual deposit button is hidden, leaving only **Request deposit**: they should never write income directly, only ask an admin to confirm it.
+
 
 ## What stays the same
 
