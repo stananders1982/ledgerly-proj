@@ -68,20 +68,19 @@ function clean(v: string | undefined) {
   return s === "" || s === "-" ? null : s;
 }
 
-/** Map an old-CRM call status to Ledgerly's pipeline status + answered flag. */
-const OLD_CRM_STATUS: Record<string, { status: string; answered: boolean }> = {
-  "no answer": { status: "cold", answered: false },
-  "voice mail": { status: "cold", answered: false },
-  "voicemail": { status: "cold", answered: false },
-  "wrong number": { status: "churned", answered: false },
-  "not interested": { status: "churned", answered: true },
-  "call back": { status: "warm", answered: true },
-  "callback": { status: "warm", answered: true },
-  "new": { status: "warm", answered: false },
-  "interested": { status: "hot", answered: true },
-  "hot": { status: "hot", answered: true },
-  "ftd": { status: "hot", answered: true },
-  "dormant": { status: "dormant", answered: true },
+/** Map an old-CRM call status to the lead pipeline status. */
+const OLD_CRM_LEAD_STATUS: Record<string, string> = {
+  "new": "new",
+  "no answer": "contacted",
+  "voice mail": "contacted",
+  "voicemail": "contacted",
+  "call back": "contacted",
+  "callback": "contacted",
+  "wrong number": "lost",
+  "not interested": "lost",
+  "interested": "qualified",
+  "hot": "qualified",
+  "ftd": "activated",
 };
 
 /**
