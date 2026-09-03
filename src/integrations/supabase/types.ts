@@ -1824,6 +1824,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          old_crm_id: string | null
           phone: string | null
           reported: boolean
           source_id: string | null
@@ -1842,6 +1843,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          old_crm_id?: string | null
           phone?: string | null
           reported?: boolean
           source_id?: string | null
@@ -1860,6 +1862,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          old_crm_id?: string | null
           phone?: string | null
           reported?: boolean
           source_id?: string | null
@@ -2921,6 +2924,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_old_crm_leads: { Args: { _rows: Json }; Returns: Json }
       is_super_admin: { Args: never; Returns: boolean }
       list_affiliates_directory: {
         Args: never
