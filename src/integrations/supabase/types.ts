@@ -2972,6 +2972,24 @@ export type Database = {
         | "wrong_number"
         | "not_interested"
         | "interested"
+        | "duplicate"
+        | "failed_deposit"
+        | "hot"
+        | "low_potential"
+        | "na1"
+        | "na2"
+        | "need_to_cancel"
+        | "never_registered"
+        | "no_language"
+        | "no_money"
+        | "not_reachable"
+        | "reassign"
+        | "risk"
+        | "test"
+        | "transfer"
+        | "under_age"
+        | "wrong_details"
+        | "wrong_person"
       pricing_model: "CPL" | "CPA"
       recurrence_frequency: "weekly" | "monthly" | "quarterly" | "yearly"
     }
@@ -3114,6 +3132,24 @@ export const Constants = {
         "wrong_number",
         "not_interested",
         "interested",
+        "duplicate",
+        "failed_deposit",
+        "hot",
+        "low_potential",
+        "na1",
+        "na2",
+        "need_to_cancel",
+        "never_registered",
+        "no_language",
+        "no_money",
+        "not_reachable",
+        "reassign",
+        "risk",
+        "test",
+        "transfer",
+        "under_age",
+        "wrong_details",
+        "wrong_person",
       ],
       pricing_model: ["CPL", "CPA"],
       recurrence_frequency: ["weekly", "monthly", "quarterly", "yearly"],
