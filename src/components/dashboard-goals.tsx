@@ -155,7 +155,7 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
       activationsBySource,
       depositsBySource,
     };
-  }, [revenueQ.data, activationsQ.data, depositsQ.data, entriesQ.data]);
+  }, [revenueQ.data, activationsQ.data, depositsQ.data, entriesQ.data, displayCurrency]);
 
   const namedEntity = (g: Goal) => {
     if (g.entity_type === "company") return "Company";
