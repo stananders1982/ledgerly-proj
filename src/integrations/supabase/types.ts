@@ -2956,7 +2956,18 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
-      lead_status: "new" | "contacted" | "qualified" | "activated" | "lost"
+      lead_status:
+        | "new"
+        | "contacted"
+        | "qualified"
+        | "activated"
+        | "lost"
+        | "no_answer"
+        | "voice_mail"
+        | "call_back"
+        | "wrong_number"
+        | "not_interested"
+        | "interested"
       pricing_model: "CPL" | "CPA"
       recurrence_frequency: "weekly" | "monthly" | "quarterly" | "yearly"
     }
@@ -3087,7 +3098,19 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      lead_status: ["new", "contacted", "qualified", "activated", "lost"],
+      lead_status: [
+        "new",
+        "contacted",
+        "qualified",
+        "activated",
+        "lost",
+        "no_answer",
+        "voice_mail",
+        "call_back",
+        "wrong_number",
+        "not_interested",
+        "interested",
+      ],
       pricing_model: ["CPL", "CPA"],
       recurrence_frequency: ["weekly", "monthly", "quarterly", "yearly"],
     },

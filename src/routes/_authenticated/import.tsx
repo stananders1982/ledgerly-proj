@@ -105,14 +105,14 @@ async function dropExistingByEmail<T extends { email: string | null }>(rows: T[]
 /** Map an old-CRM call status to the lead pipeline status. */
 const OLD_CRM_LEAD_STATUS: Record<string, string> = {
   "new": "new",
-  "no answer": "contacted",
-  "voice mail": "contacted",
-  "voicemail": "contacted",
-  "call back": "contacted",
-  "callback": "contacted",
-  "wrong number": "lost",
-  "not interested": "lost",
-  "interested": "qualified",
+  "no answer": "no_answer",
+  "voice mail": "voice_mail",
+  "voicemail": "voice_mail",
+  "call back": "call_back",
+  "callback": "call_back",
+  "wrong number": "wrong_number",
+  "not interested": "not_interested",
+  "interested": "interested",
   "hot": "qualified",
   "ftd": "activated",
 };
