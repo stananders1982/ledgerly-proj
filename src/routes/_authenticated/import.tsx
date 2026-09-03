@@ -62,6 +62,14 @@ function normalizeDate(v: string) {
   return d.toISOString().slice(0, 10);
 }
 
+/** People's names are stored capitalized: "richard thompson" -> "Richard Thompson". */
+function titleCase(v: string | undefined | null) {
+  return (v ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[\p{L}][\p{L}'’-]*/gu, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
 /** Old-CRM exports use "-" for empty cells. */
 function clean(v: string | undefined) {
   const s = (v ?? "").trim();
