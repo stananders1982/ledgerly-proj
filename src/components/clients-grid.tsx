@@ -140,8 +140,8 @@ export function ClientsGrid({
               <Checkbox checked={allChecked} onCheckedChange={(c) => onTogglePage(Boolean(c))} aria-label="Select all on page" />
             </th>
             <th className={cn(TH, "w-8 pin-left left-9")}></th>
-            <th className={TH}>CRM ID</th>
             <th className={cn(TH, "pin-left left-[68px] min-w-[190px] bg-muted/40")}>Full name</th>
+            <th className={TH}>CRM ID</th>
             <th className={cn(TH, "w-[120px]")}>Contact</th>
             <th className={TH}>Activated</th>
             <th className={TH}>Source</th>
@@ -157,7 +157,6 @@ export function ClientsGrid({
           <tr className="bg-background/60">
             <th className="px-2 pb-2 pin-left left-0" />
             <th className="px-2 pb-2 pin-left left-9" />
-            <th className="px-2 pb-2"><Input className="h-7 w-28 text-xs" placeholder="CRM ID" value={f.crmId} onChange={(e) => filters.set({ crmId: e.target.value })} /></th>
             <th className="px-2 pb-2 pin-left left-[68px] bg-background/60">
               <Input
                 className="h-7 text-xs"
@@ -166,6 +165,7 @@ export function ClientsGrid({
                 onChange={(e) => filters.set({ name: e.target.value })}
               />
             </th>
+            <th className="px-2 pb-2"><Input className="h-7 w-28 text-xs" placeholder="CRM ID" value={f.crmId} onChange={(e) => filters.set({ crmId: e.target.value })} /></th>
             <th className="px-2 pb-2" />
             <th className="px-2 pb-2" />
             <th className="px-2 pb-2">
@@ -275,12 +275,12 @@ export function ClientsGrid({
               <td className={cn(TD, "pin-left left-9")}>
                 <FavoriteStar type="client" id={r.id} label={r.lead_name} />
               </td>
-              <td className={cn(TD, "font-mono font-medium")}>{r.crm_id}</td>
               <td className={cn(TD, "pin-left left-[68px] font-medium")}>
                 <button type="button" className="max-w-[220px] truncate text-left hover:underline" onClick={() => onOpen(r)}>
                   {r.lead_name || "Unnamed client"}
                 </button>
               </td>
+              <td className={cn(TD, "font-mono font-medium")}>{r.crm_id}</td>
               <td className={TD}>
                 <ContactActions phone={r.phone} email={r.email} name={r.lead_name} size="icon" />
               </td>
