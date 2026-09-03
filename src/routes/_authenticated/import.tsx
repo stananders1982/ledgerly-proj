@@ -68,6 +68,32 @@ function clean(v: string | undefined) {
   return s === "" || s === "-" ? null : s;
 }
 
+/**
+ * Emails are unique per workspace: drop rows whose email already belongs to a
+ * lead or a client, and collapse repeats inside the file itself.
+ */
+async function dropExistingByEmail<T extends { email: string | null }>(rows: T[]) {
+  const emails = [...new Set(rows.map((r) => (r.email ?? "").trim().toLowerCase()).filter(Boolean))];
+  const taken = new Set<string>();
+  if (emails.length) {
+    for (const table of ["leads", "daily_lead_activations"] as const) {
+      const { data, error } = await supabase.from(table).select("email").not("email", "is", null);
+      if (error) throw error;
+      (data ?? []).forEach((r: any) => r.email && taken.add(String(r.email).trim().toLowerCase()));
+    }
+  }
+  const seen = new Set<string>();
+  const fresh: T[] = [];
+  let skipped = 0;
+  for (const r of rows) {
+    const key = (r.email ?? "").trim().toLowerCase();
+    if (key && (taken.has(key) || seen.has(key))) { skipped++; continue; }
+    if (key) seen.add(key);
+    fresh.push(r);
+  }
+  return { fresh, skipped };
+}
+
 /** Map an old-CRM call status to the lead pipeline status. */
 const OLD_CRM_LEAD_STATUS: Record<string, string> = {
   "new": "new",
