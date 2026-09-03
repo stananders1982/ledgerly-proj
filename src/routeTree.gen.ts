@@ -37,7 +37,6 @@ import { Route as AuthenticatedCompaniesRouteImport } from './routes/_authentica
 import { Route as AuthenticatedBanksRouteImport } from './routes/_authenticated/banks'
 import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authenticated/attendance'
 import { Route as AuthenticatedApiDocsRouteImport } from './routes/_authenticated/api-docs'
-import { Route as AuthenticatedAdminOverviewRouteImport } from './routes/_authenticated/admin-overview'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedActivationsRouteImport } from './routes/_authenticated/activations'
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users.index'
@@ -202,12 +201,6 @@ const AuthenticatedApiDocsRoute = AuthenticatedApiDocsRouteImport.update({
   path: '/api-docs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAdminOverviewRoute =
-  AuthenticatedAdminOverviewRouteImport.update({
-    id: '/admin-overview',
-    path: '/admin-overview',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedActivityRoute = AuthenticatedActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
@@ -325,7 +318,6 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/activations': typeof AuthenticatedActivationsRoute
   '/activity': typeof AuthenticatedActivityRoute
-  '/admin-overview': typeof AuthenticatedAdminOverviewRoute
   '/api-docs': typeof AuthenticatedApiDocsRoute
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/banks': typeof AuthenticatedBanksRoute
@@ -374,7 +366,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/activations': typeof AuthenticatedActivationsRoute
   '/activity': typeof AuthenticatedActivityRoute
-  '/admin-overview': typeof AuthenticatedAdminOverviewRoute
   '/api-docs': typeof AuthenticatedApiDocsRoute
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/banks': typeof AuthenticatedBanksRoute
@@ -426,7 +417,6 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/activations': typeof AuthenticatedActivationsRoute
   '/_authenticated/activity': typeof AuthenticatedActivityRoute
-  '/_authenticated/admin-overview': typeof AuthenticatedAdminOverviewRoute
   '/_authenticated/api-docs': typeof AuthenticatedApiDocsRoute
   '/_authenticated/attendance': typeof AuthenticatedAttendanceRoute
   '/_authenticated/banks': typeof AuthenticatedBanksRoute
@@ -479,7 +469,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/activations'
     | '/activity'
-    | '/admin-overview'
     | '/api-docs'
     | '/attendance'
     | '/banks'
@@ -528,7 +517,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/activations'
     | '/activity'
-    | '/admin-overview'
     | '/api-docs'
     | '/attendance'
     | '/banks'
@@ -579,7 +567,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/activations'
     | '/_authenticated/activity'
-    | '/_authenticated/admin-overview'
     | '/_authenticated/api-docs'
     | '/_authenticated/attendance'
     | '/_authenticated/banks'
@@ -838,13 +825,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedApiDocsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin-overview': {
-      id: '/_authenticated/admin-overview'
-      path: '/admin-overview'
-      fullPath: '/admin-overview'
-      preLoaderRoute: typeof AuthenticatedAdminOverviewRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/activity': {
       id: '/_authenticated/activity'
       path: '/activity'
@@ -991,7 +971,6 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedActivationsRoute: typeof AuthenticatedActivationsRoute
   AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
-  AuthenticatedAdminOverviewRoute: typeof AuthenticatedAdminOverviewRoute
   AuthenticatedApiDocsRoute: typeof AuthenticatedApiDocsRoute
   AuthenticatedAttendanceRoute: typeof AuthenticatedAttendanceRoute
   AuthenticatedBanksRoute: typeof AuthenticatedBanksRoute
@@ -1030,7 +1009,6 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedActivationsRoute: AuthenticatedActivationsRoute,
   AuthenticatedActivityRoute: AuthenticatedActivityRoute,
-  AuthenticatedAdminOverviewRoute: AuthenticatedAdminOverviewRoute,
   AuthenticatedApiDocsRoute: AuthenticatedApiDocsRoute,
   AuthenticatedAttendanceRoute: AuthenticatedAttendanceRoute,
   AuthenticatedBanksRoute: AuthenticatedBanksRoute,
