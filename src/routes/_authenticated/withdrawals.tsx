@@ -35,7 +35,7 @@ import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { TableFrame } from "@/components/table-frame";
-import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TableKeyboardHint, TotalsRow } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, ClearFiltersButton, FilterRow, FitToggle, TableKeyboardHint, TotalsRow } from "@/components/table-toolbox";
 import { withdrawalPenalty } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
@@ -309,6 +309,7 @@ function WithdrawalsPage() {
         <FitToggle tb={tb} />
           <TableKeyboardHint />
         <ColumnsMenu tb={tb} />
+        <ClearFiltersButton tb={tb} />
       </div>
 
       <div className="card-surface overflow-hidden">

@@ -40,7 +40,7 @@ import { KYC_STATUS_LABELS, kycStatus } from "@/lib/kyc";
 import { KycBadge } from "@/components/client-kyc-checklist";
 import { clientHealth, HEALTH_BAND_LABEL, HEALTH_BAND_RANK, type ClientHealth } from "@/lib/client-health";
 import { HealthBadge } from "@/components/client-health";
-import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TableKeyboardHint } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, ClearFiltersButton, FilterRow, FitToggle, TableKeyboardHint } from "@/components/table-toolbox";
 import { TableFrame } from "@/components/table-frame";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate, depositIndex, depositTotalFor, isLateRetentionFtd, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
