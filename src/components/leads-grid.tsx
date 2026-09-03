@@ -174,7 +174,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
         <th className="p-2 text-left">Tag</th>
         <th className="p-2 text-left">Last comment text</th>
         <th className="p-2 text-right">Actions</th>
-      </tr></thead>
+      </tr><FilterRow tb={tb} leading={1} trailing={1}/></thead>
       <tbody>{rows.map(l=><tr key={l.id} className="border-t odd:bg-muted/10 hover:bg-accent/30">
         <td className="p-2"><Checkbox checked={selected.has(l.id)} onCheckedChange={()=>setSelected(s=>{const n=new Set(s);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;})}/></td>
         <td className="p-2 font-mono font-medium whitespace-nowrap">{l.crm_id}</td>
