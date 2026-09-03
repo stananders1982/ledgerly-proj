@@ -116,7 +116,7 @@ function ProtectedLayout() {
               </DropdownMenu>
             </div>
           </header>
-          <main className="flex-1 p-4 pb-24 sm:p-6 md:pb-6 lg:p-8 max-w-[1400px] w-full mx-auto" role="main">
+          <main className="w-full flex-1 p-4 pb-24 sm:p-5 md:pb-5 lg:p-6" role="main">
             <UnallocatedFtdAlert />
             <div className="page-fade-in" key={pathname}>
               <Outlet />
