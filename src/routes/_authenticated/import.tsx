@@ -62,6 +62,45 @@ function normalizeDate(v: string) {
   return d.toISOString().slice(0, 10);
 }
 
+/** Old-CRM exports use "-" for empty cells. */
+function clean(v: string | undefined) {
+  const s = (v ?? "").trim();
+  return s === "" || s === "-" ? null : s;
+}
+
+/** Map an old-CRM call status to Ledgerly's pipeline status + answered flag. */
+const OLD_CRM_STATUS: Record<string, { status: string; answered: boolean }> = {
+  "no answer": { status: "cold", answered: false },
+  "voice mail": { status: "cold", answered: false },
+  "voicemail": { status: "cold", answered: false },
+  "wrong number": { status: "churned", answered: false },
+  "not interested": { status: "churned", answered: true },
+  "call back": { status: "warm", answered: true },
+  "callback": { status: "warm", answered: true },
+  "new": { status: "warm", answered: false },
+  "interested": { status: "hot", answered: true },
+  "hot": { status: "hot", answered: true },
+  "ftd": { status: "hot", answered: true },
+  "dormant": { status: "dormant", answered: true },
+};
+
+/**
+ * Names in the old CRM carry suffixes ("Jack Alberts (Conv)") or are shortened
+ * here ("Jonathan F"). Match exactly first, then by prefix / first name.
+ */
+function matchEmployee(raw: string | undefined, list: { id: string; name: string }[]) {
+  const name = (raw ?? "").replace(/\(.*?\)/g, "").trim().toLowerCase();
+  if (!name) return null;
+  const norm = (s: string) => s.trim().toLowerCase();
+  const exact = list.find((e) => norm(e.name) === name);
+  if (exact) return exact.id;
+  const partial = list.find((e) => name.startsWith(norm(e.name)) || norm(e.name).startsWith(name));
+  if (partial) return partial.id;
+  const first = name.split(/\s+/)[0];
+  const byFirst = list.filter((e) => norm(e.name).split(/\s+/)[0] === first);
+  return byFirst.length === 1 ? byFirst[0].id : null;
+}
+
 function useImportDefinitions() {
   const qc = useQueryClient();
   const employeesQ = useDirectory("employees");
