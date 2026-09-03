@@ -10,6 +10,22 @@ import { toast } from "sonner";
 
 export type ImportField = { key: string; label: string; required?: boolean; hint?: string };
 
+export type PreviewRow = {
+  index: number;
+  name: string;
+  action: "create" | "update" | "skip";
+  crm_id: string | null;
+  reason: string;
+  fill: string[];
+};
+
+export type PreviewResult = {
+  rows: PreviewRow[];
+  summary: { create: number; update: number; skip: number; total: number };
+};
+
+export type ImportMeta = { fileName: string };
+
 /** Minimal RFC-4180-ish CSV parser (handles quotes, escaped quotes, CRLF). */
 export function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
