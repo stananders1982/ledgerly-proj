@@ -314,7 +314,7 @@ function useImportDefinitions() {
     const applyXxDonations = async (donations: XxDonation[]) => {
       for (const { twin, donor } of donations) {
         const note = donorNote(donor);
-        const patch: Record<string, unknown> = {};
+        const patch: { source_id?: string; affiliate_id?: string; notes?: string } = {};
         const sourceId = resolveSourceId(donor);
         const affiliateId = resolveAffiliateId(donor);
         if (!twin.source_id && sourceId) patch.source_id = sourceId;
@@ -326,6 +326,7 @@ function useImportDefinitions() {
         await supabase.from("leads").update(patch).eq("id", twin.id);
       }
     };
+
 
 
 
