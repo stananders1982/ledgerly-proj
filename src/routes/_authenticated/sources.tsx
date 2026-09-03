@@ -21,6 +21,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { TableSkeleton } from "@/components/table-skeleton";
@@ -153,7 +154,25 @@ function SourcesPage() {
     });
   }, [analytics, perfFilter, sortKey]);
 
-  const { sorted, sort, toggle } = useSort<any>(visible, {
+  const sourceCols: ColDef<any>[] = [
+    { key: "name", label: "Source", locked: true, value: (a) => a.source.name ?? "" },
+    { key: "model", label: "Model", filter: "select", value: (a) => a.source.pricing_model ?? "", options: ["CPL", "CPA"] },
+    { key: "price", label: "Price", value: (a) => a.source.price ?? 0 },
+    { key: "leads", label: "Leads", value: (a) => a.total ?? 0 },
+    { key: "expected", label: "Expected", value: (a) => (a.expected ? a.expected.toFixed(1) : "") },
+    { key: "actual", label: "Actual", value: (a) => a.actualRate?.toFixed(1) ?? "" },
+    {
+      key: "target",
+      label: "Target",
+      filter: "select",
+      options: ["Above Target", "Below Target", "No target"],
+      value: (a) => (!a.expected ? "No target" : a.actualRate >= a.expected ? "Above Target" : "Below Target"),
+    },
+    { key: "cost", label: "Cost", value: (a) => a.cost ?? 0 },
+  ];
+  const tb = useTableToolbox<any>("sources", sourceCols, visible);
+
+  const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
     name: (a) => a.source.name ?? "",
     model: (a) => a.source.pricing_model ?? "",
     price: (a) => Number(a.source.price ?? 0),
@@ -274,6 +293,7 @@ function SourcesPage() {
             </SelectContent>
           </Select>
         </div>
+        <ClearFiltersButton tb={tb} />
       </div>
 
       <div className="card-surface overflow-hidden">
@@ -324,6 +344,7 @@ function SourcesPage() {
                   <th className="py-3 px-4"></th>
 
                 </tr>
+                <FilterRow tb={tb} trailing={1} />
               </thead>
               <tbody>
                 {pageItems.map((a: any) => (
