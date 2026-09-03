@@ -1,7 +1,7 @@
 # Merge "xx" duplicate rows during CSV import
 
 ## Rule
-A row whose first name or last name ends with `xx` (e.g. `Johnxx Smith`, `John Smithxx`) is a duplicate of the same person without the `xx` (`John Smith`). The `xx` row must never create its own lead — instead its acquisition details are handed to the clean twin.
+A row whose name carries `xx` markers — as a separate word after the first and/or last name, e.g. `John xx Smith xx` or `John xx Smith` — is a duplicate of the same person without them (`John Smith`). Names written without a space (`Johnxx Smith`) are treated the same way. The marked row must never create its own lead — instead its acquisition details are handed to the clean twin.
 
 ## Behaviour
 
