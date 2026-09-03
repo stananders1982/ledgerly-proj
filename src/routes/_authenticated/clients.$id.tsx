@@ -62,6 +62,7 @@ export const Route = createFileRoute("/_authenticated/clients/$id")({
 
 type Client = {
   id: string;
+  crm_id: string;
   lead_name: string | null;
   employee_id: string;
   conversion_employee_id: string | null;
@@ -430,7 +431,7 @@ function ClientPage() {
       <PageHeader
         eyebrow="Client"
         title={cur.lead_name || "Unnamed client"}
-        description={[cur.daily_lead_entries?.lead_sources?.name, cur.country, age ? `${age} yrs` : null]
+        description={[cur.crm_id, cur.daily_lead_entries?.lead_sources?.name, cur.country, age ? `${age} yrs` : null]
           .filter(Boolean)
           .join(" · ") || "Full profile, money movements and insight."}
         actions={

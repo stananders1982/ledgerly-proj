@@ -1,6 +1,7 @@
 # Ledgerly Roadmap
 
 ## Done
+- [x] Permanent shared CRM IDs for every lead/client and duplicate-safe repeat old-CRM CSV uploads.
 - [x] Count invalid-status CSV leads in Daily numbers while excluding them from valid-lead and FTD totals.
 - [x] Match the old CRM Lead status list and its green, red, yellow, orange, and purple indicators.
 - [x] Old-CRM CSV FTDs atomically connect Leads, Clients, Income and Daily numbers without double-counting existing Daily totals.

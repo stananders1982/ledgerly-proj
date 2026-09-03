@@ -250,6 +250,7 @@ function useImportDefinitions() {
               city: clean(r.city),
               age: Number(clean(r.age)) || null,
               notes: noteBits.join(" · ") || null,
+              fingerprint_source: JSON.stringify(r),
             };
           });
 

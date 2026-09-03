@@ -85,6 +85,7 @@ export const Route = createFileRoute("/_authenticated/activations")({
 
 type Row = {
   id: string;
+  crm_id: string;
   entry_id: string;
   employee_id: string;
   conversion_employee_id: string | null;
@@ -493,6 +494,7 @@ function ActivationsPage() {
     "activations",
     [
       { key: "date", label: "Date", filter: "date", value: (r: any) => (actDate(r) ? fmtDate(actDate(r)!) : "") },
+      { key: "crmId", label: "CRM ID", value: (r: any) => r.crm_id ?? "" },
       { key: "qualified", label: "Qualified", filter: "select", options: ["Qualified", "Pending"], value: (r: any) => (r.qualified_at ? "Qualified" : "Pending") },
       {
         key: "lateftd",
@@ -533,6 +535,7 @@ function ActivationsPage() {
 
   const { sorted, sort, toggle, setSort } = useSort<any>(tb.filtered, {
     date: (r) => actDate(r) ?? "",
+    crmId: (r) => r.crm_id ?? "",
     lead: (r) => r.lead_name ?? "",
     source: (r) => r.daily_lead_entries?.lead_sources?.name ?? "",
     balance: (r) => netBalance(r),
@@ -1245,6 +1248,7 @@ function ActivationsPage() {
                       className="min-w-0 flex-1 text-left"
                     >
                       <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-medium text-muted-foreground">{r.crm_id}</span>
                         <span className="truncate text-sm font-semibold">{r.lead_name || "Unnamed client"}</span>
                         <HealthBadge health={healthOf(r)} />
                         <PotentialBadge value={r.potential} />
@@ -1357,6 +1361,7 @@ function ActivationsPage() {
                 </th>
                 <th className="py-3 px-2 w-8 pin-left left-9"></th>
                 {tb.show("date") && <SortTh label="Date" k="date" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
+                {tb.show("crmId") && <SortTh label="CRM ID" k="crmId" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
                 {tb.show("qualified") && <th className="py-2.5 px-2">Qualified</th>}
                 {tb.show("lateftd") && <th className="py-2.5 px-2">FTD type</th>}
                 {tb.show("lead") && <SortTh label="Lead name" k="lead" sort={sort} toggle={toggle} className="py-2.5 px-2" />}
@@ -1401,6 +1406,7 @@ function ActivationsPage() {
                   {tb.show("date") && (
                   <td className="py-2.5 px-2">{actDate(r) ? fmtDate(actDate(r)!) : "—"}</td>
                   )}
+                  {tb.show("crmId") && <td className="py-2.5 px-2 font-mono font-medium whitespace-nowrap">{r.crm_id}</td>}
                   {tb.show("qualified") && (
                   <td className="py-2.5 px-2">
                     {r.qualified_at ? (
