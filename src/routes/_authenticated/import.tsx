@@ -309,7 +309,10 @@ function useImportDefinitions() {
       const payload = prepared.flatMap((r, i) => {
         if (skipped.has(i)) return [];
         order.push(i);
-        return [rowPayload(r, titleCase(names[i].name || r.full_name))];
+        // No twin: keep the cleaned name only when "xx" stood on its own,
+        // so real names such as "Maxx" survive untouched.
+        const keep = names[i].standalone ? names[i].name : names[i].original;
+        return [rowPayload(r, titleCase(keep || r.full_name))];
       });
 
       return { payload, order, skipped, donations };
