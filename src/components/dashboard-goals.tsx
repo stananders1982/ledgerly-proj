@@ -6,7 +6,7 @@ import { Target, TrendingUp, Users, Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { cn } from "@/lib/utils";
-import { fmtMoney } from "@/lib/format";
+import { fmtMoney, useDisplayCurrency } from "@/lib/format";
 import {
   GOAL_METRIC_LABELS,
   GOAL_ENTITY_LABELS,
@@ -104,6 +104,7 @@ export function DashboardGoals({ start, end }: { start: Date; end: Date }) {
     },
   });
 
+  const displayCurrency = useDisplayCurrency();
   const actuals = useMemo(() => {
     const revenue = (revenueQ.data ?? []).reduce((s: number, r: any) => s + toDisplay(r.amount, r.currency), 0);
 
