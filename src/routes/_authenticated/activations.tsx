@@ -1599,7 +1599,7 @@ function ActivationsPage() {
           return (
             <SheetContent
               side="right"
-              className="inset-x-0 bottom-0 left-0 top-auto flex h-[92vh] w-full flex-col gap-0 overflow-y-auto rounded-t-2xl border-l-0 border-t p-4 scroll-slim data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:max-w-xl sm:rounded-none sm:border-l sm:border-t-0 sm:p-6 sm:data-[state=closed]:slide-out-to-right sm:data-[state=open]:slide-in-from-right"
+              className="inset-x-0 bottom-0 left-0 top-auto flex h-[92vh] w-full flex-col gap-0 overflow-y-auto rounded-t-2xl border-l-0 border-t p-4 scroll-slim data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:max-w-3xl sm:rounded-none sm:border-l sm:border-t-0 sm:p-6 sm:data-[state=closed]:slide-out-to-right sm:data-[state=open]:slide-in-from-right"
             >
               <SheetHeader>
                 <div className="flex items-center justify-between pr-8">
@@ -1841,7 +1841,7 @@ function ActivationsPage() {
                 <CommentThread entityType="client" entityId={cur.id} />
               </div>
 
-              <SheetFooter className="mt-4 flex-row items-center gap-2">
+              <SheetFooter className="mt-4 flex flex-wrap items-center justify-end gap-2">
                 <ConfirmDelete
                   text="Delete client"
                   disabled={bulkDelete.isPending}
