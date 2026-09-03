@@ -194,6 +194,18 @@ function ActivationsPage() {
     setRetentionFilter("all");
   }, []);
 
+  /** Page-level (non-column) filters currently active, for the shared Clear button. */
+  const pageFilterCount =
+    (answeredFilter !== "all" ? 1 : 0) +
+    (potentialFilter !== "all" ? 1 : 0) +
+    (stdFilter !== "all" ? 1 : 0) +
+    (dupOnly ? 1 : 0) +
+    (tagFilter !== "all" ? 1 : 0) +
+    (tierFilter !== "all" ? 1 : 0) +
+    (minPotential ? 1 : 0) +
+    (healthFilter !== "all" ? 1 : 0) +
+    (retentionFilter !== "all" ? 1 : 0);
+
 
 
   const activeRange = useMemo(
