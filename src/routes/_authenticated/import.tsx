@@ -62,6 +62,14 @@ function normalizeDate(v: string) {
   return d.toISOString().slice(0, 10);
 }
 
+/** People's names are stored capitalized: "richard thompson" -> "Richard Thompson". */
+function titleCase(v: string | undefined | null) {
+  return (v ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[\p{L}][\p{L}'’-]*/gu, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
 /** Old-CRM exports use "-" for empty cells. */
 function clean(v: string | undefined) {
   const s = (v ?? "").trim();
@@ -213,7 +221,7 @@ function useImportDefinitions() {
               clean(r.tag) ? `Tag ${clean(r.tag)}` : null,
             ].filter(Boolean);
             return {
-              name: (r.full_name ?? "").trim(),
+              name: titleCase(r.full_name),
               email: clean(r.email),
               phone: clean(r.phone),
               employee_id: matchEmployee(r.assigned_to, employees),
@@ -300,7 +308,7 @@ function useImportDefinitions() {
         onImport: async (rows) => {
           const payload = rows.map((r) => ({
             date: normalizeDate(r.date),
-            customer_name: (r.customer_name ?? "").trim(),
+            customer_name: titleCase(r.customer_name),
             amount: Number(r.amount) || 0,
             method: r.method || null,
             method_provider: r.method_provider || null,
@@ -462,7 +470,7 @@ function useImportDefinitions() {
         onImport: async (rows) => {
           const payload = rows.map((r) => ({
             date: normalizeDate(r.date),
-            customer_name: (r.customer_name ?? "").trim(),
+            customer_name: titleCase(r.customer_name),
             amount: Number(r.amount) || 0,
             employee_id: employeeByName.get((r.employee ?? "").trim().toLowerCase()) ?? null,
             affiliate_id: affiliateByName.get((r.affiliate ?? "").trim().toLowerCase()) ?? null,
