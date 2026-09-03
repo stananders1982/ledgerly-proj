@@ -233,7 +233,14 @@ export function useTableToolbox<T>(
       return next;
     });
 
-  const clearFilters = () => setFilters({});
+  const clearFilters = () => {
+    setFilters({});
+    try {
+      window.localStorage.removeItem(filtersKey);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const activeFilterCount = Object.keys(filters).length;
 
