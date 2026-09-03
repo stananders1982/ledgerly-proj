@@ -36,3 +36,8 @@
 - [x] "Request deposit" button on the client profile (shared deposit-request dialog)
 - [x] Bulk "set employee" hidden for scoped agents on Income
 - [x] Rename the "Agent" role to "Conversion" across the app
+
+## CSV imports
+- [x] Preview step showing which rows will be created, updated or skipped before confirming
+- [x] Import history (audit log) with timestamp, file name, row counts and summary stats
+- [x] Auto-fill missing details on matched records during repeat uploads

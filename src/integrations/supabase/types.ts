@@ -1731,6 +1731,65 @@ export type Database = {
           },
         ]
       }
+      import_runs: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_count: number
+          file_name: string | null
+          ftd_count: number
+          id: string
+          import_key: string
+          invalid_count: number
+          row_count: number
+          skipped_count: number
+          stats: Json
+          updated_count: number
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_count?: number
+          file_name?: string | null
+          ftd_count?: number
+          id?: string
+          import_key: string
+          invalid_count?: number
+          row_count?: number
+          skipped_count?: number
+          stats?: Json
+          updated_count?: number
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_count?: number
+          file_name?: string | null
+          ftd_count?: number
+          id?: string
+          import_key?: string
+          invalid_count?: number
+          row_count?: number
+          skipped_count?: number
+          stats?: Json
+          updated_count?: number
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_runs: {
         Row: {
           created_at: string
@@ -2963,6 +3022,7 @@ export type Database = {
       }
       next_bank_invoice_no: { Args: { _bank_id: string }; Returns: number }
       next_crm_id: { Args: never; Returns: string }
+      preview_old_crm_leads: { Args: { _rows: Json }; Returns: Json }
       recompute_affiliate_period: {
         Args: { _affiliate_id: string; _ref: string }
         Returns: undefined

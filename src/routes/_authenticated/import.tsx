@@ -1,17 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Info, History as HistoryIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CsvImportDialog, type ImportField } from "@/components/csv-import";
+import { CsvImportDialog, type ImportField, type ImportMeta, type PreviewResult } from "@/components/csv-import";
 import { fetchAll } from "@/lib/fetch-all";
 import { AiClientPasteBulk } from "@/components/ai-client-paste";
 import type { LeadStatus } from "@/lib/lead-status";
+import { useAuth } from "@/lib/auth-context";
+import { EmptyState } from "@/components/empty-state";
+
+/** Counts recorded in the import history for one upload. */
+export type ImportRunStats = {
+  created?: number;
+  updated?: number;
+  skipped?: number;
+  invalid?: number;
+  ftds?: number;
+  extra?: Record<string, number>;
+};
 
 export const Route = createFileRoute("/_authenticated/import")({
   head: () => ({ meta: [{ title: "Bulk Import — Ledgerly" }] }),
@@ -25,7 +37,8 @@ type ImportDef = {
   templateName: string;
   fields: ImportField[];
   sampleRows: Record<string, string>[];
-  onImport: (rows: Record<string, string>[]) => Promise<void>;
+  onImport: (rows: Record<string, string>[], meta: ImportMeta) => Promise<ImportRunStats | void>;
+  onPreview?: (rows: Record<string, string>[]) => Promise<PreviewResult>;
 };
 
 function useDirectory(key: string) {
@@ -162,6 +175,53 @@ function useImportDefinitions() {
   const defs: ImportDef[] = useMemo(() => {
     const invalidate = (keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
 
+    const buildOldCrmPayload = (rows: Record<string, string>[]) => {
+      const employees = employeesQ.data ?? [];
+      return rows.map((r) => {
+        const old = (clean(r.status) ?? "").toLowerCase();
+        const mapped = OLD_CRM_LEAD_STATUS[old] ?? "new";
+        const ftd = Number(clean(r.ftd_total)) || 0;
+        const sourceName = (clean(r.source) ?? "").toLowerCase();
+        const affName = (clean(r.affiliate_name) ?? clean(r.source) ?? "").toLowerCase();
+        const assignedId = matchEmployee(r.assigned_to, employees);
+        const retentionId = matchEmployee(r.ftd_owner, employees) ?? assignedId;
+        const createdAt = new Date(clean(r.created_date) ?? Date.now()).toISOString();
+        const ftdAt = clean(r.ftd_time) ? new Date(clean(r.ftd_time) as string).toISOString() : createdAt;
+        const noteBits = [
+          clean(r.ext_id) ? `Old CRM ID ${clean(r.ext_id)}` : null,
+          clean(r.country) || clean(r.city) ? [clean(r.city), clean(r.country)].filter(Boolean).join(", ") : null,
+          clean(r.age) ? `Age ${clean(r.age)}` : null,
+          clean(r.funnel) ? `Funnel ${clean(r.funnel)}` : null,
+          clean(r.affiliate_data) ? `Affiliate data ${clean(r.affiliate_data)}` : null,
+          clean(r.status) ? `Old status ${clean(r.status)}` : null,
+          ftd > 0 ? `FTD ${ftd}${clean(r.ftd_time) ? ` on ${clean(r.ftd_time)}` : ""}` : null,
+          clean(r.ftd_owner) ? `FTD owner ${clean(r.ftd_owner)}` : null,
+          clean(r.full_name_2) ? `Also known as ${clean(r.full_name_2)}` : null,
+          clean(r.email2) ? `Second email ${clean(r.email2)}` : null,
+          clean(r.tag) ? `Tag ${clean(r.tag)}` : null,
+        ].filter(Boolean);
+        return {
+          name: titleCase(r.full_name),
+          email: clean(r.email),
+          phone: clean(r.phone),
+          old_crm_id: clean(r.ext_id),
+          conversion_employee_id: assignedId,
+          retention_employee_id: retentionId,
+          source_id: sourceByName.get(sourceName) ?? matchDirectory(r.source, sourcesQ.data ?? []),
+          affiliate_id: affiliateByName.get(affName) ?? matchDirectory(clean(r.affiliate_name) ?? r.source, affiliatesQ.data ?? []),
+          status: mapped,
+          created_at: createdAt,
+          ftd_amount: ftd,
+          ftd_at: ftdAt,
+          country: clean(r.country),
+          city: clean(r.city),
+          age: Number(clean(r.age)) || null,
+          notes: noteBits.join(" · ") || null,
+          fingerprint_source: JSON.stringify(r),
+        };
+      });
+    };
+
     return [
       {
         key: "old-crm-leads",
@@ -206,58 +266,19 @@ function useImportDefinitions() {
             status: "Call Back", ftd_total: "250", lifetime_deposit: "250", ftd_time: "2026-09-03 05:48:44", ftd_owner: "", tag: "",
           },
         ],
+        onPreview: async (rows) => {
+          const { data, error } = await supabase.rpc("preview_old_crm_leads", { _rows: buildOldCrmPayload(rows) });
+          if (error) throw error;
+          return data as unknown as PreviewResult;
+        },
         onImport: async (rows) => {
-          const employees = employeesQ.data ?? [];
-          const payload = rows.map((r) => {
-            const old = (clean(r.status) ?? "").toLowerCase();
-            const mapped = OLD_CRM_LEAD_STATUS[old] ?? "new";
-            const ftd = Number(clean(r.ftd_total)) || 0;
-            const sourceName = (clean(r.source) ?? "").toLowerCase();
-            const affName = (clean(r.affiliate_name) ?? clean(r.source) ?? "").toLowerCase();
-            const assignedId = matchEmployee(r.assigned_to, employees);
-            const retentionId = matchEmployee(r.ftd_owner, employees) ?? assignedId;
-            const createdAt = new Date(clean(r.created_date) ?? Date.now()).toISOString();
-            const ftdAt = clean(r.ftd_time)
-              ? new Date(clean(r.ftd_time) as string).toISOString()
-              : createdAt;
-            const noteBits = [
-              clean(r.ext_id) ? `Old CRM ID ${clean(r.ext_id)}` : null,
-              clean(r.country) || clean(r.city) ? [clean(r.city), clean(r.country)].filter(Boolean).join(", ") : null,
-              clean(r.age) ? `Age ${clean(r.age)}` : null,
-              clean(r.funnel) ? `Funnel ${clean(r.funnel)}` : null,
-              clean(r.affiliate_data) ? `Affiliate data ${clean(r.affiliate_data)}` : null,
-              clean(r.status) ? `Old status ${clean(r.status)}` : null,
-              ftd > 0 ? `FTD ${ftd}${clean(r.ftd_time) ? ` on ${clean(r.ftd_time)}` : ""}` : null,
-              clean(r.ftd_owner) ? `FTD owner ${clean(r.ftd_owner)}` : null,
-              clean(r.full_name_2) ? `Also known as ${clean(r.full_name_2)}` : null,
-              clean(r.email2) ? `Second email ${clean(r.email2)}` : null,
-              clean(r.tag) ? `Tag ${clean(r.tag)}` : null,
-            ].filter(Boolean);
-            return {
-              name: titleCase(r.full_name),
-              email: clean(r.email),
-              phone: clean(r.phone),
-              old_crm_id: clean(r.ext_id),
-              conversion_employee_id: assignedId,
-              retention_employee_id: retentionId,
-              source_id: sourceByName.get(sourceName) ?? matchDirectory(r.source, sourcesQ.data ?? []),
-              affiliate_id: affiliateByName.get(affName) ?? matchDirectory(clean(r.affiliate_name) ?? r.source, affiliatesQ.data ?? []),
-              status: mapped,
-              created_at: createdAt,
-              ftd_amount: ftd,
-              ftd_at: ftdAt,
-              country: clean(r.country),
-              city: clean(r.city),
-              age: Number(clean(r.age)) || null,
-              notes: noteBits.join(" · ") || null,
-              fingerprint_source: JSON.stringify(r),
-            };
-          });
+          const payload = buildOldCrmPayload(rows);
 
           const { data, error } = await supabase.rpc("import_old_crm_leads", { _rows: payload });
           if (error) throw error;
           const result = data as {
             imported?: number;
+            updated?: number;
             ftds_connected?: number;
             invalid_connected?: number;
             daily_rows_created?: number;
@@ -271,12 +292,25 @@ function useImportDefinitions() {
             "dash-leads-v2", "unallocated-ftds",
           ]);
           const imported = Number(result?.imported ?? 0);
+          const updated = Number(result?.updated ?? 0);
           const connected = Number(result?.ftds_connected ?? 0);
           const invalid = Number(result?.invalid_connected ?? 0);
           const skipped = Number(result?.skipped ?? 0);
           if (imported) toast.success(`Imported ${imported} leads · ${invalid} invalid · connected ${connected} FTD${connected === 1 ? "" : "s"}`);
+          if (updated) toast.info(`Filled missing details on ${updated} existing record${updated === 1 ? "" : "s"}`);
           if (skipped) toast.info(`Skipped ${skipped} already in the system`);
-          if (!imported && !skipped) toast.info("Nothing to import");
+          if (!imported && !skipped && !updated) toast.info("Nothing to import");
+          return {
+            created: imported,
+            updated,
+            skipped,
+            invalid,
+            ftds: connected,
+            extra: {
+              daily_rows_created: Number(result?.daily_rows_created ?? 0),
+              daily_rows_updated: Number(result?.daily_rows_updated ?? 0),
+            },
+          };
         },
       },
       {
@@ -543,6 +577,33 @@ function downloadTemplate(def: ImportDef) {
 function ImportCard({ def, loading }: { def: ImportDef; loading: boolean }) {
   const [open, setOpen] = useState(false);
   const required = def.fields.filter((f) => f.required).map((f) => f.label);
+  const { user, companyId } = useAuth();
+  const qc = useQueryClient();
+
+  /** Best-effort audit entry for one upload. Never blocks the import. */
+  const recordRun = async (rowCount: number, meta: ImportMeta, stats: ImportRunStats) => {
+    if (!companyId || !user) return;
+    try {
+      await supabase.from("import_runs").insert({
+        company_id: companyId,
+        user_id: user.id,
+        user_email: user.email ?? null,
+        import_key: def.key,
+        file_name: meta.fileName ?? null,
+        row_count: rowCount,
+        created_count: stats.created ?? 0,
+        updated_count: stats.updated ?? 0,
+        skipped_count: stats.skipped ?? 0,
+        invalid_count: stats.invalid ?? 0,
+        ftd_count: stats.ftds ?? 0,
+        stats: (stats.extra ?? null) as never,
+      });
+      qc.invalidateQueries({ queryKey: ["import-runs"] });
+    } catch {
+      /* audit logging must never break an import */
+    }
+  };
+
 
   return (
     <Card className="flex flex-col">
@@ -587,12 +648,83 @@ function ImportCard({ def, loading }: { def: ImportDef; loading: boolean }) {
           title={`Import ${def.title}`}
           templateName={def.templateName}
           fields={def.fields}
-          onImport={async (rows) => {
-            await def.onImport(rows);
+          onPreview={def.onPreview}
+          onImport={async (rows, meta) => {
+            const stats = (await def.onImport(rows, meta)) ?? {};
+            await recordRun(rows.length, meta, stats);
             setOpen(false);
           }}
         />
       )}
+    </Card>
+  );
+}
+
+/** Import history — every CSV upload with its counts. */
+function ImportHistory() {
+  const q = useQuery({
+    queryKey: ["import-runs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("import_runs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <Card className="mt-6">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <HistoryIcon className="h-4 w-4 text-primary" /> Import history
+        </CardTitle>
+        <CardDescription className="text-xs">Every upload from this shift and before, with row counts.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {q.isLoading ? (
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        ) : (q.data ?? []).length === 0 ? (
+          <EmptyState icon={HistoryIcon} title="No imports yet" description="Uploads will be listed here with their results." />
+        ) : (
+          <div className="overflow-x-auto scroll-slim">
+            <table className="w-full text-sm">
+              <thead className="table-head bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="py-2 px-3 font-medium">When</th>
+                  <th className="py-2 px-3 font-medium">Type</th>
+                  <th className="py-2 px-3 font-medium">File</th>
+                  <th className="py-2 px-3 font-medium">By</th>
+                  <th className="py-2 px-3 font-medium text-right">Rows</th>
+                  <th className="py-2 px-3 font-medium text-right">New</th>
+                  <th className="py-2 px-3 font-medium text-right">Updated</th>
+                  <th className="py-2 px-3 font-medium text-right">Skipped</th>
+                  <th className="py-2 px-3 font-medium text-right">Invalid</th>
+                  <th className="py-2 px-3 font-medium text-right">FTDs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(q.data ?? []).map((r: any) => (
+                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
+                    <td className="py-2 px-3 whitespace-nowrap text-muted-foreground">{new Date(r.created_at).toLocaleString()}</td>
+                    <td className="py-2 px-3">{r.import_key}</td>
+                    <td className="py-2 px-3 max-w-[220px] truncate">{r.file_name ?? "—"}</td>
+                    <td className="py-2 px-3 text-muted-foreground">{r.user_email ?? "—"}</td>
+                    <td className="py-2 px-3 text-right">{r.row_count ?? 0}</td>
+                    <td className="py-2 px-3 text-right text-emerald-500">{r.created_count ?? 0}</td>
+                    <td className="py-2 px-3 text-right text-amber-500">{r.updated_count ?? 0}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{r.skipped_count ?? 0}</td>
+                    <td className="py-2 px-3 text-right">{r.invalid_count ?? 0}</td>
+                    <td className="py-2 px-3 text-right">{r.ftd_count ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }
@@ -629,6 +761,8 @@ function ImportPage() {
           <ImportCard key={def.key} def={def} loading={isLoading} />
         ))}
       </div>
+
+      <ImportHistory />
 
       <div className="mt-6 flex items-center gap-2 rounded-lg border border-border bg-card p-4 text-sm">
         <CheckCircle2 className="h-4 w-4 text-emerald-500" />

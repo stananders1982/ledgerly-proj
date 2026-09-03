@@ -5,10 +5,27 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export type ImportField = { key: string; label: string; required?: boolean; hint?: string };
+
+export type PreviewRow = {
+  index: number;
+  name: string;
+  action: "create" | "update" | "skip";
+  crm_id: string | null;
+  reason: string;
+  fill: string[];
+};
+
+export type PreviewResult = {
+  rows: PreviewRow[];
+  summary: { create: number; update: number; skip: number; total: number };
+};
+
+export type ImportMeta = { fileName: string };
 
 /** Minimal RFC-4180-ish CSV parser (handles quotes, escaped quotes, CRLF). */
 export function parseCsv(text: string): string[][] {
@@ -51,11 +68,13 @@ export function CsvImportDialog({
   title = "Import CSV",
   fields,
   onImport,
+  onPreview,
   templateName = "template.csv",
 }: {
   title?: string;
   fields: ImportField[];
-  onImport: (rows: Record<string, string>[]) => Promise<void> | void;
+  onImport: (rows: Record<string, string>[], meta: ImportMeta) => Promise<void> | void;
+  onPreview?: (rows: Record<string, string>[]) => Promise<PreviewResult>;
   templateName?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -63,9 +82,11 @@ export function CsvImportDialog({
   const [data, setData] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [preview, setPreview] = useState<PreviewResult | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const reset = () => { setHeaders([]); setData([]); setMapping({}); };
+  const reset = () => { setHeaders([]); setData([]); setMapping({}); setPreview(null); setFileName(""); };
 
   const mapped = useMemo(() => {
     return data.map((r) => {
@@ -85,6 +106,8 @@ export function CsvImportDialog({
     const rows = parseCsv(text);
     if (rows.length < 2) { toast.error("CSV needs a header row and at least one data row"); return; }
     const [head, ...body] = rows;
+    setFileName(file.name);
+    setPreview(null);
     setHeaders(head.map((h) => h.trim()));
     setData(body);
     const m: Record<string, string> = {};
@@ -171,15 +194,88 @@ export function CsvImportDialog({
               </div>
             </>
           )}
+
+          {preview && (
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-medium">Preview of {preview.summary.total} rows:</span>
+                <Badge variant="outline" className="border-transparent bg-emerald-500/15 text-emerald-500">
+                  {preview.summary.create} new
+                </Badge>
+                <Badge variant="outline" className="border-transparent bg-amber-500/15 text-amber-500">
+                  {preview.summary.update} updated
+                </Badge>
+                <Badge variant="outline" className="border-transparent bg-muted text-muted-foreground">
+                  {preview.summary.skip} skipped
+                </Badge>
+              </div>
+              <div className="max-h-56 overflow-auto scroll-slim rounded border border-border">
+                <table className="w-full text-xs">
+                  <thead className="table-head bg-muted/40 text-left uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2">#</th>
+                      <th className="px-3 py-2">Name</th>
+                      <th className="px-3 py-2">CRM ID</th>
+                      <th className="px-3 py-2">Action</th>
+                      <th className="px-3 py-2">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.rows.map((r) => (
+                      <tr key={r.index} className="border-t border-border/50">
+                        <td className="px-3 py-1.5 text-muted-foreground">{r.index}</td>
+                        <td className="px-3 py-1.5">{r.name}</td>
+                        <td className="px-3 py-1.5 text-muted-foreground">{r.crm_id ?? "—"}</td>
+                        <td className="px-3 py-1.5">
+                          <span
+                            className={
+                              r.action === "create"
+                                ? "text-emerald-500"
+                                : r.action === "update"
+                                  ? "text-amber-500"
+                                  : "text-muted-foreground"
+                            }
+                          >
+                            {r.action === "create" ? "New" : r.action === "update" ? "Update" : "Skip"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-1.5 text-muted-foreground">
+                          {r.fill?.length ? `Fills ${r.fill.join(", ")}` : r.reason}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
+          {onPreview && (
+            <Button
+              variant="outline"
+              disabled={busy || mapped.length === 0 || missing.length > 0}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  setPreview(await onPreview(mapped));
+                } catch (e: any) {
+                  toast.error(e?.message ?? "Preview failed");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy && !preview ? "Checking…" : "Preview changes"}
+            </Button>
+          )}
           <Button
-            disabled={busy || mapped.length === 0 || missing.length > 0}
+            disabled={busy || mapped.length === 0 || missing.length > 0 || (!!onPreview && !preview)}
             onClick={async () => {
               setBusy(true);
               try {
-                await onImport(mapped);
+                await onImport(mapped, { fileName });
                 setOpen(false);
                 reset();
               } catch (e: any) {
@@ -189,7 +285,7 @@ export function CsvImportDialog({
               }
             }}
           >
-            {busy ? "Importing…" : `Import ${mapped.length} rows`}
+            {busy ? "Importing…" : onPreview && !preview ? "Preview first" : `Import ${mapped.length} rows`}
           </Button>
         </DialogFooter>
       </DialogContent>
