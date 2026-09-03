@@ -242,7 +242,7 @@ function useImportDefinitions() {
               retention_employee_id: retentionId,
               source_id: sourceByName.get(sourceName) ?? matchDirectory(r.source, sourcesQ.data ?? []),
               affiliate_id: affiliateByName.get(affName) ?? matchDirectory(clean(r.affiliate_name) ?? r.source, affiliatesQ.data ?? []),
-              status: ftd > 0 ? "activated" : mapped,
+              status: mapped,
               created_at: createdAt,
               ftd_amount: ftd,
               ftd_at: ftdAt,
@@ -258,6 +258,7 @@ function useImportDefinitions() {
           const result = data as {
             imported?: number;
             ftds_connected?: number;
+            invalid_connected?: number;
             daily_rows_created?: number;
             daily_rows_updated?: number;
             skipped?: number;
@@ -270,8 +271,9 @@ function useImportDefinitions() {
           ]);
           const imported = Number(result?.imported ?? 0);
           const connected = Number(result?.ftds_connected ?? 0);
+          const invalid = Number(result?.invalid_connected ?? 0);
           const skipped = Number(result?.skipped ?? 0);
-          if (imported) toast.success(`Imported ${imported} leads · connected ${connected} FTD${connected === 1 ? "" : "s"}`);
+          if (imported) toast.success(`Imported ${imported} leads · ${invalid} invalid · connected ${connected} FTD${connected === 1 ? "" : "s"}`);
           if (skipped) toast.info(`Skipped ${skipped} already in the system`);
           if (!imported && !skipped) toast.info("Nothing to import");
         },
