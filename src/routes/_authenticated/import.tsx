@@ -433,10 +433,11 @@ function useImportDefinitions() {
           const updated = Number(result?.updated ?? 0);
           const connected = Number(result?.ftds_connected ?? 0);
           const invalid = Number(result?.invalid_connected ?? 0);
-          const skipped = Number(result?.skipped ?? 0);
+          const skipped = Number(result?.skipped ?? 0) + xxCount;
           if (imported) toast.success(`Imported ${imported} leads · ${invalid} invalid · connected ${connected} FTD${connected === 1 ? "" : "s"}`);
           if (updated) toast.info(`Filled missing details on ${updated} existing record${updated === 1 ? "" : "s"}`);
-          if (skipped) toast.info(`Skipped ${skipped} already in the system`);
+          if (xxCount) toast.info(`Merged ${xxCount} "xx" duplicate row${xxCount === 1 ? "" : "s"} into the matching lead`);
+          if (skipped - xxCount) toast.info(`Skipped ${skipped - xxCount} already in the system`);
           if (!imported && !skipped && !updated) toast.info("Nothing to import");
           return {
             created: imported,
