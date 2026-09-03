@@ -1,6 +1,7 @@
 # Ledgerly Roadmap
 
 ## Done
+- [x] Old-CRM CSV FTDs atomically connect Leads, Clients, Income and Daily numbers without double-counting existing Daily totals.
 - [x] Full-width data workspace and a draggable, persistent desktop sidebar width.
 - [x] Leads-first pipeline: dense individual-lead grid, assignment and contact actions, explicit conversion to clients, daily-number reporting tab, and removal of direct client creation from Clients, Income, and AI paste.
 - [x] Role separation: conversion agents default to Leads without Clients access; retention agents remain scoped to their allocated Clients.
