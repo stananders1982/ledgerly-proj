@@ -1008,6 +1008,7 @@ export type Database = {
           conversion_employee_id: string | null
           country: string | null
           created_at: string
+          crm_id: string
           custom_fields: Json
           date_of_birth: string | null
           deposit_appetite: number | null
@@ -1062,6 +1063,7 @@ export type Database = {
           conversion_employee_id?: string | null
           country?: string | null
           created_at?: string
+          crm_id: string
           custom_fields?: Json
           date_of_birth?: string | null
           deposit_appetite?: number | null
@@ -1116,6 +1118,7 @@ export type Database = {
           conversion_employee_id?: string | null
           country?: string | null
           created_at?: string
+          crm_id?: string
           custom_fields?: Json
           date_of_birth?: string | null
           deposit_appetite?: number | null
@@ -1819,9 +1822,11 @@ export type Database = {
           company_id: string
           cost: number
           created_at: string
+          crm_id: string
           email: string | null
           employee_id: string | null
           id: string
+          import_fingerprint: string | null
           name: string
           notes: string | null
           old_crm_id: string | null
@@ -1838,9 +1843,11 @@ export type Database = {
           company_id?: string
           cost?: number
           created_at?: string
+          crm_id: string
           email?: string | null
           employee_id?: string | null
           id?: string
+          import_fingerprint?: string | null
           name: string
           notes?: string | null
           old_crm_id?: string | null
@@ -1857,9 +1864,11 @@ export type Database = {
           company_id?: string
           cost?: number
           created_at?: string
+          crm_id?: string
           email?: string | null
           employee_id?: string | null
           id?: string
+          import_fingerprint?: string | null
           name?: string
           notes?: string | null
           old_crm_id?: string | null
@@ -2953,6 +2962,7 @@ export type Database = {
         }[]
       }
       next_bank_invoice_no: { Args: { _bank_id: string }; Returns: number }
+      next_crm_id: { Args: never; Returns: string }
       recompute_affiliate_period: {
         Args: { _affiliate_id: string; _ref: string }
         Returns: undefined
