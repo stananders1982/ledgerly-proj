@@ -154,6 +154,30 @@ function matchDirectory(raw: string | undefined | null, list: { id: string; name
   return partial.length === 1 ? partial[0].id : null;
 }
 
+/**
+ * The old CRM marks duplicate records with an "xx" flag on the name
+ * ("John xx Smith xx", "Johnxx Smith"). Strip the markers so the row can be
+ * paired with the clean record of the same person.
+ */
+export function stripXxMarkers(raw: string | undefined | null) {
+  const original = String(raw ?? "").trim();
+  const parts = original.split(/\s+/).filter(Boolean);
+  let standalone = false;
+  let glued = false;
+  const out: string[] = [];
+  for (const part of parts) {
+    if (/^xx$/i.test(part)) { standalone = true; continue; }
+    const stuck = part.match(/^(.+?)xx$/i);
+    if (stuck && stuck[1].replace(/[^a-z]/gi, "").length >= 2) { glued = true; out.push(stuck[1]); continue; }
+    out.push(part);
+  }
+  // A glued "xx" ("Johnxx", but also legitimate names like "Maxx") is only a
+  // duplicate marker when a clean twin actually exists — checked by the caller.
+  return { name: out.join(" "), original, marked: standalone || glued, standalone };
+}
+
+
+
 function useImportDefinitions() {
   const qc = useQueryClient();
   const employeesQ = useDirectory("employees");
@@ -175,52 +199,144 @@ function useImportDefinitions() {
   const defs: ImportDef[] = useMemo(() => {
     const invalidate = (keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
 
-    const buildOldCrmPayload = (rows: Record<string, string>[]) => {
+    const resolveSourceId = (r: Record<string, string>) =>
+      sourceByName.get((clean(r.source) ?? "").toLowerCase()) ?? matchDirectory(r.source, sourcesQ.data ?? []);
+    const resolveAffiliateId = (r: Record<string, string>) =>
+      affiliateByName.get((clean(r.affiliate_name) ?? clean(r.source) ?? "").toLowerCase())
+      ?? matchDirectory(clean(r.affiliate_name) ?? r.source, affiliatesQ.data ?? []);
+    /** Funnel / affiliate details of an "xx" row, handed to its clean twin. */
+    const donorNote = (r: Record<string, string>) =>
+      [
+        clean(r.funnel) ? `Funnel ${clean(r.funnel)}` : null,
+        clean(r.affiliate_data) ? `Affiliate data ${clean(r.affiliate_data)}` : null,
+        clean(r.affiliate_name) ? `Affiliate ${clean(r.affiliate_name)}` : null,
+        clean(r.source) ? `Source ${clean(r.source)}` : null,
+      ].filter(Boolean).join(" · ") || null;
+
+    const rowPayload = (r: Record<string, string>, name: string) => {
       const employees = employeesQ.data ?? [];
-      return rows.map((r) => {
-        const old = (clean(r.status) ?? "").toLowerCase();
-        const mapped = OLD_CRM_LEAD_STATUS[old] ?? "new";
-        const ftd = Number(clean(r.ftd_total)) || 0;
-        const sourceName = (clean(r.source) ?? "").toLowerCase();
-        const affName = (clean(r.affiliate_name) ?? clean(r.source) ?? "").toLowerCase();
-        const assignedId = matchEmployee(r.assigned_to, employees);
-        const retentionId = matchEmployee(r.ftd_owner, employees) ?? assignedId;
-        const createdAt = new Date(clean(r.created_date) ?? Date.now()).toISOString();
-        const ftdAt = clean(r.ftd_time) ? new Date(clean(r.ftd_time) as string).toISOString() : createdAt;
-        const noteBits = [
-          clean(r.ext_id) ? `Old CRM ID ${clean(r.ext_id)}` : null,
-          clean(r.country) || clean(r.city) ? [clean(r.city), clean(r.country)].filter(Boolean).join(", ") : null,
-          clean(r.age) ? `Age ${clean(r.age)}` : null,
-          clean(r.funnel) ? `Funnel ${clean(r.funnel)}` : null,
-          clean(r.affiliate_data) ? `Affiliate data ${clean(r.affiliate_data)}` : null,
-          clean(r.status) ? `Old status ${clean(r.status)}` : null,
-          ftd > 0 ? `FTD ${ftd}${clean(r.ftd_time) ? ` on ${clean(r.ftd_time)}` : ""}` : null,
-          clean(r.ftd_owner) ? `FTD owner ${clean(r.ftd_owner)}` : null,
-          clean(r.full_name_2) ? `Also known as ${clean(r.full_name_2)}` : null,
-          clean(r.email2) ? `Second email ${clean(r.email2)}` : null,
-          clean(r.tag) ? `Tag ${clean(r.tag)}` : null,
-        ].filter(Boolean);
-        return {
-          name: titleCase(r.full_name),
-          email: clean(r.email),
-          phone: clean(r.phone),
-          old_crm_id: clean(r.ext_id),
-          conversion_employee_id: assignedId,
-          retention_employee_id: retentionId,
-          source_id: sourceByName.get(sourceName) ?? matchDirectory(r.source, sourcesQ.data ?? []),
-          affiliate_id: affiliateByName.get(affName) ?? matchDirectory(clean(r.affiliate_name) ?? r.source, affiliatesQ.data ?? []),
-          status: mapped,
-          created_at: createdAt,
-          ftd_amount: ftd,
-          ftd_at: ftdAt,
-          country: clean(r.country),
-          city: clean(r.city),
-          age: Number(clean(r.age)) || null,
-          notes: noteBits.join(" · ") || null,
-          fingerprint_source: JSON.stringify(r),
-        };
-      });
+      const old = (clean(r.status) ?? "").toLowerCase();
+      const mapped = OLD_CRM_LEAD_STATUS[old] ?? "new";
+      const ftd = Number(clean(r.ftd_total)) || 0;
+      const assignedId = matchEmployee(r.assigned_to, employees);
+      const retentionId = matchEmployee(r.ftd_owner, employees) ?? assignedId;
+      const createdAt = new Date(clean(r.created_date) ?? Date.now()).toISOString();
+      const ftdAt = clean(r.ftd_time) ? new Date(clean(r.ftd_time) as string).toISOString() : createdAt;
+      const noteBits = [
+        clean(r.ext_id) ? `Old CRM ID ${clean(r.ext_id)}` : null,
+        clean(r.country) || clean(r.city) ? [clean(r.city), clean(r.country)].filter(Boolean).join(", ") : null,
+        clean(r.age) ? `Age ${clean(r.age)}` : null,
+        clean(r.funnel) ? `Funnel ${clean(r.funnel)}` : null,
+        clean(r.affiliate_data) ? `Affiliate data ${clean(r.affiliate_data)}` : null,
+        clean(r.status) ? `Old status ${clean(r.status)}` : null,
+        ftd > 0 ? `FTD ${ftd}${clean(r.ftd_time) ? ` on ${clean(r.ftd_time)}` : ""}` : null,
+        clean(r.ftd_owner) ? `FTD owner ${clean(r.ftd_owner)}` : null,
+        clean(r.full_name_2) ? `Also known as ${clean(r.full_name_2)}` : null,
+        clean(r.email2) ? `Second email ${clean(r.email2)}` : null,
+        clean(r.tag) ? `Tag ${clean(r.tag)}` : null,
+      ].filter(Boolean);
+      return {
+        name,
+        email: clean(r.email),
+        phone: clean(r.phone),
+        old_crm_id: clean(r.ext_id),
+        conversion_employee_id: assignedId,
+        retention_employee_id: retentionId,
+        source_id: resolveSourceId(r),
+        affiliate_id: resolveAffiliateId(r),
+        status: mapped,
+        created_at: createdAt,
+        ftd_amount: ftd,
+        ftd_at: ftdAt,
+        country: clean(r.country),
+        city: clean(r.city),
+        age: Number(clean(r.age)) || null,
+        notes: noteBits.join(" · ") || null,
+        fingerprint_source: JSON.stringify(r),
+      };
     };
+
+    type XxDonation = {
+      twin: { id: string; name: string; crm_id: string | null; source_id: string | null; affiliate_id: string | null; notes: string | null };
+      donor: Record<string, string>;
+    };
+
+    /**
+     * Clean the "xx" duplicate markers off every name, hand the acquisition
+     * details of each marked row to its clean twin (same file first, then
+     * records already in the system) and drop the marked row from the payload.
+     */
+    const prepareOldCrm = async (rows: Record<string, string>[]) => {
+      const prepared = rows.map((r) => ({ ...r }));
+      const names = prepared.map((r) => stripXxMarkers(r.full_name));
+      const skipped = new Map<number, { name: string; crmId: string | null }>();
+      const donations: XxDonation[] = [];
+
+      const twinInFile = new Map<string, number>();
+      names.forEach((n, i) => {
+        const key = n.name.trim().toLowerCase();
+        if (!n.marked && key && !twinInFile.has(key)) twinInFile.set(key, i);
+      });
+
+      const pending: number[] = [];
+      names.forEach((n, i) => {
+        if (!n.marked) return;
+        const target = twinInFile.get(n.name.trim().toLowerCase());
+        if (target === undefined) { pending.push(i); return; }
+        const dest = prepared[target];
+        for (const f of ["source", "funnel", "affiliate_data", "affiliate_name"]) {
+          if (!clean(dest[f]) && clean(prepared[i][f])) dest[f] = prepared[i][f];
+        }
+        skipped.set(i, { name: titleCase(n.name), crmId: null });
+      });
+
+      if (pending.length) {
+        const lookup = [...new Set(pending.map((i) => titleCase(names[i].name)).filter(Boolean))];
+        const { data } = await supabase
+          .from("leads")
+          .select("id,name,crm_id,source_id,affiliate_id,notes")
+          .in("name", lookup);
+        const existingByName = new Map((data ?? []).map((l) => [String(l.name).trim().toLowerCase(), l]));
+        for (const i of pending) {
+          const twin = existingByName.get(names[i].name.trim().toLowerCase());
+          if (!twin) continue;
+          donations.push({ twin: twin as XxDonation["twin"], donor: prepared[i] });
+          skipped.set(i, { name: titleCase(names[i].name), crmId: twin.crm_id ?? null });
+        }
+      }
+
+      const order: number[] = [];
+      const payload = prepared.flatMap((r, i) => {
+        if (skipped.has(i)) return [];
+        order.push(i);
+        // No twin: keep the cleaned name only when "xx" stood on its own,
+        // so real names such as "Maxx" survive untouched.
+        const keep = names[i].standalone ? names[i].name : names[i].original;
+        return [rowPayload(r, titleCase(keep || r.full_name))];
+      });
+
+      return { payload, order, skipped, donations };
+    };
+
+    /** Fill Source / Funnel / Affiliate on the clean twin, never overwriting. */
+    const applyXxDonations = async (donations: XxDonation[]) => {
+      for (const { twin, donor } of donations) {
+        const note = donorNote(donor);
+        const patch: { source_id?: string; affiliate_id?: string; notes?: string } = {};
+        const sourceId = resolveSourceId(donor);
+        const affiliateId = resolveAffiliateId(donor);
+        if (!twin.source_id && sourceId) patch.source_id = sourceId;
+        if (!twin.affiliate_id && affiliateId) patch.affiliate_id = affiliateId;
+        if (note && !(twin.notes ?? "").includes(note)) {
+          patch.notes = [twin.notes, note].filter(Boolean).join(" · ");
+        }
+        if (Object.keys(patch).length === 0) continue;
+        await supabase.from("leads").update(patch).eq("id", twin.id);
+      }
+    };
+
+
+
 
     return [
       {
@@ -267,15 +383,45 @@ function useImportDefinitions() {
           },
         ],
         onPreview: async (rows) => {
-          const { data, error } = await supabase.rpc("preview_old_crm_leads", { _rows: buildOldCrmPayload(rows) });
-          if (error) throw error;
-          return data as unknown as PreviewResult;
+          const { payload, order, skipped } = await prepareOldCrm(rows);
+          let result: PreviewResult = { rows: [], summary: { create: 0, update: 0, skip: 0, total: 0 } };
+          if (payload.length) {
+            const { data, error } = await supabase.rpc("preview_old_crm_leads", { _rows: payload });
+            if (error) throw error;
+            result = data as unknown as PreviewResult;
+          }
+          const merged = (result.rows ?? []).map((r) => ({ ...r, index: (order[r.index - 1] ?? r.index - 1) + 1 }));
+          for (const [i, info] of skipped) {
+            merged.push({
+              index: i + 1,
+              name: info.name,
+              action: "skip" as const,
+              crm_id: info.crmId,
+              reason: `Duplicate "xx" row of ${info.name} — source & campaign copied over`,
+              fill: [],
+            });
+          }
+          merged.sort((a, b) => a.index - b.index);
+          return {
+            rows: merged,
+            summary: {
+              create: result.summary?.create ?? 0,
+              update: result.summary?.update ?? 0,
+              skip: (result.summary?.skip ?? 0) + skipped.size,
+              total: rows.length,
+            },
+          };
         },
         onImport: async (rows) => {
-          const payload = buildOldCrmPayload(rows);
+          const { payload, skipped: xxSkipped, donations } = await prepareOldCrm(rows);
+          const xxCount = xxSkipped.size;
+          await applyXxDonations(donations);
 
-          const { data, error } = await supabase.rpc("import_old_crm_leads", { _rows: payload });
+          const { data, error } = payload.length
+            ? await supabase.rpc("import_old_crm_leads", { _rows: payload })
+            : { data: null, error: null };
           if (error) throw error;
+
           const result = data as {
             imported?: number;
             updated?: number;
@@ -295,10 +441,11 @@ function useImportDefinitions() {
           const updated = Number(result?.updated ?? 0);
           const connected = Number(result?.ftds_connected ?? 0);
           const invalid = Number(result?.invalid_connected ?? 0);
-          const skipped = Number(result?.skipped ?? 0);
+          const skipped = Number(result?.skipped ?? 0) + xxCount;
           if (imported) toast.success(`Imported ${imported} leads · ${invalid} invalid · connected ${connected} FTD${connected === 1 ? "" : "s"}`);
           if (updated) toast.info(`Filled missing details on ${updated} existing record${updated === 1 ? "" : "s"}`);
-          if (skipped) toast.info(`Skipped ${skipped} already in the system`);
+          if (xxCount) toast.info(`Merged ${xxCount} "xx" duplicate row${xxCount === 1 ? "" : "s"} into the matching lead`);
+          if (skipped - xxCount) toast.info(`Skipped ${skipped - xxCount} already in the system`);
           if (!imported && !skipped && !updated) toast.info("Nothing to import");
           return {
             created: imported,

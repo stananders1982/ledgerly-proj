@@ -41,3 +41,4 @@
 - [x] Preview step showing which rows will be created, updated or skipped before confirming
 - [x] Import history (audit log) with timestamp, file name, row counts and summary stats
 - [x] Auto-fill missing details on matched records during repeat uploads
+- [x] CSV import: merge "xx"-marked duplicate rows into the clean twin (source, funnel, affiliate data), skip the marked row
