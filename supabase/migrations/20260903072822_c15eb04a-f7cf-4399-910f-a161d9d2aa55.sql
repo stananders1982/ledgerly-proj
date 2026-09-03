@@ -1,0 +1,1 @@
+ALTER FUNCTION public.import_old_crm_leads(jsonb) SECURITY INVOKER;
