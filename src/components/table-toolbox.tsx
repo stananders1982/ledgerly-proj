@@ -341,6 +341,46 @@ export function ColumnsMenu<T>({ tb, className }: { tb: TableToolbox<T>; classNa
   );
 }
 
+/**
+ * Shared "Clear filters" control. Clears every column filter for the table and,
+ * via `extra`, any page-level search box or quick-filter chips.
+ */
+export function ClearFiltersButton<T>({
+  tb,
+  extra,
+  extraActive = 0,
+  className,
+  size = "default",
+}: {
+  tb: TableToolbox<T>;
+  /** Reset page-level state that lives outside the toolbox. */
+  extra?: () => void;
+  /** How many page-level filters are active, for the badge/disabled state. */
+  extraActive?: number;
+  className?: string;
+  size?: "default" | "sm";
+}) {
+  const count = tb.activeFilterCount + extraActive;
+  return (
+    <Button
+      variant="outline"
+      size={size}
+      disabled={count === 0}
+      className={cn("gap-1", className)}
+      onClick={() => {
+        tb.clearFilters();
+        extra?.();
+      }}
+      title="Clear every filter on this table"
+    >
+      <X className="h-4 w-4" /> Clear filters
+      {count > 0 && (
+        <span className="ml-1 rounded bg-muted px-1.5 text-[10px] text-muted-foreground">{count}</span>
+      )}
+    </Button>
+  );
+}
+
 /** Toggle that squeezes a wide table so every visible column fits on screen. */
 export function FitToggle<T>({ tb, className }: { tb: TableToolbox<T>; className?: string }) {
   return (
