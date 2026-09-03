@@ -374,15 +374,44 @@ function useImportDefinitions() {
           },
         ],
         onPreview: async (rows) => {
-          const { data, error } = await supabase.rpc("preview_old_crm_leads", { _rows: buildOldCrmPayload(rows) });
-          if (error) throw error;
-          return data as unknown as PreviewResult;
+          const { payload, order, skipped } = await prepareOldCrm(rows);
+          let result: PreviewResult = { rows: [], summary: { create: 0, update: 0, skip: 0, total: 0 } };
+          if (payload.length) {
+            const { data, error } = await supabase.rpc("preview_old_crm_leads", { _rows: payload });
+            if (error) throw error;
+            result = data as unknown as PreviewResult;
+          }
+          const merged = (result.rows ?? []).map((r) => ({ ...r, index: (order[r.index - 1] ?? r.index - 1) + 1 }));
+          for (const [i, info] of skipped) {
+            merged.push({
+              index: i + 1,
+              name: info.name,
+              action: "skip" as const,
+              crm_id: info.crmId,
+              reason: `Duplicate "xx" row of ${info.name} — source & campaign copied over`,
+              fill: [],
+            });
+          }
+          merged.sort((a, b) => a.index - b.index);
+          return {
+            rows: merged,
+            summary: {
+              create: result.summary?.create ?? 0,
+              update: result.summary?.update ?? 0,
+              skip: (result.summary?.skip ?? 0) + skipped.size,
+              total: rows.length,
+            },
+          };
         },
         onImport: async (rows) => {
-          const payload = buildOldCrmPayload(rows);
+          const { payload, skipped, donations } = await prepareOldCrm(rows);
+          await applyXxDonations(donations);
 
-          const { data, error } = await supabase.rpc("import_old_crm_leads", { _rows: payload });
+          const { data, error } = payload.length
+            ? await supabase.rpc("import_old_crm_leads", { _rows: payload })
+            : { data: null, error: null };
           if (error) throw error;
+
           const result = data as {
             imported?: number;
             updated?: number;
