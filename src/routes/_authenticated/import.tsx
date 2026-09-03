@@ -200,11 +200,16 @@ function useImportDefinitions() {
             };
           });
 
-          const { error } = await supabase.from("leads").insert(payload as any);
-          if (error) throw error;
+          const { fresh, skipped } = await dropExistingByEmail(payload);
+          if (fresh.length) {
+            const { error } = await supabase.from("leads").insert(fresh as any);
+            if (error) throw error;
+          }
 
           invalidate(["individual-leads", "leads", "clients"]);
-          toast.success(`Imported ${payload.length} leads`);
+          if (fresh.length) toast.success(`Imported ${fresh.length} leads`);
+          if (skipped) toast.info(`Skipped ${skipped} already in the system`);
+          if (!fresh.length && !skipped) toast.info("Nothing to import");
         },
       },
       {
