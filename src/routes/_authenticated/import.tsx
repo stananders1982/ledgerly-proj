@@ -37,7 +37,8 @@ type ImportDef = {
   templateName: string;
   fields: ImportField[];
   sampleRows: Record<string, string>[];
-  onImport: (rows: Record<string, string>[]) => Promise<void>;
+  onImport: (rows: Record<string, string>[], meta: ImportMeta) => Promise<ImportRunStats | void>;
+  onPreview?: (rows: Record<string, string>[]) => Promise<PreviewResult>;
 };
 
 function useDirectory(key: string) {
