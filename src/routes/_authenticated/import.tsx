@@ -175,6 +175,53 @@ function useImportDefinitions() {
   const defs: ImportDef[] = useMemo(() => {
     const invalidate = (keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
 
+    const buildOldCrmPayload = (rows: Record<string, string>[]) => {
+      const employees = employeesQ.data ?? [];
+      return rows.map((r) => {
+        const old = (clean(r.status) ?? "").toLowerCase();
+        const mapped = OLD_CRM_LEAD_STATUS[old] ?? "new";
+        const ftd = Number(clean(r.ftd_total)) || 0;
+        const sourceName = (clean(r.source) ?? "").toLowerCase();
+        const affName = (clean(r.affiliate_name) ?? clean(r.source) ?? "").toLowerCase();
+        const assignedId = matchEmployee(r.assigned_to, employees);
+        const retentionId = matchEmployee(r.ftd_owner, employees) ?? assignedId;
+        const createdAt = new Date(clean(r.created_date) ?? Date.now()).toISOString();
+        const ftdAt = clean(r.ftd_time) ? new Date(clean(r.ftd_time) as string).toISOString() : createdAt;
+        const noteBits = [
+          clean(r.ext_id) ? `Old CRM ID ${clean(r.ext_id)}` : null,
+          clean(r.country) || clean(r.city) ? [clean(r.city), clean(r.country)].filter(Boolean).join(", ") : null,
+          clean(r.age) ? `Age ${clean(r.age)}` : null,
+          clean(r.funnel) ? `Funnel ${clean(r.funnel)}` : null,
+          clean(r.affiliate_data) ? `Affiliate data ${clean(r.affiliate_data)}` : null,
+          clean(r.status) ? `Old status ${clean(r.status)}` : null,
+          ftd > 0 ? `FTD ${ftd}${clean(r.ftd_time) ? ` on ${clean(r.ftd_time)}` : ""}` : null,
+          clean(r.ftd_owner) ? `FTD owner ${clean(r.ftd_owner)}` : null,
+          clean(r.full_name_2) ? `Also known as ${clean(r.full_name_2)}` : null,
+          clean(r.email2) ? `Second email ${clean(r.email2)}` : null,
+          clean(r.tag) ? `Tag ${clean(r.tag)}` : null,
+        ].filter(Boolean);
+        return {
+          name: titleCase(r.full_name),
+          email: clean(r.email),
+          phone: clean(r.phone),
+          old_crm_id: clean(r.ext_id),
+          conversion_employee_id: assignedId,
+          retention_employee_id: retentionId,
+          source_id: sourceByName.get(sourceName) ?? matchDirectory(r.source, sourcesQ.data ?? []),
+          affiliate_id: affiliateByName.get(affName) ?? matchDirectory(clean(r.affiliate_name) ?? r.source, affiliatesQ.data ?? []),
+          status: mapped,
+          created_at: createdAt,
+          ftd_amount: ftd,
+          ftd_at: ftdAt,
+          country: clean(r.country),
+          city: clean(r.city),
+          age: Number(clean(r.age)) || null,
+          notes: noteBits.join(" · ") || null,
+          fingerprint_source: JSON.stringify(r),
+        };
+      });
+    };
+
     return [
       {
         key: "old-crm-leads",
