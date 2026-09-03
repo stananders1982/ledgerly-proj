@@ -124,6 +124,123 @@ function useImportDefinitions() {
 
     return [
       {
+        key: "old-crm-clients",
+        title: "Clients (old CRM export)",
+        description:
+          "Drop in the raw export from your previous CRM — same columns, no editing. Each row becomes a client; agents, sources and statuses are matched by name, and any FTD total is recorded as a deposit.",
+        templateName: "old-crm-export-template.csv",
+        fields: [
+          { key: "ext_id", label: "ID", hint: "Old CRM record id — kept in the notes" },
+          { key: "full_name", label: "Full Name", required: true },
+          { key: "full_name_2", label: "Full Name 2" },
+          { key: "email", label: "E-mail" },
+          { key: "email2", label: "E-mail2" },
+          { key: "phone", label: "Phone" },
+          { key: "country", label: "Country" },
+          { key: "city", label: "City" },
+          { key: "age", label: "Age", hint: "Number or “-” if unknown" },
+          { key: "created_date", label: "Created Date", hint: "Any format, e.g. 2026-09-03 09:10:07" },
+          { key: "source", label: "Source", hint: "Matched to a lead source by name; also kept as a tag" },
+          { key: "funnel", label: "Funnel Name" },
+          { key: "affiliate_data", label: "Affiliate Data" },
+          { key: "affiliate_name", label: "Affiliate Name" },
+          { key: "assigned_to", label: "Assigned to", required: true, hint: "Agent name — “(Conv)” suffixes are ignored" },
+          { key: "status", label: "Status", hint: "No Answer, Wrong Number, Not Interested, Call Back, Voice Mail, FTD…" },
+          { key: "ftd_total", label: "FTD Total", hint: "First deposit amount — recorded as income" },
+          { key: "lifetime_deposit", label: "Lifetime Deposit", hint: "Becomes the client balance" },
+          { key: "ftd_time", label: "FTD Time" },
+          { key: "ftd_owner", label: "FTD Owner" },
+          { key: "tag", label: "Tag" },
+        ],
+        sampleRows: [
+          {
+            ext_id: "2010526", full_name: "Arthur Raymond Spencer", full_name_2: "", email: "rays1938@yahoo.com", email2: "",
+            phone: "+61497508799", country: "Australia", city: "", age: "-", created_date: "2026-09-03 09:10:07",
+            source: "AmazeSec", funnel: "BrynVex-bobr", affiliate_data: "", affiliate_name: "", assigned_to: "Dave Miller",
+            status: "No Answer", ftd_total: "0", lifetime_deposit: "0", ftd_time: "-", ftd_owner: "", tag: "",
+          },
+          {
+            ext_id: "2010511", full_name: "Steven Gill", full_name_2: "", email: "lynnesteven@gmail.com", email2: "",
+            phone: "+61427533557", country: "Australia", city: "", age: "62", created_date: "2026-09-03 05:31:12",
+            source: "AmazeSec", funnel: "BrynVex-bobr", affiliate_data: "", affiliate_name: "", assigned_to: "Jonathan F",
+            status: "Call Back", ftd_total: "250", lifetime_deposit: "250", ftd_time: "2026-09-03 05:48:44", ftd_owner: "Jonathan F", tag: "",
+          },
+        ],
+        onImport: async (rows) => {
+          const employees = employeesQ.data ?? [];
+          const unmatched = new Set<string>();
+          const payload = rows.map((r) => {
+            const empId = matchEmployee(r.assigned_to, employees);
+            if (!empId) unmatched.add((r.assigned_to ?? "").trim() || "(blank)");
+            const old = (clean(r.status) ?? "").toLowerCase();
+            const mapped = OLD_CRM_STATUS[old] ?? { status: "warm", answered: false };
+            const ftd = Number(clean(r.ftd_total)) || 0;
+            const lifetime = Number(clean(r.lifetime_deposit)) || 0;
+            const ftdTime = clean(r.ftd_time);
+            const tags = [clean(r.source), clean(r.status), clean(r.tag)].filter(Boolean) as string[];
+            const noteBits = [
+              clean(r.ext_id) ? `Imported from old CRM · ID ${clean(r.ext_id)}` : "Imported from old CRM",
+              clean(r.funnel) ? `Funnel ${clean(r.funnel)}` : null,
+              clean(r.affiliate_data) ? `Affiliate data ${clean(r.affiliate_data)}` : null,
+              clean(r.ftd_owner) ? `FTD owner ${clean(r.ftd_owner)}` : null,
+              clean(r.full_name_2) ? `Also known as ${clean(r.full_name_2)}` : null,
+              clean(r.email2) ? `Second email ${clean(r.email2)}` : null,
+            ].filter(Boolean);
+            return {
+              employee_id: empId,
+              activation_date: normalizeDate(clean(r.created_date) ?? new Date().toISOString()),
+              lead_name: (r.full_name ?? "").trim(),
+              email: clean(r.email),
+              phone: clean(r.phone),
+              country: clean(r.country),
+              city: clean(r.city),
+              age: Number(clean(r.age)) || null,
+              activated_count: 1,
+              balance: lifetime || ftd,
+              answered: mapped.answered,
+              status: mapped.status,
+              tags,
+              notes: noteBits.join(" · "),
+              qualified_at: ftd > 0 && ftdTime ? normalizeDate(ftdTime) : null,
+              legacy: true,
+              _ftd: ftd,
+            };
+          });
+
+          if (unmatched.size) {
+            throw new Error(`No matching agent for: ${[...unmatched].join(", ")}. Add them under Employees first.`);
+          }
+
+          const { data, error } = await supabase
+            .from("daily_lead_activations")
+            .insert(payload.map(({ _ftd, ...rest }) => rest) as any)
+            .select("id, lead_name, employee_id, activation_date");
+          if (error) throw error;
+
+          const deposits = (data ?? [])
+            .map((row, i) => ({ row, ftd: payload[i]._ftd }))
+            .filter((x) => x.ftd > 0)
+            .map((x) => ({
+              activation_id: x.row.id,
+              customer_name: x.row.lead_name ?? "",
+              employee_id: x.row.employee_id,
+              amount: x.ftd,
+              date: x.row.activation_date,
+              notes: "Imported from old CRM (FTD)",
+            }));
+          if (deposits.length) {
+            const { error: revErr } = await supabase.from("revenue").insert(deposits as any);
+            if (revErr) throw revErr;
+          }
+
+          invalidate(["activations", "clients", "revenue", "leads"]);
+          toast.success(
+            `Imported ${payload.length} clients${deposits.length ? ` and ${deposits.length} deposits` : ""}`,
+          );
+        },
+      },
+      {
+      {
         key: "lead-entries",
         title: "Lead entries",
         description: "Daily lead totals per source. Use source/affiliate name; the app will match it automatically.",
