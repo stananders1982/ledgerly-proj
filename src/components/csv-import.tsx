@@ -105,6 +105,8 @@ export function CsvImportDialog({
     const rows = parseCsv(text);
     if (rows.length < 2) { toast.error("CSV needs a header row and at least one data row"); return; }
     const [head, ...body] = rows;
+    setFileName(file.name);
+    setPreview(null);
     setHeaders(head.map((h) => h.trim()));
     setData(body);
     const m: Record<string, string> = {};
