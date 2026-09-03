@@ -1841,7 +1841,7 @@ function ActivationsPage() {
                 <CommentThread entityType="client" entityId={cur.id} />
               </div>
 
-              <SheetFooter className="mt-4 flex-row items-center gap-2">
+              <SheetFooter className="mt-4 flex flex-wrap items-center justify-end gap-2">
                 <ConfirmDelete
                   text="Delete client"
                   disabled={bulkDelete.isPending}
