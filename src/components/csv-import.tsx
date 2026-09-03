@@ -193,15 +193,88 @@ export function CsvImportDialog({
               </div>
             </>
           )}
+
+          {preview && (
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-medium">Preview of {preview.summary.total} rows:</span>
+                <Badge variant="outline" className="border-transparent bg-emerald-500/15 text-emerald-500">
+                  {preview.summary.create} new
+                </Badge>
+                <Badge variant="outline" className="border-transparent bg-amber-500/15 text-amber-500">
+                  {preview.summary.update} updated
+                </Badge>
+                <Badge variant="outline" className="border-transparent bg-muted text-muted-foreground">
+                  {preview.summary.skip} skipped
+                </Badge>
+              </div>
+              <div className="max-h-56 overflow-auto scroll-slim rounded border border-border">
+                <table className="w-full text-xs">
+                  <thead className="table-head bg-muted/40 text-left uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2">#</th>
+                      <th className="px-3 py-2">Name</th>
+                      <th className="px-3 py-2">CRM ID</th>
+                      <th className="px-3 py-2">Action</th>
+                      <th className="px-3 py-2">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.rows.map((r) => (
+                      <tr key={r.index} className="border-t border-border/50">
+                        <td className="px-3 py-1.5 text-muted-foreground">{r.index}</td>
+                        <td className="px-3 py-1.5">{r.name}</td>
+                        <td className="px-3 py-1.5 text-muted-foreground">{r.crm_id ?? "—"}</td>
+                        <td className="px-3 py-1.5">
+                          <span
+                            className={
+                              r.action === "create"
+                                ? "text-emerald-500"
+                                : r.action === "update"
+                                  ? "text-amber-500"
+                                  : "text-muted-foreground"
+                            }
+                          >
+                            {r.action === "create" ? "New" : r.action === "update" ? "Update" : "Skip"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-1.5 text-muted-foreground">
+                          {r.fill?.length ? `Fills ${r.fill.join(", ")}` : r.reason}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
+          {onPreview && (
+            <Button
+              variant="outline"
+              disabled={busy || mapped.length === 0 || missing.length > 0}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  setPreview(await onPreview(mapped));
+                } catch (e: any) {
+                  toast.error(e?.message ?? "Preview failed");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy && !preview ? "Checking…" : "Preview changes"}
+            </Button>
+          )}
           <Button
-            disabled={busy || mapped.length === 0 || missing.length > 0}
+            disabled={busy || mapped.length === 0 || missing.length > 0 || (!!onPreview && !preview)}
             onClick={async () => {
               setBusy(true);
               try {
-                await onImport(mapped);
+                await onImport(mapped, { fileName });
                 setOpen(false);
                 reset();
               } catch (e: any) {
@@ -211,7 +284,7 @@ export function CsvImportDialog({
               }
             }}
           >
-            {busy ? "Importing…" : `Import ${mapped.length} rows`}
+            {busy ? "Importing…" : onPreview && !preview ? "Preview first" : `Import ${mapped.length} rows`}
           </Button>
         </DialogFooter>
       </DialogContent>
