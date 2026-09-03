@@ -68,20 +68,19 @@ function clean(v: string | undefined) {
   return s === "" || s === "-" ? null : s;
 }
 
-/** Map an old-CRM call status to Ledgerly's pipeline status + answered flag. */
-const OLD_CRM_STATUS: Record<string, { status: string; answered: boolean }> = {
-  "no answer": { status: "cold", answered: false },
-  "voice mail": { status: "cold", answered: false },
-  "voicemail": { status: "cold", answered: false },
-  "wrong number": { status: "churned", answered: false },
-  "not interested": { status: "churned", answered: true },
-  "call back": { status: "warm", answered: true },
-  "callback": { status: "warm", answered: true },
-  "new": { status: "warm", answered: false },
-  "interested": { status: "hot", answered: true },
-  "hot": { status: "hot", answered: true },
-  "ftd": { status: "hot", answered: true },
-  "dormant": { status: "dormant", answered: true },
+/** Map an old-CRM call status to the lead pipeline status. */
+const OLD_CRM_LEAD_STATUS: Record<string, string> = {
+  "new": "new",
+  "no answer": "contacted",
+  "voice mail": "contacted",
+  "voicemail": "contacted",
+  "call back": "contacted",
+  "callback": "contacted",
+  "wrong number": "lost",
+  "not interested": "lost",
+  "interested": "qualified",
+  "hot": "qualified",
+  "ftd": "activated",
 };
 
 /**
@@ -124,10 +123,10 @@ function useImportDefinitions() {
 
     return [
       {
-        key: "old-crm-clients",
-        title: "Clients (old CRM export)",
+        key: "old-crm-leads",
+        title: "Leads (old CRM export)",
         description:
-          "Drop in the raw export from your previous CRM — same columns, no editing. Each row becomes a client; agents, sources and statuses are matched by name, and any FTD total is recorded as a deposit.",
+          "Drop in the raw export from your previous CRM — same columns, no editing. Each row becomes a lead; agents, affiliates and sources are matched by name, and the call status is mapped to the pipeline. Rows with a first deposit are marked as activated so you can convert them to clients.",
         templateName: "old-crm-export-template.csv",
         fields: [
           { key: "ext_id", label: "ID", hint: "Old CRM record id — kept in the notes" },
@@ -140,14 +139,14 @@ function useImportDefinitions() {
           { key: "city", label: "City" },
           { key: "age", label: "Age", hint: "Number or “-” if unknown" },
           { key: "created_date", label: "Created Date", hint: "Any format, e.g. 2026-09-03 09:10:07" },
-          { key: "source", label: "Source", hint: "Matched to a lead source by name; also kept as a tag" },
+          { key: "source", label: "Source", hint: "Matched to a lead source or affiliate by name" },
           { key: "funnel", label: "Funnel Name" },
           { key: "affiliate_data", label: "Affiliate Data" },
           { key: "affiliate_name", label: "Affiliate Name" },
-          { key: "assigned_to", label: "Assigned to", required: true, hint: "Agent name — “(Conv)” suffixes are ignored" },
+          { key: "assigned_to", label: "Assigned to", hint: "Conversion agent — “(Conv)” suffixes are ignored" },
           { key: "status", label: "Status", hint: "No Answer, Wrong Number, Not Interested, Call Back, Voice Mail, FTD…" },
-          { key: "ftd_total", label: "FTD Total", hint: "First deposit amount — recorded as income" },
-          { key: "lifetime_deposit", label: "Lifetime Deposit", hint: "Becomes the client balance" },
+          { key: "ftd_total", label: "FTD Total", hint: "First deposit amount" },
+          { key: "lifetime_deposit", label: "Lifetime Deposit" },
           { key: "ftd_time", label: "FTD Time" },
           { key: "ftd_owner", label: "FTD Owner" },
           { key: "tag", label: "Tag" },
@@ -156,87 +155,56 @@ function useImportDefinitions() {
           {
             ext_id: "2010526", full_name: "Arthur Raymond Spencer", full_name_2: "", email: "rays1938@yahoo.com", email2: "",
             phone: "+61497508799", country: "Australia", city: "", age: "-", created_date: "2026-09-03 09:10:07",
-            source: "AmazeSec", funnel: "BrynVex-bobr", affiliate_data: "", affiliate_name: "", assigned_to: "Dave Miller",
+            source: "AmazeSec", funnel: "BrynVex-bobr_Dmitriy-BrunViks", affiliate_data: "", affiliate_name: "", assigned_to: "Dave Miller",
             status: "No Answer", ftd_total: "0", lifetime_deposit: "0", ftd_time: "-", ftd_owner: "", tag: "",
           },
           {
             ext_id: "2010511", full_name: "Steven Gill", full_name_2: "", email: "lynnesteven@gmail.com", email2: "",
-            phone: "+61427533557", country: "Australia", city: "", age: "62", created_date: "2026-09-03 05:31:12",
-            source: "AmazeSec", funnel: "BrynVex-bobr", affiliate_data: "", affiliate_name: "", assigned_to: "Jonathan F",
-            status: "Call Back", ftd_total: "250", lifetime_deposit: "250", ftd_time: "2026-09-03 05:48:44", ftd_owner: "Jonathan F", tag: "",
+            phone: "+61427533557", country: "Australia", city: "", age: "-", created_date: "2026-09-03 05:08:31",
+            source: "AmazeSec", funnel: "BrynVex-bobr_Dmitriy-BrunViks", affiliate_data: "", affiliate_name: "", assigned_to: "Jonathan Friedman",
+            status: "Call Back", ftd_total: "250", lifetime_deposit: "250", ftd_time: "2026-09-03 05:48:44", ftd_owner: "", tag: "",
           },
         ],
         onImport: async (rows) => {
           const employees = employeesQ.data ?? [];
-          const unmatched = new Set<string>();
           const payload = rows.map((r) => {
-            const empId = matchEmployee(r.assigned_to, employees);
-            if (!empId) unmatched.add((r.assigned_to ?? "").trim() || "(blank)");
             const old = (clean(r.status) ?? "").toLowerCase();
-            const mapped = OLD_CRM_STATUS[old] ?? { status: "warm", answered: false };
+            const mapped = OLD_CRM_LEAD_STATUS[old] ?? "new";
             const ftd = Number(clean(r.ftd_total)) || 0;
-            const lifetime = Number(clean(r.lifetime_deposit)) || 0;
-            const ftdTime = clean(r.ftd_time);
-            const tags = [clean(r.source), clean(r.status), clean(r.tag)].filter(Boolean) as string[];
+            const sourceName = (clean(r.source) ?? "").toLowerCase();
+            const affName = (clean(r.affiliate_name) ?? clean(r.source) ?? "").toLowerCase();
             const noteBits = [
-              clean(r.ext_id) ? `Imported from old CRM · ID ${clean(r.ext_id)}` : "Imported from old CRM",
+              clean(r.ext_id) ? `Old CRM ID ${clean(r.ext_id)}` : null,
+              clean(r.country) || clean(r.city) ? [clean(r.city), clean(r.country)].filter(Boolean).join(", ") : null,
+              clean(r.age) ? `Age ${clean(r.age)}` : null,
               clean(r.funnel) ? `Funnel ${clean(r.funnel)}` : null,
               clean(r.affiliate_data) ? `Affiliate data ${clean(r.affiliate_data)}` : null,
+              clean(r.status) ? `Old status ${clean(r.status)}` : null,
+              ftd > 0 ? `FTD ${ftd}${clean(r.ftd_time) ? ` on ${clean(r.ftd_time)}` : ""}` : null,
               clean(r.ftd_owner) ? `FTD owner ${clean(r.ftd_owner)}` : null,
               clean(r.full_name_2) ? `Also known as ${clean(r.full_name_2)}` : null,
               clean(r.email2) ? `Second email ${clean(r.email2)}` : null,
+              clean(r.tag) ? `Tag ${clean(r.tag)}` : null,
             ].filter(Boolean);
             return {
-              employee_id: empId,
-              activation_date: normalizeDate(clean(r.created_date) ?? new Date().toISOString()),
-              lead_name: (r.full_name ?? "").trim(),
+              name: (r.full_name ?? "").trim(),
               email: clean(r.email),
               phone: clean(r.phone),
-              country: clean(r.country),
-              city: clean(r.city),
-              age: Number(clean(r.age)) || null,
-              activated_count: 1,
-              balance: lifetime || ftd,
-              answered: mapped.answered,
-              status: mapped.status,
-              tags,
-              notes: noteBits.join(" · "),
-              qualified_at: ftd > 0 && ftdTime ? normalizeDate(ftdTime) : null,
-              legacy: true,
-              _ftd: ftd,
+              employee_id: matchEmployee(r.assigned_to, employees),
+              source_id: sourceByName.get(sourceName) ?? null,
+              affiliate_id: affiliateByName.get(affName) ?? null,
+              status: ftd > 0 ? "activated" : mapped,
+              activated: ftd > 0,
+              created_at: new Date(clean(r.created_date) ?? Date.now()).toISOString(),
+              notes: noteBits.join(" · ") || null,
             };
           });
 
-          if (unmatched.size) {
-            throw new Error(`No matching agent for: ${[...unmatched].join(", ")}. Add them under Employees first.`);
-          }
-
-          const { data, error } = await supabase
-            .from("daily_lead_activations")
-            .insert(payload.map(({ _ftd, ...rest }) => rest) as any)
-            .select("id, lead_name, employee_id, activation_date");
+          const { error } = await supabase.from("leads").insert(payload as any);
           if (error) throw error;
 
-          const deposits = (data ?? [])
-            .map((row, i) => ({ row, ftd: payload[i]._ftd }))
-            .filter((x) => x.ftd > 0)
-            .map((x) => ({
-              activation_id: x.row.id,
-              customer_name: x.row.lead_name ?? "",
-              employee_id: x.row.employee_id,
-              amount: x.ftd,
-              date: x.row.activation_date,
-              notes: "Imported from old CRM (FTD)",
-            }));
-          if (deposits.length) {
-            const { error: revErr } = await supabase.from("revenue").insert(deposits as any);
-            if (revErr) throw revErr;
-          }
-
-          invalidate(["activations", "clients", "revenue", "leads"]);
-          toast.success(
-            `Imported ${payload.length} clients${deposits.length ? ` and ${deposits.length} deposits` : ""}`,
-          );
+          invalidate(["individual-leads", "leads", "clients"]);
+          toast.success(`Imported ${payload.length} leads`);
         },
       },
       {
