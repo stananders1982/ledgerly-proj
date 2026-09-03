@@ -76,32 +76,6 @@ function clean(v: string | undefined) {
   return s === "" || s === "-" ? null : s;
 }
 
-/**
- * Emails are unique per workspace: drop rows whose email already belongs to a
- * lead or a client, and collapse repeats inside the file itself.
- */
-async function dropExistingByEmail<T extends { email: string | null }>(rows: T[]) {
-  const emails = [...new Set(rows.map((r) => (r.email ?? "").trim().toLowerCase()).filter(Boolean))];
-  const taken = new Set<string>();
-  if (emails.length) {
-    for (const table of ["leads", "daily_lead_activations"] as const) {
-      const { data, error } = await supabase.from(table).select("email").not("email", "is", null);
-      if (error) throw error;
-      (data ?? []).forEach((r: any) => r.email && taken.add(String(r.email).trim().toLowerCase()));
-    }
-  }
-  const seen = new Set<string>();
-  const fresh: T[] = [];
-  let skipped = 0;
-  for (const r of rows) {
-    const key = (r.email ?? "").trim().toLowerCase();
-    if (key && (taken.has(key) || seen.has(key))) { skipped++; continue; }
-    if (key) seen.add(key);
-    fresh.push(r);
-  }
-  return { fresh, skipped };
-}
-
 /** Map an old-CRM call status to the lead pipeline status. */
 const OLD_CRM_LEAD_STATUS: Record<string, string> = {
   "new": "new",
@@ -134,6 +108,20 @@ function matchEmployee(raw: string | undefined, list: { id: string; name: string
   return byFirst.length === 1 ? byFirst[0].id : null;
 }
 
+/** Match old-CRM partner labels such as "AmazeSec" to "Amaze" safely. */
+function matchDirectory(raw: string | undefined | null, list: { id: string; name: string }[]) {
+  const norm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  const name = norm(raw ?? "");
+  if (!name) return null;
+  const exact = list.find((item) => norm(item.name) === name);
+  if (exact) return exact.id;
+  const partial = list.filter((item) => {
+    const candidate = norm(item.name);
+    return candidate.length >= 4 && (name.startsWith(candidate) || candidate.startsWith(name));
+  });
+  return partial.length === 1 ? partial[0].id : null;
+}
+
 function useImportDefinitions() {
   const qc = useQueryClient();
   const employeesQ = useDirectory("employees");
@@ -160,7 +148,7 @@ function useImportDefinitions() {
         key: "old-crm-leads",
         title: "Leads (old CRM export)",
         description:
-          "Drop in the raw export from your previous CRM — same columns, no editing. Each row becomes a lead; agents, affiliates and sources are matched by name, and the call status is mapped to the pipeline. Rows with a first deposit are marked as activated so you can convert them to clients.",
+          "Drop in the raw export from your previous CRM — same columns, no editing. FTD rows automatically create and connect the client, first income payment and Daily numbers allocation without double-counting existing totals.",
         templateName: "old-crm-export-template.csv",
         fields: [
           { key: "ext_id", label: "ID", hint: "Old CRM record id — kept in the notes" },
@@ -207,6 +195,12 @@ function useImportDefinitions() {
             const ftd = Number(clean(r.ftd_total)) || 0;
             const sourceName = (clean(r.source) ?? "").toLowerCase();
             const affName = (clean(r.affiliate_name) ?? clean(r.source) ?? "").toLowerCase();
+            const assignedId = matchEmployee(r.assigned_to, employees);
+            const retentionId = matchEmployee(r.ftd_owner, employees) ?? assignedId;
+            const createdAt = new Date(clean(r.created_date) ?? Date.now()).toISOString();
+            const ftdAt = clean(r.ftd_time)
+              ? new Date(clean(r.ftd_time) as string).toISOString()
+              : createdAt;
             const noteBits = [
               clean(r.ext_id) ? `Old CRM ID ${clean(r.ext_id)}` : null,
               clean(r.country) || clean(r.city) ? [clean(r.city), clean(r.country)].filter(Boolean).join(", ") : null,
@@ -224,26 +218,43 @@ function useImportDefinitions() {
               name: titleCase(r.full_name),
               email: clean(r.email),
               phone: clean(r.phone),
-              employee_id: matchEmployee(r.assigned_to, employees),
-              source_id: sourceByName.get(sourceName) ?? null,
-              affiliate_id: affiliateByName.get(affName) ?? null,
+              old_crm_id: clean(r.ext_id),
+              conversion_employee_id: assignedId,
+              retention_employee_id: retentionId,
+              source_id: sourceByName.get(sourceName) ?? matchDirectory(r.source, sourcesQ.data ?? []),
+              affiliate_id: affiliateByName.get(affName) ?? matchDirectory(clean(r.affiliate_name) ?? r.source, affiliatesQ.data ?? []),
               status: ftd > 0 ? "activated" : mapped,
-              activated: ftd > 0,
-              created_at: new Date(clean(r.created_date) ?? Date.now()).toISOString(),
+              created_at: createdAt,
+              ftd_amount: ftd,
+              ftd_at: ftdAt,
+              country: clean(r.country),
+              city: clean(r.city),
+              age: Number(clean(r.age)) || null,
               notes: noteBits.join(" · ") || null,
             };
           });
 
-          const { fresh, skipped } = await dropExistingByEmail(payload);
-          if (fresh.length) {
-            const { error } = await supabase.from("leads").insert(fresh as any);
-            if (error) throw error;
-          }
+          const { data, error } = await supabase.rpc("import_old_crm_leads", { _rows: payload });
+          if (error) throw error;
+          const result = data as {
+            imported?: number;
+            ftds_connected?: number;
+            daily_rows_created?: number;
+            daily_rows_updated?: number;
+            skipped?: number;
+          } | null;
 
-          invalidate(["individual-leads", "leads", "clients"]);
-          if (fresh.length) toast.success(`Imported ${fresh.length} leads`);
+          invalidate([
+            "individual-leads", "leads", "clients", "activated-leads", "revenue",
+            "daily-leads-v2", "daily-lead-activations", "entries-for-sources",
+            "dash-leads-v2", "unallocated-ftds",
+          ]);
+          const imported = Number(result?.imported ?? 0);
+          const connected = Number(result?.ftds_connected ?? 0);
+          const skipped = Number(result?.skipped ?? 0);
+          if (imported) toast.success(`Imported ${imported} leads · connected ${connected} FTD${connected === 1 ? "" : "s"}`);
           if (skipped) toast.info(`Skipped ${skipped} already in the system`);
-          if (!fresh.length && !skipped) toast.info("Nothing to import");
+          if (!imported && !skipped) toast.info("Nothing to import");
         },
       },
       {
