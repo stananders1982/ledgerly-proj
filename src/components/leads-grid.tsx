@@ -66,11 +66,19 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
   const retentionAgents=(agentsQ.data??[]).filter(a=>a.team==="R"&&a.active!==false);
   const nameOf=(id:string|null)=> (agentsQ.data??[]).find(a=>a.id===id)?.name??"Unassigned";
 
+  const NOTE_TAGS=/^(old crm id|age |funnel |affiliate data |old status |ftd|second email|also known as|tag )/i;
   const notePart=(notes:string|null,test:(p:string)=>boolean)=>(notes??"").split(" · ").map(p=>p.trim()).find(test)??"";
-  const geoOf=(l:Lead)=>notePart(l.notes,p=>!!p&&!/^(old crm id|age |funnel |affiliate data |old status |ftd|second email|also known as|tag )/i.test(p));
-  const funnelOf=(l:Lead)=>notePart(l.notes,p=>/^funnel /i.test(p)).replace(/^funnel /i,"");
-  const lastCommentOf=(l:Lead)=>{const parts=(l.notes??"").split(" · ").map(p=>p.trim()).filter(p=>p&&!/^(old crm id|age |funnel |affiliate data |old status |ftd|second email|also known as|tag )/i.test(p));return parts.length>1?parts[parts.length-1]:"";};
+  const noteVal=(l:Lead,prefix:string)=>notePart(l.notes,p=>p.toLowerCase().startsWith(prefix.toLowerCase())).slice(prefix.length).trim();
+  const geoOf=(l:Lead)=>notePart(l.notes,p=>!!p&&!NOTE_TAGS.test(p));
+  const cityOf=(l:Lead)=>{const g=geoOf(l).split(",").map(s=>s.trim()).filter(Boolean);return g.length>1?g[0]:"";};
+  const countryOf=(l:Lead)=>{const g=geoOf(l).split(",").map(s=>s.trim()).filter(Boolean);return g.length>1?g[1]:(g[0]??"");};
+  const funnelOf=(l:Lead)=>noteVal(l,"Funnel ");
+  const ftdRaw=(l:Lead)=>notePart(l.notes,p=>/^ftd \d/i.test(p)).replace(/^ftd /i,"");
+  const ftdTotalOf=(l:Lead)=>{const m=ftdRaw(l).match(/^[\d.,]+/);return m?Number(m[0].replace(/,/g,"")):null;};
+  const ftdTimeOf=(l:Lead)=>{const m=ftdRaw(l).match(/ on (.+)$/i);return m?m[1]:"";};
+  const lastCommentOf=(l:Lead)=>{const parts=(l.notes??"").split(" · ").map(p=>p.trim()).filter(p=>p&&!NOTE_TAGS.test(p));return parts.length>1?parts[parts.length-1]:"";};
   const balanceOf=(l:Lead)=> l.activation_id ? (balancesQ.data?.get(l.activation_id) ?? 0) : null;
+
   const rows=useMemo(()=> (leadsQ.data??[]).filter(l=>{
     const term=search.trim().toLowerCase();
     if(term&&!`${l.crm_id} ${l.name} ${l.phone??""} ${l.email??""}`.toLowerCase().includes(term))return false;
