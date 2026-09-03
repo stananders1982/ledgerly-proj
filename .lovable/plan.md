@@ -5,7 +5,7 @@ A row whose name carries `xx` markers — as a separate word after the first and
 
 ## Behaviour
 
-1. **Detect** — before anything else, clean each row's name: strip a trailing `xx` (case-insensitive) from the first and/or last name to get the "clean name". Rows where a strip happened are marked as `xx` rows.
+1. **Detect** — before anything else, clean each row's name: remove any standalone `xx` word and any trailing `xx` glued to a name part (case-insensitive), then collapse the extra spaces, to get the "clean name". Rows where something was removed are marked as `xx` rows.
 2. **Find the twin** — look for a lead with the clean name, first among the other rows of the same file, then among leads already in the system (same company, case/spacing-insensitive name match).
 3. **Twin found** — skip the `xx` row entirely (no lead, no client, no income, no Daily Numbers count) and copy Source, Funnel Name, Affiliate Name and Affiliate Data from it onto the twin, **only where the twin has no value yet**. Existing values are never overwritten.
 4. **No twin** — import the row normally but with the `xx` stripped from the name.
