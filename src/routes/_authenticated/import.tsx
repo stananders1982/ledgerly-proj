@@ -160,17 +160,22 @@ function matchDirectory(raw: string | undefined | null, list: { id: string; name
  * paired with the clean record of the same person.
  */
 export function stripXxMarkers(raw: string | undefined | null) {
-  const parts = String(raw ?? "").trim().split(/\s+/).filter(Boolean);
-  let marked = false;
+  const original = String(raw ?? "").trim();
+  const parts = original.split(/\s+/).filter(Boolean);
+  let standalone = false;
+  let glued = false;
   const out: string[] = [];
   for (const part of parts) {
-    if (/^xx$/i.test(part)) { marked = true; continue; }
-    const glued = part.match(/^(.+?)xx$/i);
-    if (glued && glued[1].replace(/[^a-z]/gi, "").length >= 2) { marked = true; out.push(glued[1]); continue; }
+    if (/^xx$/i.test(part)) { standalone = true; continue; }
+    const stuck = part.match(/^(.+?)xx$/i);
+    if (stuck && stuck[1].replace(/[^a-z]/gi, "").length >= 2) { glued = true; out.push(stuck[1]); continue; }
     out.push(part);
   }
-  return { name: out.join(" "), marked };
+  // A glued "xx" ("Johnxx", but also legitimate names like "Maxx") is only a
+  // duplicate marker when a clean twin actually exists — checked by the caller.
+  return { name: out.join(" "), original, marked: standalone || glued, standalone };
 }
+
 
 
 function useImportDefinitions() {
