@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, leadStatusDotClass, type LeadStatus } from "@/lib/lead-status";
+import { ClearFiltersButton, FilterRow, useTableToolbox, type ColDef } from "@/components/table-toolbox";
 
 const NONE = "__none__";
 type Lead = { id:string; crm_id:string; name:string; phone:string|null; email:string|null; source_id:string|null; affiliate_id:string|null; employee_id:string|null; status:LeadStatus; notes:string|null; activated:boolean; activation_id:string|null; created_at:string; lead_sources?:{name:string}|null; affiliates?:{name:string}|null };
