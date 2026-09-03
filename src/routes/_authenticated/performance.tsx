@@ -11,6 +11,7 @@ import { StatCard } from "@/components/stat-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
+import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { isStd, isAgentTeam, isLateRetentionFtd } from "@/lib/rules";
@@ -287,7 +288,24 @@ function PerformancePage() {
     .sort((a, b) => (TEAM_RANK[a.team] ?? 3) - (TEAM_RANK[b.team] ?? 3) || a.name.localeCompare(b.name));
   }, [empQ.data, revQ.data, withQ.data, attQ.data, actQ.data, ftdQ.data, allActQ.data, depositsQ.data, start, end, search, settings]);
 
-  const { sorted, sort, toggle } = useSort<any>(rows, {
+  const perfCols: ColDef<any>[] = [
+    { key: "name", label: "Agent", locked: true, value: (r) => r.name ?? "" },
+    { key: "team", label: "Dept", filter: "select", value: (r) => r.teamLabel ?? r.team ?? "" },
+    { key: "ftds", label: "FTDs", value: (r) => r.ftds ?? 0 },
+    { key: "lateFtds", label: "Late FTDs", value: (r) => r.lateFtds ?? 0 },
+    { key: "stds", label: "STDs", value: (r) => r.stds ?? 0 },
+    { key: "clients", label: "Clients", value: (r) => r.clients ?? 0 },
+    { key: "attributed", label: "Revenue", value: (r) => r.attributed ?? 0 },
+    { key: "commission", label: "Commission", value: (r) => (r.commission ?? 0) + (r.ftdCommission ?? 0) },
+    { key: "withdrawn", label: "Withdrawals", value: (r) => r.withdrawn ?? 0 },
+    { key: "absent", label: "Absences", value: (r) => r.absent ?? 0 },
+    { key: "salary", label: "Salary", value: (r) => r.salary ?? 0 },
+    { key: "payout", label: "Net payout", value: (r) => r.payout ?? 0 },
+    { key: "goals", label: "Goals", filter: "none", value: () => "" },
+  ];
+  const tb = useTableToolbox<any>("performance", perfCols, rows);
+
+  const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
     name: (r) => r.name,
     team: (r) => TEAM_RANK[r.team] ?? 3,
     ftds: (r) => r.ftds,
@@ -431,6 +449,10 @@ function PerformancePage() {
         <StatCard label="Total payout" value={fmtMoney(totals.payout)} tone="negative" />
       </section>
 
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <ClearFiltersButton tb={tb} extraActive={search ? 1 : 0} extra={() => setSearch("")} />
+      </div>
+
       <div className="card-surface overflow-hidden">
         {loading ? (
           <TableSkeleton cols={9} />
@@ -508,6 +530,7 @@ function PerformancePage() {
                   <th className="py-3 px-4 text-left text-xs uppercase tracking-wider">Goals</th>
                   <th className="py-3 px-4"></th>
                 </tr>
+                <FilterRow tb={tb} trailing={1} />
               </thead>
               <tbody>
                 {pageItems.map((r: any) => (

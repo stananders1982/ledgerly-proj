@@ -40,7 +40,7 @@ import { KYC_STATUS_LABELS, kycStatus } from "@/lib/kyc";
 import { KycBadge } from "@/components/client-kyc-checklist";
 import { clientHealth, HEALTH_BAND_LABEL, HEALTH_BAND_RANK, type ClientHealth } from "@/lib/client-health";
 import { HealthBadge } from "@/components/client-health";
-import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TableKeyboardHint } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, ClearFiltersButton, FilterRow, FitToggle, TableKeyboardHint } from "@/components/table-toolbox";
 import { TableFrame } from "@/components/table-frame";
 import { qualifiesAsFtd, ftdPendingReasons, stdDepositsFor, activationDate, depositIndex, depositTotalFor, isLateRetentionFtd, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
@@ -193,6 +193,18 @@ function ActivationsPage() {
     setHealthFilter("all");
     setRetentionFilter("all");
   }, []);
+
+  /** Page-level (non-column) filters currently active, for the shared Clear button. */
+  const pageFilterCount =
+    (answeredFilter !== "all" ? 1 : 0) +
+    (potentialFilter !== "all" ? 1 : 0) +
+    (stdFilter !== "all" ? 1 : 0) +
+    (dupOnly ? 1 : 0) +
+    (tagFilter !== "all" ? 1 : 0) +
+    (tierFilter !== "all" ? 1 : 0) +
+    (minPotential ? 1 : 0) +
+    (healthFilter !== "all" ? 1 : 0) +
+    (retentionFilter !== "all" ? 1 : 0);
 
 
 
@@ -920,12 +932,7 @@ function ActivationsPage() {
             </SelectContent>
           </Select>
         )}
-        {(answeredFilter !== "all" || healthFilter !== "all" || tierFilter !== "all" || potentialFilter !== "all" || stdFilter !== "all" || tagFilter !== "all" || retentionFilter !== "all" || dupOnly || minPotential) && (
-
-          <Button variant="ghost" size="sm" className="h-9 gap-1 text-muted-foreground" onClick={clearFilters}>
-            <X className="h-3.5 w-3.5" /> Clear filters
-          </Button>
-        )}
+        <ClearFiltersButton tb={tb} extra={clearFilters} extraActive={pageFilterCount} className="h-9" />
       </div>
 
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 mb-6">

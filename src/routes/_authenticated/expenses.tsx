@@ -29,7 +29,7 @@ import { DateRangePicker, getRange, type RangeKey } from "@/components/date-rang
 import { useSort, SortTh } from "@/components/sortable-table";
 import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
 import { TableFrame } from "@/components/table-frame";
-import { useTableToolbox, ColumnsMenu, FilterRow, FitToggle, TableKeyboardHint, TotalsRow } from "@/components/table-toolbox";
+import { useTableToolbox, ColumnsMenu, ClearFiltersButton, FilterRow, FitToggle, TableKeyboardHint, TotalsRow } from "@/components/table-toolbox";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { useQuickCreate } from "@/lib/quick-create";
@@ -280,6 +280,7 @@ function ExpensesPage() {
         <FitToggle tb={tb} />
           <TableKeyboardHint />
         <ColumnsMenu tb={tb} />
+        <ClearFiltersButton tb={tb} />
       </div>
 
       <div className="card-surface overflow-hidden">

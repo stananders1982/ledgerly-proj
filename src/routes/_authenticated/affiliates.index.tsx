@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/page-header";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { fmtMoney } from "@/lib/format";
 import { toast } from "sonner";
@@ -132,7 +133,20 @@ function AffiliatesPage() {
       .filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()));
   }, [affQ.data, srcQ.data, entriesQ.data, search]);
 
-  const { sorted, sort, toggle } = useSort(rows, {
+  const affCols: ColDef<any>[] = [
+    { key: "name", label: "Affiliate", locked: true, value: (r) => r.name ?? "" },
+    { key: "price", label: "Price", value: (r) => r.price ?? 0 },
+    { key: "pct", label: "Guarantee %", value: (r) => r.pct ?? 0 },
+    { key: "leads", label: "Leads", value: (r) => r.leads ?? 0 },
+    { key: "activated", label: "FTDs", value: (r) => r.activated ?? 0 },
+    { key: "activationPct", label: "Act %", value: (r) => r.activationPct ?? "" },
+    { key: "guaranteed", label: "Guaranteed", value: (r) => r.guaranteed ?? 0 },
+    { key: "reported", label: "Reported", value: (r) => r.reported ?? 0 },
+    { key: "reportedPct", label: "Rep %", value: (r) => r.reportedPct ?? "" },
+  ];
+  const tb = useTableToolbox<any>("affiliates", affCols, rows);
+
+  const { sorted, sort, toggle } = useSort(tb.filtered, {
     name: (r) => r.name,
     price: (r) => r.price,
     pct: (r) => r.pct,
@@ -217,6 +231,10 @@ function AffiliatesPage() {
       </p>
 
 
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <ClearFiltersButton tb={tb} />
+      </div>
+
       <div className="card-surface overflow-hidden">
         {sorted.length === 0 ? (
           <div className="p-8 text-sm text-muted-foreground">
@@ -257,6 +275,7 @@ function AffiliatesPage() {
                   <SortTh label="Rep %" k="reportedPct" sort={sort} toggle={toggle} />
                   <th className="py-3 px-4"></th>
                 </tr>
+                <FilterRow tb={tb} trailing={1} />
               </thead>
               <tbody>
                 {pageItems.map((r) => (

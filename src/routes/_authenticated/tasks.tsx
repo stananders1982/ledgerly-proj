@@ -20,6 +20,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
 import { toast } from "sonner";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -119,7 +120,16 @@ function TasksPage() {
     });
   }, [q.data, statusFilter, search]);
 
-  const { sorted, sort, toggle } = useSort<any>(rows, {
+  const taskCols: ColDef<any>[] = [
+    { key: "title", label: "Task", locked: true, value: (t) => t.title ?? "" },
+    { key: "client", label: "Client", value: (t) => t.client_name ?? "" },
+    { key: "owner", label: "Owner", filter: "select", value: (t) => empName(t.employee_id) },
+    { key: "due", label: "Due", filter: "date", value: (t) => t.due_date ?? "" },
+    { key: "priority", label: "Priority", filter: "select", value: (t) => t.priority ?? "" },
+  ];
+  const tb = useTableToolbox<any>("tasks", taskCols, rows);
+
+  const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
     title: (t) => t.title ?? "",
     due: (t) => t.due_date ?? "9999-12-31",
     priority: (t) => ({ high: 3, normal: 2, low: 1 } as any)[t.priority] ?? 0,
@@ -262,6 +272,10 @@ function TasksPage() {
         </Select>
       </div>
 
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <ClearFiltersButton tb={tb} extraActive={statusFilter !== "open" ? 1 : 0} extra={() => setStatusFilter("open")} />
+      </div>
+
       <div className="card-surface overflow-hidden">
         {q.error ? (
           <QueryError error={q.error} onRetry={() => q.refetch()} />
@@ -304,6 +318,7 @@ function TasksPage() {
                     <SortTh label="Priority" k="priority" sort={sort} toggle={toggle} className="py-3 px-4" />
                     <th className="py-3 px-4"></th>
                   </tr>
+                  <FilterRow tb={tb} leading={1} trailing={1} />
                 </thead>
                 <tbody>
                   {pageItems.map((t: Task) => {

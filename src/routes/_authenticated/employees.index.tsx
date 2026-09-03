@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { QueryError } from "@/components/query-error";
 
@@ -96,7 +97,16 @@ function EmployeesPage() {
         a.name.localeCompare(b.name),
     );
   }, [q.data, issue]);
-  const { sorted, sort, toggle } = useSort<any>(rows, {
+  const empCols: ColDef<any>[] = [
+    { key: "name", label: "Name", locked: true, value: (e) => e.name ?? "" },
+    { key: "team", label: "Team", filter: "select", value: (e) => e.team ?? "C" },
+    { key: "salary", label: "Base salary", value: (e) => e.salary ?? 0 },
+    { key: "commissions", label: "Commissions", filter: "none", value: () => "" },
+    { key: "active", label: "Active", filter: "select", options: ["Active", "Inactive"], value: (e) => (e.active ? "Active" : "Inactive") },
+  ];
+  const tb = useTableToolbox<any>("employees", empCols, rows);
+
+  const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
     name: (e) => e.name ?? "",
     team: (e) => e.team ?? "C",
     salary: (e) => Number(e.salary ?? 0),
@@ -183,6 +193,10 @@ function EmployeesPage() {
         />
       )}
 
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <ClearFiltersButton tb={tb} />
+      </div>
+
       <div className="card-surface overflow-hidden">
         {q.error ? (
           <QueryError error={q.error} onRetry={() => q.refetch()} />
@@ -231,6 +245,7 @@ function EmployeesPage() {
                   <SortTh label="Active" k="active" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <th className="py-3 px-4"></th>
                 </tr>
+                <FilterRow tb={tb} trailing={1} />
               </thead>
               <tbody>
                 {pageItems.map((e: any) => (

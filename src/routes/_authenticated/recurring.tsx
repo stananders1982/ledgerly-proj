@@ -22,6 +22,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { useSort, SortTh } from "@/components/sortable-table";
+import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
 import { usePagination, TablePagination } from "@/components/pagination";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -97,7 +98,17 @@ function RecurringPage() {
     return { monthly, upcoming, count: list.length };
   }, [listQ.data]);
 
-  const { sorted, sort, toggle } = useSort<any>(listQ.data ?? [], {
+  const recCols: ColDef<any>[] = [
+    { key: "name", label: "Name", locked: true, value: (r) => r.name ?? "" },
+    { key: "category", label: "Category", filter: "select", value: (r) => r.expense_categories?.name ?? "" },
+    { key: "amount", label: "Amount", value: (r) => r.amount ?? 0 },
+    { key: "frequency", label: "Frequency", filter: "select", value: (r) => r.frequency ?? "" },
+    { key: "next", label: "Next due", filter: "date", value: (r) => r.next_due_date ?? "" },
+    { key: "status", label: "Status", filter: "select", options: ["Active", "Paused"], value: (r) => (r.active ? "Active" : "Paused") },
+  ];
+  const tb = useTableToolbox<any>("recurring", recCols, (listQ.data ?? []) as any[]);
+
+  const { sorted, sort, toggle } = useSort<any>(tb.filtered, {
     name: (r) => r.name ?? "",
     category: (r) => r.expense_categories?.name ?? "",
     amount: (r) => Number(r.amount ?? 0),
@@ -188,6 +199,10 @@ function RecurringPage() {
         <StatCard label="Due next 30 days" value={fmtMoney(stats.upcoming)} />
       </section>
 
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <ClearFiltersButton tb={tb} />
+      </div>
+
       <div className="card-surface overflow-hidden">
         {listQ.isLoading ? <div className="p-8 text-sm text-muted-foreground">Loading…</div>
         : (listQ.data?.length ?? 0) === 0 ? (
@@ -224,6 +239,7 @@ function RecurringPage() {
                   <SortTh label="Status" k="status" sort={sort} toggle={toggle} className="py-3 px-4" />
                   <th className="py-3 px-4"></th>
                 </tr>
+                <FilterRow tb={tb} trailing={1} />
               </thead>
               <tbody>
                 {pageItems.map((r: any) => (
