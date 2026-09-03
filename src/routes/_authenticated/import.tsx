@@ -335,7 +335,77 @@ function useImportDefinitions() {
       }
     };
 
+    /** Statuses that mark a lead as invalid in the Daily numbers. */
+    const INVALID_OLD_CRM_STATUSES = new Set([
+      "need to cancel", "wrong number", "never registered", "wrong person",
+      "no language", "under age", "underage", "wrong details",
+    ]);
 
+    type DailyGroup = {
+      key: string;
+      entry_date: string;
+      source_id: string | null;
+      source_label: string;
+      campaign: string | null;
+      received: number;
+      invalid: number;
+      activated: number;
+    };
+
+    /** Roll the raw old-CRM export up into one Daily numbers row per date + affiliate. */
+    const groupOldCrmEntries = (rows: Record<string, string>[]) => {
+      const groups = new Map<string, DailyGroup & { funnels: Set<string> }>();
+      for (const r of rows) {
+        const entry_date = normalizeDate(clean(r.created_date) ?? "");
+        const label = clean(r.affiliate_name) ?? clean(r.source) ?? "";
+        const source_id =
+          sourceByName.get(label.toLowerCase())
+          ?? matchDirectory(label, sourcesQ.data ?? [])
+          ?? null;
+        const key = `${entry_date}|${source_id ?? label.toLowerCase()}`;
+        let g = groups.get(key);
+        if (!g) {
+          g = {
+            key, entry_date, source_id, source_label: label || "—",
+            campaign: null, received: 0, invalid: 0, activated: 0, funnels: new Set<string>(),
+          };
+          groups.set(key, g);
+        }
+        const status = (clean(r.status) ?? "").toLowerCase();
+        const ftd = Number(clean(r.ftd_total)) || 0;
+        g.received += 1;
+        if (INVALID_OLD_CRM_STATUSES.has(status)) g.invalid += 1;
+        if (ftd > 0 || status === "ftd" || status === "deposited") g.activated += 1;
+        const funnel = clean(r.funnel);
+        if (funnel) g.funnels.add(funnel);
+      }
+      return [...groups.values()]
+        .map(({ funnels, ...g }) => ({ ...g, campaign: funnels.size === 1 ? [...funnels][0] : null }))
+        .sort((a, b) => a.entry_date.localeCompare(b.entry_date) || a.source_label.localeCompare(b.source_label));
+    };
+
+    /** Existing Daily numbers rows for the dates touched by an import. */
+    const existingDailyRows = async (groups: DailyGroup[]) => {
+      const dates = [...new Set(groups.map((g) => g.entry_date))];
+      if (dates.length === 0) return new Map<string, { id: string; received: number; invalid: number; activated: number; converted: number }>();
+      const { data, error } = await supabase
+        .from("daily_lead_entries")
+        .select("id,entry_date,source_id,source,received,invalid,activated,converted")
+        .in("entry_date", dates);
+      if (error) throw error;
+      const map = new Map<string, { id: string; received: number; invalid: number; activated: number; converted: number }>();
+      for (const row of data ?? []) {
+        const key = `${row.entry_date}|${row.source_id ?? String(row.source ?? "").toLowerCase()}`;
+        map.set(key, {
+          id: row.id,
+          received: row.received ?? 0,
+          invalid: row.invalid ?? 0,
+          activated: row.activated ?? 0,
+          converted: row.converted ?? 0,
+        });
+      }
+      return map;
+    };
 
 
     return [
