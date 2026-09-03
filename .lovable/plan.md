@@ -1,11 +1,11 @@
 # Merge "xx" duplicate rows during CSV import
 
 ## Rule
-A row whose first name or last name ends with `xx` (e.g. `Johnxx Smith`, `John Smithxx`) is a duplicate of the same person without the `xx` (`John Smith`). The `xx` row must never create its own lead — instead its acquisition details are handed to the clean twin.
+A row whose name carries `xx` markers — as a separate word after the first and/or last name, e.g. `John xx Smith xx` or `John xx Smith` — is a duplicate of the same person without them (`John Smith`). Names written without a space (`Johnxx Smith`) are treated the same way. The marked row must never create its own lead — instead its acquisition details are handed to the clean twin.
 
 ## Behaviour
 
-1. **Detect** — before anything else, clean each row's name: strip a trailing `xx` (case-insensitive) from the first and/or last name to get the "clean name". Rows where a strip happened are marked as `xx` rows.
+1. **Detect** — before anything else, clean each row's name: remove any standalone `xx` word and any trailing `xx` glued to a name part (case-insensitive), then collapse the extra spaces, to get the "clean name". Rows where something was removed are marked as `xx` rows.
 2. **Find the twin** — look for a lead with the clean name, first among the other rows of the same file, then among leads already in the system (same company, case/spacing-insensitive name match).
 3. **Twin found** — skip the `xx` row entirely (no lead, no client, no income, no Daily Numbers count) and copy Source, Funnel Name, Affiliate Name and Affiliate Data from it onto the twin, **only where the twin has no value yet**. Existing values are never overwritten.
 4. **No twin** — import the row normally but with the `xx` stripped from the name.
