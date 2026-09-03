@@ -54,7 +54,7 @@ import {
   YAxis,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtMoney, fmtPct, getDisplayCurrency, setDisplayCurrency } from "@/lib/format";
+import { fmtMoney, fmtPct, getDisplayCurrency, setDisplayCurrency, setCurrencyOverride, useDisplayCurrency } from "@/lib/format";
 import { toBase, FX_CURRENCIES, CURRENCY_SYMBOLS, useFxRates } from "@/lib/fx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -125,6 +125,9 @@ function DashboardCurrencyPicker({ onCurrencyChange }: { onCurrencyChange: (curr
       value={settings.currency}
       disabled={!isAdmin || save.isPending}
       onValueChange={(currency) => {
+        // Apply immediately everywhere on the dashboard (cards, charts and
+        // every table widget) before the workspace setting round-trips.
+        setCurrencyOverride(currency);
         onCurrencyChange(currency);
         save.mutate(currency);
       }}
@@ -153,13 +156,10 @@ function Dashboard() {
   const settings = useCompanySettings();
   const dash = useDashRange();
   const rangeKey = dash.state.key;
-  const [displayCur, setDashboardCurrency] = useState(settings.currency);
-  const currencyChosen = useRef(false);
+  // Single source of truth for the dashboard currency: the shared display
+  // currency store, so cards, charts and every table widget stay in sync.
+  const displayCur = useDisplayCurrency();
   const fx = useFxRates();
-
-  useEffect(() => {
-    if (!currencyChosen.current) setDashboardCurrency(settings.currency);
-  }, [settings.currency]);
   const displayAmount = (amount: number | string | null | undefined, currency?: string | null) => {
     const source = currency ?? "USD";
     const sourceRate = fx.rates[source] ?? 1;
@@ -492,8 +492,7 @@ function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <DashboardCurrencyPicker onCurrencyChange={(currency) => {
-            currencyChosen.current = true;
-            setDashboardCurrency(currency);
+            setCurrencyOverride(currency);
           }} />
           <DashboardRangePicker value={dash.state} onChange={dash.setState} label={rangeLabel} />
         </div>
