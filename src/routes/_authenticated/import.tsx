@@ -404,7 +404,8 @@ function useImportDefinitions() {
           };
         },
         onImport: async (rows) => {
-          const { payload, skipped, donations } = await prepareOldCrm(rows);
+          const { payload, skipped: xxSkipped, donations } = await prepareOldCrm(rows);
+          const xxCount = xxSkipped.size;
           await applyXxDonations(donations);
 
           const { data, error } = payload.length
