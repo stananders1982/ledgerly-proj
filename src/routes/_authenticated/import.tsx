@@ -88,7 +88,7 @@ const OLD_CRM_LEAD_STATUS: Record<string, LeadStatus> = {
   "wrong number": "wrong_number",
   "not interested": "not_interested",
   "interested": "interested",
-  "hot": "qualified",
+  "hot": "hot",
   "ftd": "activated",
   "deposited": "activated",
   "duplicate": "duplicate",
