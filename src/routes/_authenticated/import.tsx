@@ -651,7 +651,7 @@ function ImportCard({ def, loading }: { def: ImportDef; loading: boolean }) {
           onPreview={def.onPreview}
           onImport={async (rows, meta) => {
             const stats = (await def.onImport(rows, meta)) ?? {};
-            await recordRun(def, rows.length, meta, stats);
+            await recordRun(rows.length, meta, stats);
             setOpen(false);
           }}
         />
