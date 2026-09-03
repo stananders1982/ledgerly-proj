@@ -652,7 +652,7 @@ function ImportHistory() {
     <Card className="mt-6">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <History className="h-4 w-4 text-primary" /> Import history
+          <HistoryIcon className="h-4 w-4 text-primary" /> Import history
         </CardTitle>
         <CardDescription className="text-xs">Every upload from this shift and before, with row counts.</CardDescription>
       </CardHeader>
@@ -660,7 +660,7 @@ function ImportHistory() {
         {q.isLoading ? (
           <p className="text-xs text-muted-foreground">Loading…</p>
         ) : (q.data ?? []).length === 0 ? (
-          <EmptyState icon={History} title="No imports yet" description="Uploads will be listed here with their results." />
+          <EmptyState icon={HistoryIcon} title="No imports yet" description="Uploads will be listed here with their results." />
         ) : (
           <div className="overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
