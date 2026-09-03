@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, leadStatusDotClass, type LeadStatus } from "@/lib/lead-status";
+import { ClearFiltersButton, FilterRow, useTableToolbox, type ColDef } from "@/components/table-toolbox";
 
 const NONE = "__none__";
 type Lead = { id:string; crm_id:string; name:string; phone:string|null; email:string|null; source_id:string|null; affiliate_id:string|null; employee_id:string|null; status:LeadStatus; notes:string|null; activated:boolean; activation_id:string|null; created_at:string; lead_sources?:{name:string}|null; affiliates?:{name:string}|null };
@@ -79,7 +80,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
   const lastCommentOf=(l:Lead)=>{const parts=(l.notes??"").split(" · ").map(p=>p.trim()).filter(p=>p&&!NOTE_TAGS.test(p));return parts.length>1?parts[parts.length-1]:"";};
   const balanceOf=(l:Lead)=> l.activation_id ? (balancesQ.data?.get(l.activation_id) ?? 0) : null;
 
-  const rows=useMemo(()=> (leadsQ.data??[]).filter(l=>{
+  const baseRows=useMemo(()=> (leadsQ.data??[]).filter(l=>{
     const term=search.trim().toLowerCase();
     if(term&&!`${l.crm_id} ${l.name} ${l.phone??""} ${l.email??""}`.toLowerCase().includes(term))return false;
     if(status==="open"&&l.activated)return false;
@@ -88,6 +89,34 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
     if(agent!=="all"&&(l.employee_id??NONE)!==agent)return false;
     return true;
   }),[leadsQ.data,search,status,source,agent]);
+
+  const cols=useMemo<ColDef<Lead>[]>(()=>[
+    {key:"crm_id",label:"ID",value:l=>l.crm_id},
+    {key:"name",label:"Full Name",value:l=>l.name},
+    {key:"name2",label:"Full Name 2",value:l=>noteVal(l,"Also known as ")},
+    {key:"email",label:"E-mail",value:l=>l.email??""},
+    {key:"email2",label:"E-mail2",value:l=>noteVal(l,"Second email ")},
+    {key:"phone",label:"Phone",value:l=>l.phone??""},
+    {key:"country",label:"Country",filter:"select",value:l=>countryOf(l)},
+    {key:"city",label:"City",filter:"select",value:l=>cityOf(l)},
+    {key:"age",label:"Age",value:l=>noteVal(l,"Age ")},
+    {key:"created",label:"Created Date",filter:"date",value:l=>l.created_at},
+    {key:"source",label:"Source",filter:"select",value:l=>l.lead_sources?.name??l.affiliates?.name??""},
+    {key:"funnel",label:"Funnel Name",filter:"select",value:l=>funnelOf(l)},
+    {key:"affiliate_data",label:"Affiliate Data",value:l=>noteVal(l,"Affiliate data ")},
+    {key:"affiliate",label:"Affiliate Name",filter:"select",value:l=>l.affiliates?.name??""},
+    {key:"assigned",label:"Assigned to",filter:"select",value:l=>nameOf(l.employee_id)},
+    {key:"status",label:"Status",filter:"select",options:LEAD_STATUSES.map(s=>LEAD_STATUS_LABELS[s]??s),value:l=>LEAD_STATUS_LABELS[l.status]??l.status},
+    {key:"ftd_total",label:"FTD Total",value:l=>ftdTotalOf(l)??""},
+    {key:"lifetime",label:"Lifetime Deposit",value:l=>l.activation_id?(balanceOf(l)??0):(ftdTotalOf(l)??"")},
+    {key:"ftd_time",label:"FTD Time",value:l=>ftdTimeOf(l)},
+    {key:"ftd_owner",label:"FTD Owner",value:l=>noteVal(l,"FTD owner ")},
+    {key:"tag",label:"Tag",value:l=>noteVal(l,"Tag ")},
+    {key:"comment",label:"Last comment text",value:l=>lastCommentOf(l)},
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ],[agentsQ.data,balancesQ.data]);
+  const tb=useTableToolbox("individual-leads",cols,baseRows);
+  const rows=tb.filtered;
 
   const save=useMutation({mutationFn:async(v:Form)=>{
     if (!companyId) throw new Error("No active workspace");
@@ -116,6 +145,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
       <Select value={source} onValueChange={setSource}><SelectTrigger className="w-44"><SelectValue placeholder="All affiliates"/></SelectTrigger><SelectContent><SelectItem value="all">All affiliates</SelectItem>{sourceOptions.map((o)=><SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent></Select>
       <Select value={agent} onValueChange={setAgent}><SelectTrigger className="w-44"><SelectValue placeholder="All agents"/></SelectTrigger><SelectContent><SelectItem value="all">All conversion agents</SelectItem><SelectItem value={NONE}>Unassigned</SelectItem>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>
       <span className="text-sm text-muted-foreground">{rows.length} leads</span>
+      <ClearFiltersButton tb={tb} extraActive={(search.trim()?1:0)+(status!=="open"?1:0)+(source!=="all"?1:0)+(agent!=="all"?1:0)} extra={()=>{setSearch("");setStatus("open");setSource("all");setAgent("all");}}/>
       <div className="ml-auto flex gap-2">{selected.size>0&&roleKey!=="agent"&&<Select onValueChange={v=>bulkAssign.mutate(v)}><SelectTrigger className="w-44"><SelectValue placeholder={`Assign ${selected.size}`}/></SelectTrigger><SelectContent>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}<Button onClick={()=>setForm({...blank(),employee_id:roleKey==="agent"&&employee?.team==="C"?employee.id:""})}><Plus className="h-4 w-4"/> Add lead</Button></div>
     </div>
     {rows.length===0?<EmptyState icon={Plus} title="No leads found" description="Add a lead by details or let affiliates send leads through the intake API." action={<Button onClick={()=>setForm(blank())}>Add lead</Button>}/>:<TableFrame resizeKey="individual-leads" className="w-full"><table className="w-full min-w-[2900px] text-[11px]">
@@ -144,7 +174,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
         <th className="p-2 text-left">Tag</th>
         <th className="p-2 text-left">Last comment text</th>
         <th className="p-2 text-right">Actions</th>
-      </tr></thead>
+      </tr><FilterRow tb={tb} leading={1} trailing={1}/></thead>
       <tbody>{rows.map(l=><tr key={l.id} className="border-t odd:bg-muted/10 hover:bg-accent/30">
         <td className="p-2"><Checkbox checked={selected.has(l.id)} onCheckedChange={()=>setSelected(s=>{const n=new Set(s);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;})}/></td>
         <td className="p-2 font-mono font-medium whitespace-nowrap">{l.crm_id}</td>
