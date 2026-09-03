@@ -86,12 +86,14 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
     return activation.id;
   },onSuccess:(id)=>{qc.invalidateQueries({queryKey:["individual-leads"]});qc.invalidateQueries({queryKey:["activated-leads"]});setConvert(null);setRetentionId("");toast.success("Lead converted to client");navigate({to:"/clients/$id",params:{id}});},onError:(e:any)=>toast.error(e.message)});
 
+  const sourceOptions=(()=>{const seen=new Set<string>();const out:{id:string;name:string}[]=[];for(const o of [...(affiliatesQ.data??[]),...(sourcesQ.data??[])] as any[]){const k=(o.name??"").trim().toLowerCase();if(!k||seen.has(k))continue;seen.add(k);out.push({id:o.id,name:o.name});}return out;})();
+
   if(leadsQ.isLoading)return <TableSkeleton rows={8}/>;
   return <div className="space-y-3">
     <div className="flex flex-wrap items-center gap-2">
       <Input className="max-w-xs" placeholder="Search name, phone or email" value={search} onChange={e=>setSearch(e.target.value)}/>
       <Select value={status} onValueChange={setStatus}><SelectTrigger className="w-40"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="open">Open leads</SelectItem><SelectItem value="all">All statuses</SelectItem>{STATUSES.map(s=><SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}</SelectContent></Select>
-      <Select value={source} onValueChange={setSource}><SelectTrigger className="w-44"><SelectValue placeholder="All affiliates"/></SelectTrigger><SelectContent><SelectItem value="all">All affiliates</SelectItem>{(affiliatesQ.data??[]).map((a:any)=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}{(sourcesQ.data??[]).filter((s:any)=>!(affiliatesQ.data??[]).some((a:any)=>a.id===s.id)).map((s:any)=><SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select>
+      <Select value={source} onValueChange={setSource}><SelectTrigger className="w-44"><SelectValue placeholder="All affiliates"/></SelectTrigger><SelectContent><SelectItem value="all">All affiliates</SelectItem>{sourceOptions.map((o)=><SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent></Select>
       <Select value={agent} onValueChange={setAgent}><SelectTrigger className="w-44"><SelectValue placeholder="All agents"/></SelectTrigger><SelectContent><SelectItem value="all">All conversion agents</SelectItem><SelectItem value={NONE}>Unassigned</SelectItem>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>
       <span className="text-sm text-muted-foreground">{rows.length} leads</span>
       <div className="ml-auto flex gap-2">{selected.size>0&&roleKey!=="agent"&&<Select onValueChange={v=>bulkAssign.mutate(v)}><SelectTrigger className="w-44"><SelectValue placeholder={`Assign ${selected.size}`}/></SelectTrigger><SelectContent>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}<Button onClick={()=>setForm({...blank(),employee_id:roleKey==="agent"&&employee?.team==="C"?employee.id:""})}><Plus className="h-4 w-4"/> Add lead</Button></div>
