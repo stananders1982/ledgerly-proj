@@ -86,7 +86,15 @@ function ActivityPage() {
     });
   }, [q.data, search, action, entity]);
 
-  const { pageItems, ...pg } = usePagination(rows, 30, "activity");
+  const actCols: ColDef<any>[] = [
+    { key: "when", label: "When", filter: "date", value: (r) => r.created_at ?? "" },
+    { key: "action", label: "Action", filter: "select", value: (r) => r.action ?? "" },
+    { key: "record", label: "Record", filter: "select", value: (r) => prettyEntity(r.entity_type) },
+    { key: "reference", label: "Reference", value: (r) => r.entity_label ?? "" },
+    { key: "user", label: "User", filter: "select", value: (r) => r.user_email ?? "system" },
+  ];
+  const tb = useTableToolbox<any>("activity", actCols, rows);
+  const { pageItems, ...pg } = usePagination(tb.filtered, 30, "activity");
 
   return (
     <div>
@@ -135,6 +143,11 @@ function ActivityPage() {
             {entities.map((e) => <SelectItem key={e} value={e} className="capitalize">{prettyEntity(e)}</SelectItem>)}
           </SelectContent>
         </Select>
+        <ClearFiltersButton
+          tb={tb}
+          extraActive={(search ? 1 : 0) + (action !== "all" ? 1 : 0) + (entity !== "all" ? 1 : 0)}
+          extra={() => { setSearch(""); setAction("all"); setEntity("all"); }}
+        />
       </div>
 
       <div className="card-surface overflow-hidden">
@@ -169,6 +182,7 @@ function ActivityPage() {
                     <th className="py-3 px-4">Reference</th>
                     <th className="py-3 px-4">User</th>
                   </tr>
+                  <FilterRow tb={tb} />
                 </thead>
                 <tbody>
                   {pageItems.map((r) => (

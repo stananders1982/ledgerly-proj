@@ -85,7 +85,16 @@ function LogsPage() {
     };
   }, [q.data]);
 
-  const pg = usePagination(rows, 25, "logs");
+  const logCols: ColDef<any>[] = [
+    { key: "time", label: "Time", filter: "date", value: (r) => r.created_at ?? "" },
+    { key: "level", label: "Level", filter: "select", value: (r) => r.level ?? "" },
+    { key: "source", label: "Source", filter: "select", value: (r) => r.source ?? "" },
+    { key: "message", label: "Message", value: (r) => r.message ?? "" },
+    { key: "user", label: "User", value: (r) => r.user_email ?? "" },
+    { key: "path", label: "Path", value: (r) => r.path ?? "" },
+  ];
+  const tb = useTableToolbox<any>("logs", logCols, rows);
+  const pg = usePagination(tb.filtered, 25, "logs");
   const pageItems = pg.pageItems;
 
   if (!isAdmin && !isSuperAdmin) {
@@ -128,6 +137,14 @@ function LogsPage() {
         }
       />
 
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <ClearFiltersButton
+          tb={tb}
+          extraActive={(search ? 1 : 0) + (level !== "all" ? 1 : 0)}
+          extra={() => { setSearch(""); setLevel("all"); }}
+        />
+      </div>
+
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
         <StatCard label="Events" value={String(counts.total)} />
         <StatCard label="Errors" value={String(counts.errors)} />
@@ -168,6 +185,7 @@ function LogsPage() {
                     <th className="py-3 px-4 font-medium">User</th>
                     <th className="py-3 px-4 font-medium">Path</th>
                   </tr>
+                  <FilterRow tb={tb} />
                 </thead>
                 <tbody>
                   {pageItems.map((r: any) => (
