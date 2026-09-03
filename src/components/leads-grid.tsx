@@ -80,7 +80,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
   const lastCommentOf=(l:Lead)=>{const parts=(l.notes??"").split(" · ").map(p=>p.trim()).filter(p=>p&&!NOTE_TAGS.test(p));return parts.length>1?parts[parts.length-1]:"";};
   const balanceOf=(l:Lead)=> l.activation_id ? (balancesQ.data?.get(l.activation_id) ?? 0) : null;
 
-  const rows=useMemo(()=> (leadsQ.data??[]).filter(l=>{
+  const baseRows=useMemo(()=> (leadsQ.data??[]).filter(l=>{
     const term=search.trim().toLowerCase();
     if(term&&!`${l.crm_id} ${l.name} ${l.phone??""} ${l.email??""}`.toLowerCase().includes(term))return false;
     if(status==="open"&&l.activated)return false;
@@ -89,6 +89,34 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
     if(agent!=="all"&&(l.employee_id??NONE)!==agent)return false;
     return true;
   }),[leadsQ.data,search,status,source,agent]);
+
+  const cols=useMemo<ColDef<Lead>[]>(()=>[
+    {key:"crm_id",label:"ID",value:l=>l.crm_id},
+    {key:"name",label:"Full Name",value:l=>l.name},
+    {key:"name2",label:"Full Name 2",value:l=>noteVal(l,"Also known as ")},
+    {key:"email",label:"E-mail",value:l=>l.email??""},
+    {key:"email2",label:"E-mail2",value:l=>noteVal(l,"Second email ")},
+    {key:"phone",label:"Phone",value:l=>l.phone??""},
+    {key:"country",label:"Country",filter:"select",value:l=>countryOf(l)},
+    {key:"city",label:"City",filter:"select",value:l=>cityOf(l)},
+    {key:"age",label:"Age",value:l=>noteVal(l,"Age ")},
+    {key:"created",label:"Created Date",filter:"date",value:l=>l.created_at},
+    {key:"source",label:"Source",filter:"select",value:l=>l.lead_sources?.name??l.affiliates?.name??""},
+    {key:"funnel",label:"Funnel Name",filter:"select",value:l=>funnelOf(l)},
+    {key:"affiliate_data",label:"Affiliate Data",value:l=>noteVal(l,"Affiliate data ")},
+    {key:"affiliate",label:"Affiliate Name",filter:"select",value:l=>l.affiliates?.name??""},
+    {key:"assigned",label:"Assigned to",filter:"select",value:l=>nameOf(l.employee_id)},
+    {key:"status",label:"Status",filter:"select",options:LEAD_STATUSES.map(s=>LEAD_STATUS_LABELS[s]??s),value:l=>LEAD_STATUS_LABELS[l.status]??l.status},
+    {key:"ftd_total",label:"FTD Total",value:l=>ftdTotalOf(l)??""},
+    {key:"lifetime",label:"Lifetime Deposit",value:l=>l.activation_id?(balanceOf(l)??0):(ftdTotalOf(l)??"")},
+    {key:"ftd_time",label:"FTD Time",value:l=>ftdTimeOf(l)},
+    {key:"ftd_owner",label:"FTD Owner",value:l=>noteVal(l,"FTD owner ")},
+    {key:"tag",label:"Tag",value:l=>noteVal(l,"Tag ")},
+    {key:"comment",label:"Last comment text",value:l=>lastCommentOf(l)},
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ],[agentsQ.data,balancesQ.data]);
+  const tb=useTableToolbox("individual-leads",cols,baseRows);
+  const rows=tb.filtered;
 
   const save=useMutation({mutationFn:async(v:Form)=>{
     if (!companyId) throw new Error("No active workspace");
