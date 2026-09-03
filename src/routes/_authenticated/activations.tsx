@@ -779,8 +779,12 @@ function ActivationsPage() {
         .eq("id", keeper.id);
       if (upErr) throw upErr;
 
-      const { error: delErr } = await supabase.from("daily_lead_activations").delete().in("id", losers);
+      const { data: gone, error: delErr } = await supabase
+        .from("daily_lead_activations").delete().in("id", losers).select("id");
       if (delErr) throw delErr;
+      if ((gone?.length ?? 0) < losers.length) {
+        throw new Error("Merge stopped — you don't have permission to delete the duplicate records");
+      }
       return { keeper: keeper.lead_name as string, merged: losers.length };
     },
     onSuccess: ({ keeper, merged }) => {
