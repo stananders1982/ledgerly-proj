@@ -73,7 +73,7 @@ const statusTone = (status?: string | null): "success" | "warning" | "danger" | 
 const rowDate = (value?: string | null) => value ? new Date(`${String(value).slice(0, 10)}T12:00:00`).getTime() : 0;
 
 function AdminOverviewPage() {
-  const { isAdmin, companyId } = useAuth();
+  const { isAdmin, companyId, permsLoaded } = useAuth();
   const navigate = useNavigate();
   const settings = useCompanySettings();
   useFxRates();
@@ -91,8 +91,8 @@ function AdminOverviewPage() {
   const activeRange = useMemo(() => getRange(range, { start: customStart, end: customEnd }), [range, customStart, customEnd]);
 
   useEffect(() => {
-    if (!isAdmin) navigate({ to: "/", replace: true });
-  }, [isAdmin, navigate]);
+    if (permsLoaded && !isAdmin) navigate({ to: "/", replace: true });
+  }, [isAdmin, navigate, permsLoaded]);
 
   useEffect(() => {
     setStatus("all");
@@ -141,7 +141,7 @@ function AdminOverviewPage() {
     queryFn: () => fetchAll(() => supabase.from("lead_sources").select("id,name").order("name")),
   });
 
-  if (!isAdmin) return <div className="flex min-h-[40vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  if (!permsLoaded || !isAdmin) return <div className="flex min-h-[40vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
 
   const queries = [requestsQ, revenueQ, withdrawalsQ, leadsQ, entriesQ, activationsQ, employeesQ, sourcesQ];
   const errorQuery = queries.find((q) => q.error);
