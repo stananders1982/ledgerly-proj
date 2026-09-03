@@ -577,6 +577,33 @@ function downloadTemplate(def: ImportDef) {
 function ImportCard({ def, loading }: { def: ImportDef; loading: boolean }) {
   const [open, setOpen] = useState(false);
   const required = def.fields.filter((f) => f.required).map((f) => f.label);
+  const { user, companyId } = useAuth();
+  const qc = useQueryClient();
+
+  /** Best-effort audit entry for one upload. Never blocks the import. */
+  const recordRun = async (rowCount: number, meta: ImportMeta, stats: ImportRunStats) => {
+    if (!companyId || !user) return;
+    try {
+      await supabase.from("import_runs").insert({
+        company_id: companyId,
+        user_id: user.id,
+        user_email: user.email ?? null,
+        import_key: def.key,
+        file_name: meta.fileName ?? null,
+        row_count: rowCount,
+        created_count: stats.created ?? 0,
+        updated_count: stats.updated ?? 0,
+        skipped_count: stats.skipped ?? 0,
+        invalid_count: stats.invalid ?? 0,
+        ftd_count: stats.ftds ?? 0,
+        stats: (stats.extra ?? null) as never,
+      });
+      qc.invalidateQueries({ queryKey: ["import-runs"] });
+    } catch {
+      /* audit logging must never break an import */
+    }
+  };
+
 
   return (
     <Card className="flex flex-col">
