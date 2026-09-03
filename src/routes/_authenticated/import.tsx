@@ -476,7 +476,7 @@ function useImportDefinitions() {
         },
       },
     ];
-  }, [qc, employeeByName, affiliateByName, sourceByName, categoryByName, leadByName]);
+  }, [qc, employeesQ.data, employeeByName, affiliateByName, sourceByName, categoryByName, leadByName]);
 
   return { defs, isLoading: employeesQ.isLoading || affiliatesQ.isLoading || sourcesQ.isLoading || categoriesQ.isLoading || leadsQ.isLoading };
 }
