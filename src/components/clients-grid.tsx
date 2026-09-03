@@ -25,6 +25,7 @@ const ANY = "all";
 const NONE = "__none__";
 
 export type GridFilters = {
+  crmId: string;
   name: string;
   source: string;
   retention: string;
@@ -37,7 +38,7 @@ export type GridFilters = {
 };
 
 const EMPTY: GridFilters = {
-  name: "", source: "", retention: ANY, conversion: ANY, status: ANY,
+  crmId: "", name: "", source: "", retention: ANY, conversion: ANY, status: ANY,
   answered: ANY, potential: ANY, balanceMin: "", balanceMax: "",
 };
 
@@ -62,10 +63,12 @@ export function useClientsGridFilters() {
     (rows: any[], h: GridHelpers) => {
       const f = { ...EMPTY, ...(filters ?? EMPTY) };
       const name = f.name.trim().toLowerCase();
+      const crmId = f.crmId.trim().toLowerCase();
       const source = f.source.trim().toLowerCase();
       const min = f.balanceMin === "" ? null : Number(f.balanceMin);
       const max = f.balanceMax === "" ? null : Number(f.balanceMax);
       return rows.filter((r) => {
+        if (crmId && !(r.crm_id ?? "").toLowerCase().includes(crmId)) return false;
         if (name && !(r.lead_name ?? "").toLowerCase().includes(name)) return false;
         if (source && !h.sourceName(r).toLowerCase().includes(source)) return false;
         if (f.retention !== ANY && (r.employee_id ?? NONE) !== f.retention) return false;
@@ -137,6 +140,7 @@ export function ClientsGrid({
               <Checkbox checked={allChecked} onCheckedChange={(c) => onTogglePage(Boolean(c))} aria-label="Select all on page" />
             </th>
             <th className={cn(TH, "w-8 pin-left left-9")}></th>
+            <th className={TH}>CRM ID</th>
             <th className={cn(TH, "pin-left left-[68px] min-w-[190px] bg-muted/40")}>Full name</th>
             <th className={cn(TH, "w-[120px]")}>Contact</th>
             <th className={TH}>Activated</th>
@@ -153,6 +157,7 @@ export function ClientsGrid({
           <tr className="bg-background/60">
             <th className="px-2 pb-2 pin-left left-0" />
             <th className="px-2 pb-2 pin-left left-9" />
+            <th className="px-2 pb-2"><Input className="h-7 w-28 text-xs" placeholder="CRM ID" value={f.crmId} onChange={(e) => filters.set({ crmId: e.target.value })} /></th>
             <th className="px-2 pb-2 pin-left left-[68px] bg-background/60">
               <Input
                 className="h-7 text-xs"
@@ -270,6 +275,7 @@ export function ClientsGrid({
               <td className={cn(TD, "pin-left left-9")}>
                 <FavoriteStar type="client" id={r.id} label={r.lead_name} />
               </td>
+              <td className={cn(TD, "font-mono font-medium")}>{r.crm_id}</td>
               <td className={cn(TD, "pin-left left-[68px] font-medium")}>
                 <button type="button" className="max-w-[220px] truncate text-left hover:underline" onClick={() => onOpen(r)}>
                   {r.lead_name || "Unnamed client"}
