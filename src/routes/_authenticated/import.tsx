@@ -621,12 +621,83 @@ function ImportCard({ def, loading }: { def: ImportDef; loading: boolean }) {
           title={`Import ${def.title}`}
           templateName={def.templateName}
           fields={def.fields}
-          onImport={async (rows) => {
-            await def.onImport(rows);
+          onPreview={def.onPreview}
+          onImport={async (rows, meta) => {
+            const stats = (await def.onImport(rows, meta)) ?? {};
+            await recordRun(def, rows.length, meta, stats);
             setOpen(false);
           }}
         />
       )}
+    </Card>
+  );
+}
+
+/** Import history — every CSV upload with its counts. */
+function ImportHistory() {
+  const q = useQuery({
+    queryKey: ["import-runs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("import_runs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <Card className="mt-6">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <History className="h-4 w-4 text-primary" /> Import history
+        </CardTitle>
+        <CardDescription className="text-xs">Every upload from this shift and before, with row counts.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {q.isLoading ? (
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        ) : (q.data ?? []).length === 0 ? (
+          <EmptyState icon={History} title="No imports yet" description="Uploads will be listed here with their results." />
+        ) : (
+          <div className="overflow-x-auto scroll-slim">
+            <table className="w-full text-sm">
+              <thead className="table-head bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="py-2 px-3 font-medium">When</th>
+                  <th className="py-2 px-3 font-medium">Type</th>
+                  <th className="py-2 px-3 font-medium">File</th>
+                  <th className="py-2 px-3 font-medium">By</th>
+                  <th className="py-2 px-3 font-medium text-right">Rows</th>
+                  <th className="py-2 px-3 font-medium text-right">New</th>
+                  <th className="py-2 px-3 font-medium text-right">Updated</th>
+                  <th className="py-2 px-3 font-medium text-right">Skipped</th>
+                  <th className="py-2 px-3 font-medium text-right">Invalid</th>
+                  <th className="py-2 px-3 font-medium text-right">FTDs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(q.data ?? []).map((r: any) => (
+                  <tr key={r.id} className="border-b border-border/50 transition-colors hover:bg-accent/30">
+                    <td className="py-2 px-3 whitespace-nowrap text-muted-foreground">{new Date(r.created_at).toLocaleString()}</td>
+                    <td className="py-2 px-3">{r.import_key}</td>
+                    <td className="py-2 px-3 max-w-[220px] truncate">{r.file_name ?? "—"}</td>
+                    <td className="py-2 px-3 text-muted-foreground">{r.user_email ?? "—"}</td>
+                    <td className="py-2 px-3 text-right">{r.row_count ?? 0}</td>
+                    <td className="py-2 px-3 text-right text-emerald-500">{r.created_count ?? 0}</td>
+                    <td className="py-2 px-3 text-right text-amber-500">{r.updated_count ?? 0}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{r.skipped_count ?? 0}</td>
+                    <td className="py-2 px-3 text-right">{r.invalid_count ?? 0}</td>
+                    <td className="py-2 px-3 text-right">{r.ftd_count ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }
