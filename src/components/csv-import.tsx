@@ -67,11 +67,13 @@ export function CsvImportDialog({
   title = "Import CSV",
   fields,
   onImport,
+  onPreview,
   templateName = "template.csv",
 }: {
   title?: string;
   fields: ImportField[];
-  onImport: (rows: Record<string, string>[]) => Promise<void> | void;
+  onImport: (rows: Record<string, string>[], meta: ImportMeta) => Promise<void> | void;
+  onPreview?: (rows: Record<string, string>[]) => Promise<PreviewResult>;
   templateName?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -79,9 +81,11 @@ export function CsvImportDialog({
   const [data, setData] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [preview, setPreview] = useState<PreviewResult | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const reset = () => { setHeaders([]); setData([]); setMapping({}); };
+  const reset = () => { setHeaders([]); setData([]); setMapping({}); setPreview(null); setFileName(""); };
 
   const mapped = useMemo(() => {
     return data.map((r) => {
