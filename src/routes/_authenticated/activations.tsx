@@ -920,12 +920,7 @@ function ActivationsPage() {
             </SelectContent>
           </Select>
         )}
-        {(answeredFilter !== "all" || healthFilter !== "all" || tierFilter !== "all" || potentialFilter !== "all" || stdFilter !== "all" || tagFilter !== "all" || retentionFilter !== "all" || dupOnly || minPotential) && (
-
-          <Button variant="ghost" size="sm" className="h-9 gap-1 text-muted-foreground" onClick={clearFilters}>
-            <X className="h-3.5 w-3.5" /> Clear filters
-          </Button>
-        )}
+        <ClearFiltersButton tb={tb} extra={clearFilters} extraActive={pageFilterCount} className="h-9" />
       </div>
 
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 mb-6">
