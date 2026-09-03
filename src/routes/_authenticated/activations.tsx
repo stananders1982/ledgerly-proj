@@ -718,9 +718,13 @@ function ActivationsPage() {
     mutationFn: async (idsArg?: string[]) => {
       const ids = idsArg ?? [...selected];
       if (!ids.length) return 0;
-      const { error } = await supabase.from("daily_lead_activations").delete().in("id", ids);
+      // Return the deleted rows so a permission block can't look like a success.
+      const { data, error } = await supabase.from("daily_lead_activations").delete().in("id", ids).select("id");
       if (error) throw error;
-      return ids.length;
+      const count = data?.length ?? 0;
+      if (!count) throw new Error("Nothing was deleted — you don't have permission to delete clients");
+      if (count < ids.length) toast.warning(`Deleted ${count} of ${ids.length}; the rest are not yours to delete`);
+      return count;
     },
     onSuccess: (count) => {
       qc.invalidateQueries({ queryKey: ["activated-leads"] });
