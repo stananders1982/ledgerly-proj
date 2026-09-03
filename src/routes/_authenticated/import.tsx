@@ -266,58 +266,19 @@ function useImportDefinitions() {
             status: "Call Back", ftd_total: "250", lifetime_deposit: "250", ftd_time: "2026-09-03 05:48:44", ftd_owner: "", tag: "",
           },
         ],
+        onPreview: async (rows) => {
+          const { data, error } = await supabase.rpc("preview_old_crm_leads", { _rows: buildOldCrmPayload(rows) });
+          if (error) throw error;
+          return data as unknown as PreviewResult;
+        },
         onImport: async (rows) => {
-          const employees = employeesQ.data ?? [];
-          const payload = rows.map((r) => {
-            const old = (clean(r.status) ?? "").toLowerCase();
-            const mapped = OLD_CRM_LEAD_STATUS[old] ?? "new";
-            const ftd = Number(clean(r.ftd_total)) || 0;
-            const sourceName = (clean(r.source) ?? "").toLowerCase();
-            const affName = (clean(r.affiliate_name) ?? clean(r.source) ?? "").toLowerCase();
-            const assignedId = matchEmployee(r.assigned_to, employees);
-            const retentionId = matchEmployee(r.ftd_owner, employees) ?? assignedId;
-            const createdAt = new Date(clean(r.created_date) ?? Date.now()).toISOString();
-            const ftdAt = clean(r.ftd_time)
-              ? new Date(clean(r.ftd_time) as string).toISOString()
-              : createdAt;
-            const noteBits = [
-              clean(r.ext_id) ? `Old CRM ID ${clean(r.ext_id)}` : null,
-              clean(r.country) || clean(r.city) ? [clean(r.city), clean(r.country)].filter(Boolean).join(", ") : null,
-              clean(r.age) ? `Age ${clean(r.age)}` : null,
-              clean(r.funnel) ? `Funnel ${clean(r.funnel)}` : null,
-              clean(r.affiliate_data) ? `Affiliate data ${clean(r.affiliate_data)}` : null,
-              clean(r.status) ? `Old status ${clean(r.status)}` : null,
-              ftd > 0 ? `FTD ${ftd}${clean(r.ftd_time) ? ` on ${clean(r.ftd_time)}` : ""}` : null,
-              clean(r.ftd_owner) ? `FTD owner ${clean(r.ftd_owner)}` : null,
-              clean(r.full_name_2) ? `Also known as ${clean(r.full_name_2)}` : null,
-              clean(r.email2) ? `Second email ${clean(r.email2)}` : null,
-              clean(r.tag) ? `Tag ${clean(r.tag)}` : null,
-            ].filter(Boolean);
-            return {
-              name: titleCase(r.full_name),
-              email: clean(r.email),
-              phone: clean(r.phone),
-              old_crm_id: clean(r.ext_id),
-              conversion_employee_id: assignedId,
-              retention_employee_id: retentionId,
-              source_id: sourceByName.get(sourceName) ?? matchDirectory(r.source, sourcesQ.data ?? []),
-              affiliate_id: affiliateByName.get(affName) ?? matchDirectory(clean(r.affiliate_name) ?? r.source, affiliatesQ.data ?? []),
-              status: mapped,
-              created_at: createdAt,
-              ftd_amount: ftd,
-              ftd_at: ftdAt,
-              country: clean(r.country),
-              city: clean(r.city),
-              age: Number(clean(r.age)) || null,
-              notes: noteBits.join(" · ") || null,
-              fingerprint_source: JSON.stringify(r),
-            };
-          });
+          const payload = buildOldCrmPayload(rows);
 
           const { data, error } = await supabase.rpc("import_old_crm_leads", { _rows: payload });
           if (error) throw error;
           const result = data as {
             imported?: number;
+            updated?: number;
             ftds_connected?: number;
             invalid_connected?: number;
             daily_rows_created?: number;
@@ -331,12 +292,25 @@ function useImportDefinitions() {
             "dash-leads-v2", "unallocated-ftds",
           ]);
           const imported = Number(result?.imported ?? 0);
+          const updated = Number(result?.updated ?? 0);
           const connected = Number(result?.ftds_connected ?? 0);
           const invalid = Number(result?.invalid_connected ?? 0);
           const skipped = Number(result?.skipped ?? 0);
           if (imported) toast.success(`Imported ${imported} leads · ${invalid} invalid · connected ${connected} FTD${connected === 1 ? "" : "s"}`);
+          if (updated) toast.info(`Filled missing details on ${updated} existing record${updated === 1 ? "" : "s"}`);
           if (skipped) toast.info(`Skipped ${skipped} already in the system`);
-          if (!imported && !skipped) toast.info("Nothing to import");
+          if (!imported && !skipped && !updated) toast.info("Nothing to import");
+          return {
+            created: imported,
+            updated,
+            skipped,
+            invalid,
+            ftds: connected,
+            extra: {
+              daily_rows_created: Number(result?.daily_rows_created ?? 0),
+              daily_rows_updated: Number(result?.daily_rows_updated ?? 0),
+            },
+          };
         },
       },
       {
