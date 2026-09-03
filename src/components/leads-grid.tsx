@@ -72,10 +72,11 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
   const save=useMutation({mutationFn:async(v:Form)=>{
     if (!companyId) throw new Error("No active workspace");
     const payload={name:v.name.trim(),phone:v.phone.trim()||null,email:v.email.trim()||null,source_id:v.source_id||null,affiliate_id:v.affiliate_id||null,employee_id:v.employee_id||null,status:v.status,notes:v.notes.trim()||null,company_id:companyId};
-    const {error}=v.id?await supabase.from("leads").update(payload).eq("id",v.id):await supabase.from("leads").insert(payload);if(error)throw error;
+    const {error}=v.id?await supabase.from("leads").update(payload).eq("id",v.id):await supabase.from("leads").insert(payload);
+    if(error)throw /unique/i.test(error.message)?new Error("A lead with this email already exists"):error;
   },onSuccess:()=>{qc.invalidateQueries({queryKey:["individual-leads"]});setForm(null);toast.success("Lead saved");},onError:(e:any)=>toast.error(e.message)});
   const patch=useMutation({mutationFn:async({id,p}:{id:string;p:Record<string,unknown>})=>{const {error}=await supabase.from("leads").update(p as any).eq("id",id);if(error)throw error;},onSuccess:()=>qc.invalidateQueries({queryKey:["individual-leads"]}),onError:(e:any)=>toast.error(e.message)});
-  const remove=useMutation({mutationFn:async(id:string)=>{const {error}=await supabase.from("leads").delete().eq("id",id);if(error)throw error;},onSuccess:()=>{qc.invalidateQueries({queryKey:["individual-leads"]});toast.success("Lead deleted");},onError:(e:any)=>toast.error(e.message)});
+  const remove=useMutation({mutationFn:async(id:string)=>{const {data,error}=await supabase.from("leads").delete().eq("id",id).select("id");if(error)throw error;if(!data?.length)throw new Error("Nothing was deleted — you don't have permission to delete leads");},onSuccess:()=>{qc.invalidateQueries({queryKey:["individual-leads"]});toast.success("Lead deleted");},onError:(e:any)=>toast.error(e.message)});
   const bulkAssign=useMutation({mutationFn:async(id:string)=>{const {error}=await supabase.from("leads").update({employee_id:id}).in("id",[...selected]);if(error)throw error;},onSuccess:()=>{setSelected(new Set());qc.invalidateQueries({queryKey:["individual-leads"]});toast.success("Leads assigned");}});
   const doConvert=useMutation({mutationFn:async()=>{
     if(!convert||!retentionId)throw new Error("Choose a retention agent");
