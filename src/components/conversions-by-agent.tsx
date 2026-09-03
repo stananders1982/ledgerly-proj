@@ -6,7 +6,7 @@ import { fetchAll } from "@/lib/fetch-all";
 import { EmployeeLink } from "@/components/employee-link";
 import { AnsweredBadge, PotentialBadge, LateFtdBadge } from "@/components/status-badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { fmtDate, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtMoney, useDisplayCurrency } from "@/lib/format";
 import { qualifiesAsFtd, ftdPendingReasons, depositIndex, effectiveBalanceIndexed, isAgentTeam, normalizeTeam, isLegacyClient, isLateRetentionFtd, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 
@@ -96,7 +96,8 @@ export function ConversionsByAgent({
 
 
   // Prefer the direct client link; name matching only covers legacy rows.
-  const deposits = useMemo(() => depositIndex((revenueQ.data ?? []) as any[]), [revenueQ.data]);
+  const displayCurrency = useDisplayCurrency();
+  const deposits = useMemo(() => depositIndex((revenueQ.data ?? []) as any[]), [revenueQ.data, displayCurrency]);
 
   const rows = useMemo(() => {
     const s = start.getTime();

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { EmployeeLink } from "@/components/employee-link";
-import { fmtMoney } from "@/lib/format";
+import { fmtMoney, useDisplayCurrency } from "@/lib/format";
 import { normalizeTeam } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 
@@ -78,6 +78,7 @@ export function RetentionScoreboard({ start, end }: { start: Date; end: Date }) 
     },
   });
 
+  const displayCurrency = useDisplayCurrency();
   const rows = useMemo(() => {
     const deposits = new Map<string, number>();
     const withdrawals = new Map<string, number>();
@@ -93,7 +94,7 @@ export function RetentionScoreboard({ start, end }: { start: Date; end: Date }) 
       })
       .filter((r) => r.deposits !== 0 || r.withdrawals !== 0)
       .sort((a, b) => b.total - a.total);
-  }, [revQ.data, wdQ.data, empQ.data]);
+  }, [revQ.data, wdQ.data, empQ.data, displayCurrency]);
 
   const totals = useMemo(
     () => ({

@@ -4,7 +4,7 @@ import { getDisplayCurrency } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
-import { fmtMoney } from "@/lib/format";
+import { fmtMoney, useDisplayCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -111,6 +111,7 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
     },
   });
 
+  const displayCurrency = useDisplayCurrency();
   const model = useMemo(() => {
     const start = iso(today);
 
@@ -181,7 +182,7 @@ export function CashflowForecast({ days = 90 }: { days?: number }) {
       confidence: baseline > 0 ? Math.max(0, Math.min(100, 100 - (noise / baseline) * 35)) : 0,
       upcoming,
     };
-  }, [recQ.data, recRevQ.data, revQ.data, today, horizonEnd, days]);
+  }, [recQ.data, recRevQ.data, revQ.data, today, horizonEnd, days, displayCurrency]);
 
   const trendLabel =
     model.trendPerDay > 0.5 ? "trending up" : model.trendPerDay < -0.5 ? "trending down" : "flat trend";
