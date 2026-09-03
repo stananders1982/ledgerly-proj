@@ -533,41 +533,122 @@ function useImportDefinitions() {
       {
         key: "lead-entries",
         title: "Lead entries",
-        description: "Daily lead totals per source. Use source/affiliate name; the app will match it automatically.",
-        templateName: "lead-entries-template.csv",
+        description:
+          "Daily numbers straight from the raw old-CRM export — same columns, no editing. Rows are grouped per day and affiliate into Received, Invalid and Activated totals.",
+        templateName: "old-crm-export-template.csv",
         fields: [
-          { key: "entry_date", label: "Date", required: true, hint: "YYYY-MM-DD" },
-          { key: "source", label: "Affiliate", hint: "Must match an existing source/affiliate name" },
-          { key: "campaign", label: "Campaign" },
-          { key: "received", label: "Received", required: true },
-          { key: "activated", label: "Activated" },
-          { key: "reported", label: "Reported" },
-          { key: "notes", label: "Notes" },
+          { key: "ext_id", label: "ID" },
+          { key: "full_name", label: "Full Name" },
+          { key: "full_name_2", label: "Full Name 2" },
+          { key: "email", label: "E-mail" },
+          { key: "email2", label: "E-mail2" },
+          { key: "phone", label: "Phone" },
+          { key: "country", label: "Country" },
+          { key: "city", label: "City" },
+          { key: "age", label: "Age" },
+          { key: "created_date", label: "Created Date", required: true, hint: "Any format — the day the lead came in" },
+          { key: "source", label: "Source", hint: "Matched to a lead source or affiliate by name" },
+          { key: "funnel", label: "Funnel Name", hint: "Used as the campaign when the whole day shares one" },
+          { key: "affiliate_data", label: "Affiliate Data" },
+          { key: "affiliate_name", label: "Affiliate Name", hint: "Preferred over Source when both are present" },
+          { key: "assigned_to", label: "Assigned to" },
+          { key: "status", label: "Status", hint: "Invalid statuses are counted as invalid leads" },
+          { key: "ftd_total", label: "FTD Total", hint: "Above 0 counts as an activated lead" },
+          { key: "lifetime_deposit", label: "Lifetime Deposit" },
+          { key: "ftd_time", label: "FTD Time" },
+          { key: "ftd_owner", label: "FTD Owner" },
+          { key: "tag", label: "Tag" },
         ],
         sampleRows: [
-          { entry_date: "2026-07-01", source: "Facebook", campaign: "Summer", received: "120", activated: "12", reported: "10", notes: "" },
-          { entry_date: "2026-07-01", source: "Google", campaign: "Search", received: "80", activated: "8", reported: "8", notes: "" },
+          {
+            ext_id: "2010526", full_name: "Arthur Raymond Spencer", full_name_2: "", email: "rays1938@yahoo.com", email2: "",
+            phone: "+61497508799", country: "Australia", city: "", age: "-", created_date: "2026-09-03 09:10:07",
+            source: "AmazeSec", funnel: "BrynVex-bobr", affiliate_data: "", affiliate_name: "AmazeSec", assigned_to: "Dave Miller",
+            status: "No Answer", ftd_total: "0", lifetime_deposit: "0", ftd_time: "-", ftd_owner: "", tag: "",
+          },
+          {
+            ext_id: "2010511", full_name: "Steven Gill", full_name_2: "", email: "lynnesteven@gmail.com", email2: "",
+            phone: "+61427533557", country: "Australia", city: "", age: "-", created_date: "2026-09-03 05:08:31",
+            source: "KK-leads", funnel: "BrynVex-bobr", affiliate_data: "", affiliate_name: "KK-leads", assigned_to: "Dave Miller",
+            status: "FTD", ftd_total: "250", lifetime_deposit: "250", ftd_time: "2026-09-03 11:20:00", ftd_owner: "Dave Miller", tag: "",
+          },
         ],
-        onImport: async (rows) => {
-          const payload = rows.map((r) => {
-            const activated = Number(r.activated) || 0;
+        onPreview: async (rows) => {
+          const groups = groupOldCrmEntries(rows);
+          const existing = await existingDailyRows(groups);
+          const preview = groups.map((g, i) => {
+            const prev = existing.get(g.key);
             return {
-              entry_date: normalizeDate(r.entry_date),
-              source_id: sourceByName.get((r.source ?? "").trim().toLowerCase()) ?? null,
-              campaign: r.campaign || null,
-              received: Number(r.received) || 0,
-              activated,
-              converted: activated,
-              reported: Number(r.reported) || 0,
-              cost: 0,
-              notes: r.notes || null,
+              index: i + 1,
+              name: `${g.entry_date} · ${g.source_label}`,
+              action: (prev ? "update" : "create") as "create" | "update",
+              crm_id: null,
+              reason: `${g.received} received · ${g.invalid} invalid · ${g.activated} activated${prev ? ` (added to existing ${prev.received})` : ""}`,
+              fill: [],
             };
           });
-          const { error } = await supabase.from("daily_lead_entries").insert(payload);
-          if (error) throw error;
-          invalidate(["daily-leads-v2", "entries-for-sources", "dash-leads-v2"]);
-          toast.success(`Imported ${payload.length} lead entries`);
+          return {
+            rows: preview,
+            summary: {
+              create: preview.filter((r) => r.action === "create").length,
+              update: preview.filter((r) => r.action === "update").length,
+              skip: 0,
+              total: preview.length,
+            },
+          };
         },
+        onImport: async (rows) => {
+          const groups = groupOldCrmEntries(rows);
+          const existing = await existingDailyRows(groups);
+          const inserts: Record<string, unknown>[] = [];
+          let updated = 0;
+          for (const g of groups) {
+            const prev = existing.get(g.key);
+            if (prev) {
+              const { error } = await supabase
+                .from("daily_lead_entries")
+                .update({
+                  received: prev.received + g.received,
+                  invalid: prev.invalid + g.invalid,
+                  activated: prev.activated + g.activated,
+                  converted: prev.converted + g.activated,
+                })
+                .eq("id", prev.id);
+              if (error) throw error;
+              updated += 1;
+              continue;
+            }
+            inserts.push({
+              entry_date: g.entry_date,
+              source_id: g.source_id,
+              source: g.source_id ? null : g.source_label,
+              campaign: g.campaign,
+              received: g.received,
+              invalid: g.invalid,
+              activated: g.activated,
+              converted: g.activated,
+              reported: 0,
+              cost: 0,
+              notes: "Imported from old CRM export",
+            });
+          }
+          if (inserts.length) {
+            const { error } = await supabase.from("daily_lead_entries").insert(inserts);
+            if (error) throw error;
+          }
+          invalidate(["daily-leads-v2", "entries-for-sources", "dash-leads-v2"]);
+          toast.success(
+            `${inserts.length} new daily row${inserts.length === 1 ? "" : "s"} · ${updated} updated from ${rows.length} leads`,
+          );
+          return {
+            created: inserts.length,
+            updated,
+            skipped: 0,
+            invalid: groups.reduce((s, g) => s + g.invalid, 0),
+            ftds: groups.reduce((s, g) => s + g.activated, 0),
+          };
+        },
+
       },
       {
         key: "revenue",
