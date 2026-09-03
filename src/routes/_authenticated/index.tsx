@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { isAgentTeam } from "@/lib/rules";
 import { fetchAll } from "@/lib/fetch-all";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DashboardRangePicker, useDashRange } from "@/components/dashboard-range-picker";
@@ -98,6 +98,7 @@ const toneStyles: Record<Tone, { glow: string; ring: string; text: string; strok
 function DashboardCurrencyPicker({ onCurrencyChange }: { onCurrencyChange: (currency: string) => void }) {
   const qc = useQueryClient();
   const settings = useCompanySettings();
+  const displayCurrency = useDisplayCurrency();
   const { isAdmin } = useAuth();
 
   const save = useMutation({
@@ -122,20 +123,20 @@ function DashboardCurrencyPicker({ onCurrencyChange }: { onCurrencyChange: (curr
 
   return (
     <Select
-      value={settings.currency}
-      disabled={!isAdmin || save.isPending}
+      value={displayCurrency}
+      disabled={save.isPending}
       onValueChange={(currency) => {
         // Apply immediately everywhere on the dashboard (cards, charts and
         // every table widget) before the workspace setting round-trips.
         setCurrencyOverride(currency);
         onCurrencyChange(currency);
-        save.mutate(currency);
+        if (isAdmin) save.mutate(currency);
       }}
     >
       <SelectTrigger
         className="h-9 w-auto min-w-[7rem] gap-1.5 rounded-full border-border bg-foreground/5 px-3 text-xs font-medium"
         aria-label="Workspace currency"
-        title={isAdmin ? "Workspace currency — saved in Settings, applies everywhere" : "Workspace currency (set by an admin in Settings)"}
+        title={isAdmin ? "Display currency — also saved as the workspace currency" : "Display currency for your dashboard"}
       >
         <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
         <SelectValue />
