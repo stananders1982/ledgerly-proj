@@ -240,7 +240,6 @@ function useImportDefinitions() {
         },
       },
       {
-      {
         key: "lead-entries",
         title: "Lead entries",
         description: "Daily lead totals per source. Use source/affiliate name; the app will match it automatically.",
