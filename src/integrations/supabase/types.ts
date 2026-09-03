@@ -1063,7 +1063,7 @@ export type Database = {
           conversion_employee_id?: string | null
           country?: string | null
           created_at?: string
-          crm_id: string
+          crm_id?: string
           custom_fields?: Json
           date_of_birth?: string | null
           deposit_appetite?: number | null
@@ -1843,7 +1843,7 @@ export type Database = {
           company_id?: string
           cost?: number
           created_at?: string
-          crm_id: string
+          crm_id?: string
           email?: string | null
           employee_id?: string | null
           id?: string
