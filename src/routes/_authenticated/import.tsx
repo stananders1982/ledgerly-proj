@@ -600,7 +600,11 @@ function useImportDefinitions() {
         onImport: async (rows) => {
           const groups = groupOldCrmEntries(rows);
           const existing = await existingDailyRows(groups);
-          const inserts: Record<string, unknown>[] = [];
+          const inserts: {
+            entry_date: string; source_id: string | null; source: string | null; campaign: string | null;
+            received: number; invalid: number; activated: number; converted: number;
+            reported: number; cost: number; notes: string;
+          }[] = [];
           let updated = 0;
           for (const g of groups) {
             const prev = existing.get(g.key);
