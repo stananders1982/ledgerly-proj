@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { CsvImportDialog, type ImportField } from "@/components/csv-import";
 import { fetchAll } from "@/lib/fetch-all";
 import { AiClientPasteBulk } from "@/components/ai-client-paste";
+import type { LeadStatus } from "@/lib/lead-status";
 
 export const Route = createFileRoute("/_authenticated/import")({
   head: () => ({ meta: [{ title: "Bulk Import — Ledgerly" }] }),
@@ -77,7 +78,7 @@ function clean(v: string | undefined) {
 }
 
 /** Map an old-CRM call status to the lead pipeline status. */
-const OLD_CRM_LEAD_STATUS: Record<string, string> = {
+const OLD_CRM_LEAD_STATUS: Record<string, LeadStatus> = {
   "new": "new",
   "no answer": "no_answer",
   "voice mail": "voice_mail",
@@ -89,6 +90,24 @@ const OLD_CRM_LEAD_STATUS: Record<string, string> = {
   "interested": "interested",
   "hot": "qualified",
   "ftd": "activated",
+  "deposited": "activated",
+  "duplicate": "duplicate",
+  "failed deposit": "failed_deposit",
+  "low potential": "low_potential",
+  "na1": "na1",
+  "na2": "na2",
+  "need to cancel": "need_to_cancel",
+  "never registered": "never_registered",
+  "no language": "no_language",
+  "no money": "no_money",
+  "not reachable": "not_reachable",
+  "reassign": "reassign",
+  "risk": "risk",
+  "test": "test",
+  "transfer": "transfer",
+  "under age": "under_age",
+  "wrong details": "wrong_details",
+  "wrong person": "wrong_person",
 };
 
 /**

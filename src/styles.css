@@ -52,6 +52,12 @@
   --color-money-up: var(--money-up);
   --color-money-down: var(--money-down);
   --color-surface-2: var(--surface-2);
+  --color-lead-status-green: var(--lead-status-green);
+  --color-lead-status-red: var(--lead-status-red);
+  --color-lead-status-yellow: var(--lead-status-yellow);
+  --color-lead-status-orange: var(--lead-status-orange);
+  --color-lead-status-purple: var(--lead-status-purple);
+  --color-lead-status-neutral: var(--lead-status-neutral);
 }
 
 :root {
@@ -110,6 +116,12 @@
   --spark-amber-fill: oklch(0.6 0.14 70 / 0.16);
   --spark-neutral: oklch(0.5 0.02 260);
   --spark-neutral-fill: oklch(0.5 0.02 260 / 0.14);
+  --lead-status-green: oklch(0.68 0.2 145);
+  --lead-status-red: oklch(0.64 0.24 29);
+  --lead-status-yellow: oklch(0.82 0.17 98);
+  --lead-status-orange: oklch(0.75 0.18 68);
+  --lead-status-purple: oklch(0.67 0.24 318);
+  --lead-status-neutral: oklch(0.58 0.02 260);
 }
 
 
