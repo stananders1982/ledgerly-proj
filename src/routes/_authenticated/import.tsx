@@ -8,10 +8,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CsvImportDialog, type ImportField } from "@/components/csv-import";
+import { CsvImportDialog, type ImportField, type ImportMeta, type PreviewResult } from "@/components/csv-import";
 import { fetchAll } from "@/lib/fetch-all";
 import { AiClientPasteBulk } from "@/components/ai-client-paste";
 import type { LeadStatus } from "@/lib/lead-status";
+import { useAuth } from "@/lib/auth-context";
+import { EmptyState } from "@/components/empty-state";
+
+/** Counts recorded in the import history for one upload. */
+export type ImportRunStats = {
+  created?: number;
+  updated?: number;
+  skipped?: number;
+  invalid?: number;
+  ftds?: number;
+  extra?: Record<string, number>;
+};
 
 export const Route = createFileRoute("/_authenticated/import")({
   head: () => ({ meta: [{ title: "Bulk Import — Ledgerly" }] }),
