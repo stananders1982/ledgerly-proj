@@ -129,6 +129,15 @@ function LeadsPage() {
   }, [sourcesQ.data]);
 
 
+  const affiliatesQ = useQuery({
+    queryKey: ["affiliates-directory"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("list_affiliates_directory");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string; active: boolean }[];
+    },
+  });
+
   const employeesQ = useQuery({
     queryKey: ["employees-directory"],
     queryFn: async () => {
@@ -137,6 +146,7 @@ function LeadsPage() {
       return (data ?? []) as { id: string; name: string; active: boolean; team?: string | null }[];
     },
   });
+
 
   const activationsQ = useQuery({
     queryKey: ["daily-lead-activations"],
