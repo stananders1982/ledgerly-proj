@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, leadStatusDotClass, type LeadStatus } from "@/lib/lead-status";
-import { ClearFiltersButton, ColumnsMenu, FilterRow, useTableToolbox, type ColDef } from "@/components/table-toolbox";
+import { ClearFiltersButton, ColumnsMenu, FilterRow, FitToggle, useTableToolbox, type ColDef } from "@/components/table-toolbox";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 
@@ -124,7 +124,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
     {key:"comment",label:"Last comment text",defaultHidden:true,value:l=>lastCommentOf(l)},
     // eslint-disable-next-line react-hooks/exhaustive-deps
   ],[agentsQ.data,balancesQ.data]);
-  const tb=useTableToolbox("individual-leads",cols,baseRows);
+  const tb=useTableToolbox("individual-leads",cols,baseRows,{defaultFit:true});
   const rows=tb.filtered;
 
   const save=useMutation({mutationFn:async(v:Form)=>{
@@ -168,7 +168,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
           <LayoutGrid className="h-3.5 w-3.5"/> Grid
         </Button>
       </div>
-      {viewMode==="grid"&&<ColumnsMenu tb={tb}/>}
+      {viewMode==="grid"&&<><ColumnsMenu tb={tb}/><FitToggle tb={tb}/></>}
       <ClearFiltersButton tb={tb} extraActive={(search.trim()?1:0)+(status!=="open"?1:0)+(source!=="all"?1:0)+(agent!=="all"?1:0)+(gridRange!=="all"?1:0)} extra={()=>{setSearch("");setStatus("open");setSource("all");setAgent("all");setGridRange("all");setGridStart("");setGridEnd("");}}/>
       <div className="ml-auto flex gap-2">{selected.size>0&&roleKey!=="agent"&&<Select onValueChange={v=>bulkAssign.mutate(v)}><SelectTrigger className="w-44"><SelectValue placeholder={`Assign ${selected.size}`}/></SelectTrigger><SelectContent>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}<Button onClick={()=>setForm({...blank(),employee_id:roleKey==="agent"&&employee?.team==="C"?employee.id:""})}><Plus className="h-4 w-4"/> Add lead</Button></div>
     </div>
@@ -207,7 +207,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
           </div>
         </div>
       </div>)}
-    </div>:<TableFrame resizeKey="individual-leads" className="w-full"><table className="w-full min-w-[2780px] text-[11px]">
+    </div>:<TableFrame resizeKey="individual-leads" fit={tb.fit} className="w-full"><table className={cn("w-full text-[11px]",!tb.fit&&"min-w-[2780px]")}>
       <thead className="table-head bg-muted/40 text-muted-foreground"><tr>
         <th className="w-10 p-2"><Checkbox checked={rows.length>0&&rows.every(r=>selected.has(r.id))} onCheckedChange={c=>setSelected(c?new Set(rows.map(r=>r.id)):new Set())}/></th>
         {tb.show("crm_id")&&<th className="p-2 text-left">ID</th>}

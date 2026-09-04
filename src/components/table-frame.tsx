@@ -111,7 +111,7 @@ export function TableFrame({
       let startW = 0;
 
       const onMove = (e: PointerEvent) => {
-        const w = Math.max(48, Math.round(startW + (e.clientX - startX)));
+        const w = Math.max(24, Math.round(startW + (e.clientX - startX)));
         th.style.width = `${w}px`;
         th.style.minWidth = `${w}px`;
         th.style.maxWidth = `${w}px`;

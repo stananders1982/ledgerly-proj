@@ -155,6 +155,8 @@ export function useTableToolbox<T>(
     /** Rows searched instead of `rows` when one of `allTimeKeys` has a filter. */
     allTimeRows?: T[];
     allTimeKeys?: string[];
+    /** Initial fit mode when this table has no saved preference yet. */
+    defaultFit?: boolean;
   },
 ) {
   const lsKey = `table-cols:${storageKey}`;
@@ -203,14 +205,15 @@ export function useTableToolbox<T>(
 
   // Fit-to-width squeezes the table so all visible columns land inside the viewport.
   const fitKey = `table-fit:${storageKey}`;
-  const [fit, setFitState] = useState(false);
+  const [fit, setFitState] = useState(opts?.defaultFit ?? false);
   useEffect(() => {
     try {
-      setFitState(window.localStorage.getItem(fitKey) === "1");
+      const saved = window.localStorage.getItem(fitKey);
+      setFitState(saved === null ? (opts?.defaultFit ?? false) : saved === "1");
     } catch {
-      /* ignore */
+      setFitState(opts?.defaultFit ?? false);
     }
-  }, [fitKey]);
+  }, [fitKey, opts?.defaultFit]);
   const setFit = (v: boolean) => {
     setFitState(v);
     try {
