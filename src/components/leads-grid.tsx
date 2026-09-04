@@ -172,9 +172,9 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
       </div>
       {viewMode==="grid"&&<><ColumnsMenu tb={tb}/><FitToggle tb={tb}/></>}
       <ClearFiltersButton tb={tb} extraActive={(search.trim()?1:0)+(status!=="open"?1:0)+(source!=="all"?1:0)+(agent!=="all"?1:0)+(gridRange!=="all"?1:0)} extra={()=>{setSearch("");setStatus("open");setSource("all");setAgent("all");setGridRange("all");setGridStart("");setGridEnd("");}}/>
-    {rows.length>0&&<div className="rounded-lg border border-border"><TableCountBar {...pg}/></div>}
       <div className="ml-auto flex gap-2">{selected.size>0&&roleKey!=="agent"&&<Select onValueChange={v=>bulkAssign.mutate(v)}><SelectTrigger className="w-44"><SelectValue placeholder={`Assign ${selected.size}`}/></SelectTrigger><SelectContent>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}<Button onClick={()=>setForm({...blank(),employee_id:roleKey==="agent"&&employee?.team==="C"?employee.id:""})}><Plus className="h-4 w-4"/> Add lead</Button></div>
     </div>
+    {rows.length>0&&<div className="rounded-lg border border-border"><TableCountBar {...pg}/></div>}
     {rows.length===0?<EmptyState icon={Plus} title="No leads found" description="Add a lead by details or let affiliates send leads through the intake API." action={<Button onClick={()=>setForm(blank())}>Add lead</Button>}/>:viewMode==="list"?<div className="space-y-2">
       {pageItems.map(l=><div key={l.id} className={cn("group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-accent/20",selected.has(l.id)&&"border-primary/60 bg-accent/30")}>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
