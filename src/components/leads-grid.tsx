@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, leadStatusDotClass, type LeadStatus } from "@/lib/lead-status";
-import { ClearFiltersButton, FilterRow, useTableToolbox, type ColDef } from "@/components/table-toolbox";
+import { ClearFiltersButton, ColumnsMenu, FilterRow, useTableToolbox, type ColDef } from "@/components/table-toolbox";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 
@@ -99,27 +99,27 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
 
   const cols=useMemo<ColDef<Lead>[]>(()=>[
     {key:"crm_id",label:"ID",value:l=>l.crm_id},
-    {key:"name",label:"Full Name",value:l=>l.name},
-    
+    {key:"name",label:"Full Name",locked:true,value:l=>l.name},
+
     {key:"email",label:"E-mail",value:l=>l.email??""},
-    {key:"email2",label:"E-mail2",value:l=>noteVal(l,"Second email ")},
+    {key:"email2",label:"E-mail2",defaultHidden:true,value:l=>noteVal(l,"Second email ")},
     {key:"phone",label:"Phone",value:l=>l.phone??""},
     {key:"country",label:"Country",filter:"select",value:l=>countryOf(l)},
-    {key:"city",label:"City",filter:"select",value:l=>cityOf(l)},
-    {key:"age",label:"Age",value:l=>noteVal(l,"Age ")},
+    {key:"city",label:"City",filter:"select",defaultHidden:true,value:l=>cityOf(l)},
+    {key:"age",label:"Age",defaultHidden:true,value:l=>noteVal(l,"Age ")},
     {key:"created",label:"Created Date",filter:"date",value:l=>l.created_at},
     {key:"source",label:"Source",filter:"select",value:l=>l.lead_sources?.name??l.affiliates?.name??""},
-    {key:"funnel",label:"Funnel Name",filter:"select",value:l=>funnelOf(l)},
-    {key:"affiliate_data",label:"Affiliate Data",value:l=>noteVal(l,"Affiliate data ")},
+    {key:"funnel",label:"Funnel Name",filter:"select",defaultHidden:true,value:l=>funnelOf(l)},
+    {key:"affiliate_data",label:"Affiliate Data",defaultHidden:true,value:l=>noteVal(l,"Affiliate data ")},
     {key:"affiliate",label:"Affiliate Name",filter:"select",value:l=>l.affiliates?.name??""},
     {key:"assigned",label:"Assigned to",filter:"select",value:l=>nameOf(l.employee_id)},
     {key:"status",label:"Status",filter:"select",options:LEAD_STATUSES.map(s=>LEAD_STATUS_LABELS[s]??s),value:l=>LEAD_STATUS_LABELS[l.status]??l.status},
     {key:"ftd_total",label:"FTD Total",value:l=>ftdTotalOf(l)??""},
-    {key:"lifetime",label:"Lifetime Deposit",value:l=>l.activation_id?(balanceOf(l)??0):(ftdTotalOf(l)??"")},
-    {key:"ftd_time",label:"FTD Time",value:l=>ftdTimeOf(l)},
-    {key:"ftd_owner",label:"FTD Owner",value:l=>noteVal(l,"FTD owner ")},
-    {key:"tag",label:"Tag",value:l=>noteVal(l,"Tag ")},
-    {key:"comment",label:"Last comment text",value:l=>lastCommentOf(l)},
+    {key:"lifetime",label:"Lifetime Deposit",defaultHidden:true,value:l=>l.activation_id?(balanceOf(l)??0):(ftdTotalOf(l)??"")},
+    {key:"ftd_time",label:"FTD Time",defaultHidden:true,value:l=>ftdTimeOf(l)},
+    {key:"ftd_owner",label:"FTD Owner",defaultHidden:true,value:l=>noteVal(l,"FTD owner ")},
+    {key:"tag",label:"Tag",defaultHidden:true,value:l=>noteVal(l,"Tag ")},
+    {key:"comment",label:"Last comment text",defaultHidden:true,value:l=>lastCommentOf(l)},
     // eslint-disable-next-line react-hooks/exhaustive-deps
   ],[agentsQ.data,balancesQ.data]);
   const tb=useTableToolbox("individual-leads",cols,baseRows);
@@ -158,60 +158,59 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
       <Select value={agent} onValueChange={setAgent}><SelectTrigger className="w-44"><SelectValue placeholder="All agents"/></SelectTrigger><SelectContent><SelectItem value="all">All conversion agents</SelectItem><SelectItem value={NONE}>Unassigned</SelectItem>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>
       <DateRangePicker value={gridRange} onChange={setGridRange} customStart={gridStart} customEnd={gridEnd} onCustomChange={(s,e)=>{setGridStart(s);setGridEnd(e);}} showAll/>
       <span className="text-sm text-muted-foreground">{rows.length} leads</span>
+      <ColumnsMenu tb={tb}/>
       <ClearFiltersButton tb={tb} extraActive={(search.trim()?1:0)+(status!=="open"?1:0)+(source!=="all"?1:0)+(agent!=="all"?1:0)+(gridRange!=="all"?1:0)} extra={()=>{setSearch("");setStatus("open");setSource("all");setAgent("all");setGridRange("all");setGridStart("");setGridEnd("");}}/>
       <div className="ml-auto flex gap-2">{selected.size>0&&roleKey!=="agent"&&<Select onValueChange={v=>bulkAssign.mutate(v)}><SelectTrigger className="w-44"><SelectValue placeholder={`Assign ${selected.size}`}/></SelectTrigger><SelectContent>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}<Button onClick={()=>setForm({...blank(),employee_id:roleKey==="agent"&&employee?.team==="C"?employee.id:""})}><Plus className="h-4 w-4"/> Add lead</Button></div>
     </div>
     {rows.length===0?<EmptyState icon={Plus} title="No leads found" description="Add a lead by details or let affiliates send leads through the intake API." action={<Button onClick={()=>setForm(blank())}>Add lead</Button>}/>:<TableFrame resizeKey="individual-leads" className="w-full"><table className="w-full min-w-[2780px] text-[11px]">
       <thead className="table-head bg-muted/40 text-muted-foreground"><tr>
         <th className="w-10 p-2"><Checkbox checked={rows.length>0&&rows.every(r=>selected.has(r.id))} onCheckedChange={c=>setSelected(c?new Set(rows.map(r=>r.id)):new Set())}/></th>
-        <th className="p-2 text-left">ID</th>
-        <th className="min-w-44 p-2 text-left">Full Name</th>
-        
-        <th className="min-w-44 p-2 text-left">E-mail</th>
-        <th className="p-2 text-left">E-mail2</th>
-        <th className="p-2 text-left">Phone</th>
-        <th className="p-2 text-left">Country</th>
-        <th className="p-2 text-left">City</th>
-        <th className="p-2 text-left">Age</th>
-        <th className="p-2 text-left">Created Date</th>
-        <th className="p-2 text-left">Source</th>
-        <th className="p-2 text-left">Funnel Name</th>
-        <th className="p-2 text-left">Affiliate Data</th>
-        <th className="p-2 text-left">Affiliate Name</th>
-        <th className="p-2 text-left">Assigned to</th>
-        <th className="p-2 text-left">Status</th>
-        <th className="p-2 text-right">FTD Total</th>
-        <th className="p-2 text-right">Lifetime Deposit</th>
-        <th className="p-2 text-left">FTD Time</th>
-        <th className="p-2 text-left">FTD Owner</th>
-        <th className="p-2 text-left">Tag</th>
-        <th className="p-2 text-left">Last comment text</th>
+        {tb.show("crm_id")&&<th className="p-2 text-left">ID</th>}
+        {tb.show("name")&&<th className="min-w-44 p-2 text-left">Full Name</th>}
+        {tb.show("email")&&<th className="min-w-44 p-2 text-left">E-mail</th>}
+        {tb.show("email2")&&<th className="p-2 text-left">E-mail2</th>}
+        {tb.show("phone")&&<th className="p-2 text-left">Phone</th>}
+        {tb.show("country")&&<th className="p-2 text-left">Country</th>}
+        {tb.show("city")&&<th className="p-2 text-left">City</th>}
+        {tb.show("age")&&<th className="p-2 text-left">Age</th>}
+        {tb.show("created")&&<th className="p-2 text-left">Created Date</th>}
+        {tb.show("source")&&<th className="p-2 text-left">Source</th>}
+        {tb.show("funnel")&&<th className="p-2 text-left">Funnel Name</th>}
+        {tb.show("affiliate_data")&&<th className="p-2 text-left">Affiliate Data</th>}
+        {tb.show("affiliate")&&<th className="p-2 text-left">Affiliate Name</th>}
+        {tb.show("assigned")&&<th className="p-2 text-left">Assigned to</th>}
+        {tb.show("status")&&<th className="p-2 text-left">Status</th>}
+        {tb.show("ftd_total")&&<th className="p-2 text-right">FTD Total</th>}
+        {tb.show("lifetime")&&<th className="p-2 text-right">Lifetime Deposit</th>}
+        {tb.show("ftd_time")&&<th className="p-2 text-left">FTD Time</th>}
+        {tb.show("ftd_owner")&&<th className="p-2 text-left">FTD Owner</th>}
+        {tb.show("tag")&&<th className="p-2 text-left">Tag</th>}
+        {tb.show("comment")&&<th className="p-2 text-left">Last comment text</th>}
         <th className="p-2 text-right">Actions</th>
       </tr><FilterRow tb={tb} leading={1} trailing={1}/></thead>
       <tbody>{rows.map(l=><tr key={l.id} className="border-t odd:bg-muted/10 hover:bg-accent/30">
         <td className="p-2"><Checkbox checked={selected.has(l.id)} onCheckedChange={()=>setSelected(s=>{const n=new Set(s);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;})}/></td>
-        <td className="p-2 font-mono font-medium whitespace-nowrap">{l.crm_id}</td>
-        <td className="p-2 font-medium">{l.name}</td>
-        
-        <td className="max-w-52 truncate p-2" title={l.email??""}>{l.email||"—"}</td>
-        <td className="max-w-52 truncate p-2">{noteVal(l,"Second email ")||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{l.phone||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{countryOf(l)||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{cityOf(l)||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{noteVal(l,"Age ")||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{fmtDate(l.created_at)}<div className="text-muted-foreground">{new Date(l.created_at).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</div></td>
-        <td className="p-2">{l.lead_sources?.name??l.affiliates?.name??"—"}</td>
-        <td className="max-w-40 truncate p-2" title={funnelOf(l)}>{funnelOf(l)||"—"}</td>
-        <td className="max-w-40 truncate p-2">{noteVal(l,"Affiliate data ")||"—"}</td>
-        <td className="p-2">{l.affiliates?.name??"—"}</td>
-        <td className="p-2">{roleKey==="agent"?nameOf(l.employee_id):<Select value={l.employee_id??NONE} onValueChange={v=>patch.mutate({id:l.id,p:{employee_id:v===NONE?null:v}})}><SelectTrigger className="h-8 w-40 border-transparent"><SelectValue/></SelectTrigger><SelectContent><SelectItem value={NONE}>Unassigned</SelectItem>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}</td>
-        <td className="p-2"><Select value={l.status} onValueChange={v=>patch.mutate({id:l.id,p:{status:v as LeadStatus}})} disabled={l.activated}><SelectTrigger className="h-8 w-40 border-transparent"><LeadStatusOption status={l.status}/></SelectTrigger><SelectContent>{LEAD_STATUSES.map(s=><SelectItem key={s} value={s}><LeadStatusOption status={s}/></SelectItem>)}</SelectContent></Select></td>
-        <td className="p-2 text-right whitespace-nowrap tabular-nums">{ftdTotalOf(l)!==null?fmtMoney(ftdTotalOf(l) as number):"—"}</td>
-        <td className="p-2 text-right whitespace-nowrap tabular-nums">{l.activation_id?fmtMoney(balanceOf(l)??0):(ftdTotalOf(l)!==null?fmtMoney(ftdTotalOf(l) as number):"—")}</td>
-        <td className="p-2 whitespace-nowrap">{ftdTimeOf(l)||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{noteVal(l,"FTD owner ")||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{noteVal(l,"Tag ")||"—"}</td>
-        <td className="max-w-56 truncate p-2" title={l.notes??""}>{lastCommentOf(l)||"—"}</td>
+        {tb.show("crm_id")&&<td className="p-2 font-mono font-medium whitespace-nowrap">{l.crm_id}</td>}
+        {tb.show("name")&&<td className="p-2 font-medium">{l.name}</td>}
+        {tb.show("email")&&<td className="max-w-52 truncate p-2" title={l.email??""}>{l.email||"—"}</td>}
+        {tb.show("email2")&&<td className="max-w-52 truncate p-2">{noteVal(l,"Second email ")||"—"}</td>}
+        {tb.show("phone")&&<td className="p-2 whitespace-nowrap">{l.phone||"—"}</td>}
+        {tb.show("country")&&<td className="p-2 whitespace-nowrap">{countryOf(l)||"—"}</td>}
+        {tb.show("city")&&<td className="p-2 whitespace-nowrap">{cityOf(l)||"—"}</td>}
+        {tb.show("age")&&<td className="p-2 whitespace-nowrap">{noteVal(l,"Age ")||"—"}</td>}
+        {tb.show("created")&&<td className="p-2 whitespace-nowrap">{fmtDate(l.created_at)}<div className="text-muted-foreground">{new Date(l.created_at).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</div></td>}
+        {tb.show("source")&&<td className="p-2">{l.lead_sources?.name??l.affiliates?.name??"—"}</td>}
+        {tb.show("funnel")&&<td className="max-w-40 truncate p-2" title={funnelOf(l)}>{funnelOf(l)||"—"}</td>}
+        {tb.show("affiliate_data")&&<td className="max-w-40 truncate p-2">{noteVal(l,"Affiliate data ")||"—"}</td>}
+        {tb.show("affiliate")&&<td className="p-2">{l.affiliates?.name??"—"}</td>}
+        {tb.show("assigned")&&<td className="p-2">{roleKey==="agent"?nameOf(l.employee_id):<Select value={l.employee_id??NONE} onValueChange={v=>patch.mutate({id:l.id,p:{employee_id:v===NONE?null:v}})}><SelectTrigger className="h-8 w-40 border-transparent"><SelectValue/></SelectTrigger><SelectContent><SelectItem value={NONE}>Unassigned</SelectItem>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}</td>}
+        {tb.show("status")&&<td className="p-2"><Select value={l.status} onValueChange={v=>patch.mutate({id:l.id,p:{status:v as LeadStatus}})} disabled={l.activated}><SelectTrigger className="h-8 w-40 border-transparent"><LeadStatusOption status={l.status}/></SelectTrigger><SelectContent>{LEAD_STATUSES.map(s=><SelectItem key={s} value={s}><LeadStatusOption status={s}/></SelectItem>)}</SelectContent></Select></td>}
+        {tb.show("ftd_total")&&<td className="p-2 text-right whitespace-nowrap tabular-nums">{ftdTotalOf(l)!==null?fmtMoney(ftdTotalOf(l) as number):"—"}</td>}
+        {tb.show("lifetime")&&<td className="p-2 text-right whitespace-nowrap tabular-nums">{l.activation_id?fmtMoney(balanceOf(l)??0):(ftdTotalOf(l)!==null?fmtMoney(ftdTotalOf(l) as number):"—")}</td>}
+        {tb.show("ftd_time")&&<td className="p-2 whitespace-nowrap">{ftdTimeOf(l)||"—"}</td>}
+        {tb.show("ftd_owner")&&<td className="p-2 whitespace-nowrap">{noteVal(l,"FTD owner ")||"—"}</td>}
+        {tb.show("tag")&&<td className="p-2 whitespace-nowrap">{noteVal(l,"Tag ")||"—"}</td>}
+        {tb.show("comment")&&<td className="max-w-56 truncate p-2" title={l.notes??""}>{lastCommentOf(l)||"—"}</td>}
         <td className="p-2"><div className="flex justify-end gap-1"><ContactActions phone={l.phone} email={l.email} name={l.name} size="icon"/>{l.activation_id?<Button size="sm" variant="ghost" onClick={()=>navigate({to:"/clients/$id",params:{id:l.activation_id as string}})}><ExternalLink className="h-3 w-3"/> Client</Button>:<Button size="sm" onClick={()=>{setConvert(l);setRetentionId("")}}>Convert</Button>}<Button size="sm" variant="ghost" onClick={()=>setForm({id:l.id,name:l.name,phone:l.phone??"",email:l.email??"",source_id:l.source_id??"",affiliate_id:l.affiliate_id??"",employee_id:l.employee_id??"",status:l.status,notes:l.notes??""})}>Edit</Button><ConfirmDelete onConfirm={()=>remove.mutate(l.id)} label={`Delete ${l.name}?`} description="This removes the lead record. Converted client records are kept."/></div></td>
       </tr>)}</tbody></table></TableFrame>}
 
