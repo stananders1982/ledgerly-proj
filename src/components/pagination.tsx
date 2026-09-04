@@ -144,8 +144,7 @@ export function TableCountBar({
   endItem,
   perPage,
   setPerPage,
-  label = "rows",
-  options = [10, 25, 50, 100, 250],
+  options = [25, 50, 100, 250, 500, 1000],
 }: {
   totalItems: number;
   startItem: number;
@@ -155,18 +154,16 @@ export function TableCountBar({
   label?: string;
   options?: number[];
 }) {
+  const showing = totalItems === 0 ? 0 : endItem;
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-4 py-2">
-      <div className="text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">{totalItems.toLocaleString()}</span> {label}
-        {totalItems > 0 && endItem - startItem + 1 < totalItems && (
-          <span> · showing {startItem}–{endItem}</span>
-        )}
+      <div className="text-sm text-muted-foreground">
+        Showing <span className="font-medium text-foreground">{showing.toLocaleString()}/{totalItems.toLocaleString()}</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="hidden text-xs text-muted-foreground sm:inline">Rows per page</span>
         <Select value={String(perPage)} onValueChange={(v) => setPerPage(Number(v))}>
-          <SelectTrigger className="h-7 w-[84px] text-xs" aria-label="Rows per page">
+          <SelectTrigger className="h-7 w-[92px] text-xs" aria-label="Rows per page">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
