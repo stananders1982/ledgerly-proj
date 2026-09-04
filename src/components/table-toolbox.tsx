@@ -205,7 +205,7 @@ export function useTableToolbox<T>(
 
   // Fit-to-width squeezes the table so all visible columns land inside the viewport.
   const fitKey = `table-fit:${storageKey}`;
-  const [fit, setFitState] = useState(false);
+  const [fit, setFitState] = useState(opts?.defaultFit ?? false);
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(fitKey);
