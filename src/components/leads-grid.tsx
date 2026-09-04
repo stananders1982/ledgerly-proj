@@ -27,6 +27,7 @@ import { LEAD_STATUSES, LEAD_STATUS_LABELS, leadStatusDotClass, type LeadStatus 
 import { ClearFiltersButton, ColumnsMenu, FilterRow, FitToggle, useTableToolbox, type ColDef } from "@/components/table-toolbox";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { usePersistedState } from "@/hooks/use-persisted-state";
+import { usePagination, TablePagination, TableCountBar } from "@/components/pagination";
 
 const NONE = "__none__";
 type Lead = { id:string; crm_id:string; name:string; phone:string|null; email:string|null; source_id:string|null; affiliate_id:string|null; employee_id:string|null; status:LeadStatus; notes:string|null; activated:boolean; activation_id:string|null; created_at:string; lead_sources?:{name:string}|null; affiliates?:{name:string}|null };
@@ -126,6 +127,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
   ],[agentsQ.data,balancesQ.data]);
   const tb=useTableToolbox("individual-leads",cols,baseRows,{defaultFit:true});
   const rows=tb.filtered;
+  const {pageItems,...pg}=usePagination(rows,50,"individual-leads");
 
   const save=useMutation({mutationFn:async(v:Form)=>{
     if (!companyId) throw new Error("No active workspace");
@@ -173,7 +175,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
       <div className="ml-auto flex gap-2">{selected.size>0&&roleKey!=="agent"&&<Select onValueChange={v=>bulkAssign.mutate(v)}><SelectTrigger className="w-44"><SelectValue placeholder={`Assign ${selected.size}`}/></SelectTrigger><SelectContent>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}<Button onClick={()=>setForm({...blank(),employee_id:roleKey==="agent"&&employee?.team==="C"?employee.id:""})}><Plus className="h-4 w-4"/> Add lead</Button></div>
     </div>
     {rows.length===0?<EmptyState icon={Plus} title="No leads found" description="Add a lead by details or let affiliates send leads through the intake API." action={<Button onClick={()=>setForm(blank())}>Add lead</Button>}/>:viewMode==="list"?<div className="space-y-2">
-      {rows.map(l=><div key={l.id} className={cn("group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-accent/20",selected.has(l.id)&&"border-primary/60 bg-accent/30")}>
+      {pageItems.map(l=><div key={l.id} className={cn("group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-accent/20",selected.has(l.id)&&"border-primary/60 bg-accent/30")}>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
           <div className="flex items-center gap-2 pt-0.5">
             <Checkbox checked={selected.has(l.id)} onCheckedChange={()=>setSelected(s=>{const n=new Set(s);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;})} aria-label={`Select ${l.name}`}/>
@@ -233,7 +235,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
         {tb.show("comment")&&<th className="p-2 text-left">Last comment text</th>}
         <th className="p-2 text-right">Actions</th>
       </tr><FilterRow tb={tb} leading={1} trailing={1}/></thead>
-      <tbody>{rows.map(l=><tr key={l.id} className="border-t odd:bg-muted/10 hover:bg-accent/30">
+      <tbody>{pageItems.map(l=><tr key={l.id} className="border-t odd:bg-muted/10 hover:bg-accent/30">
         <td className="p-2"><Checkbox checked={selected.has(l.id)} onCheckedChange={()=>setSelected(s=>{const n=new Set(s);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;})}/></td>
         {tb.show("crm_id")&&<td className="p-2 font-mono font-medium whitespace-nowrap">{l.crm_id}</td>}
         {tb.show("name")&&<td className="p-2 font-medium">{l.name}</td>}
