@@ -120,6 +120,14 @@ function LeadsPage() {
     queryFn: async () => await fetchAll(() => supabase.from("lead_sources").select("id,name,pricing_model,price").eq("active", true).order("name")),
   });
 
+  const resolveSourceId = useMemo(() => {
+    const byName = new Map(
+      (sourcesQ.data ?? []).map((s: any) => [String(s.name).trim().toLowerCase(), s.id as string]),
+    );
+    return (label: string) => byName.get(label.trim().toLowerCase()) ?? null;
+  }, [sourcesQ.data]);
+
+
   const employeesQ = useQuery({
     queryKey: ["employees-directory"],
     queryFn: async () => {
