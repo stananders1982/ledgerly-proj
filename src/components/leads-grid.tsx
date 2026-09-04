@@ -1,7 +1,8 @@
 /** Dense individual-lead grid and leads-first conversion workflow. */
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Plus } from "lucide-react";
+import { ExternalLink, LayoutGrid, Plus, Rows3 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +52,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
   const [gridStart, setGridStart] = usePersistedState<string>("leads:grid-range-start", "");
   const [gridEnd, setGridEnd] = usePersistedState<string>("leads:grid-range-end", "");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = usePersistedState<"list" | "grid">("leads:view", "grid");
   const [seenSignal, setSeenSignal] = useState(createSignal);
   if (createSignal !== seenSignal) { setSeenSignal(createSignal); setForm(blank()); }
 
