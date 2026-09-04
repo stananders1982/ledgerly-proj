@@ -1,7 +1,7 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 
-export type RangeKey = "today" | "week" | "month" | "quarter" | "year" | "custom";
+export type RangeKey = "all" | "today" | "yesterday" | "week" | "month" | "quarter" | "year" | "custom";
 
 const iso = (d: Date) => {
   const y = d.getFullYear();
@@ -19,8 +19,17 @@ export function getRange(
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   switch (key) {
+    case "all":
+      return { start: new Date(1970, 0, 1), end, label: "All time" };
     case "today":
       return { start, end, label: "Today" };
+    case "yesterday": {
+      const s = new Date(start);
+      s.setDate(s.getDate() - 1);
+      const e = new Date(end);
+      e.setDate(e.getDate() - 1);
+      return { start: s, end: e, label: "Yesterday" };
+    }
     case "week": {
       // Current settlement week: Monday → today. Never spill into last week.
       const s = new Date(start);
