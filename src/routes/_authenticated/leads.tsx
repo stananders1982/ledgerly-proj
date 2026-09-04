@@ -648,44 +648,44 @@ function LeadsPage() {
           <div className="flex items-center gap-2">
           <CsvImportDialog
             title="Import lead entries"
-            templateName="lead-entries-template.csv"
-            fields={[
-              { key: "entry_date", label: "Date", required: true },
-              { key: "source", label: "Affiliate" },
-              { key: "campaign", label: "Campaign" },
-              { key: "received", label: "Received", required: true },
-              { key: "invalid", label: "Invalid" },
-              { key: "activated", label: "Activated" },
-              { key: "reported", label: "Reported" },
-              { key: "notes", label: "Notes" },
-            ]}
-            onImport={async (csvRows) => {
-              const byName = new Map(
-                (sourcesQ.data ?? []).map((s: any) => [String(s.name).trim().toLowerCase(), s.id]),
-              );
-              const payload = csvRows.map((r) => {
-                const d = new Date(r.entry_date);
-                if (Number.isNaN(d.getTime())) throw new Error(`Invalid date: ${r.entry_date}`);
-                const activated = Number(r.activated) || 0;
+            templateName="old-crm-export-template.csv"
+            fields={OLD_CRM_ENTRY_FIELDS}
+            onPreview={async (csvRows) => {
+              const groups = groupOldCrmEntries(csvRows, resolveSourceId);
+              const existing = await existingDailyRows(groups);
+              const rows = groups.map((g, i) => {
+                const prev = existing.get(g.key);
                 return {
-                  entry_date: d.toISOString().slice(0, 10),
-                  source_id: byName.get((r.source ?? "").trim().toLowerCase()) ?? null,
-                  campaign: r.campaign || null,
-                  received: Number(r.received) || 0,
-                  invalid: Number(r.invalid) || 0,
-                  activated,
-                  converted: activated,
-                  reported: Number(r.reported) || 0,
-                  cost: 0,
-                  notes: r.notes || null,
+                  index: i + 1,
+                  name: `${g.entry_date} · ${g.source_label}`,
+                  action: (prev ? "update" : "create") as "create" | "update",
+                  crm_id: null,
+                  reason: `${g.received} received · ${g.invalid} invalid · ${g.activated} activated${prev ? ` (added to existing ${prev.received})` : ""}`,
+                  fill: [],
                 };
               });
-              const { error } = await supabase.from("daily_lead_entries").insert(payload);
-              if (error) throw error;
+              return {
+                rows,
+                summary: {
+                  create: rows.filter((r) => r.action === "create").length,
+                  update: rows.filter((r) => r.action === "update").length,
+                  skip: 0,
+                  total: rows.length,
+                },
+              };
+            }}
+            onImport={async (csvRows) => {
+              const groups = groupOldCrmEntries(csvRows, resolveSourceId);
+              const { created, updated } = await writeDailyGroups(groups);
               qc.invalidateQueries({ queryKey: ["daily-leads-v2"] });
-              toast.success(`Imported ${payload.length} entries`);
+              qc.invalidateQueries({ queryKey: ["entries-for-sources"] });
+              qc.invalidateQueries({ queryKey: ["dash-leads-v2"] });
+              toast.success(
+                `${created} new daily row${created === 1 ? "" : "s"} · ${updated} updated from ${csvRows.length} leads`,
+              );
             }}
           />
+
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4" /> Add entry</Button>
