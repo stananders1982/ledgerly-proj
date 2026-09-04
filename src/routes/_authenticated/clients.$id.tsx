@@ -393,7 +393,7 @@ function ClientPage() {
         done: comms.length > 0,
       },
     ];
-  }, [cur, deposits, commsQ.data, opening, qualifies, stdCount, baseCcy]);
+  }, [cur, deposits, commsQ.data, opening, qualifies, stdCount, baseCcy, leadQ.data]);
 
   const journeyNextSteps = useMemo(() => {
     const out: { label: string; value: string; icon?: "date" | "ai" }[] = [];
