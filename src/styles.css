@@ -544,6 +544,20 @@ main[role="main"] {
 
 /* Drag-to-resize handles injected into table headers by TableFrame */
 [data-resizable="1"] thead th { position: relative; }
+[data-resizable="1"] table { table-layout: fixed; min-width: 100%; }
+[data-resizable="1"] table th,
+[data-resizable="1"] table td {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-resizable="1"] table :is(input, button, [data-slot="select-trigger"], [role="combobox"]) {
+  min-width: 0;
+  max-width: 100%;
+}
+[data-resizable="1"] table [data-slot="select-trigger"] {
+  width: 100%;
+}
 [data-resize-handle] {
   position: absolute;
   top: 0;
