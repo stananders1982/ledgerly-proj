@@ -9,7 +9,7 @@ import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { DataCardList, DataCard } from "@/components/data-card-list";
-import { TablePagination, usePagination } from "@/components/pagination";
+import { TablePagination, usePagination , TableCountBar} from "@/components/pagination";
 import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -160,6 +160,7 @@ function LogsPage() {
           <EmptyState icon={Info} title="No logs yet" description="Events will appear here as they are recorded." />
         ) : (
           <>
+            <TableCountBar {...pg} />
             <DataCardList>
               {pageItems.map((r: any) => (
                 <DataCard

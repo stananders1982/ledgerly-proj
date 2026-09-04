@@ -9,7 +9,7 @@ import { SearchInput } from "@/components/search-input";
 import { EmptyState } from "@/components/empty-state";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { DataCard, DataCardList } from "@/components/data-card-list";
-import { TablePagination, usePagination } from "@/components/pagination";
+import { TablePagination, usePagination , TableCountBar} from "@/components/pagination";
 import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -158,6 +158,7 @@ function ActivityPage() {
           <EmptyState icon={History} title="No activity" description="Changes to income, expenses, leads and employees show up here." />
         ) : (
           <>
+            <TableCountBar {...pg} />
             <DataCardList>
               {pageItems.map((r) => (
                 <DataCard

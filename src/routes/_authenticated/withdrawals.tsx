@@ -33,7 +33,7 @@ import {
 } from "@/lib/withdrawal-status";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
+import { usePagination, TablePagination, PageSizeSelect , TableCountBar} from "@/components/pagination";
 import { TableFrame } from "@/components/table-frame";
 import { useTableToolbox, ColumnsMenu, ClearFiltersButton, FilterRow, FitToggle, TableKeyboardHint, TotalsRow } from "@/components/table-toolbox";
 import { withdrawalPenalty } from "@/lib/rules";
@@ -320,6 +320,7 @@ function WithdrawalsPage() {
             action={canApprove ? <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New withdrawal</Button> : undefined} />
         ) : (
           <>
+          <TableCountBar {...pg} />
           <DataCardList>
             {pageItems.map((r: any) => (
               <DataCard

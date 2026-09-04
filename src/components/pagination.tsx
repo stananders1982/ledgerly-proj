@@ -136,3 +136,46 @@ export function PageSizeSelect({
     </Select>
   );
 }
+
+/** Row count + rows-per-page selector, rendered above a table. */
+export function TableCountBar({
+  totalItems,
+  startItem,
+  endItem,
+  perPage,
+  setPerPage,
+  label = "rows",
+  options = [10, 25, 50, 100, 250],
+}: {
+  totalItems: number;
+  startItem: number;
+  endItem: number;
+  perPage: number;
+  setPerPage: (n: number) => void;
+  label?: string;
+  options?: number[];
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-4 py-2">
+      <div className="text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">{totalItems.toLocaleString()}</span> {label}
+        {totalItems > 0 && endItem - startItem + 1 < totalItems && (
+          <span> · showing {startItem}–{endItem}</span>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="hidden text-xs text-muted-foreground sm:inline">Rows per page</span>
+        <Select value={String(perPage)} onValueChange={(v) => setPerPage(Number(v))}>
+          <SelectTrigger className="h-7 w-[84px] text-xs" aria-label="Rows per page">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(options.includes(perPage) ? options : [...options, perPage].sort((a, b) => a - b)).map((o) => (
+              <SelectItem key={o} value={String(o)}>{o}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}

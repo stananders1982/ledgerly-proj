@@ -18,7 +18,7 @@ import { EmptyState } from "@/components/empty-state";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DataCard, DataCardList } from "@/components/data-card-list";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination , TableCountBar} from "@/components/pagination";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
 import { toast } from "sonner";
@@ -290,6 +290,7 @@ function TasksPage() {
           />
         ) : (
           <>
+            <TableCountBar {...pg} />
             <DataCardList>
               {pageItems.map((t: Task) => (
                 <DataCard

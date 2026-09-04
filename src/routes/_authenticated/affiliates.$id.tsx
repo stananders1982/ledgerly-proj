@@ -18,7 +18,7 @@ import { toDisplay } from "@/lib/fx";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination , TableCountBar} from "@/components/pagination";
 import { deliveryPct, sumWeeks, weekStartOf, weeklyGuarantee, mergeWeekRows, weeklyLedger, affiliateNet, balanceActive, openingBalance, balanceAlert, type LeadEntryLike } from "@/lib/affiliate-balance";
 
 type AffRow = { id: string; name: string; active: boolean; cpa_rate: number; guarantee_value: number; group_key: string | null; balance_start_date: string | null; opening_balance: number | null; balance_activated_at: string | null; alert_threshold: number | null };
@@ -597,6 +597,7 @@ function AffiliateStatementPage() {
           <div className="p-8 text-sm text-muted-foreground">No lead entries in this period.</div>
         ) : (
           <>
+          <TableCountBar {...pgWeeks} />
           <div className="overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>
@@ -685,6 +686,7 @@ function AffiliateStatementPage() {
           <div className="p-8 text-sm text-muted-foreground">No revenue in this period.</div>
         ) : (
           <>
+          <TableCountBar {...pgRevMonth} />
           <div className="overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>
@@ -729,6 +731,8 @@ function AffiliateStatementPage() {
           {sorted.length === 0 ? (
             <div className="p-8 text-sm text-muted-foreground">No transactions yet.</div>
           ) : (
+            <>
+            <TableCountBar {...pgMonthly} />
             <div className="overflow-x-auto scroll-slim">
               <table className="w-full text-sm">
                 <thead>
@@ -753,6 +757,7 @@ function AffiliateStatementPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
           <TablePagination {...pgMonthly} />
         </div>
@@ -765,6 +770,7 @@ function AffiliateStatementPage() {
             <div className="p-8 text-sm text-muted-foreground">No transactions yet.</div>
           ) : (
             <div className="overflow-auto scroll-slim max-h-[420px]">
+              <TableCountBar {...pgTx} />
               <table className="w-full text-sm">
                 <thead>
                   <tr className="table-head text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">

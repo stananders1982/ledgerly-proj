@@ -27,7 +27,7 @@ import { StatCard } from "@/components/stat-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
+import { usePagination, TablePagination, PageSizeSelect , TableCountBar} from "@/components/pagination";
 import { TableFrame } from "@/components/table-frame";
 import { useTableToolbox, ColumnsMenu, ClearFiltersButton, FilterRow, FitToggle, TableKeyboardHint, TotalsRow } from "@/components/table-toolbox";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -291,6 +291,7 @@ function ExpensesPage() {
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New expense</Button>} />
         ) : (
           <>
+          <TableCountBar {...pg} />
           <DataCardList>
             {pageItems.map((e: any) => (
               <DataCard

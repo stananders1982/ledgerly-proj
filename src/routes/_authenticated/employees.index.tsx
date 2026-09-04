@@ -24,7 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination , TableCountBar} from "@/components/pagination";
 import { QueryError } from "@/components/query-error";
 
 export const Route = createFileRoute("/_authenticated/employees/")({
@@ -211,6 +211,7 @@ function EmployeesPage() {
           />
         ) : (
           <>
+          <TableCountBar {...pg} />
           <DataCardList>
             {pageItems.map((e: any) => (
               <DataCard

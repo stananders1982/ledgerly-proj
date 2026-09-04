@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination , TableCountBar} from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { TargetBadge } from "@/routes/_authenticated/sources";
 import { isStd, isAgentTeam, isLateRetentionFtd, isLegacyClient, monthsLate } from "@/lib/rules";
@@ -1565,6 +1565,7 @@ function SortableTable({ columns, rows, searchable }: { columns: Col[]; rows: an
         <Input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs print:hidden" />
       )}
       <div className="card-surface overflow-hidden">
+        <TableCountBar {...pg} />
         <div className="overflow-x-auto scroll-slim">
           <Table>
             <TableHeader>

@@ -45,7 +45,7 @@ import { TableFrame } from "@/components/table-frame";
 import { useTableToolbox, ColumnsMenu, ClearFiltersButton, FilterRow, FitToggle, TableKeyboardHint, TotalsRow } from "@/components/table-toolbox";
 import { useSort, SortTh } from "@/components/sortable-table";
 
-import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
+import { usePagination, TablePagination, PageSizeSelect , TableCountBar} from "@/components/pagination";
 
 
 import { useQuickCreate } from "@/lib/quick-create";
@@ -464,6 +464,7 @@ function RevenuePage() {
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New revenue</Button>} />
         ) : (
           <>
+          <TableCountBar {...pg} />
           <DataCardList>
             {pageItems.map((r: any) => (
               <DataCard
