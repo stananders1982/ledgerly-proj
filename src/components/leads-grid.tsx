@@ -99,27 +99,27 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
 
   const cols=useMemo<ColDef<Lead>[]>(()=>[
     {key:"crm_id",label:"ID",value:l=>l.crm_id},
-    {key:"name",label:"Full Name",value:l=>l.name},
-    
+    {key:"name",label:"Full Name",locked:true,value:l=>l.name},
+
     {key:"email",label:"E-mail",value:l=>l.email??""},
-    {key:"email2",label:"E-mail2",value:l=>noteVal(l,"Second email ")},
+    {key:"email2",label:"E-mail2",defaultHidden:true,value:l=>noteVal(l,"Second email ")},
     {key:"phone",label:"Phone",value:l=>l.phone??""},
     {key:"country",label:"Country",filter:"select",value:l=>countryOf(l)},
-    {key:"city",label:"City",filter:"select",value:l=>cityOf(l)},
-    {key:"age",label:"Age",value:l=>noteVal(l,"Age ")},
+    {key:"city",label:"City",filter:"select",defaultHidden:true,value:l=>cityOf(l)},
+    {key:"age",label:"Age",defaultHidden:true,value:l=>noteVal(l,"Age ")},
     {key:"created",label:"Created Date",filter:"date",value:l=>l.created_at},
     {key:"source",label:"Source",filter:"select",value:l=>l.lead_sources?.name??l.affiliates?.name??""},
-    {key:"funnel",label:"Funnel Name",filter:"select",value:l=>funnelOf(l)},
-    {key:"affiliate_data",label:"Affiliate Data",value:l=>noteVal(l,"Affiliate data ")},
+    {key:"funnel",label:"Funnel Name",filter:"select",defaultHidden:true,value:l=>funnelOf(l)},
+    {key:"affiliate_data",label:"Affiliate Data",defaultHidden:true,value:l=>noteVal(l,"Affiliate data ")},
     {key:"affiliate",label:"Affiliate Name",filter:"select",value:l=>l.affiliates?.name??""},
     {key:"assigned",label:"Assigned to",filter:"select",value:l=>nameOf(l.employee_id)},
     {key:"status",label:"Status",filter:"select",options:LEAD_STATUSES.map(s=>LEAD_STATUS_LABELS[s]??s),value:l=>LEAD_STATUS_LABELS[l.status]??l.status},
     {key:"ftd_total",label:"FTD Total",value:l=>ftdTotalOf(l)??""},
-    {key:"lifetime",label:"Lifetime Deposit",value:l=>l.activation_id?(balanceOf(l)??0):(ftdTotalOf(l)??"")},
-    {key:"ftd_time",label:"FTD Time",value:l=>ftdTimeOf(l)},
-    {key:"ftd_owner",label:"FTD Owner",value:l=>noteVal(l,"FTD owner ")},
-    {key:"tag",label:"Tag",value:l=>noteVal(l,"Tag ")},
-    {key:"comment",label:"Last comment text",value:l=>lastCommentOf(l)},
+    {key:"lifetime",label:"Lifetime Deposit",defaultHidden:true,value:l=>l.activation_id?(balanceOf(l)??0):(ftdTotalOf(l)??"")},
+    {key:"ftd_time",label:"FTD Time",defaultHidden:true,value:l=>ftdTimeOf(l)},
+    {key:"ftd_owner",label:"FTD Owner",defaultHidden:true,value:l=>noteVal(l,"FTD owner ")},
+    {key:"tag",label:"Tag",defaultHidden:true,value:l=>noteVal(l,"Tag ")},
+    {key:"comment",label:"Last comment text",defaultHidden:true,value:l=>lastCommentOf(l)},
     // eslint-disable-next-line react-hooks/exhaustive-deps
   ],[agentsQ.data,balancesQ.data]);
   const tb=useTableToolbox("individual-leads",cols,baseRows);
