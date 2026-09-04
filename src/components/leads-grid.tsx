@@ -198,18 +198,18 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
         {tb.show("city")&&<td className="p-2 whitespace-nowrap">{cityOf(l)||"—"}</td>}
         {tb.show("age")&&<td className="p-2 whitespace-nowrap">{noteVal(l,"Age ")||"—"}</td>}
         {tb.show("created")&&<td className="p-2 whitespace-nowrap">{fmtDate(l.created_at)}<div className="text-muted-foreground">{new Date(l.created_at).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</div></td>}
-        <td className="p-2">{l.lead_sources?.name??l.affiliates?.name??"—"}</td>
-        <td className="max-w-40 truncate p-2" title={funnelOf(l)}>{funnelOf(l)||"—"}</td>
-        <td className="max-w-40 truncate p-2">{noteVal(l,"Affiliate data ")||"—"}</td>
-        <td className="p-2">{l.affiliates?.name??"—"}</td>
-        <td className="p-2">{roleKey==="agent"?nameOf(l.employee_id):<Select value={l.employee_id??NONE} onValueChange={v=>patch.mutate({id:l.id,p:{employee_id:v===NONE?null:v}})}><SelectTrigger className="h-8 w-40 border-transparent"><SelectValue/></SelectTrigger><SelectContent><SelectItem value={NONE}>Unassigned</SelectItem>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}</td>
-        <td className="p-2"><Select value={l.status} onValueChange={v=>patch.mutate({id:l.id,p:{status:v as LeadStatus}})} disabled={l.activated}><SelectTrigger className="h-8 w-40 border-transparent"><LeadStatusOption status={l.status}/></SelectTrigger><SelectContent>{LEAD_STATUSES.map(s=><SelectItem key={s} value={s}><LeadStatusOption status={s}/></SelectItem>)}</SelectContent></Select></td>
-        <td className="p-2 text-right whitespace-nowrap tabular-nums">{ftdTotalOf(l)!==null?fmtMoney(ftdTotalOf(l) as number):"—"}</td>
-        <td className="p-2 text-right whitespace-nowrap tabular-nums">{l.activation_id?fmtMoney(balanceOf(l)??0):(ftdTotalOf(l)!==null?fmtMoney(ftdTotalOf(l) as number):"—")}</td>
-        <td className="p-2 whitespace-nowrap">{ftdTimeOf(l)||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{noteVal(l,"FTD owner ")||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{noteVal(l,"Tag ")||"—"}</td>
-        <td className="max-w-56 truncate p-2" title={l.notes??""}>{lastCommentOf(l)||"—"}</td>
+        {tb.show("source")&&<td className="p-2">{l.lead_sources?.name??l.affiliates?.name??"—"}</td>}
+        {tb.show("funnel")&&<td className="max-w-40 truncate p-2" title={funnelOf(l)}>{funnelOf(l)||"—"}</td>}
+        {tb.show("affiliate_data")&&<td className="max-w-40 truncate p-2">{noteVal(l,"Affiliate data ")||"—"}</td>}
+        {tb.show("affiliate")&&<td className="p-2">{l.affiliates?.name??"—"}</td>}
+        {tb.show("assigned")&&<td className="p-2">{roleKey==="agent"?nameOf(l.employee_id):<Select value={l.employee_id??NONE} onValueChange={v=>patch.mutate({id:l.id,p:{employee_id:v===NONE?null:v}})}><SelectTrigger className="h-8 w-40 border-transparent"><SelectValue/></SelectTrigger><SelectContent><SelectItem value={NONE}>Unassigned</SelectItem>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}</td>}
+        {tb.show("status")&&<td className="p-2"><Select value={l.status} onValueChange={v=>patch.mutate({id:l.id,p:{status:v as LeadStatus}})} disabled={l.activated}><SelectTrigger className="h-8 w-40 border-transparent"><LeadStatusOption status={l.status}/></SelectTrigger><SelectContent>{LEAD_STATUSES.map(s=><SelectItem key={s} value={s}><LeadStatusOption status={s}/></SelectItem>)}</SelectContent></Select></td>}
+        {tb.show("ftd_total")&&<td className="p-2 text-right whitespace-nowrap tabular-nums">{ftdTotalOf(l)!==null?fmtMoney(ftdTotalOf(l) as number):"—"}</td>}
+        {tb.show("lifetime")&&<td className="p-2 text-right whitespace-nowrap tabular-nums">{l.activation_id?fmtMoney(balanceOf(l)??0):(ftdTotalOf(l)!==null?fmtMoney(ftdTotalOf(l) as number):"—")}</td>}
+        {tb.show("ftd_time")&&<td className="p-2 whitespace-nowrap">{ftdTimeOf(l)||"—"}</td>}
+        {tb.show("ftd_owner")&&<td className="p-2 whitespace-nowrap">{noteVal(l,"FTD owner ")||"—"}</td>}
+        {tb.show("tag")&&<td className="p-2 whitespace-nowrap">{noteVal(l,"Tag ")||"—"}</td>}
+        {tb.show("comment")&&<td className="max-w-56 truncate p-2" title={l.notes??""}>{lastCommentOf(l)||"—"}</td>}
         <td className="p-2"><div className="flex justify-end gap-1"><ContactActions phone={l.phone} email={l.email} name={l.name} size="icon"/>{l.activation_id?<Button size="sm" variant="ghost" onClick={()=>navigate({to:"/clients/$id",params:{id:l.activation_id as string}})}><ExternalLink className="h-3 w-3"/> Client</Button>:<Button size="sm" onClick={()=>{setConvert(l);setRetentionId("")}}>Convert</Button>}<Button size="sm" variant="ghost" onClick={()=>setForm({id:l.id,name:l.name,phone:l.phone??"",email:l.email??"",source_id:l.source_id??"",affiliate_id:l.affiliate_id??"",employee_id:l.employee_id??"",status:l.status,notes:l.notes??""})}>Edit</Button><ConfirmDelete onConfirm={()=>remove.mutate(l.id)} label={`Delete ${l.name}?`} description="This removes the lead record. Converted client records are kept."/></div></td>
       </tr>)}</tbody></table></TableFrame>}
 
