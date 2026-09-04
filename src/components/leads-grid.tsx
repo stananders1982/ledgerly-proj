@@ -24,6 +24,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, leadStatusDotClass, type LeadStatus } from "@/lib/lead-status";
 import { ClearFiltersButton, FilterRow, useTableToolbox, type ColDef } from "@/components/table-toolbox";
+import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 const NONE = "__none__";
 type Lead = { id:string; crm_id:string; name:string; phone:string|null; email:string|null; source_id:string|null; affiliate_id:string|null; employee_id:string|null; status:LeadStatus; notes:string|null; activated:boolean; activation_id:string|null; created_at:string; lead_sources?:{name:string}|null; affiliates?:{name:string}|null };
@@ -44,6 +46,9 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
   const [status, setStatus] = useState("open");
   const [source, setSource] = useState("all");
   const [agent, setAgent] = useState("all");
+  const [gridRange, setGridRange] = usePersistedState<RangeKey>("leads:grid-range", "all");
+  const [gridStart, setGridStart] = usePersistedState<string>("leads:grid-range-start", "");
+  const [gridEnd, setGridEnd] = usePersistedState<string>("leads:grid-range-end", "");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [seenSignal, setSeenSignal] = useState(createSignal);
   if (createSignal !== seenSignal) { setSeenSignal(createSignal); setForm(blank()); }
