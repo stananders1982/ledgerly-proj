@@ -1,7 +1,8 @@
 /** Dense individual-lead grid and leads-first conversion workflow. */
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Plus } from "lucide-react";
+import { ExternalLink, LayoutGrid, Plus, Rows3 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +52,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
   const [gridStart, setGridStart] = usePersistedState<string>("leads:grid-range-start", "");
   const [gridEnd, setGridEnd] = usePersistedState<string>("leads:grid-range-end", "");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = usePersistedState<"list" | "grid">("leads:view", "grid");
   const [seenSignal, setSeenSignal] = useState(createSignal);
   if (createSignal !== seenSignal) { setSeenSignal(createSignal); setForm(blank()); }
 
@@ -158,11 +160,54 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
       <Select value={agent} onValueChange={setAgent}><SelectTrigger className="w-44"><SelectValue placeholder="All agents"/></SelectTrigger><SelectContent><SelectItem value="all">All conversion agents</SelectItem><SelectItem value={NONE}>Unassigned</SelectItem>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>
       <DateRangePicker value={gridRange} onChange={setGridRange} customStart={gridStart} customEnd={gridEnd} onCustomChange={(s,e)=>{setGridStart(s);setGridEnd(e);}} showAll/>
       <span className="text-sm text-muted-foreground">{rows.length} leads</span>
-      <ColumnsMenu tb={tb}/>
+      <div className="flex items-center rounded-md border border-border p-0.5">
+        <Button size="sm" variant={viewMode==="list"?"secondary":"ghost"} className="h-7 gap-1.5 px-2 text-xs" onClick={()=>setViewMode("list")} title="Comfortable list — one card per lead">
+          <Rows3 className="h-3.5 w-3.5"/> List
+        </Button>
+        <Button size="sm" variant={viewMode==="grid"?"secondary":"ghost"} className="h-7 gap-1.5 px-2 text-xs" onClick={()=>setViewMode("grid")} title="Dense grid — filter under every column">
+          <LayoutGrid className="h-3.5 w-3.5"/> Grid
+        </Button>
+      </div>
+      {viewMode==="grid"&&<ColumnsMenu tb={tb}/>}
       <ClearFiltersButton tb={tb} extraActive={(search.trim()?1:0)+(status!=="open"?1:0)+(source!=="all"?1:0)+(agent!=="all"?1:0)+(gridRange!=="all"?1:0)} extra={()=>{setSearch("");setStatus("open");setSource("all");setAgent("all");setGridRange("all");setGridStart("");setGridEnd("");}}/>
       <div className="ml-auto flex gap-2">{selected.size>0&&roleKey!=="agent"&&<Select onValueChange={v=>bulkAssign.mutate(v)}><SelectTrigger className="w-44"><SelectValue placeholder={`Assign ${selected.size}`}/></SelectTrigger><SelectContent>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}<Button onClick={()=>setForm({...blank(),employee_id:roleKey==="agent"&&employee?.team==="C"?employee.id:""})}><Plus className="h-4 w-4"/> Add lead</Button></div>
     </div>
-    {rows.length===0?<EmptyState icon={Plus} title="No leads found" description="Add a lead by details or let affiliates send leads through the intake API." action={<Button onClick={()=>setForm(blank())}>Add lead</Button>}/>:<TableFrame resizeKey="individual-leads" className="w-full"><table className="w-full min-w-[2780px] text-[11px]">
+    {rows.length===0?<EmptyState icon={Plus} title="No leads found" description="Add a lead by details or let affiliates send leads through the intake API." action={<Button onClick={()=>setForm(blank())}>Add lead</Button>}/>:viewMode==="list"?<div className="space-y-2">
+      {rows.map(l=><div key={l.id} className={cn("group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-accent/20",selected.has(l.id)&&"border-primary/60 bg-accent/30")}>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+          <div className="flex items-center gap-2 pt-0.5">
+            <Checkbox checked={selected.has(l.id)} onCheckedChange={()=>setSelected(s=>{const n=new Set(s);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;})} aria-label={`Select ${l.name}`}/>
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-sm ${leadStatusDotClass(l.status)}`}/>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-xs font-medium text-muted-foreground">{l.crm_id}</span>
+              <span className="truncate text-sm font-semibold">{l.name||"Unnamed lead"}</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium">{LEAD_STATUS_LABELS[l.status]??l.status}</span>
+              {l.activated&&<span className="rounded-full bg-lead-status-green/15 px-2 py-0.5 text-[11px] font-medium text-lead-status-green">Converted</span>}
+            </div>
+            <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground sm:grid-cols-3 xl:grid-cols-4">
+              <div><dt className="inline">Created: </dt><dd className="inline text-foreground">{fmtDate(l.created_at)}</dd></div>
+              <div><dt className="inline">Source: </dt><dd className="inline text-foreground">{l.lead_sources?.name??"—"}</dd></div>
+              <div><dt className="inline">Affiliate: </dt><dd className="inline text-foreground">{l.affiliates?.name??"—"}</dd></div>
+              <div><dt className="inline">Assigned: </dt><dd className="inline text-foreground">{l.employee_id?nameOf(l.employee_id):"Unassigned"}</dd></div>
+              <div><dt className="inline">Phone: </dt><dd className="inline text-foreground">{l.phone||"—"}</dd></div>
+              <div><dt className="inline">Email: </dt><dd className="inline text-foreground">{l.email||"—"}</dd></div>
+              <div><dt className="inline">Country: </dt><dd className="inline text-foreground">{countryOf(l)||"—"}</dd></div>
+              <div><dt className="inline">FTD: </dt><dd className="inline text-foreground">{ftdTotalOf(l)!==null?fmtMoney(ftdTotalOf(l) as number):"—"}</dd></div>
+            </dl>
+          </div>
+          <div className="flex shrink-0 items-center gap-1 lg:flex-col lg:items-end">
+            <div className="flex items-center gap-1">
+              <ContactActions phone={l.phone} email={l.email} name={l.name} size="icon"/>
+              {l.activation_id?<Button size="sm" variant="ghost" className="h-8" onClick={()=>navigate({to:"/clients/$id",params:{id:l.activation_id as string}})}><ExternalLink className="h-3 w-3"/> Client</Button>:<Button size="sm" className="h-8" onClick={()=>{setConvert(l);setRetentionId("")}}>Convert</Button>}
+              <Button size="sm" variant="outline" className="h-8" onClick={()=>setForm({id:l.id,name:l.name,phone:l.phone??"",email:l.email??"",source_id:l.source_id??"",affiliate_id:l.affiliate_id??"",employee_id:l.employee_id??"",status:l.status,notes:l.notes??""})}>Edit</Button>
+              <ConfirmDelete onConfirm={()=>remove.mutate(l.id)} label={`Delete ${l.name}?`} description="This removes the lead record. Converted client records are kept."/>
+            </div>
+          </div>
+        </div>
+      </div>)}
+    </div>:<TableFrame resizeKey="individual-leads" className="w-full"><table className="w-full min-w-[2780px] text-[11px]">
       <thead className="table-head bg-muted/40 text-muted-foreground"><tr>
         <th className="w-10 p-2"><Checkbox checked={rows.length>0&&rows.every(r=>selected.has(r.id))} onCheckedChange={c=>setSelected(c?new Set(rows.map(r=>r.id)):new Set())}/></th>
         {tb.show("crm_id")&&<th className="p-2 text-left">ID</th>}
