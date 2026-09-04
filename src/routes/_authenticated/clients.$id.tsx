@@ -101,6 +101,21 @@ function ClientPage() {
     },
   });
 
+  const leadQ = useQuery({
+    queryKey: ["client-origin-lead", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("id, created_at, crm_id, lead_sources(name)")
+        .eq("activation_id", id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; created_at: string; crm_id: string | null; lead_sources?: { name: string } | null } | null;
+    },
+  });
+
   const employeesQ = useQuery({
     queryKey: ["employees-directory"],
     queryFn: async () => {
@@ -342,9 +357,9 @@ function ClientPage() {
       {
         key: "lead",
         label: "Lead received",
-        date: cur.daily_lead_entries?.entry_date ?? null,
-        detail: cur.daily_lead_entries?.lead_sources?.name ?? null,
-        done: !!cur.daily_lead_entries?.entry_date,
+        date: cur.daily_lead_entries?.entry_date ?? leadQ.data?.created_at?.slice(0, 10) ?? null,
+        detail: cur.daily_lead_entries?.lead_sources?.name ?? leadQ.data?.lead_sources?.name ?? null,
+        done: !!(cur.daily_lead_entries?.entry_date || leadQ.data || act),
       },
       {
         /* The activation opening balance *is* the first deposit (FTD), so the
@@ -378,7 +393,7 @@ function ClientPage() {
         done: comms.length > 0,
       },
     ];
-  }, [cur, deposits, commsQ.data, opening, qualifies, stdCount, baseCcy]);
+  }, [cur, deposits, commsQ.data, opening, qualifies, stdCount, baseCcy, leadQ.data]);
 
   const journeyNextSteps = useMemo(() => {
     const out: { label: string; value: string; icon?: "date" | "ai" }[] = [];
@@ -743,8 +758,8 @@ function ClientPage() {
           <section className="card-surface p-5 text-sm">
             <h2 className="mb-3 font-display text-base font-semibold">At a glance</h2>
             <dl className="space-y-2">
-              <Row label="Source" value={cur.daily_lead_entries?.lead_sources?.name ?? "—"} />
-              <Row label="Lead received" value={cur.daily_lead_entries?.entry_date ? fmtDate(cur.daily_lead_entries.entry_date) : "—"} />
+              <Row label="Source" value={cur.daily_lead_entries?.lead_sources?.name ?? leadQ.data?.lead_sources?.name ?? "—"} />
+              <Row label="Lead received" value={cur.daily_lead_entries?.entry_date ? fmtDate(cur.daily_lead_entries.entry_date) : leadQ.data?.created_at ? fmtDate(leadQ.data.created_at.slice(0, 10)) : "—"} />
               <Row label="Activated" value={cur.activation_date ? fmtDate(cur.activation_date) : "—"} />
               <Row label="Qualified" value={cur.qualified_at ? fmtDate(String(cur.qualified_at).slice(0, 10)) : "Pending"} />
               <Row label="Conversion agent" value={<EmployeeLink id={cur.conversion_employee_id} name={employeeName(cur.conversion_employee_id)} />} />
