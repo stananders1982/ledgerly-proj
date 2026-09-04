@@ -357,9 +357,9 @@ function ClientPage() {
       {
         key: "lead",
         label: "Lead received",
-        date: cur.daily_lead_entries?.entry_date ?? null,
-        detail: cur.daily_lead_entries?.lead_sources?.name ?? null,
-        done: !!cur.daily_lead_entries?.entry_date,
+        date: cur.daily_lead_entries?.entry_date ?? leadQ.data?.created_at?.slice(0, 10) ?? null,
+        detail: cur.daily_lead_entries?.lead_sources?.name ?? leadQ.data?.lead_sources?.name ?? null,
+        done: !!(cur.daily_lead_entries?.entry_date || leadQ.data || act),
       },
       {
         /* The activation opening balance *is* the first deposit (FTD), so the
