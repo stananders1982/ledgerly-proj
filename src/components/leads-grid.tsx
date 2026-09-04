@@ -164,28 +164,27 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
     {rows.length===0?<EmptyState icon={Plus} title="No leads found" description="Add a lead by details or let affiliates send leads through the intake API." action={<Button onClick={()=>setForm(blank())}>Add lead</Button>}/>:<TableFrame resizeKey="individual-leads" className="w-full"><table className="w-full min-w-[2780px] text-[11px]">
       <thead className="table-head bg-muted/40 text-muted-foreground"><tr>
         <th className="w-10 p-2"><Checkbox checked={rows.length>0&&rows.every(r=>selected.has(r.id))} onCheckedChange={c=>setSelected(c?new Set(rows.map(r=>r.id)):new Set())}/></th>
-        <th className="p-2 text-left">ID</th>
-        <th className="min-w-44 p-2 text-left">Full Name</th>
-        
-        <th className="min-w-44 p-2 text-left">E-mail</th>
-        <th className="p-2 text-left">E-mail2</th>
-        <th className="p-2 text-left">Phone</th>
-        <th className="p-2 text-left">Country</th>
-        <th className="p-2 text-left">City</th>
-        <th className="p-2 text-left">Age</th>
-        <th className="p-2 text-left">Created Date</th>
-        <th className="p-2 text-left">Source</th>
-        <th className="p-2 text-left">Funnel Name</th>
-        <th className="p-2 text-left">Affiliate Data</th>
-        <th className="p-2 text-left">Affiliate Name</th>
-        <th className="p-2 text-left">Assigned to</th>
-        <th className="p-2 text-left">Status</th>
-        <th className="p-2 text-right">FTD Total</th>
-        <th className="p-2 text-right">Lifetime Deposit</th>
-        <th className="p-2 text-left">FTD Time</th>
-        <th className="p-2 text-left">FTD Owner</th>
-        <th className="p-2 text-left">Tag</th>
-        <th className="p-2 text-left">Last comment text</th>
+        {tb.show("crm_id")&&<th className="p-2 text-left">ID</th>}
+        {tb.show("name")&&<th className="min-w-44 p-2 text-left">Full Name</th>}
+        {tb.show("email")&&<th className="min-w-44 p-2 text-left">E-mail</th>}
+        {tb.show("email2")&&<th className="p-2 text-left">E-mail2</th>}
+        {tb.show("phone")&&<th className="p-2 text-left">Phone</th>}
+        {tb.show("country")&&<th className="p-2 text-left">Country</th>}
+        {tb.show("city")&&<th className="p-2 text-left">City</th>}
+        {tb.show("age")&&<th className="p-2 text-left">Age</th>}
+        {tb.show("created")&&<th className="p-2 text-left">Created Date</th>}
+        {tb.show("source")&&<th className="p-2 text-left">Source</th>}
+        {tb.show("funnel")&&<th className="p-2 text-left">Funnel Name</th>}
+        {tb.show("affiliate_data")&&<th className="p-2 text-left">Affiliate Data</th>}
+        {tb.show("affiliate")&&<th className="p-2 text-left">Affiliate Name</th>}
+        {tb.show("assigned")&&<th className="p-2 text-left">Assigned to</th>}
+        {tb.show("status")&&<th className="p-2 text-left">Status</th>}
+        {tb.show("ftd_total")&&<th className="p-2 text-right">FTD Total</th>}
+        {tb.show("lifetime")&&<th className="p-2 text-right">Lifetime Deposit</th>}
+        {tb.show("ftd_time")&&<th className="p-2 text-left">FTD Time</th>}
+        {tb.show("ftd_owner")&&<th className="p-2 text-left">FTD Owner</th>}
+        {tb.show("tag")&&<th className="p-2 text-left">Tag</th>}
+        {tb.show("comment")&&<th className="p-2 text-left">Last comment text</th>}
         <th className="p-2 text-right">Actions</th>
       </tr><FilterRow tb={tb} leading={1} trailing={1}/></thead>
       <tbody>{rows.map(l=><tr key={l.id} className="border-t odd:bg-muted/10 hover:bg-accent/30">
