@@ -34,6 +34,7 @@ import { stdDepositsFor, isoDay, isAgentTeam } from "@/lib/rules";
 import { SavedViews } from "@/components/saved-views";
 import { CsvImportDialog } from "@/components/csv-import";
 import { OLD_CRM_ENTRY_FIELDS, groupOldCrmEntries, existingDailyRows, writeDailyGroups } from "@/lib/old-crm-daily";
+import { buildOldCrmLeadPayload } from "@/lib/old-crm-lead-payload";
 
 
 
@@ -128,6 +129,15 @@ function LeadsPage() {
   }, [sourcesQ.data]);
 
 
+  const affiliatesQ = useQuery({
+    queryKey: ["affiliates-directory"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("list_affiliates_directory");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string; active: boolean }[];
+    },
+  });
+
   const employeesQ = useQuery({
     queryKey: ["employees-directory"],
     queryFn: async () => {
@@ -136,6 +146,7 @@ function LeadsPage() {
       return (data ?? []) as { id: string; name: string; active: boolean; team?: string | null }[];
     },
   });
+
 
   const activationsQ = useQuery({
     queryKey: ["daily-lead-activations"],
@@ -686,12 +697,32 @@ function LeadsPage() {
             onImport={async (csvRows) => {
               const groups = groupOldCrmEntries(csvRows, resolveSourceId);
               const { created, updated } = await writeDailyGroups(groups);
+
+              // Create the individual lead records too; the daily totals are
+              // already written above, so the RPC must not count them again.
+              const payload = buildOldCrmLeadPayload(csvRows, {
+                employees: employeesQ.data ?? [],
+                affiliates: affiliatesQ.data ?? [],
+                sources: (sourcesQ.data ?? []) as { id: string; name: string }[],
+              });
+              const { data: res, error } = await supabase.rpc("import_old_crm_leads" as never, {
+                _rows: payload as never,
+                _skip_daily: true,
+              } as never);
+              if (error) throw error;
+              const summary = (res ?? {}) as { imported?: number; skipped?: number; updated?: number };
+
               qc.invalidateQueries({ queryKey: ["daily-leads-v2"] });
               qc.invalidateQueries({ queryKey: ["entries-for-sources"] });
               qc.invalidateQueries({ queryKey: ["dash-leads-v2"] });
+              qc.invalidateQueries({ queryKey: ["individual-leads"] });
+              qc.invalidateQueries({ queryKey: ["leads"] });
               toast.success(
-                `${created} new daily row${created === 1 ? "" : "s"} · ${updated} updated from ${csvRows.length} leads`,
+                `${created} new daily row${created === 1 ? "" : "s"} · ${updated} updated · ${summary.imported ?? 0} lead${(summary.imported ?? 0) === 1 ? "" : "s"} created`,
               );
+              if ((summary.skipped ?? 0) + (summary.updated ?? 0) > 0) {
+                toast.info(`${summary.updated ?? 0} existing lead(s) filled in · ${summary.skipped ?? 0} duplicate(s) skipped`);
+              }
             }}
           />
 

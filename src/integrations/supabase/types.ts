@@ -2992,7 +2992,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      import_old_crm_leads: { Args: { _rows: Json }; Returns: Json }
+      import_old_crm_leads:
+        | { Args: { _rows: Json }; Returns: Json }
+        | { Args: { _rows: Json; _skip_daily: boolean }; Returns: Json }
       is_super_admin: { Args: never; Returns: boolean }
       list_affiliates_directory: {
         Args: never
