@@ -697,12 +697,32 @@ function LeadsPage() {
             onImport={async (csvRows) => {
               const groups = groupOldCrmEntries(csvRows, resolveSourceId);
               const { created, updated } = await writeDailyGroups(groups);
+
+              // Create the individual lead records too; the daily totals are
+              // already written above, so the RPC must not count them again.
+              const payload = buildOldCrmLeadPayload(csvRows, {
+                employees: employeesQ.data ?? [],
+                affiliates: affiliatesQ.data ?? [],
+                sources: (sourcesQ.data ?? []) as { id: string; name: string }[],
+              });
+              const { data: res, error } = await supabase.rpc("import_old_crm_leads" as never, {
+                _rows: payload as never,
+                _skip_daily: true,
+              } as never);
+              if (error) throw error;
+              const summary = (res ?? {}) as { imported?: number; skipped?: number; updated?: number };
+
               qc.invalidateQueries({ queryKey: ["daily-leads-v2"] });
               qc.invalidateQueries({ queryKey: ["entries-for-sources"] });
               qc.invalidateQueries({ queryKey: ["dash-leads-v2"] });
+              qc.invalidateQueries({ queryKey: ["leads-grid"] });
+              qc.invalidateQueries({ queryKey: ["leads"] });
               toast.success(
-                `${created} new daily row${created === 1 ? "" : "s"} · ${updated} updated from ${csvRows.length} leads`,
+                `${created} new daily row${created === 1 ? "" : "s"} · ${updated} updated · ${summary.imported ?? 0} lead${(summary.imported ?? 0) === 1 ? "" : "s"} created`,
               );
+              if ((summary.skipped ?? 0) + (summary.updated ?? 0) > 0) {
+                toast.info(`${summary.updated ?? 0} existing lead(s) filled in · ${summary.skipped ?? 0} duplicate(s) skipped`);
+              }
             }}
           />
 
