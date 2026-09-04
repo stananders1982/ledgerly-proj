@@ -189,16 +189,15 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
       </tr><FilterRow tb={tb} leading={1} trailing={1}/></thead>
       <tbody>{rows.map(l=><tr key={l.id} className="border-t odd:bg-muted/10 hover:bg-accent/30">
         <td className="p-2"><Checkbox checked={selected.has(l.id)} onCheckedChange={()=>setSelected(s=>{const n=new Set(s);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;})}/></td>
-        <td className="p-2 font-mono font-medium whitespace-nowrap">{l.crm_id}</td>
-        <td className="p-2 font-medium">{l.name}</td>
-        
-        <td className="max-w-52 truncate p-2" title={l.email??""}>{l.email||"—"}</td>
-        <td className="max-w-52 truncate p-2">{noteVal(l,"Second email ")||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{l.phone||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{countryOf(l)||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{cityOf(l)||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{noteVal(l,"Age ")||"—"}</td>
-        <td className="p-2 whitespace-nowrap">{fmtDate(l.created_at)}<div className="text-muted-foreground">{new Date(l.created_at).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</div></td>
+        {tb.show("crm_id")&&<td className="p-2 font-mono font-medium whitespace-nowrap">{l.crm_id}</td>}
+        {tb.show("name")&&<td className="p-2 font-medium">{l.name}</td>}
+        {tb.show("email")&&<td className="max-w-52 truncate p-2" title={l.email??""}>{l.email||"—"}</td>}
+        {tb.show("email2")&&<td className="max-w-52 truncate p-2">{noteVal(l,"Second email ")||"—"}</td>}
+        {tb.show("phone")&&<td className="p-2 whitespace-nowrap">{l.phone||"—"}</td>}
+        {tb.show("country")&&<td className="p-2 whitespace-nowrap">{countryOf(l)||"—"}</td>}
+        {tb.show("city")&&<td className="p-2 whitespace-nowrap">{cityOf(l)||"—"}</td>}
+        {tb.show("age")&&<td className="p-2 whitespace-nowrap">{noteVal(l,"Age ")||"—"}</td>}
+        {tb.show("created")&&<td className="p-2 whitespace-nowrap">{fmtDate(l.created_at)}<div className="text-muted-foreground">{new Date(l.created_at).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</div></td>}
         <td className="p-2">{l.lead_sources?.name??l.affiliates?.name??"—"}</td>
         <td className="max-w-40 truncate p-2" title={funnelOf(l)}>{funnelOf(l)||"—"}</td>
         <td className="max-w-40 truncate p-2">{noteVal(l,"Affiliate data ")||"—"}</td>
