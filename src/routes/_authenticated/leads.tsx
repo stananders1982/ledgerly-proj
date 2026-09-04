@@ -33,7 +33,7 @@ import { useTableToolbox, ColumnsMenu, ClearFiltersButton, FilterRow, FitToggle,
 import { stdDepositsFor, isoDay, isAgentTeam } from "@/lib/rules";
 import { SavedViews } from "@/components/saved-views";
 import { CsvImportDialog } from "@/components/csv-import";
-import { OLD_CRM_ENTRY_FIELDS, groupOldCrmEntries, existingDailyRows, writeDailyGroups } from "@/lib/old-crm-daily";
+import { OLD_CRM_ENTRY_FIELDS, groupOldCrmEntries, existingDailyRows, writeDailyGroups, filterNewOldCrmRows } from "@/lib/old-crm-daily";
 import { buildOldCrmLeadPayload } from "@/lib/old-crm-lead-payload";
 
 
