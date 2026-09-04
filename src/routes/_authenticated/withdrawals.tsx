@@ -320,6 +320,7 @@ function WithdrawalsPage() {
             action={canApprove ? <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New withdrawal</Button> : undefined} />
         ) : (
           <>
+          <TableCountBar {...pg} />
           <DataCardList>
             {pageItems.map((r: any) => (
               <DataCard

@@ -1323,6 +1323,7 @@ function ActivationsPage() {
           <EmptyState icon={CheckCircle2} title="No clients" description="Activated leads logged on the Leads page appear here." />
         ) : (
           <>
+          <TableCountBar {...pg} />
           <DataCardList>
             {pageItems.map((r: any) => (
               <DataCard

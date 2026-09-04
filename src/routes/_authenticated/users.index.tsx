@@ -163,6 +163,7 @@ function UsersPage() {
       />
 
       <div className="rounded-md border">
+        <TableCountBar {...pg} />
         <Table>
           <TableHeader>
             <TableRow>

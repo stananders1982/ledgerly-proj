@@ -460,6 +460,7 @@ function PerformancePage() {
           <div className="p-8 text-sm text-muted-foreground">No employees match.</div>
         ) : (
           <>
+          <TableCountBar {...pg} />
           <DataCardList>
             {pageItems.map((r: any) => (
               <DataCard

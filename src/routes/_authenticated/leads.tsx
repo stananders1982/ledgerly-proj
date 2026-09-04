@@ -1095,6 +1095,7 @@ function LeadsPage() {
         ) : (
           <>
 
+          <TableCountBar {...pg} />
           <DataCardList>
             {pageItems.map((r: any) => {
               const s = r.lead_sources;
