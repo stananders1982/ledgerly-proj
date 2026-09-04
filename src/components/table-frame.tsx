@@ -91,6 +91,16 @@ export function TableFrame({
     const ths = Array.from(headRow.children) as HTMLTableCellElement[];
     const cleanups: (() => void)[] = [];
 
+    const syncTableWidth = () => {
+      if (!Object.keys(widthsRef.current).length) return;
+      const total = ths.reduce((sum, cell, index) => {
+        const width = widthsRef.current[colKey(cell, index)];
+        return sum + (width ?? cell.getBoundingClientRect().width);
+      }, 0);
+      table.style.width = `${Math.max(root.clientWidth, Math.round(total))}px`;
+      table.style.minWidth = "100%";
+    };
+
     ths.forEach((th, i) => {
       const key = colKey(th, i);
       const saved = widthsRef.current[key];
@@ -111,11 +121,12 @@ export function TableFrame({
       let startW = 0;
 
       const onMove = (e: PointerEvent) => {
-        const w = Math.max(24, Math.round(startW + (e.clientX - startX)));
+        const w = Math.max(20, Math.round(startW + (e.clientX - startX)));
         th.style.width = `${w}px`;
         th.style.minWidth = `${w}px`;
         th.style.maxWidth = `${w}px`;
         widthsRef.current[key] = w;
+        syncTableWidth();
       };
       const onUp = () => {
         window.removeEventListener("pointermove", onMove);
@@ -127,8 +138,18 @@ export function TableFrame({
       const onDown = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        ths.forEach((cell, index) => {
+          const cellKey = colKey(cell, index);
+          if (widthsRef.current[cellKey]) return;
+          const width = Math.round(cell.getBoundingClientRect().width);
+          widthsRef.current[cellKey] = width;
+          cell.style.width = `${width}px`;
+          cell.style.minWidth = `${width}px`;
+          cell.style.maxWidth = `${width}px`;
+        });
         startX = e.clientX;
         startW = th.getBoundingClientRect().width;
+        syncTableWidth();
         document.body.style.userSelect = "none";
         document.body.style.cursor = "col-resize";
         window.addEventListener("pointermove", onMove);
@@ -141,6 +162,12 @@ export function TableFrame({
         th.style.minWidth = "";
         th.style.maxWidth = "";
         delete widthsRef.current[key];
+        if (!Object.keys(widthsRef.current).length) {
+          table.style.width = "";
+          table.style.minWidth = "";
+        } else {
+          syncTableWidth();
+        }
         saveWidths(resizeKey, widthsRef.current);
       };
 
@@ -152,6 +179,8 @@ export function TableFrame({
         handle.remove();
       });
     });
+
+    syncTableWidth();
 
     return () => cleanups.forEach((c) => c());
   }, [children, fit, resizeKey]);
