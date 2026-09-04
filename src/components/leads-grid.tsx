@@ -24,6 +24,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, leadStatusDotClass, type LeadStatus } from "@/lib/lead-status";
 import { ClearFiltersButton, FilterRow, useTableToolbox, type ColDef } from "@/components/table-toolbox";
+import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
+import { usePersistedState } from "@/hooks/use-persisted-state";
 
 const NONE = "__none__";
 type Lead = { id:string; crm_id:string; name:string; phone:string|null; email:string|null; source_id:string|null; affiliate_id:string|null; employee_id:string|null; status:LeadStatus; notes:string|null; activated:boolean; activation_id:string|null; created_at:string; lead_sources?:{name:string}|null; affiliates?:{name:string}|null };
@@ -44,6 +46,9 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
   const [status, setStatus] = useState("open");
   const [source, setSource] = useState("all");
   const [agent, setAgent] = useState("all");
+  const [gridRange, setGridRange] = usePersistedState<RangeKey>("leads:grid-range", "all");
+  const [gridStart, setGridStart] = usePersistedState<string>("leads:grid-range-start", "");
+  const [gridEnd, setGridEnd] = usePersistedState<string>("leads:grid-range-end", "");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [seenSignal, setSeenSignal] = useState(createSignal);
   if (createSignal !== seenSignal) { setSeenSignal(createSignal); setForm(blank()); }
@@ -87,13 +92,14 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
     if(status!=="all"&&status!=="open"&&l.status!==status)return false;
     if(source!=="all"&&(l.affiliate_id??l.source_id??NONE)!==source)return false;
     if(agent!=="all"&&(l.employee_id??NONE)!==agent)return false;
+    if(gridRange!=="all"){const {start,end}=getRange(gridRange,{start:gridStart,end:gridEnd});const t=new Date(l.created_at).getTime();if(t<start.getTime()||t>end.getTime())return false;}
     return true;
-  }),[leadsQ.data,search,status,source,agent]);
+  }),[leadsQ.data,search,status,source,agent,gridRange,gridStart,gridEnd]);
 
   const cols=useMemo<ColDef<Lead>[]>(()=>[
     {key:"crm_id",label:"ID",value:l=>l.crm_id},
     {key:"name",label:"Full Name",value:l=>l.name},
-    {key:"name2",label:"Full Name 2",value:l=>noteVal(l,"Also known as ")},
+    
     {key:"email",label:"E-mail",value:l=>l.email??""},
     {key:"email2",label:"E-mail2",value:l=>noteVal(l,"Second email ")},
     {key:"phone",label:"Phone",value:l=>l.phone??""},
@@ -144,16 +150,17 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
       <Select value={status} onValueChange={setStatus}><SelectTrigger className="w-44"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="open">Open leads</SelectItem><SelectItem value="all">All statuses</SelectItem>{LEAD_STATUSES.map(s=><SelectItem key={s} value={s}><LeadStatusOption status={s}/></SelectItem>)}</SelectContent></Select>
       <Select value={source} onValueChange={setSource}><SelectTrigger className="w-44"><SelectValue placeholder="All affiliates"/></SelectTrigger><SelectContent><SelectItem value="all">All affiliates</SelectItem>{sourceOptions.map((o)=><SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent></Select>
       <Select value={agent} onValueChange={setAgent}><SelectTrigger className="w-44"><SelectValue placeholder="All agents"/></SelectTrigger><SelectContent><SelectItem value="all">All conversion agents</SelectItem><SelectItem value={NONE}>Unassigned</SelectItem>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>
+      <DateRangePicker value={gridRange} onChange={setGridRange} customStart={gridStart} customEnd={gridEnd} onCustomChange={(s,e)=>{setGridStart(s);setGridEnd(e);}} showAll/>
       <span className="text-sm text-muted-foreground">{rows.length} leads</span>
-      <ClearFiltersButton tb={tb} extraActive={(search.trim()?1:0)+(status!=="open"?1:0)+(source!=="all"?1:0)+(agent!=="all"?1:0)} extra={()=>{setSearch("");setStatus("open");setSource("all");setAgent("all");}}/>
+      <ClearFiltersButton tb={tb} extraActive={(search.trim()?1:0)+(status!=="open"?1:0)+(source!=="all"?1:0)+(agent!=="all"?1:0)+(gridRange!=="all"?1:0)} extra={()=>{setSearch("");setStatus("open");setSource("all");setAgent("all");setGridRange("all");setGridStart("");setGridEnd("");}}/>
       <div className="ml-auto flex gap-2">{selected.size>0&&roleKey!=="agent"&&<Select onValueChange={v=>bulkAssign.mutate(v)}><SelectTrigger className="w-44"><SelectValue placeholder={`Assign ${selected.size}`}/></SelectTrigger><SelectContent>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}<Button onClick={()=>setForm({...blank(),employee_id:roleKey==="agent"&&employee?.team==="C"?employee.id:""})}><Plus className="h-4 w-4"/> Add lead</Button></div>
     </div>
-    {rows.length===0?<EmptyState icon={Plus} title="No leads found" description="Add a lead by details or let affiliates send leads through the intake API." action={<Button onClick={()=>setForm(blank())}>Add lead</Button>}/>:<TableFrame resizeKey="individual-leads" className="w-full"><table className="w-full min-w-[2900px] text-[11px]">
+    {rows.length===0?<EmptyState icon={Plus} title="No leads found" description="Add a lead by details or let affiliates send leads through the intake API." action={<Button onClick={()=>setForm(blank())}>Add lead</Button>}/>:<TableFrame resizeKey="individual-leads" className="w-full"><table className="w-full min-w-[2780px] text-[11px]">
       <thead className="table-head bg-muted/40 text-muted-foreground"><tr>
         <th className="w-10 p-2"><Checkbox checked={rows.length>0&&rows.every(r=>selected.has(r.id))} onCheckedChange={c=>setSelected(c?new Set(rows.map(r=>r.id)):new Set())}/></th>
         <th className="p-2 text-left">ID</th>
         <th className="min-w-44 p-2 text-left">Full Name</th>
-        <th className="p-2 text-left">Full Name 2</th>
+        
         <th className="min-w-44 p-2 text-left">E-mail</th>
         <th className="p-2 text-left">E-mail2</th>
         <th className="p-2 text-left">Phone</th>
@@ -179,7 +186,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
         <td className="p-2"><Checkbox checked={selected.has(l.id)} onCheckedChange={()=>setSelected(s=>{const n=new Set(s);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;})}/></td>
         <td className="p-2 font-mono font-medium whitespace-nowrap">{l.crm_id}</td>
         <td className="p-2 font-medium">{l.name}</td>
-        <td className="max-w-40 truncate p-2">{noteVal(l,"Also known as ")||"—"}</td>
+        
         <td className="max-w-52 truncate p-2" title={l.email??""}>{l.email||"—"}</td>
         <td className="max-w-52 truncate p-2">{noteVal(l,"Second email ")||"—"}</td>
         <td className="p-2 whitespace-nowrap">{l.phone||"—"}</td>
