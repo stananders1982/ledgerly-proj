@@ -715,7 +715,7 @@ function LeadsPage() {
               qc.invalidateQueries({ queryKey: ["daily-leads-v2"] });
               qc.invalidateQueries({ queryKey: ["entries-for-sources"] });
               qc.invalidateQueries({ queryKey: ["dash-leads-v2"] });
-              qc.invalidateQueries({ queryKey: ["leads-grid"] });
+              qc.invalidateQueries({ queryKey: ["individual-leads"] });
               qc.invalidateQueries({ queryKey: ["leads"] });
               toast.success(
                 `${created} new daily row${created === 1 ? "" : "s"} · ${updated} updated · ${summary.imported ?? 0} lead${(summary.imported ?? 0) === 1 ? "" : "s"} created`,
