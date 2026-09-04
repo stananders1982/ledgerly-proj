@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, leadStatusDotClass, type LeadStatus } from "@/lib/lead-status";
-import { ClearFiltersButton, FilterRow, useTableToolbox, type ColDef } from "@/components/table-toolbox";
+import { ClearFiltersButton, ColumnsMenu, FilterRow, useTableToolbox, type ColDef } from "@/components/table-toolbox";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 
