@@ -92,13 +92,14 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
     if(status!=="all"&&status!=="open"&&l.status!==status)return false;
     if(source!=="all"&&(l.affiliate_id??l.source_id??NONE)!==source)return false;
     if(agent!=="all"&&(l.employee_id??NONE)!==agent)return false;
+    if(gridRange!=="all"){const {start,end}=getRange(gridRange,{start:gridStart,end:gridEnd});const t=new Date(l.created_at).getTime();if(t<start.getTime()||t>end.getTime())return false;}
     return true;
-  }),[leadsQ.data,search,status,source,agent]);
+  }),[leadsQ.data,search,status,source,agent,gridRange,gridStart,gridEnd]);
 
   const cols=useMemo<ColDef<Lead>[]>(()=>[
     {key:"crm_id",label:"ID",value:l=>l.crm_id},
     {key:"name",label:"Full Name",value:l=>l.name},
-    {key:"name2",label:"Full Name 2",value:l=>noteVal(l,"Also known as ")},
+    
     {key:"email",label:"E-mail",value:l=>l.email??""},
     {key:"email2",label:"E-mail2",value:l=>noteVal(l,"Second email ")},
     {key:"phone",label:"Phone",value:l=>l.phone??""},
