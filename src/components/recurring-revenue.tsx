@@ -24,7 +24,7 @@ import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination , TableCountBar} from "@/components/pagination";
 
 const FREQUENCIES = ["weekly", "monthly", "quarterly", "yearly"] as const;
 const METHODS = ["card", "wire", "crypto"] as const;
@@ -192,6 +192,7 @@ export function RecurringRevenueTab() {
           />
         ) : (
           <>
+            <TableCountBar {...pg} />
             <DataCardList>
               {pageItems.map((r: any) => (
                 <DataCard

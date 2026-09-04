@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { fmtDate, fmtMoney, getDisplayCurrency } from "@/lib/format";
 import { toDisplay } from "@/lib/fx";
 import { cn } from "@/lib/utils";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination , TableCountBar} from "@/components/pagination";
 import { depositIndex, effectiveBalanceIndexed, qualifiesAsFtd, ftdPendingReason, isStd, isLateRetentionFtd, monthsLate } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { useAuth } from "@/lib/auth-context";
@@ -445,6 +445,7 @@ function EmployeeDetailPage() {
         {conversions.all.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground">No activations as conversion agent this month.</div>
         ) : (
+          <TableCountBar {...pgConv} />
           <div className="overflow-x-auto scroll-slim max-h-[360px]">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-card">
@@ -547,6 +548,7 @@ function EmployeeDetailPage() {
           {(revQ.data ?? []).length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">No revenue this month.</div>
           ) : (
+            <TableCountBar {...pgRev} />
             <div className="overflow-x-auto scroll-slim max-h-[400px]">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card">
@@ -585,6 +587,7 @@ function EmployeeDetailPage() {
           {(withQ.data ?? []).length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">No withdrawals this month.</div>
           ) : (
+            <TableCountBar {...pgWith} />
             <div className="overflow-x-auto scroll-slim max-h-[400px]">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card">

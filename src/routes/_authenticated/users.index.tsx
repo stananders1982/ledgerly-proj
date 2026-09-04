@@ -14,7 +14,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { useSort } from "@/components/sortable-table";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination , TableCountBar} from "@/components/pagination";
 import { ArrowUpDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";

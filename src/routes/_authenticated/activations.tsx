@@ -33,7 +33,7 @@ import { useMyRoleKey } from "@/lib/permissions";
 import { useMyEmployee } from "@/lib/my-employee";
 import { cn } from "@/lib/utils";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
+import { usePagination, TablePagination, PageSizeSelect , TableCountBar} from "@/components/pagination";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { KYC_STATUS_LABELS, kycStatus } from "@/lib/kyc";

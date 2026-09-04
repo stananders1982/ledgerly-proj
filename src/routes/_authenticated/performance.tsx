@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/search-input";
 import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination , TableCountBar} from "@/components/pagination";
 import { isStd, isAgentTeam, isLateRetentionFtd } from "@/lib/rules";
 import { useCompanySettings } from "@/lib/settings";
 import { fmtMoney, getDisplayCurrency } from "@/lib/format";

@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination , TableCountBar} from "@/components/pagination";
 import { fmtMoney } from "@/lib/format";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -260,6 +260,7 @@ function AffiliatesPage() {
               />
             ))}
           </DataCardList>
+          <TableCountBar {...pg} />
           <div className="hidden md:block overflow-x-auto scroll-slim">
             <table className="w-full text-sm">
               <thead>

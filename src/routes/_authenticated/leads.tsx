@@ -27,7 +27,7 @@ import { ConversionsByAgent } from "@/components/conversions-by-agent";
 import { PricingBadge } from "./sources";
 import { DateRangePicker, getRange, type RangeKey } from "@/components/date-range-picker";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
+import { usePagination, TablePagination, PageSizeSelect , TableCountBar} from "@/components/pagination";
 import { TableFrame } from "@/components/table-frame";
 import { useTableToolbox, ColumnsMenu, ClearFiltersButton, FilterRow, FitToggle, TableKeyboardHint } from "@/components/table-toolbox";
 import { stdDepositsFor, isoDay, isAgentTeam } from "@/lib/rules";

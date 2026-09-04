@@ -33,7 +33,7 @@ import {
 } from "@/lib/withdrawal-status";
 import { SearchInput } from "@/components/search-input";
 import { useSort, SortTh } from "@/components/sortable-table";
-import { usePagination, TablePagination, PageSizeSelect } from "@/components/pagination";
+import { usePagination, TablePagination, PageSizeSelect , TableCountBar} from "@/components/pagination";
 import { TableFrame } from "@/components/table-frame";
 import { useTableToolbox, ColumnsMenu, ClearFiltersButton, FilterRow, FitToggle, TableKeyboardHint, TotalsRow } from "@/components/table-toolbox";
 import { withdrawalPenalty } from "@/lib/rules";

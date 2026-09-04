@@ -23,7 +23,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { useSort, SortTh } from "@/components/sortable-table";
 import { useTableToolbox, ClearFiltersButton, FilterRow, type ColDef } from "@/components/table-toolbox";
-import { usePagination, TablePagination } from "@/components/pagination";
+import { usePagination, TablePagination , TableCountBar} from "@/components/pagination";
 import { DataCard, DataCardList } from "@/components/data-card-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecurringRevenueTab } from "@/components/recurring-revenue";
@@ -210,6 +210,7 @@ function RecurringPage() {
             action={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New recurring</Button>} />
         ) : (
           <>
+          <TableCountBar {...pg} />
           <DataCardList>
             {pageItems.map((r: any) => (
               <DataCard
