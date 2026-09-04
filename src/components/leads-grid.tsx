@@ -42,6 +42,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
   const [form, setForm] = useState<Form|null>(null);
   const [convert, setConvert] = useState<Lead|null>(null);
   const [retentionId, setRetentionId] = useState("");
+  const [reported, setReported] = useState("no");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("open");
   const [source, setSource] = useState("all");
@@ -137,9 +138,14 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
     if(!convert||!retentionId)throw new Error("Choose a retention agent");
     const {data:settings}=await supabase.from("company_settings").select("default_activation_balance").eq("company_id",companyId??"").maybeSingle();
     const {data:activation,error}=await supabase.from("daily_lead_activations").insert({crm_id:convert.crm_id,lead_name:convert.name,phone:convert.phone,email:convert.email,employee_id:retentionId,conversion_employee_id:convert.employee_id,activation_date:todayISO(),balance:Number(settings?.default_activation_balance??250),potential:null,answered:false,legacy:false}).select("id").single();if(error)throw error;
-    const {error:updateError}=await supabase.from("leads").update({activated:true,status:"activated",activation_id:activation.id}).eq("id",convert.id);if(updateError)throw updateError;
+    const {error:updateError}=await supabase.from("leads").update({activated:true,reported:reported==="yes",status:"activated",activation_id:activation.id}).eq("id",convert.id);if(updateError)throw updateError;
+    if(reported==="yes"&&companyId){
+      const entryQ=await supabase.from("daily_lead_entries").select("id,reported").eq("company_id",companyId).eq("entry_date",todayISO()).eq("source_id",convert.source_id??"").maybeSingle();
+      const entry=(entryQ.data??null) as {id:string;reported:number}|null;
+      if(entry){const {error:repErr}=await supabase.from("daily_lead_entries").update({reported:(Number(entry.reported)||0)+1}).eq("id",entry.id);if(repErr)throw repErr;}
+    }
     return activation.id;
-  },onSuccess:(id)=>{qc.invalidateQueries({queryKey:["individual-leads"]});qc.invalidateQueries({queryKey:["activated-leads"]});setConvert(null);setRetentionId("");toast.success("Lead converted to client");navigate({to:"/clients/$id",params:{id}});},onError:(e:any)=>toast.error(e.message)});
+  },onSuccess:(id)=>{qc.invalidateQueries({queryKey:["individual-leads"]});qc.invalidateQueries({queryKey:["activated-leads"]});qc.invalidateQueries({queryKey:["daily-leads-v2"]});setConvert(null);setRetentionId("");setReported("no");toast.success("Lead converted to client");navigate({to:"/clients/$id",params:{id}});},onError:(e:any)=>toast.error(e.message)});
 
   const sourceOptions=(()=>{const seen=new Set<string>();const out:{id:string;name:string}[]=[];for(const o of [...(affiliatesQ.data??[]),...(sourcesQ.data??[])] as any[]){const k=(o.name??"").trim().toLowerCase();if(!k||seen.has(k))continue;seen.add(k);out.push({id:o.id,name:o.name});}return out;})();
 
