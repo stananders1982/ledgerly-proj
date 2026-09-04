@@ -731,6 +731,7 @@ function AffiliateStatementPage() {
           {sorted.length === 0 ? (
             <div className="p-8 text-sm text-muted-foreground">No transactions yet.</div>
           ) : (
+            <>
             <TableCountBar {...pgMonthly} />
             <div className="overflow-x-auto scroll-slim">
               <table className="w-full text-sm">
@@ -756,6 +757,7 @@ function AffiliateStatementPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
           <TablePagination {...pgMonthly} />
         </div>

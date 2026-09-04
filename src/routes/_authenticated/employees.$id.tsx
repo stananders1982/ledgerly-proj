@@ -445,6 +445,7 @@ function EmployeeDetailPage() {
         {conversions.all.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground">No activations as conversion agent this month.</div>
         ) : (
+          <>
           <TableCountBar {...pgConv} />
           <div className="overflow-x-auto scroll-slim max-h-[360px]">
             <table className="w-full text-sm">
@@ -487,6 +488,7 @@ function EmployeeDetailPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
         <TablePagination {...pgConv} />
       </div>
@@ -548,6 +550,7 @@ function EmployeeDetailPage() {
           {(revQ.data ?? []).length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">No revenue this month.</div>
           ) : (
+            <>
             <TableCountBar {...pgRev} />
             <div className="overflow-x-auto scroll-slim max-h-[400px]">
               <table className="w-full text-sm">
@@ -575,6 +578,7 @@ function EmployeeDetailPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
           <TablePagination {...pgRev} />
         </div>
@@ -587,6 +591,7 @@ function EmployeeDetailPage() {
           {(withQ.data ?? []).length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">No withdrawals this month.</div>
           ) : (
+            <>
             <TableCountBar {...pgWith} />
             <div className="overflow-x-auto scroll-slim max-h-[400px]">
               <table className="w-full text-sm">
@@ -610,6 +615,7 @@ function EmployeeDetailPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
           <TablePagination {...pgWith} />
         </div>
