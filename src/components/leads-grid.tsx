@@ -160,7 +160,15 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
       <Select value={agent} onValueChange={setAgent}><SelectTrigger className="w-44"><SelectValue placeholder="All agents"/></SelectTrigger><SelectContent><SelectItem value="all">All conversion agents</SelectItem><SelectItem value={NONE}>Unassigned</SelectItem>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>
       <DateRangePicker value={gridRange} onChange={setGridRange} customStart={gridStart} customEnd={gridEnd} onCustomChange={(s,e)=>{setGridStart(s);setGridEnd(e);}} showAll/>
       <span className="text-sm text-muted-foreground">{rows.length} leads</span>
-      <ColumnsMenu tb={tb}/>
+      <div className="flex items-center rounded-md border border-border p-0.5">
+        <Button size="sm" variant={viewMode==="list"?"secondary":"ghost"} className="h-7 gap-1.5 px-2 text-xs" onClick={()=>setViewMode("list")} title="Comfortable list — one card per lead">
+          <Rows3 className="h-3.5 w-3.5"/> List
+        </Button>
+        <Button size="sm" variant={viewMode==="grid"?"secondary":"ghost"} className="h-7 gap-1.5 px-2 text-xs" onClick={()=>setViewMode("grid")} title="Dense grid — filter under every column">
+          <LayoutGrid className="h-3.5 w-3.5"/> Grid
+        </Button>
+      </div>
+      {viewMode==="grid"&&<ColumnsMenu tb={tb}/>}
       <ClearFiltersButton tb={tb} extraActive={(search.trim()?1:0)+(status!=="open"?1:0)+(source!=="all"?1:0)+(agent!=="all"?1:0)+(gridRange!=="all"?1:0)} extra={()=>{setSearch("");setStatus("open");setSource("all");setAgent("all");setGridRange("all");setGridStart("");setGridEnd("");}}/>
       <div className="ml-auto flex gap-2">{selected.size>0&&roleKey!=="agent"&&<Select onValueChange={v=>bulkAssign.mutate(v)}><SelectTrigger className="w-44"><SelectValue placeholder={`Assign ${selected.size}`}/></SelectTrigger><SelectContent>{conversionAgents.map(a=><SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select>}<Button onClick={()=>setForm({...blank(),employee_id:roleKey==="agent"&&employee?.team==="C"?employee.id:""})}><Plus className="h-4 w-4"/> Add lead</Button></div>
     </div>
