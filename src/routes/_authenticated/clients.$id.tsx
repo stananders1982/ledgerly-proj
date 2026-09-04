@@ -101,6 +101,21 @@ function ClientPage() {
     },
   });
 
+  const leadQ = useQuery({
+    queryKey: ["client-origin-lead", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("id, created_at, crm_id, lead_sources(name)")
+        .eq("activation_id", id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; created_at: string; crm_id: string | null; lead_sources?: { name: string } | null } | null;
+    },
+  });
+
   const employeesQ = useQuery({
     queryKey: ["employees-directory"],
     queryFn: async () => {
