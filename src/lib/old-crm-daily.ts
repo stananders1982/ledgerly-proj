@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/fetch-all";
 import { supabase } from "@/integrations/supabase/client";
 import type { ImportField } from "@/components/csv-import";
 
@@ -156,4 +157,44 @@ export async function writeDailyGroups(groups: DailyGroup[]) {
     if (error) throw error;
   }
   return { created: inserts.length, updated, existing };
+}
+
+const digits = (v?: string | null) => {
+  const d = (v ?? "").replace(/[^0-9]+/g, "");
+  return d.length >= 7 ? d : null;
+};
+
+/**
+ * Drop rows that already exist as leads, so re-uploading the same export
+ * during a shift neither duplicates leads nor doubles the daily totals.
+ */
+export async function filterNewOldCrmRows(rows: Record<string, string>[]) {
+  const existing = await fetchAll(() =>
+    supabase.from("leads").select("old_crm_id,email,phone"),
+  );
+  const ids = new Set<string>();
+  const emails = new Set<string>();
+  const phones = new Set<string>();
+  for (const l of existing ?? []) {
+    const id = clean((l as any).old_crm_id);
+    if (id) ids.add(id.toLowerCase());
+    const em = clean((l as any).email);
+    if (em) emails.add(em.toLowerCase());
+    const ph = digits((l as any).phone);
+    if (ph) phones.add(ph);
+  }
+  const fresh: Record<string, string>[] = [];
+  let skipped = 0;
+  for (const r of rows) {
+    const id = clean(r.ext_id)?.toLowerCase() ?? null;
+    const em = clean(r.email)?.toLowerCase() ?? null;
+    const ph = digits(r.phone);
+    const known = (id && ids.has(id)) || (em && emails.has(em)) || (ph && phones.has(ph));
+    if (known) { skipped += 1; continue; }
+    if (id) ids.add(id);
+    if (em) emails.add(em);
+    if (ph) phones.add(ph);
+    fresh.push(r);
+  }
+  return { rows: fresh, skipped };
 }
