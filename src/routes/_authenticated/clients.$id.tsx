@@ -758,8 +758,8 @@ function ClientPage() {
           <section className="card-surface p-5 text-sm">
             <h2 className="mb-3 font-display text-base font-semibold">At a glance</h2>
             <dl className="space-y-2">
-              <Row label="Source" value={cur.daily_lead_entries?.lead_sources?.name ?? "—"} />
-              <Row label="Lead received" value={cur.daily_lead_entries?.entry_date ? fmtDate(cur.daily_lead_entries.entry_date) : "—"} />
+              <Row label="Source" value={cur.daily_lead_entries?.lead_sources?.name ?? leadQ.data?.lead_sources?.name ?? "—"} />
+              <Row label="Lead received" value={cur.daily_lead_entries?.entry_date ? fmtDate(cur.daily_lead_entries.entry_date) : leadQ.data?.created_at ? fmtDate(leadQ.data.created_at.slice(0, 10)) : "—"} />
               <Row label="Activated" value={cur.activation_date ? fmtDate(cur.activation_date) : "—"} />
               <Row label="Qualified" value={cur.qualified_at ? fmtDate(String(cur.qualified_at).slice(0, 10)) : "Pending"} />
               <Row label="Conversion agent" value={<EmployeeLink id={cur.conversion_employee_id} name={employeeName(cur.conversion_employee_id)} />} />
