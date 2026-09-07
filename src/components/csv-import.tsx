@@ -20,10 +20,15 @@ export type PreviewRow = {
   fill: string[];
 };
 
+/** A partner name from the file that couldn't be matched to an affiliate. */
+export type UnmatchedName = { label: string; count: number };
+
 export type PreviewResult = {
   rows: PreviewRow[];
   summary: { create: number; update: number; skip: number; total: number };
+  unmatched?: UnmatchedName[];
 };
+
 
 export type ImportMeta = { fileName: string };
 
