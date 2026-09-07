@@ -697,8 +697,12 @@ function useImportDefinitions() {
               skip: skipped,
               total: preview.length,
             },
+            unmatched: unmatchedNames(allRows),
           };
         },
+        nameOptions: affiliatesQ.data ?? [],
+        onResolveName: saveAlias,
+
         onImport: async (allRows) => {
           const { rows, keys, skipped } = await splitCountedRows(allRows);
           const groups = groupOldCrmEntries(rows);
