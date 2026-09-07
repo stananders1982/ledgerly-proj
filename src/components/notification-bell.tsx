@@ -117,7 +117,7 @@ export function NotificationBell() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [q.isSuccess, qc]);
+  }, [canApprove, qc]);
 
   const openNotification = (n: Notification) => {
     // Deposit requests go to the approval queue, not the client page.
