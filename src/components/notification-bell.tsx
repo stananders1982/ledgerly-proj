@@ -34,6 +34,8 @@ const NAG_KEY = "deposit-requests-nag-dismissed-at";
 export function NotificationBell() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { roleKey } = useMyRoleKey();
+  const canApprove = roleKey === "admin" || roleKey === "manager";
 
   const q = useQuery({
     queryKey: ["notifications"],
