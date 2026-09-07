@@ -48,6 +48,7 @@ import { CLIENT_TAGS, TagBadges, TagPicker } from "@/components/client-tags";
 import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
 import { FavoriteStar } from "@/components/favorite-star";
 import { Textarea } from "@/components/ui/textarea";
+import { reverseFtdOnDaily } from "@/lib/daily-ftd";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { Link } from "@tanstack/react-router";
