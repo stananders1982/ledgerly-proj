@@ -550,8 +550,12 @@ function useImportDefinitions() {
               skip: (result.summary?.skip ?? 0) + skipped.size,
               total: rows.length,
             },
+            unmatched: unmatchedNames(rows),
           };
         },
+        nameOptions: affiliatesQ.data ?? [],
+        onResolveName: saveAlias,
+
         onImport: async (rows) => {
           const { payload, skipped: xxSkipped, donations } = await prepareOldCrm(rows);
           const xxCount = xxSkipped.size;
