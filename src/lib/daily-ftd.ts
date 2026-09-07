@@ -129,7 +129,7 @@ export async function convertLeadToFtd(input: ConvertLeadInput) {
   }
   if (input.reported) patch.reported = (Number(entry.reported) || 0) + 1;
   if (Object.keys(patch).length) {
-    const { error } = await supabase.from("daily_lead_entries").update(patch).eq("id", entry.id);
+    const { error } = await supabase.from("daily_lead_entries").update(patch as never).eq("id", entry.id);
     if (error) throw error;
   }
 
