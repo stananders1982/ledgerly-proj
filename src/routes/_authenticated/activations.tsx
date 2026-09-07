@@ -48,6 +48,7 @@ import { CLIENT_TAGS, TagBadges, TagPicker } from "@/components/client-tags";
 import { ClientCommunications, ClientTimeline, type TimelineEvent } from "@/components/client-activity";
 import { FavoriteStar } from "@/components/favorite-star";
 import { Textarea } from "@/components/ui/textarea";
+import { reverseFtdOnDaily } from "@/lib/daily-ftd";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 import { Link } from "@tanstack/react-router";
@@ -721,6 +722,8 @@ function ActivationsPage() {
     mutationFn: async (idsArg?: string[]) => {
       const ids = idsArg ?? [...selected];
       if (!ids.length) return 0;
+      // Take the FTD back off its day before the client row disappears.
+      for (const id of ids) await reverseFtdOnDaily(id);
       // Return the deleted rows so a permission block can't look like a success.
       const { data, error } = await supabase.from("daily_lead_activations").delete().in("id", ids).select("id");
       if (error) throw error;
@@ -782,6 +785,7 @@ function ActivationsPage() {
         .eq("id", keeper.id);
       if (upErr) throw upErr;
 
+      for (const id of losers) await reverseFtdOnDaily(id);
       const { data: gone, error: delErr } = await supabase
         .from("daily_lead_activations").delete().in("id", losers).select("id");
       if (delErr) throw delErr;
