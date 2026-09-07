@@ -49,10 +49,10 @@ export function NotificationBell() {
   });
 
   // Admin nag: count of deposit requests still waiting for a decision.
-  // Only admins can read the notifications table, so a successful load is
-  // our "this user is an admin" signal — don't nag agents with it.
+  // Gated on the real role — RLS returns an empty list (not an error) for
+  // agents, so a successful notifications load is not an admin signal.
   const pendingRequests = useQuery({
-    enabled: q.isSuccess,
+    enabled: canApprove,
     refetchInterval: 60_000,
     queryKey: ["pending-deposit-requests"],
     queryFn: async () => {
