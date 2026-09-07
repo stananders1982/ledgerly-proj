@@ -39,7 +39,11 @@ type ImportDef = {
   sampleRows: Record<string, string>[];
   onImport: (rows: Record<string, string>[], meta: ImportMeta) => Promise<ImportRunStats | void>;
   onPreview?: (rows: Record<string, string>[]) => Promise<PreviewResult>;
+  /** Affiliates offered when the file uses a partner name we don't recognise. */
+  nameOptions?: { id: string; name: string }[];
+  onResolveName?: (label: string, id: string) => Promise<void>;
 };
+
 
 function useDirectory(key: string) {
   return useQuery({
