@@ -11,7 +11,7 @@ import { useMyEmployee } from "@/lib/my-employee";
 import { useMyRoleKey } from "@/lib/permissions";
 import { fetchAll } from "@/lib/fetch-all";
 import { fmtDate, fmtMoney, todayISO } from "@/lib/format";
-import { applyFtdToDaily } from "@/lib/daily-ftd";
+import { convertLeadToFtd } from "@/lib/daily-ftd";
 
 import { ContactActions } from "@/components/contact-actions";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -142,22 +142,15 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
   const bulkAssign=useMutation({mutationFn:async(id:string)=>{const {error}=await supabase.from("leads").update({employee_id:id}).in("id",[...selected]);if(error)throw error;},onSuccess:()=>{setSelected(new Set());qc.invalidateQueries({queryKey:["individual-leads"]});toast.success("Leads assigned");}});
   const doConvert=useMutation({mutationFn:async()=>{
     if(!convert||!retentionId)throw new Error("Choose a retention agent");
-    const {data:settings}=await supabase.from("company_settings").select("default_activation_balance").eq("company_id",companyId??"").maybeSingle();
-    const {data:activation,error}=await supabase.from("daily_lead_activations").insert({crm_id:convert.crm_id,lead_name:convert.name,phone:convert.phone,email:convert.email,employee_id:retentionId,conversion_employee_id:convert.employee_id,activation_date:todayISO(),balance:Number(settings?.default_activation_balance??250),potential:null,answered:false,legacy:false}).select("id").single();if(error)throw error;
-    const {error:updateError}=await supabase.from("leads").update({activated:true,reported:reported==="yes",status:"activated",activation_id:activation.id}).eq("id",convert.id);if(updateError)throw updateError;
-    if(companyId){
-      // Count the FTD on the day the lead came in, against its own partner row.
-      await applyFtdToDaily({
-        companyId,
-        entryDate:String(convert.created_at??"").slice(0,10)||todayISO(),
-        sourceId:convert.source_id??null,
-        sourceLabel:convert.affiliates?.name??convert.lead_sources?.name??null,
-        reported:reported==="yes",
-        delta:1,
-      });
-    }
-
-    return activation.id;
+    if(!companyId)throw new Error("No company selected");
+    const {data:settings}=await supabase.from("company_settings").select("default_activation_balance").eq("company_id",companyId).maybeSingle();
+    return await convertLeadToFtd({
+      companyId,
+      lead:{id:convert.id,crm_id:convert.crm_id,name:convert.name,phone:convert.phone,email:convert.email,employee_id:convert.employee_id,source_id:convert.source_id??null,created_at:convert.created_at,sourceLabel:convert.affiliates?.name??convert.lead_sources?.name??null},
+      retentionEmployeeId:retentionId,
+      reported:reported==="yes",
+      balance:Number(settings?.default_activation_balance??250),
+    });
   },onSuccess:(id)=>{qc.invalidateQueries({queryKey:["individual-leads"]});qc.invalidateQueries({queryKey:["activated-leads"]});qc.invalidateQueries({queryKey:["daily-leads-v2"]});setConvert(null);setRetentionId("");setReported("no");toast.success("Lead converted to client");navigate({to:"/clients/$id",params:{id}});},onError:(e:any)=>toast.error(e.message)});
 
   const sourceOptions=(()=>{const seen=new Set<string>();const out:{id:string;name:string}[]=[];for(const o of [...(affiliatesQ.data??[]),...(sourcesQ.data??[])] as any[]){const k=(o.name??"").trim().toLowerCase();if(!k||seen.has(k))continue;seen.add(k);out.push({id:o.id,name:o.name});}return out;})();
