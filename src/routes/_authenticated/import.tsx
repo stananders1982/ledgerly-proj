@@ -407,6 +407,42 @@ function useImportDefinitions() {
       return map;
     };
 
+    /** Stable identity for one raw old-CRM row, used to avoid counting it twice. */
+    const oldCrmRowKey = (r: Record<string, string>) => {
+      const ext = clean(r.ext_id);
+      if (ext) return `ext:${ext}`;
+      const phone = (clean(r.phone) ?? "").replace(/[^0-9]+/g, "");
+      return `row:${(clean(r.full_name) ?? "").toLowerCase()}|${phone}|${normalizeDate(clean(r.created_date) ?? "")}`;
+    };
+
+    /** Drop rows whose daily numbers were already counted by a previous upload. */
+    const splitCountedRows = async (rows: Record<string, string>[]) => {
+      const keyed = rows.map((r) => ({ row: r, key: oldCrmRowKey(r) }));
+      const unique = new Map<string, { row: Record<string, string>; key: string }>();
+      let duplicateInFile = 0;
+      for (const k of keyed) {
+        if (unique.has(k.key)) { duplicateInFile += 1; continue; }
+        unique.set(k.key, k);
+      }
+      const keys = [...unique.keys()];
+      const seen = new Set<string>();
+      for (let i = 0; i < keys.length; i += 500) {
+        const chunk = keys.slice(i, i + 500);
+        const { data, error } = await supabase
+          .from("daily_entry_import_rows")
+          .select("row_key")
+          .in("row_key", chunk);
+        if (error) throw error;
+        for (const row of data ?? []) seen.add(row.row_key as string);
+      }
+      const fresh = [...unique.values()].filter((k) => !seen.has(k.key));
+      return {
+        rows: fresh.map((k) => k.row),
+        keys: fresh.map((k) => k.key),
+        skipped: duplicateInFile + (unique.size - fresh.length),
+      };
+    };
+
 
     return [
       {
