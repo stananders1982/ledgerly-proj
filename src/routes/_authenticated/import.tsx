@@ -974,7 +974,9 @@ function useImportDefinitions() {
         },
       },
     ];
-  }, [qc, employeesQ.data, employeeByName, affiliateByName, sourceByName, categoryByName, leadByName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qc, companyId, employeesQ.data, affiliatesQ.data, sourcesQ.data, aliasesQ.data, employeeByName, affiliateByName, sourceByName, categoryByName, leadByName]);
+
 
   return { defs, isLoading: employeesQ.isLoading || affiliatesQ.isLoading || sourcesQ.isLoading || categoriesQ.isLoading || leadsQ.isLoading };
 }
