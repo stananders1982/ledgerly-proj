@@ -536,6 +536,7 @@ function useImportDefinitions() {
             daily_rows_created?: number;
             daily_rows_updated?: number;
             skipped?: number;
+            ftds_unassigned?: number;
           } | null;
 
           invalidate([
@@ -547,8 +548,11 @@ function useImportDefinitions() {
           const updated = Number(result?.updated ?? 0);
           const connected = Number(result?.ftds_connected ?? 0);
           const invalid = Number(result?.invalid_connected ?? 0);
+          const unassigned = Number(result?.ftds_unassigned ?? 0);
           const skipped = Number(result?.skipped ?? 0) + xxCount;
           if (imported) toast.success(`Imported ${imported} leads · ${invalid} invalid · connected ${connected} FTD${connected === 1 ? "" : "s"}`);
+          if (unassigned) toast.warning(`${unassigned} deposit${unassigned === 1 ? "" : "s"} had no matching agent — imported as leads, assign them manually`);
+
           if (updated) toast.info(`Filled missing details on ${updated} existing record${updated === 1 ? "" : "s"}`);
           if (xxCount) toast.info(`Merged ${xxCount} "xx" duplicate row${xxCount === 1 ? "" : "s"} into the matching lead`);
           if (skipped - xxCount) toast.info(`Skipped ${skipped - xxCount} already in the system`);
