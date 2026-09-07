@@ -11,6 +11,8 @@ import { useMyEmployee } from "@/lib/my-employee";
 import { useMyRoleKey } from "@/lib/permissions";
 import { fetchAll } from "@/lib/fetch-all";
 import { fmtDate, fmtMoney, todayISO } from "@/lib/format";
+import { applyFtdToDaily } from "@/lib/daily-ftd";
+
 import { ContactActions } from "@/components/contact-actions";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { EmptyState } from "@/components/empty-state";
