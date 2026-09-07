@@ -393,11 +393,9 @@ function useImportDefinitions() {
       const groups = new Map<string, DailyGroup & { funnels: Set<string> }>();
       for (const r of rows) {
         const entry_date = normalizeDate(clean(r.created_date) ?? "");
-        const label = clean(r.affiliate_name) ?? clean(r.source) ?? "";
-        const source_id =
-          sourceByName.get(label.toLowerCase())
-          ?? matchDirectory(label, sourcesQ.data ?? [])
-          ?? null;
+        const label = partnerLabel(r) ?? "";
+        const source_id = resolveSourceId(r) ?? null;
+
         const key = `${entry_date}|${source_id ?? label.toLowerCase()}`;
         let g = groups.get(key);
         if (!g) {
