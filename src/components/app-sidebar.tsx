@@ -153,6 +153,7 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
           <LogOut className="h-4 w-4" /> {!collapsed && "Sign out"}
         </Button>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }
