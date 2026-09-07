@@ -105,7 +105,7 @@ export function NotificationBell() {
 
   // Keep the nag count fresh the moment an agent submits a request.
   useEffect(() => {
-    if (!q.isSuccess) return;
+    if (!canApprove) return;
     const channel = supabase
       .channel("deposit-requests-nag")
       .on(
