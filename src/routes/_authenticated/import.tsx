@@ -1075,6 +1075,9 @@ function ImportCard({ def, loading }: { def: ImportDef; loading: boolean }) {
           templateName={def.templateName}
           fields={def.fields}
           onPreview={def.onPreview}
+          nameOptions={def.nameOptions}
+          onResolveName={def.onResolveName}
+
           onImport={async (rows, meta) => {
             const stats = (await def.onImport(rows, meta)) ?? {};
             await recordRun(rows.length, meta, stats);
