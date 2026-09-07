@@ -75,12 +75,18 @@ export function CsvImportDialog({
   onImport,
   onPreview,
   templateName = "template.csv",
+  nameOptions,
+  onResolveName,
 }: {
   title?: string;
   fields: ImportField[];
   onImport: (rows: Record<string, string>[], meta: ImportMeta) => Promise<void> | void;
   onPreview?: (rows: Record<string, string>[]) => Promise<PreviewResult>;
   templateName?: string;
+  /** Affiliates the user can pick for an unrecognised partner name. */
+  nameOptions?: { id: string; name: string }[];
+  /** Remember the choice, so the same spelling matches next time. */
+  onResolveName?: (label: string, id: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -90,6 +96,7 @@ export function CsvImportDialog({
   const [fileName, setFileName] = useState("");
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
 
   const reset = () => { setHeaders([]); setData([]); setMapping({}); setPreview(null); setFileName(""); };
 
