@@ -212,7 +212,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
       </div>)}
     </div>:<TableFrame resizeKey="individual-leads" fit={tb.fit} className="w-full"><table className="w-full text-[11px]">
       <thead className="table-head bg-muted/40 text-muted-foreground"><tr>
-        <th className="w-10 p-2"><Checkbox checked={rows.length>0&&rows.every(r=>selected.has(r.id))} onCheckedChange={c=>setSelected(c?new Set(rows.map(r=>r.id)):new Set())}/></th>
+        <th className="w-10 p-2"><Checkbox aria-label="Select all leads on this page" checked={pageItems.length>0&&pageItems.every(r=>selected.has(r.id))} onCheckedChange={c=>setSelected(s=>{const n=new Set(s);for(const r of pageItems){if(c)n.add(r.id);else n.delete(r.id);}return n;})}/></th>
         {tb.show("crm_id")&&<th className="p-2 text-left">ID</th>}
         {tb.show("name")&&<th className="p-2 text-left">Full Name</th>}
         {tb.show("email")&&<th className="p-2 text-left">E-mail</th>}
