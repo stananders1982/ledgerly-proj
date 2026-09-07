@@ -14,6 +14,8 @@ import { AiClientPasteBulk } from "@/components/ai-client-paste";
 import type { LeadStatus } from "@/lib/lead-status";
 import { useAuth } from "@/lib/auth-context";
 import { EmptyState } from "@/components/empty-state";
+import { matchName, normLabel } from "@/lib/name-match";
+
 
 /** Counts recorded in the import history for one upload. */
 export type ImportRunStats = {
@@ -39,7 +41,11 @@ type ImportDef = {
   sampleRows: Record<string, string>[];
   onImport: (rows: Record<string, string>[], meta: ImportMeta) => Promise<ImportRunStats | void>;
   onPreview?: (rows: Record<string, string>[]) => Promise<PreviewResult>;
+  /** Affiliates offered when the file uses a partner name we don't recognise. */
+  nameOptions?: { id: string; name: string }[];
+  onResolveName?: (label: string, id: string) => Promise<void>;
 };
+
 
 function useDirectory(key: string) {
   return useQuery({
@@ -142,17 +148,9 @@ function matchEmployee(raw: string | undefined, list: { id: string; name: string
 
 /** Match old-CRM partner labels such as "AmazeSec" to "Amaze" safely. */
 function matchDirectory(raw: string | undefined | null, list: { id: string; name: string }[]) {
-  const norm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-  const name = norm(raw ?? "");
-  if (!name) return null;
-  const exact = list.find((item) => norm(item.name) === name);
-  if (exact) return exact.id;
-  const partial = list.filter((item) => {
-    const candidate = norm(item.name);
-    return candidate.length >= 4 && (name.startsWith(candidate) || candidate.startsWith(name));
-  });
-  return partial.length === 1 ? partial[0].id : null;
+  return matchName(raw, list);
 }
+
 
 /**
  * The old CRM marks duplicate records with an "xx" flag on the name
@@ -196,14 +194,75 @@ function useImportDefinitions() {
   const categoryByName = byName(categoriesQ.data);
   const leadByName = byName(leadsQ.data);
 
+  /** Spellings the user has already mapped to an affiliate / source. */
+  const aliasesQ = useQuery({
+    queryKey: ["import-name-aliases"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("import_name_aliases").select("label_norm,affiliate_id,source_id");
+      if (error) throw error;
+      return (data ?? []) as { label_norm: string; affiliate_id: string | null; source_id: string | null }[];
+    },
+    staleTime: 60_000,
+  });
+  const aliasByLabel = new Map((aliasesQ.data ?? []).map((a) => [a.label_norm, a]));
+  const { companyId } = useAuth();
+
+  /** Remember "this spelling means this partner" for every future upload. */
+  const saveAlias = async (label: string, affiliateId: string) => {
+    if (!companyId) throw new Error("No active workspace");
+    const affiliate = (affiliatesQ.data ?? []).find((a) => a.id === affiliateId);
+    const sourceId = affiliate ? matchName(affiliate.name, sourcesQ.data ?? []) : null;
+    const { error } = await supabase.from("import_name_aliases").upsert(
+      {
+        company_id: companyId,
+        label_norm: normLabel(label),
+        label,
+        affiliate_id: affiliateId,
+        source_id: sourceId,
+      },
+      { onConflict: "company_id,label_norm" },
+    );
+    if (error) throw error;
+    await qc.invalidateQueries({ queryKey: ["import-name-aliases"] });
+    await aliasesQ.refetch();
+  };
+
+
+
   const defs: ImportDef[] = useMemo(() => {
     const invalidate = (keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
 
-    const resolveSourceId = (r: Record<string, string>) =>
-      sourceByName.get((clean(r.source) ?? "").toLowerCase()) ?? matchDirectory(r.source, sourcesQ.data ?? []);
-    const resolveAffiliateId = (r: Record<string, string>) =>
-      affiliateByName.get((clean(r.affiliate_name) ?? clean(r.source) ?? "").toLowerCase())
-      ?? matchDirectory(clean(r.affiliate_name) ?? r.source, affiliatesQ.data ?? []);
+    const partnerLabel = (r: Record<string, string>) => clean(r.affiliate_name) ?? clean(r.source) ?? null;
+    const aliasFor = (label: string | null | undefined) => (label ? aliasByLabel.get(normLabel(label)) ?? null : null);
+
+    const resolveSourceId = (r: Record<string, string>) => {
+      const label = partnerLabel(r);
+      return aliasFor(label)?.source_id
+        ?? sourceByName.get((clean(r.source) ?? "").toLowerCase())
+        ?? matchDirectory(r.source, sourcesQ.data ?? [])
+        ?? matchDirectory(clean(r.affiliate_name), sourcesQ.data ?? []);
+    };
+    const resolveAffiliateId = (r: Record<string, string>) => {
+      const label = partnerLabel(r);
+      return aliasFor(label)?.affiliate_id
+        ?? affiliateByName.get((label ?? "").toLowerCase())
+        ?? matchDirectory(label, affiliatesQ.data ?? []);
+    };
+    /** Partner names in the file that matched neither an affiliate nor a source. */
+    const unmatchedNames = (rows: Record<string, string>[]) => {
+      const counts = new Map<string, { label: string; count: number }>();
+      for (const r of rows) {
+        const label = partnerLabel(r);
+        if (!label) continue;
+        if (resolveAffiliateId(r) || resolveSourceId(r)) continue;
+        const key = normLabel(label);
+        const prev = counts.get(key);
+        if (prev) prev.count += 1;
+        else counts.set(key, { label, count: 1 });
+      }
+      return [...counts.values()].sort((a, b) => b.count - a.count);
+    };
+
     /** Funnel / affiliate details of an "xx" row, handed to its clean twin. */
     const donorNote = (r: Record<string, string>) =>
       [
@@ -357,11 +416,9 @@ function useImportDefinitions() {
       const groups = new Map<string, DailyGroup & { funnels: Set<string> }>();
       for (const r of rows) {
         const entry_date = normalizeDate(clean(r.created_date) ?? "");
-        const label = clean(r.affiliate_name) ?? clean(r.source) ?? "";
-        const source_id =
-          sourceByName.get(label.toLowerCase())
-          ?? matchDirectory(label, sourcesQ.data ?? [])
-          ?? null;
+        const label = partnerLabel(r) ?? "";
+        const source_id = resolveSourceId(r) ?? null;
+
         const key = `${entry_date}|${source_id ?? label.toLowerCase()}`;
         let g = groups.get(key);
         if (!g) {
@@ -516,8 +573,12 @@ function useImportDefinitions() {
               skip: (result.summary?.skip ?? 0) + skipped.size,
               total: rows.length,
             },
+            unmatched: unmatchedNames(rows),
           };
         },
+        nameOptions: affiliatesQ.data ?? [],
+        onResolveName: saveAlias,
+
         onImport: async (rows) => {
           const { payload, skipped: xxSkipped, donations } = await prepareOldCrm(rows);
           const xxCount = xxSkipped.size;
@@ -636,8 +697,12 @@ function useImportDefinitions() {
               skip: skipped,
               total: preview.length,
             },
+            unmatched: unmatchedNames(allRows),
           };
         },
+        nameOptions: affiliatesQ.data ?? [],
+        onResolveName: saveAlias,
+
         onImport: async (allRows) => {
           const { rows, keys, skipped } = await splitCountedRows(allRows);
           const groups = groupOldCrmEntries(rows);
@@ -909,7 +974,9 @@ function useImportDefinitions() {
         },
       },
     ];
-  }, [qc, employeesQ.data, employeeByName, affiliateByName, sourceByName, categoryByName, leadByName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qc, companyId, employeesQ.data, affiliatesQ.data, sourcesQ.data, aliasesQ.data, employeeByName, affiliateByName, sourceByName, categoryByName, leadByName]);
+
 
   return { defs, isLoading: employeesQ.isLoading || affiliatesQ.isLoading || sourcesQ.isLoading || categoriesQ.isLoading || leadsQ.isLoading };
 }
@@ -1008,6 +1075,9 @@ function ImportCard({ def, loading }: { def: ImportDef; loading: boolean }) {
           templateName={def.templateName}
           fields={def.fields}
           onPreview={def.onPreview}
+          nameOptions={def.nameOptions}
+          onResolveName={def.onResolveName}
+
           onImport={async (rows, meta) => {
             const stats = (await def.onImport(rows, meta)) ?? {};
             await recordRun(rows.length, meta, stats);

@@ -1758,6 +1758,68 @@ export type Database = {
           },
         ]
       }
+      import_name_aliases: {
+        Row: {
+          affiliate_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          label: string
+          label_norm: string
+          source_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          label: string
+          label_norm: string
+          source_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          label_norm?: string
+          source_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_name_aliases_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_name_aliases_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_name_aliases_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_name_aliases_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "lead_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_runs: {
         Row: {
           company_id: string
