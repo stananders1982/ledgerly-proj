@@ -3,7 +3,7 @@ import { ChevronRight, LifeBuoy, LogOut, Search, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
-  SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter,
+  SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -153,6 +153,7 @@ export function AppSidebar({ onSearchClick }: { onSearchClick?: () => void }) {
           <LogOut className="h-4 w-4" /> {!collapsed && "Sign out"}
         </Button>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }

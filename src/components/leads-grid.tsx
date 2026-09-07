@@ -144,9 +144,23 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
     const {data:activation,error}=await supabase.from("daily_lead_activations").insert({crm_id:convert.crm_id,lead_name:convert.name,phone:convert.phone,email:convert.email,employee_id:retentionId,conversion_employee_id:convert.employee_id,activation_date:todayISO(),balance:Number(settings?.default_activation_balance??250),potential:null,answered:false,legacy:false}).select("id").single();if(error)throw error;
     const {error:updateError}=await supabase.from("leads").update({activated:true,reported:reported==="yes",status:"activated",activation_id:activation.id}).eq("id",convert.id);if(updateError)throw updateError;
     if(reported==="yes"&&companyId){
-      const entryQ=await supabase.from("daily_lead_entries").select("id,reported").eq("company_id",companyId).eq("entry_date",todayISO()).eq("source_id",convert.source_id??"").maybeSingle();
-      const entry=(entryQ.data??null) as {id:string;reported:number}|null;
-      if(entry){const {error:repErr}=await supabase.from("daily_lead_entries").update({reported:(Number(entry.reported)||0)+1}).eq("id",entry.id);if(repErr)throw repErr;}
+      // Daily rows store either a matched source_id or a plain source name, so
+      // match on both — leads without a matched source still need their count.
+      const label=(convert.affiliates?.name??convert.lead_sources?.name??"").trim().toLowerCase();
+      const {data:todays,error:entriesErr}=await supabase.from("daily_lead_entries").select("id,reported,source_id,source").eq("company_id",companyId).eq("entry_date",todayISO());
+      if(entriesErr)throw entriesErr;
+      const rowsToday=(todays??[]) as {id:string;reported:number|null;source_id:string|null;source:string|null}[];
+      const sid=convert.source_id??convert.affiliate_id??null;
+      const entry=rowsToday.find(r=>sid&&r.source_id===sid)
+        ??(label?rowsToday.find(r=>!r.source_id&&(r.source??"").trim().toLowerCase()===label):undefined)
+        ??null;
+      if(entry){
+        const {error:repErr}=await supabase.from("daily_lead_entries").update({reported:(Number(entry.reported)||0)+1}).eq("id",entry.id);
+        if(repErr)throw repErr;
+      }else{
+        const {error:insErr}=await supabase.from("daily_lead_entries").insert({company_id:companyId,entry_date:todayISO(),source_id:convert.source_id,source:convert.source_id?null:(convert.affiliates?.name??convert.lead_sources?.name??null),reported:1});
+        if(insErr)throw insErr;
+      }
     }
     return activation.id;
   },onSuccess:(id)=>{qc.invalidateQueries({queryKey:["individual-leads"]});qc.invalidateQueries({queryKey:["activated-leads"]});qc.invalidateQueries({queryKey:["daily-leads-v2"]});setConvert(null);setRetentionId("");setReported("no");toast.success("Lead converted to client");navigate({to:"/clients/$id",params:{id}});},onError:(e:any)=>toast.error(e.message)});
@@ -212,7 +226,7 @@ export function IndividualLeads({ createSignal = 0 }: { createSignal?: number })
       </div>)}
     </div>:<TableFrame resizeKey="individual-leads" fit={tb.fit} className="w-full"><table className="w-full text-[11px]">
       <thead className="table-head bg-muted/40 text-muted-foreground"><tr>
-        <th className="w-10 p-2"><Checkbox checked={rows.length>0&&rows.every(r=>selected.has(r.id))} onCheckedChange={c=>setSelected(c?new Set(rows.map(r=>r.id)):new Set())}/></th>
+        <th className="w-10 p-2"><Checkbox aria-label="Select all leads on this page" checked={pageItems.length>0&&pageItems.every(r=>selected.has(r.id))} onCheckedChange={c=>setSelected(s=>{const n=new Set(s);for(const r of pageItems){if(c)n.add(r.id);else n.delete(r.id);}return n;})}/></th>
         {tb.show("crm_id")&&<th className="p-2 text-left">ID</th>}
         {tb.show("name")&&<th className="p-2 text-left">Full Name</th>}
         {tb.show("email")&&<th className="p-2 text-left">E-mail</th>}
