@@ -221,6 +221,43 @@ export function CsvImportDialog({
                   {preview.summary.skip} skipped
                 </Badge>
               </div>
+
+              {!!preview.unmatched?.length && nameOptions?.length && onResolveName && (
+                <div className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Unrecognised partner names
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Pick the matching affiliate — the choice is remembered for future uploads.
+                  </p>
+                  {preview.unmatched.map((u) => (
+                    <div key={u.label} className="flex items-center gap-2">
+                      <span className="w-40 shrink-0 truncate text-xs" title={u.label}>{u.label}</span>
+                      <span className="text-[11px] text-muted-foreground">{u.count} row{u.count === 1 ? "" : "s"}</span>
+                      <Select
+                        onValueChange={async (id) => {
+                          setBusy(true);
+                          try {
+                            await onResolveName(u.label, id);
+                            if (onPreview) setPreview(await onPreview(mapped));
+                          } catch (e: any) {
+                            toast.error(e?.message ?? "Could not save that match");
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-8 w-56"><SelectValue placeholder="Choose affiliate" /></SelectTrigger>
+                        <SelectContent>
+                          {nameOptions.map((o) => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="max-h-56 overflow-auto scroll-slim rounded border border-border">
                 <table className="w-full text-xs">
                   <thead className="table-head bg-muted/40 text-left uppercase text-muted-foreground">
