@@ -721,6 +721,8 @@ function ActivationsPage() {
     mutationFn: async (idsArg?: string[]) => {
       const ids = idsArg ?? [...selected];
       if (!ids.length) return 0;
+      // Take the FTD back off its day before the client row disappears.
+      for (const id of ids) await reverseFtdOnDaily(id);
       // Return the deleted rows so a permission block can't look like a success.
       const { data, error } = await supabase.from("daily_lead_activations").delete().in("id", ids).select("id");
       if (error) throw error;
