@@ -785,6 +785,7 @@ function ActivationsPage() {
         .eq("id", keeper.id);
       if (upErr) throw upErr;
 
+      for (const id of losers) await reverseFtdOnDaily(id);
       const { data: gone, error: delErr } = await supabase
         .from("daily_lead_activations").delete().in("id", losers).select("id");
       if (delErr) throw delErr;
