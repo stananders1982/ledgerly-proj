@@ -609,7 +609,8 @@ function useImportDefinitions() {
             status: "FTD", ftd_total: "250", lifetime_deposit: "250", ftd_time: "2026-09-03 11:20:00", ftd_owner: "Dave Miller", tag: "",
           },
         ],
-        onPreview: async (rows) => {
+        onPreview: async (allRows) => {
+          const { rows, skipped } = await splitCountedRows(allRows);
           const groups = groupOldCrmEntries(rows);
           const existing = await existingDailyRows(groups);
           const preview = groups.map((g, i) => {
@@ -628,12 +629,13 @@ function useImportDefinitions() {
             summary: {
               create: preview.filter((r) => r.action === "create").length,
               update: preview.filter((r) => r.action === "update").length,
-              skip: 0,
+              skip: skipped,
               total: preview.length,
             },
           };
         },
-        onImport: async (rows) => {
+        onImport: async (allRows) => {
+          const { rows, keys, skipped } = await splitCountedRows(allRows);
           const groups = groupOldCrmEntries(rows);
           const existing = await existingDailyRows(groups);
           const inserts: {
@@ -676,18 +678,33 @@ function useImportDefinitions() {
             const { error } = await supabase.from("daily_lead_entries").insert(inserts);
             if (error) throw error;
           }
+          if (keys.length) {
+            const { data: cid } = await supabase.rpc("current_company_id");
+            if (cid) {
+              for (let i = 0; i < keys.length; i += 500) {
+                await supabase
+                  .from("daily_entry_import_rows")
+                  .upsert(
+                    keys.slice(i, i + 500).map((row_key) => ({ company_id: cid as string, row_key })),
+                    { onConflict: "company_id,row_key", ignoreDuplicates: true },
+                  );
+              }
+            }
+          }
           invalidate(["daily-leads-v2", "entries-for-sources", "dash-leads-v2"]);
           toast.success(
             `${inserts.length} new daily row${inserts.length === 1 ? "" : "s"} · ${updated} updated from ${rows.length} leads`,
           );
+          if (skipped) toast.info(`Skipped ${skipped} row${skipped === 1 ? "" : "s"} already counted in daily numbers`);
           return {
             created: inserts.length,
             updated,
-            skipped: 0,
+            skipped,
             invalid: groups.reduce((s, g) => s + g.invalid, 0),
             ftds: groups.reduce((s, g) => s + g.activated, 0),
           };
         },
+
 
       },
       {
