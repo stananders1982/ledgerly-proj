@@ -205,6 +205,29 @@ function useImportDefinitions() {
     staleTime: 60_000,
   });
   const aliasByLabel = new Map((aliasesQ.data ?? []).map((a) => [a.label_norm, a]));
+  const { companyId } = useAuth();
+
+  /** Remember "this spelling means this partner" for every future upload. */
+  const saveAlias = async (label: string, affiliateId: string) => {
+    if (!companyId) throw new Error("No active workspace");
+    const affiliate = (affiliatesQ.data ?? []).find((a) => a.id === affiliateId);
+    const sourceId = affiliate ? matchName(affiliate.name, sourcesQ.data ?? []) : null;
+    const { error } = await supabase.from("import_name_aliases").upsert(
+      {
+        company_id: companyId,
+        label_norm: normLabel(label),
+        label,
+        affiliate_id: affiliateId,
+        source_id: sourceId,
+      },
+      { onConflict: "company_id,label_norm" },
+    );
+    if (error) throw error;
+    await qc.invalidateQueries({ queryKey: ["import-name-aliases"] });
+    await aliasesQ.refetch();
+  };
+
+
 
   const defs: ImportDef[] = useMemo(() => {
     const invalidate = (keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
