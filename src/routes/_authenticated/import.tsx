@@ -146,17 +146,9 @@ function matchEmployee(raw: string | undefined, list: { id: string; name: string
 
 /** Match old-CRM partner labels such as "AmazeSec" to "Amaze" safely. */
 function matchDirectory(raw: string | undefined | null, list: { id: string; name: string }[]) {
-  const norm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-  const name = norm(raw ?? "");
-  if (!name) return null;
-  const exact = list.find((item) => norm(item.name) === name);
-  if (exact) return exact.id;
-  const partial = list.filter((item) => {
-    const candidate = norm(item.name);
-    return candidate.length >= 4 && (name.startsWith(candidate) || candidate.startsWith(name));
-  });
-  return partial.length === 1 ? partial[0].id : null;
+  return matchName(raw, list);
 }
+
 
 /**
  * The old CRM marks duplicate records with an "xx" flag on the name
