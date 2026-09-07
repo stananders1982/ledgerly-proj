@@ -986,6 +986,33 @@ export type Database = {
           },
         ]
       }
+      daily_entry_import_rows: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          file_name: string | null
+          id: string
+          row_key: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          id?: string
+          row_key: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          id?: string
+          row_key?: string
+        }
+        Relationships: []
+      }
       daily_lead_activations: {
         Row: {
           activated_count: number
