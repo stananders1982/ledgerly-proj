@@ -14,6 +14,8 @@ import { AiClientPasteBulk } from "@/components/ai-client-paste";
 import type { LeadStatus } from "@/lib/lead-status";
 import { useAuth } from "@/lib/auth-context";
 import { EmptyState } from "@/components/empty-state";
+import { matchName, normLabel } from "@/lib/name-match";
+
 
 /** Counts recorded in the import history for one upload. */
 export type ImportRunStats = {
