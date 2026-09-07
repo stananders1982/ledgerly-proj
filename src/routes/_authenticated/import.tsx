@@ -194,14 +194,52 @@ function useImportDefinitions() {
   const categoryByName = byName(categoriesQ.data);
   const leadByName = byName(leadsQ.data);
 
+  /** Spellings the user has already mapped to an affiliate / source. */
+  const aliasesQ = useQuery({
+    queryKey: ["import-name-aliases"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("import_name_aliases").select("label_norm,affiliate_id,source_id");
+      if (error) throw error;
+      return (data ?? []) as { label_norm: string; affiliate_id: string | null; source_id: string | null }[];
+    },
+    staleTime: 60_000,
+  });
+  const aliasByLabel = new Map((aliasesQ.data ?? []).map((a) => [a.label_norm, a]));
+
   const defs: ImportDef[] = useMemo(() => {
     const invalidate = (keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
 
-    const resolveSourceId = (r: Record<string, string>) =>
-      sourceByName.get((clean(r.source) ?? "").toLowerCase()) ?? matchDirectory(r.source, sourcesQ.data ?? []);
-    const resolveAffiliateId = (r: Record<string, string>) =>
-      affiliateByName.get((clean(r.affiliate_name) ?? clean(r.source) ?? "").toLowerCase())
-      ?? matchDirectory(clean(r.affiliate_name) ?? r.source, affiliatesQ.data ?? []);
+    const partnerLabel = (r: Record<string, string>) => clean(r.affiliate_name) ?? clean(r.source) ?? null;
+    const aliasFor = (label: string | null | undefined) => (label ? aliasByLabel.get(normLabel(label)) ?? null : null);
+
+    const resolveSourceId = (r: Record<string, string>) => {
+      const label = partnerLabel(r);
+      return aliasFor(label)?.source_id
+        ?? sourceByName.get((clean(r.source) ?? "").toLowerCase())
+        ?? matchDirectory(r.source, sourcesQ.data ?? [])
+        ?? matchDirectory(clean(r.affiliate_name), sourcesQ.data ?? []);
+    };
+    const resolveAffiliateId = (r: Record<string, string>) => {
+      const label = partnerLabel(r);
+      return aliasFor(label)?.affiliate_id
+        ?? affiliateByName.get((label ?? "").toLowerCase())
+        ?? matchDirectory(label, affiliatesQ.data ?? []);
+    };
+    /** Partner names in the file that matched neither an affiliate nor a source. */
+    const unmatchedNames = (rows: Record<string, string>[]) => {
+      const counts = new Map<string, { label: string; count: number }>();
+      for (const r of rows) {
+        const label = partnerLabel(r);
+        if (!label) continue;
+        if (resolveAffiliateId(r) || resolveSourceId(r)) continue;
+        const key = normLabel(label);
+        const prev = counts.get(key);
+        if (prev) prev.count += 1;
+        else counts.set(key, { label, count: 1 });
+      }
+      return [...counts.values()].sort((a, b) => b.count - a.count);
+    };
+
     /** Funnel / affiliate details of an "xx" row, handed to its clean twin. */
     const donorNote = (r: Record<string, string>) =>
       [
