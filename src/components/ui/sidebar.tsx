@@ -311,7 +311,13 @@ const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentProps<"bu
 
     const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
       onPointerDown?.(event);
-      if (event.defaultPrevented || state === "collapsed") return;
+      if (event.defaultPrevented) return;
+      // Collapsed: the rail is a plain expand button, no dragging.
+      if (state === "collapsed") {
+        event.preventDefault();
+        toggleSidebar();
+        return;
+      }
       event.preventDefault();
       const startX = event.clientX;
       const startWidth = sidebarWidth;
